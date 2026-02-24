@@ -19,7 +19,7 @@ CREATE TABLE "post_bids" (
 CREATE TABLE "posts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid,
-	"TODO: CHANGE" text,
+	"imgUrl" text,
 	"price" integer,
 	"title" text NOT NULL,
 	"description" text,
@@ -44,6 +44,7 @@ CREATE TABLE "requests" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"completed_at" timestamp,
 	"urgency" text DEFAULT 'Now' NOT NULL,
+	"type" text,
 	"status" text DEFAULT 'Active' NOT NULL
 );
 --> statement-breakpoint

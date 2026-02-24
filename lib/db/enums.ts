@@ -1,20 +1,12 @@
 import { pgEnum } from "drizzle-orm/pg-core";
+import { z } from "zod";
 
-const urgencyEnum = pgEnum("urgency_enum", [
+export const URGENCY_VALUES = [
   "Now",
   "Within the hour",
   "Within the day",
   "Within the week",
   "Indefinite",
-]);
+] as const;
 
-const requestsStatusEnum = pgEnum("request_status", [
-  "Active",
-  "Ongoing",
-  "Completed",
-  "Cancelled",
-]);
-
-const postsStatusEnum = pgEnum("post_status", ["Active", "Closed", "Busy"]);
-
-export { urgencyEnum, requestsStatusEnum, postsStatusEnum };
+export const UrgencyEnum = z.enum(URGENCY_VALUES);

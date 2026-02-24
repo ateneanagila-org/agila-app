@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       const email = data.user.email?.toLowerCase() || "";
       const acceptedDomain = "@student.ateneo.edu";
 
+      // TODO: INVERSE THIS CONDITIONAL FOR PROPER AUTH TO WORK
       if (email.endsWith(acceptedDomain)) {
         try {
           const supabaseAdmin = await createAdminClient();

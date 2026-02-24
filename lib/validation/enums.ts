@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const UrgencyEnum = z.enum([
+export const AuthRolesEnum = z.enum([
   "Now",
   "Within the hour",
   "Within the day",
@@ -8,18 +8,4 @@ export const UrgencyEnum = z.enum([
   "Indefinite",
 ]);
 
-export const RequestStatusEnum = z.enum([
-  "Active",
-  "Ongoing",
-  "Completed",
-  "Cancelled",
-]);
-
-export const PostStatusEnum = z.enum(["Active", "Closed", "Busy"]);
-
-export const BidStatusEnum = z.enum(["Pending", "Accepted", "Closed"]);
-
-export type Urgency = z.infer<typeof UrgencyEnum>;
-export type BidStatus = z.infer<typeof BidStatusEnum>;
-export type RequestStatus = z.infer<typeof RequestStatusEnum>;
-export type PostStatus = z.infer<typeof PostStatusEnum>;
+export type AuthRoles = z.infer<typeof AuthRolesEnum>;
