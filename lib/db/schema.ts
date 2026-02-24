@@ -8,10 +8,8 @@ import {
   timestamp,
   boolean,
 } from "drizzle-orm/pg-core";
-import { URGENCY_VALUES } from "./enums";
-import { AuthRoles } from "../validation/enums";
+import { urgencyEnum, authRoleEnum } from "./enums";
 
-export const urgencyEnum = pgEnum("urgency", URGENCY_VALUES);
 const authSchema = pgSchema("auth");
 
 const supabaseUsers = authSchema.table("users", {
@@ -24,7 +22,7 @@ export const users = pgTable("users", {
     .primaryKey()
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
   name: text("name"),
-  auth_role: text("auth_role"),
+  auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
 });
 
 export const requests = pgTable("requests", {
