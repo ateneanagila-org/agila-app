@@ -17,7 +17,7 @@ const supabaseUsers = authSchema.table("users", {
   email: text("email").notNull().unique(),
 });
 
-export const users = pgTable("users", {
+export const users = pgTable("profiles", {
   id: uuid("id")
     .primaryKey()
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),

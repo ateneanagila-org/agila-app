@@ -12,11 +12,11 @@ CREATE TABLE "requests" (
 	"type" text
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE "profiles" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"name" text,
 	"auth_role" "auth_role" DEFAULT 'Volunteer' NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "requests" ADD CONSTRAINT "requests_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "users" ADD CONSTRAINT "users_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "requests" ADD CONSTRAINT "requests_user_id_profiles_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;

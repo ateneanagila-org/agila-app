@@ -4,11 +4,12 @@ import { eq, and } from "drizzle-orm";
 import { FindUserSchema, UpdateUserSchema } from "../validation/users";
 
 export async function findUsers(filters: FindUserSchema) {
-  const { id, name } = filters;
+  const { id, name, auth_role } = filters;
   const conditions = [];
 
   if (id) conditions.push(eq(users.id, id));
   if (name) conditions.push(eq(users.name, name));
+  if (auth_role) conditions.push(eq(users.auth_role, auth_role));
 
   return await db.query.users.findMany({
     where: conditions.length > 0 ? and(...conditions) : undefined,

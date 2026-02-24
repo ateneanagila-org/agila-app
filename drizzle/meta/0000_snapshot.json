@@ -1,5 +1,5 @@
 {
-  "id": "f32bea5d-7ee5-45a7-8db7-9fa3f7227a3b",
+  "id": "6f02e7e4-4c5d-4623-b699-379c9f2468db",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -69,10 +69,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "requests_user_id_users_id_fk": {
-          "name": "requests_user_id_users_id_fk",
+        "requests_user_id_profiles_id_fk": {
+          "name": "requests_user_id_profiles_id_fk",
           "tableFrom": "requests",
-          "tableTo": "users",
+          "tableTo": "profiles",
           "columnsFrom": [
             "user_id"
           ],
@@ -89,8 +89,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users": {
-      "name": "users",
+    "public.profiles": {
+      "name": "profiles",
       "schema": "",
       "columns": {
         "id": {
@@ -116,9 +116,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "users_id_users_id_fk": {
-          "name": "users_id_users_id_fk",
-          "tableFrom": "users",
+        "profiles_id_users_id_fk": {
+          "name": "profiles_id_users_id_fk",
+          "tableFrom": "profiles",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
