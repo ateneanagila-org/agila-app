@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UrgencyEnum, RequestStatusEnum } from "../validation/enums";
+import { UrgencyEnum } from "../db/enums";
 
 export const requestSchema = z.object({
   id: z.string().uuid({}),
@@ -10,7 +10,6 @@ export const requestSchema = z.object({
   created_at: z.date(),
   completed_at: z.date().nullable(),
   urgency: UrgencyEnum,
-  status: RequestStatusEnum,
 });
 
 export const requestBidSchema = z.object({
@@ -26,7 +25,6 @@ export const findRequestsSchema = requestSchema
     user_id: true,
     fee: true,
     title: true,
-    status: true,
     urgency: true,
     created_at: true,
   })
@@ -36,7 +34,6 @@ export const insertRequestSchema = requestSchema.pick({
   user_id: true,
   title: true,
   fee: true,
-  status: true,
   description: true,
   urgency: true,
 });
@@ -46,7 +43,7 @@ export const updateRequestSchema = requestSchema
     fee: true,
     title: true,
     description: true,
-    status: true,
+
     urgency: true,
     completed_at: true,
   })

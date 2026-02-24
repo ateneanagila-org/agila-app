@@ -16,24 +16,12 @@ export async function getRequests(filters: FindRequestsSchema) {
   return await handleAction(() => requestsService.getRequests(filters));
 }
 
-export async function getRequestBids(filters: FindRequestBidsSchema) {
-  return await handleAction(() => requestsService.getRequestBids(filters));
-}
-
 export async function createRequest(data: InsertRequestSchema) {
   return await handleAction(() => requestsService.createRequest(data));
 }
 
-export async function createRequestBid(data: InsertRequestBidSchema) {
-  return await handleAction(() => requestsService.createRequestBid(data));
-}
-
 export async function removeRequest(id: string) {
   return await handleAction(() => requestsService.removeRequest(id));
-}
-
-export async function removeRequestBid(id: string) {
-  return await handleAction(() => requestsService.removeRequestBid(id));
 }
 
 export async function editRequest(id: string, data: UpdateRequestSchema) {
