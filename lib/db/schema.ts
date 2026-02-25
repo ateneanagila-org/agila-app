@@ -17,7 +17,7 @@ const supabaseUsers = authSchema.table("users", {
   email: text("email").notNull().unique(),
 });
 
-export const users = pgTable("profiles", {
+export const profiles = pgTable("profiles", {
   id: uuid("id")
     .primaryKey()
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
@@ -27,7 +27,9 @@ export const users = pgTable("profiles", {
 
 export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  user_id: uuid("user_id").references(() => profiles.id, {
+    onDelete: "cascade",
+  }),
   // For currency we use the smallest unit: Php in cents
   fee: integer("fee"),
   title: text("title").notNull(),
@@ -38,5 +40,5 @@ export const requests = pgTable("requests", {
   type: text(),
 });
 
-export type InsertUser = typeof users.$inferInsert;
-export type SelectUser = typeof users.$inferSelect;
+export type InsertProfile = typeof profiles.$inferInsert;
+export type SelectProfile = typeof profiles.$inferSelect;

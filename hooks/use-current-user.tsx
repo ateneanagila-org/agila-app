@@ -1,17 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
-import { getSupabaseUser } from "@/lib/actions/users";
+import { getSupabaseUser } from "@/lib/actions/profiles";
 import { User } from "@supabase/supabase-js";
-import { SelectUser } from "@/lib/db/schema";
-import { getUsers } from "@/lib/actions/users";
+import { SelectProfile } from "@/lib/db/schema";
+import { getProfiles } from "@/lib/actions/profiles";
 
 export interface CurrentUserData {
   supabaseUser: User;
-  publicUser: SelectUser;
+  profile: SelectProfile;
 }
 
 export function useCurrentUser() {
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [publicUser, setPublicUser] = useState<SelectUser | null>(null);
+  const [profile, setProfile] = useState<SelectProfile | null>(null);
   const [currentUserDataLoading, setCurrentUserDataLoading] = useState(true);
 
   useEffect(() => {
@@ -20,11 +20,11 @@ export function useCurrentUser() {
       const user = response.data.user;
 
       if (user?.id) {
-        const returnedPublicUser = await getUsers({ id: user.id });
+        const returnedProfile = await getProfiles({ id: user.id });
 
-        if (returnedPublicUser.data && returnedPublicUser.data.length > 0) {
+        if (returnedProfile.data && returnedProfile.data.length > 0) {
           setSupabaseUser(user);
-          setPublicUser(returnedPublicUser.data[0]);
+          setProfile(returnedProfile.data[0]);
         }
       }
 
@@ -35,12 +35,12 @@ export function useCurrentUser() {
 
   // Memoize the userData object so it has a stable reference
   const userData = useMemo(() => {
-    if (!supabaseUser || !publicUser) return null;
+    if (!supabaseUser || !profile) return null;
     return {
       supabaseUser,
-      publicUser,
+      profile,
     };
-  }, [supabaseUser, publicUser]);
+  }, [supabaseUser, profile]);
 
   return {
     userData,
