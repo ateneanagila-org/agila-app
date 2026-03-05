@@ -21,3 +21,170 @@ export const AUTH_ROLE_VALUES = [
 export const authRoleEnum = pgEnum("auth_role", AUTH_ROLE_VALUES);
 export const AuthRoleEnum = z.enum(AUTH_ROLE_VALUES);
 export type AuthRole = z.infer<typeof AuthRoleEnum>;
+
+// Region Status
+export const REGION_STATUS_VALUES = [
+  "Red",
+  "Orange",
+  "Yellow",
+  "Green",
+  "Blue",
+  "Purple",
+  "Gray",
+  "Brown",
+] as const;
+export const regionStatusEnum = pgEnum("region_status", REGION_STATUS_VALUES);
+export const RegionStatusEnum = z.enum(REGION_STATUS_VALUES);
+export type RegionStatus = z.infer<typeof RegionStatusEnum>;
+
+// Region Name
+export const REGION_NAME_VALUES = [
+  "GATE 3",
+  "ARETE",
+  "SDC",
+  "ISO",
+  "BEL",
+  "LEONG",
+  "FAURA",
+  "MVP",
+  "SCHMIITT",
+  "GONZ",
+  "XAVIER",
+  "SEC",
+  "CTC/SOM",
+  "JSEC",
+  "PIPAC",
+  "CERVINI",
+  "UNI DORM",
+  "EBAIS",
+  "POLLOCK",
+  "COV COURTS",
+  "LST",
+  "GATE 5",
+  "ASHS",
+  "AJHS",
+  "GATE 2",
+  "GATE 1",
+  "BEG",
+  "UNKNOWN",
+] as const;
+export const regionNameEnum = pgEnum("region_name", REGION_NAME_VALUES);
+export const RegionNameEnum = z.enum(REGION_NAME_VALUES);
+export type RegionName = z.infer<typeof RegionNameEnum>;
+
+// Cat Color
+export const CAT_COLOR_VALUES = [
+  "Black",
+  "White",
+  "Black and White",
+  "Calico",
+  "Tortie",
+  "Torbie",
+  "Orange Tabby",
+  "Orange and White Tabby",
+  "Gray Tabby",
+  "Gray and White Tabby",
+  "Brown Tabby",
+  "Brown and White Tabby",
+  "Unknown",
+] as const;
+export const catColorEnum = pgEnum("cat_color", CAT_COLOR_VALUES);
+export const CatColorEnum = z.enum(CAT_COLOR_VALUES);
+export type CatColor = z.infer<typeof CatColorEnum>;
+
+// Cat Age
+export const CAT_AGE_VALUES = [
+  "Neonatal",
+  "Kitten",
+  "Juvenile",
+  "Adult",
+  "Unknown",
+] as const;
+export const catAgeEnum = pgEnum("cat_age", CAT_AGE_VALUES);
+export const CatAgeEnum = z.enum(CAT_AGE_VALUES);
+export type CatAge = z.infer<typeof CatAgeEnum>;
+
+// Cat Sex
+export const CAT_SEX_VALUES = ["Female", "Male", "Unknown"] as const;
+export const catSexEnum = pgEnum("cat_sex", CAT_SEX_VALUES);
+export const CatSexEnum = z.enum(CAT_SEX_VALUES);
+export type CatSex = z.infer<typeof CatSexEnum>;
+
+// Cat Sociability
+export const CAT_SOCIABILITY_VALUES = [
+  "Domesticated",
+  "Tame",
+  "Feral",
+  "Unknown",
+] as const;
+export const catSociabilityEnum = pgEnum(
+  "cat_sociability",
+  CAT_SOCIABILITY_VALUES,
+);
+export const CatSociabilityEnum = z.enum(CAT_SOCIABILITY_VALUES);
+export type CatSociability = z.infer<typeof CatSociabilityEnum>;
+
+// Cat Status
+export const CAT_STATUS_VALUES = [
+  "Deceased",
+  "Fostered",
+  "Adopted",
+  "Stray",
+  "Missing",
+] as const;
+export const catStatusEnum = pgEnum("cat_status", CAT_STATUS_VALUES);
+export const CatStatusEnum = z.enum(CAT_STATUS_VALUES);
+export type CatStatus = z.infer<typeof CatStatusEnum>;
+
+// Cat Entry_Status
+export const CAT_ENTRY_STATUS_VALUES = [
+  "Unsubmitted",
+  "Unreviewed",
+  "Merged",
+  "Original",
+] as const;
+export const catEntryStatusEnum = pgEnum(
+  "cat_entry_status",
+  CAT_ENTRY_STATUS_VALUES,
+);
+export const CatEntryStatusEnum = z.enum(CAT_ENTRY_STATUS_VALUES);
+export type CatEntryStatus = z.infer<typeof CatEntryStatusEnum>;
+
+//  CatHealthRecord Condition
+export const CATHEALTHRECORD_CONDITION_VALUES = [
+  "Healthy",
+  "Sick",
+  "Injured",
+  "Sick and Injured",
+] as const;
+export const catHealthRecordConditionEnum = pgEnum(
+  "cathealthrecord_status",
+  CATHEALTHRECORD_CONDITION_VALUES,
+);
+export const CatHealthRecordConditionEnum = z.enum(
+  CATHEALTHRECORD_CONDITION_VALUES,
+);
+export type CatHealthRecordCondition = z.infer<
+  typeof CatHealthRecordConditionEnum
+>;
+
+// Intervention Type
+export const INTERVENTION_TYPE_VALUES = ["TNVR", "Veterinarian"] as const;
+export const interventionTypeEnum = pgEnum(
+  "intervention_type",
+  INTERVENTION_TYPE_VALUES,
+);
+export const InterventionTypeEnum = z.enum(INTERVENTION_TYPE_VALUES);
+export type InterventionType = z.infer<typeof InterventionTypeEnum>;
+
+export const INTERVENTION_STATUS_VALUES = [
+  "Pending",
+  "Finished",
+  "Cancelled",
+] as const;
+export const interventionStatusEnum = pgEnum(
+  "intervention_status",
+  INTERVENTION_STATUS_VALUES,
+);
+export const InterventionStatusEnum = z.enum(INTERVENTION_STATUS_VALUES);
+export type InterventionStatus = z.infer<typeof InterventionStatusEnum>;

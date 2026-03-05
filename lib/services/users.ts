@@ -1,4 +1,4 @@
-import * as usersRepo from "../repo/profiles.repo";
+import * as usersRepo from "../repo/users";
 import {
   FindProfilesSchema,
   UpdateProfileSchema,

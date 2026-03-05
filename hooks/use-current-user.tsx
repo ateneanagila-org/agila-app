@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
-import { getSupabaseUser } from "@/lib/actions/profiles";
+import { getSupabaseUser } from "@/app/actions/profiles";
 import { User } from "@supabase/supabase-js";
 import { SelectProfile } from "@/lib/db/schema";
-import { getProfiles } from "@/lib/actions/profiles";
+import { getProfiles } from "@/app/actions/profiles";
 
 export interface CurrentUserData {
   supabaseUser: User;

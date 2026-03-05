@@ -1,7 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 
-import * as usersService from "@/lib/services/profiles.service";
+import * as usersService from "@/lib/services/users";
 import { handleAction } from "@/lib/error/actions-handler";
 import {
   FindProfilesSchema,

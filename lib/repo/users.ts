@@ -23,6 +23,10 @@ export async function insertProfile(id: string) {
   return await db.insert(profiles).values({ id });
 }
 
+export async function deleteProfile(id: string) {
+  return await db.delete(profiles).where(eq(profiles.id, id));
+}
+
 export async function updateProfile(id: string, data: UpdateProfileSchema) {
   return await db.update(profiles).set(data).where(eq(profiles.id, id));
 }
