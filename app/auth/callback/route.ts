@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createProfile } from "@/app/actions/profiles";
+import { createProfile } from "@/app/actions/users";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

@@ -40,8 +40,8 @@ export const profiles = pgTable("profiles", {
 });
 
 export const allowedEmails = pgTable("allowed_emails", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email"),
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  email: text("email").notNull(),
   allower_id: uuid("allower_id").references(() => supabaseUsers.id, {
     onDelete: "set null",
   }),
