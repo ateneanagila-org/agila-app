@@ -1,6 +1,6 @@
 import {
   ColorBlock,
-  MobilePageFrame,
+  PageContent,
 } from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 const CAT_ROWS = [
@@ -11,10 +11,9 @@ const CAT_ROWS = [
 
 export function DatabaseListScreen() {
   return (
-    <MobilePageFrame
+    <PageContent
       title="Database"
       subtitle="Search and filter cat records"
-      activeNav="Database"
     >
       <div className="space-y-3">
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
@@ -38,6 +37,6 @@ export function DatabaseListScreen() {
           ))}
         </div>
       </div>
-    </MobilePageFrame>
+    </PageContent>
   );
 }

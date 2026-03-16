@@ -1,14 +1,13 @@
 import {
   ColorBlock,
-  MobilePageFrame,
+  PageContent,
 } from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 export function SessionsManagerScreen() {
   return (
-    <MobilePageFrame
+    <PageContent
       title="Manager View"
       subtitle="Sessions for review"
-      activeNav="Sessions"
     >
       <div className="space-y-3">
         <ColorBlock
@@ -37,6 +36,6 @@ export function SessionsManagerScreen() {
           className="h-12"
         />
       </div>
-    </MobilePageFrame>
+    </PageContent>
   );
 }

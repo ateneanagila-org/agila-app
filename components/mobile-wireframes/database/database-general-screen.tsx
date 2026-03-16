@@ -1,15 +1,14 @@
 import {
   ColorBlock,
-  MobilePageFrame,
+  PageContent,
   TopTabs,
 } from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 export function DatabaseGeneralScreen() {
   return (
-    <MobilePageFrame
+    <PageContent
       title="Cat Entry Detail"
       subtitle="Cat: Arete | Updated: 02/21/26"
-      activeNav="Database"
     >
       <div className="space-y-3">
         <ColorBlock
@@ -54,6 +53,6 @@ export function DatabaseGeneralScreen() {
           className="h-20"
         />
       </div>
-    </MobilePageFrame>
+    </PageContent>
   );
 }

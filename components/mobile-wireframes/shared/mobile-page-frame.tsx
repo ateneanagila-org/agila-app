@@ -1,59 +1,20 @@
 import type { ReactNode } from "react";
 
-type MobileNavItem = "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
-
-type MobilePageFrameProps = {
+type PageContentProps = {
   title: string;
   subtitle?: string;
-  activeNav: MobileNavItem;
   children: ReactNode;
 };
 
-const NAV_ITEMS: MobileNavItem[] = [
-  "Overview",
-  "TNVR",
-  "Database",
-  "Sessions",
-  "Users",
-];
-
-export function MobilePageFrame({
-  title,
-  subtitle,
-  activeNav,
-  children,
-}: MobilePageFrameProps) {
+export function PageContent({ title, subtitle, children }: PageContentProps) {
   return (
-    <section className="min-h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-      <header className="bg-slate-900 px-4 py-3 text-white">
-        <p className="text-sm font-semibold">CATalog</p>
-        <h1 className="text-base font-bold">{title}</h1>
-        {subtitle ? <p className="text-xs text-slate-200">{subtitle}</p> : null}
-      </header>
-
-      <div className="bg-slate-50 px-3 py-4 xs:px-4 mobile:px-5">
-        {children}
+    <div className="space-y-3 px-3 py-4 xs:px-4 mobile:px-5">
+      <div className="rounded-lg bg-emerald-200 px-3 py-2 text-emerald-950">
+        <h1 className="text-sm font-bold">{title}</h1>
+        {subtitle ? <p className="text-xs font-medium">{subtitle}</p> : null}
       </div>
-
-      <footer className="grid grid-cols-5 bg-slate-100">
-        {NAV_ITEMS.map((item) => {
-          const active = item === activeNav;
-          return (
-            <div
-              key={item}
-              className={`flex flex-col items-center gap-1 px-1 py-2 ${active ? "bg-blue-100" : "bg-slate-100"}`}
-            >
-              <div
-                className={`h-7 w-7 rounded-full ${active ? "bg-blue-500" : "bg-slate-300"}`}
-              />
-              <span className="text-[10px] font-medium text-slate-700">
-                {item}
-              </span>
-            </div>
-          );
-        })}
-      </footer>
-    </section>
+      {children}
+    </div>
   );
 }
 

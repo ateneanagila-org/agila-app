@@ -1,14 +1,13 @@
 import {
   ColorBlock,
-  MobilePageFrame,
+  PageContent,
 } from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 export function TnvrScreen() {
   return (
-    <MobilePageFrame
+    <PageContent
       title="TNVR"
       subtitle="Area report: Brgy. Arete"
-      activeNav="TNVR"
     >
       <div className="space-y-3">
         <ColorBlock
@@ -27,6 +26,6 @@ export function TnvrScreen() {
           className="h-44"
         />
       </div>
-    </MobilePageFrame>
+    </PageContent>
   );
 }

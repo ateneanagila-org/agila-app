@@ -1,14 +1,13 @@
 import {
   ColorBlock,
-  MobilePageFrame,
+  PageContent,
 } from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 export function OverviewScreen() {
   return (
-    <MobilePageFrame
+    <PageContent
       title="Overview"
       subtitle="Last update: Jan 1, 2026"
-      activeNav="Overview"
     >
       <div className="space-y-3">
         <ColorBlock
@@ -37,6 +36,6 @@ export function OverviewScreen() {
           className="h-40"
         />
       </div>
-    </MobilePageFrame>
+    </PageContent>
   );
 }
