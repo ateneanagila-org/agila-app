@@ -23,7 +23,7 @@ export default function DashboardPage() {
   return (
     <main className="space-y-6 p-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Mobile Wireframe Routes</h1>
+        <h1 className="text-2xl font-semibold">App Routes</h1>
         <p className="text-sm text-muted-foreground">
           Signed in as {userData?.supabaseUser?.email}
         </p>

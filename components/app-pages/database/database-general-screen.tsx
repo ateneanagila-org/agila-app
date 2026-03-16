@@ -2,7 +2,7 @@ import {
   ColorBlock,
   PageContent,
   TopTabs,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function DatabaseGeneralScreen() {
   return (

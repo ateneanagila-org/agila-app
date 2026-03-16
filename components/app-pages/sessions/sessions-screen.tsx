@@ -1,7 +1,7 @@
 import {
   ColorBlock,
   PageContent,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function SessionsScreen() {
   return (

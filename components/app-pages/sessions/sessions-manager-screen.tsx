@@ -1,14 +1,11 @@
 import {
   ColorBlock,
   PageContent,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function SessionsManagerScreen() {
   return (
-    <PageContent
-      title="Manager View"
-      subtitle="Sessions for review"
-    >
+    <PageContent title="Manager View" subtitle="Sessions for review">
       <div className="space-y-3">
         <ColorBlock
           tone="amber"

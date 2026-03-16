@@ -1,14 +1,11 @@
 import {
   ColorBlock,
   PageContent,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function TnvrScreen() {
   return (
-    <PageContent
-      title="TNVR"
-      subtitle="Area report: Brgy. Arete"
-    >
+    <PageContent title="TNVR" subtitle="Area report: Brgy. Arete">
       <div className="space-y-3">
         <ColorBlock
           tone="emerald"

@@ -2,14 +2,11 @@ import {
   ColorBlock,
   PageContent,
   TopTabs,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function DatabaseInterventionsScreen() {
   return (
-    <PageContent
-      title="Cat Entry Detail"
-      subtitle="Interventions for Arete"
-    >
+    <PageContent title="Cat Entry Detail" subtitle="Interventions for Arete">
       <div className="space-y-3">
         <ColorBlock
           tone="slate"

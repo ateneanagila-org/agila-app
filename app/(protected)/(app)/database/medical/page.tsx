@@ -1,4 +1,4 @@
-import { DatabaseMedicalScreen } from "@/components/mobile-wireframes/database/database-medical-screen";
+import { DatabaseMedicalScreen } from "@/components/app-pages/database/database-medical-screen";
 
 export default function DatabaseMedicalPage() {
   return <DatabaseMedicalScreen />;

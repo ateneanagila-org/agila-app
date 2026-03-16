@@ -2,14 +2,11 @@ import {
   ColorBlock,
   PageContent,
   TopTabs,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function DatabaseMedicalScreen() {
   return (
-    <PageContent
-      title="Cat Entry Detail"
-      subtitle="Medical records for Arete"
-    >
+    <PageContent title="Cat Entry Detail" subtitle="Medical records for Arete">
       <div className="space-y-3">
         <ColorBlock
           tone="slate"

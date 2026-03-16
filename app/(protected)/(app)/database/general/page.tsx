@@ -1,4 +1,4 @@
-import { DatabaseGeneralScreen } from "@/components/mobile-wireframes/database/database-general-screen";
+import { DatabaseGeneralScreen } from "@/components/app-pages/database/database-general-screen";
 
 export default function DatabaseGeneralPage() {
   return <DatabaseGeneralScreen />;

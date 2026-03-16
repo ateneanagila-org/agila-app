@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { MobileAppWrapper } from "@/components/mobile-shell/mobile-app-wrapper";
+import { AppShell } from "@/components/app-shell/app-shell";
 
-export default function MobileRoutesLayout({ children }: { children: ReactNode }) {
-  return <MobileAppWrapper>{children}</MobileAppWrapper>;
+export default function AppRoutesLayout({ children }: { children: ReactNode }) {
+  return <AppShell>{children}</AppShell>;
 }

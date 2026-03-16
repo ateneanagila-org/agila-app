@@ -1,7 +1,7 @@
 import {
   ColorBlock,
   PageContent,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 const CAT_ROWS = [
   "Milo - Orange Tabby - Adult",
@@ -11,10 +11,7 @@ const CAT_ROWS = [
 
 export function DatabaseListScreen() {
   return (
-    <PageContent
-      title="Database"
-      subtitle="Search and filter cat records"
-    >
+    <PageContent title="Database" subtitle="Search and filter cat records">
       <div className="space-y-3">
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
           <ColorBlock tone="sky" label="Search: cat name" className="h-10" />

@@ -1,14 +1,11 @@
 import {
   ColorBlock,
   PageContent,
-} from "@/components/mobile-wireframes/shared/mobile-page-frame";
+} from "@/components/app-pages/shared/page-frame";
 
 export function OverviewScreen() {
   return (
-    <PageContent
-      title="Overview"
-      subtitle="Last update: Jan 1, 2026"
-    >
+    <PageContent title="Overview" subtitle="Last update: Jan 1, 2026">
       <div className="space-y-3">
         <ColorBlock
           tone="sky"

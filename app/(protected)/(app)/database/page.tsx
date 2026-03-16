@@ -1,4 +1,4 @@
-import { DatabaseListScreen } from "@/components/mobile-wireframes/database/database-list-screen";
+import { DatabaseListScreen } from "@/components/app-pages/database/database-list-screen";
 
 export default function DatabasePage() {
   return <DatabaseListScreen />;
