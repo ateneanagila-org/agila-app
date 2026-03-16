@@ -1,4 +1,7 @@
-import { ColorBlock, MobilePageFrame } from "@/components/mobile-wireframes/shared/mobile-page-frame";
+import {
+  ColorBlock,
+  MobilePageFrame,
+} from "@/components/mobile-wireframes/shared/mobile-page-frame";
 
 const CAT_ROWS = [
   "Milo - Orange Tabby - Adult",
@@ -8,7 +11,11 @@ const CAT_ROWS = [
 
 export function DatabaseListScreen() {
   return (
-    <MobilePageFrame title="Database" subtitle="Search and filter cat records" activeNav="Database">
+    <MobilePageFrame
+      title="Database"
+      subtitle="Search and filter cat records"
+      activeNav="Database"
+    >
       <div className="space-y-3">
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
           <ColorBlock tone="sky" label="Search: cat name" className="h-10" />
@@ -18,7 +25,10 @@ export function DatabaseListScreen() {
 
         <div className="space-y-2">
           {CAT_ROWS.map((row) => (
-            <div key={row} className="rounded-lg bg-white p-2 ring-1 ring-slate-200">
+            <div
+              key={row}
+              className="rounded-lg bg-white p-2 ring-1 ring-slate-200"
+            >
               <div className="flex items-center gap-2">
                 <div className="h-10 w-10 rounded-full bg-slate-300" />
                 <ColorBlock tone="slate" label={row} className="flex-1" />

@@ -8,13 +8,21 @@ const NAV_LINKS = [
   { href: "/mobile-wireframes/sessions", label: "Sessions" },
 ];
 
-export default function MobileWireframesLayout({ children }: { children: ReactNode }) {
+export default function MobileWireframesLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <main className="min-h-screen bg-slate-100 px-2 py-3 xs:px-3 mobile:px-4 mobile:py-4 tablet:px-6">
       <div className="mx-auto w-full max-w-sm mobile:max-w-md">
         <div className="mb-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-sm font-bold text-slate-900">AGILA Mobile Wireframes</h1>
-          <p className="text-xs text-slate-600">Each screen has its own route and hardcoded sample values.</p>
+          <h1 className="text-sm font-bold text-slate-900">
+            AGILA Mobile Wireframes
+          </h1>
+          <p className="text-xs text-slate-600">
+            Each screen has its own route and hardcoded sample values.
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {NAV_LINKS.map((item) => (
               <Link

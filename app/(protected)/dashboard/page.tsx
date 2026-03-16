@@ -7,8 +7,14 @@ const MOBILE_ROUTES = [
   { href: "/mobile-wireframes/overview", label: "Overview" },
   { href: "/mobile-wireframes/tnvr", label: "TNVR" },
   { href: "/mobile-wireframes/database", label: "Database List" },
-  { href: "/mobile-wireframes/database/general", label: "Database Detail - General" },
-  { href: "/mobile-wireframes/database/medical", label: "Database Detail - Medical" },
+  {
+    href: "/mobile-wireframes/database/general",
+    label: "Database Detail - General",
+  },
+  {
+    href: "/mobile-wireframes/database/medical",
+    label: "Database Detail - Medical",
+  },
   {
     href: "/mobile-wireframes/database/interventions",
     label: "Database Detail - Interventions",
@@ -24,7 +30,9 @@ export default function DashboardPage() {
     <main className="space-y-6 p-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Mobile Wireframe Routes</h1>
-        <p className="text-sm text-muted-foreground">Signed in as {userData?.supabaseUser?.email}</p>
+        <p className="text-sm text-muted-foreground">
+          Signed in as {userData?.supabaseUser?.email}
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
