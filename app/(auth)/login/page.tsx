@@ -1,4 +1,6 @@
+"use client";
 import { googleLogin } from "./actions";
+
 
 export default function LoginPage() {
   return (

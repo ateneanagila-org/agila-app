@@ -24,8 +24,9 @@ export async function googleLogin() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/account");
+  redirect("/dashboard");
 }
+
 
 // export async function login(formData: FormData) {
 //   const supabase = await createClient();
