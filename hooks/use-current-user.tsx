@@ -17,7 +17,8 @@ export function useCurrentUser() {
   useEffect(() => {
     async function loadSupabaseUser() {
       const response = await getSupabaseUser();
-      const user = response.data.user;
+      const user = response?.data?.data?.user;
+
 
       if (user?.id) {
         const returnedProfile = await getProfiles({ id: user.id });
