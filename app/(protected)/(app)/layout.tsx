@@ -26,8 +26,8 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-900">
-      <header className="bg-lime-200">
+    <div className="fixed inset-0 flex h-dvh flex-col overflow-hidden bg-slate-900 text-slate-900">
+      <header className="sticky top-0 z-20 bg-lime-200">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 mobile:px-5 tablet:h-18 tablet:px-8">
           <p className="text-4.5 font-medium">CATalog</p>
           <div className="flex items-center gap-3">
@@ -41,11 +41,11 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-[calc(100dvh-8.25rem)] bg-slate-100 tablet:min-h-[calc(100dvh-8.5rem)]">
-        {children}
+      <main className="min-h-0 flex-1 overflow-y-auto bg-slate-100">
+        <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
 
-      <footer className="bg-lime-200">
+      <footer className="sticky bottom-0 z-20 bg-lime-200">
         <div className="mx-auto grid h-17.5 w-full max-w-7xl grid-cols-5 tablet:h-20">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
