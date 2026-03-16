@@ -1,9 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context";
 
-const MOBILE_ROUTES = [
+const ROUTES = [
   { href: "/mobile-wireframes/overview", label: "Overview" },
   { href: "/mobile-wireframes/tnvr", label: "TNVR" },
   { href: "/mobile-wireframes/database", label: "Database List" },
@@ -17,27 +14,22 @@ const MOBILE_ROUTES = [
   { href: "/mobile-wireframes/sessions/manager", label: "Sessions Manager" },
 ];
 
-export default function DashboardPage() {
-  const { userData } = useAuth();
-
+export default function MobileWireframesIndexPage() {
   return (
-    <main className="space-y-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Mobile Wireframe Routes</h1>
-        <p className="text-sm text-muted-foreground">Signed in as {userData?.supabaseUser?.email}</p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {MOBILE_ROUTES.map((route) => (
+    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <h2 className="text-base font-bold text-slate-900">Mobile Screens</h2>
+      <p className="mb-3 text-xs text-slate-600">Open any screen below to view the mobile layout blocks.</p>
+      <div className="grid grid-cols-1 gap-2">
+        {ROUTES.map((route) => (
           <Link
             key={route.href}
             href={route.href}
-            className="rounded-lg border bg-card px-4 py-3 text-sm font-medium text-card-foreground hover:bg-muted"
+            className="rounded-lg bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-200"
           >
             {route.label}
           </Link>
         ))}
       </div>
-    </main>
+    </section>
   );
 }
