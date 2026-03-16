@@ -1,5 +1,4 @@
 import {
-  integer,
   pgTable,
   pgSchema,
   text,
@@ -9,9 +8,8 @@ import {
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import {
-  urgencyEnum,
   authRoleEnum,
-  regionStatusEnum,
+  regionColorEnum,
   regionNameEnum,
   catEntryStatusEnum,
   catColorEnum,
@@ -37,6 +35,7 @@ export const profiles = pgTable("profiles", {
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
   name: text("name"),
   auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
 });
 
 export const allowedEmails = pgTable("allowed_emails", {
@@ -51,7 +50,7 @@ export const allowedEmails = pgTable("allowed_emails", {
 export const regions = pgTable("regions", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  status: regionStatusEnum("status"),
+  color: regionColorEnum("color"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -62,7 +61,7 @@ export const sessions = pgTable("sessions", {
       onDelete: "cascade",
     }),
   created_at: timestamp("created_at").defaultNow().notNull(),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
   is_finished: boolean("is_finished").default(false),
 });
 
@@ -102,7 +101,7 @@ export const cats = pgTable("cats", {
       onDelete: "set null",
     },
   ),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
   entry_status: catEntryStatusEnum("entry_status")
     .default("Unreviewed")
     .notNull(),
@@ -126,41 +125,22 @@ export const interventions = pgTable("interventions", {
     .references(() => cats.id, {
       onDelete: "cascade",
     }),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
   requested_at: timestamp("requested_at").defaultNow().notNull(),
   type: interventionTypeEnum("type"),
   status: interventionStatusEnum("status").default("Pending"),
   notes: text("notes"),
 });
 
-export const catHealthRecord = pgTable("cat_health_record", {
+export const catHealthRecords = pgTable("cat_health_records", {
   id: uuid("id").primaryKey().defaultRandom(),
   cat_id: uuid("cat_id")
     .notNull()
     .references(() => cats.id, {
       onDelete: "cascade",
     }),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
   condition: catHealthRecordConditionEnum("condition"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
 });
-
-// TEMPLATE
-export const requests = pgTable("requests", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id").references(() => profiles.id, {
-    onDelete: "cascade",
-  }),
-  // For currency we use the smallest unit: Php in cents
-  fee: integer("fee"),
-  title: text("title").notNull(),
-  description: text("description"),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  completed_at: timestamp("completed_at"),
-  urgency: urgencyEnum("urgency").notNull().default("Now"),
-  type: text(),
-});
-
-export type InsertProfile = typeof profiles.$inferInsert;
-export type SelectProfile = typeof profiles.$inferSelect;

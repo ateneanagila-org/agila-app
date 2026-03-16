@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { getSupabaseUser } from "@/app/actions/users";
 import { User } from "@supabase/supabase-js";
-import { SelectProfile } from "@/lib/db/schema";
+import { SelectProfile } from "@/lib/validation/users";
 import { getProfiles } from "@/app/actions/users";
 
 export interface CurrentUserData {
