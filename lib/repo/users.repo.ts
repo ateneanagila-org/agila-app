@@ -18,17 +18,14 @@ export const findProfiles = (filters: Partial<SelectProfile>) =>
       ),
   });
 
-export async function insertProfile(data: InsertProfile) {
-  return await db.insert(profiles).values(data);
-}
+export const insertProfile = (data: InsertProfile) =>
+  db.insert(profiles).values(data);
 
-export async function deleteProfile(id: string) {
-  return await db.delete(profiles).where(eq(profiles.id, id));
-}
+export const deleteProfile = (id: string) =>
+  db.delete(profiles).where(eq(profiles.id, id));
 
-export async function updateProfile(id: string, data: Partial<InsertProfile>) {
-  return await db.update(profiles).set(data).where(eq(profiles.id, id));
-}
+export const updateProfile = (id: string, data: Partial<InsertProfile>) =>
+  db.update(profiles).set(data).where(eq(profiles.id, id));
 
 // ALLOWED EMAILS
 export const findAllowedEmails = (filters: Partial<SelectAllowedEmail>) =>

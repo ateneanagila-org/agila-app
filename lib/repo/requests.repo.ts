@@ -1,7 +1,7 @@
 import { and, eq, lte, ilike, gte, desc } from "drizzle-orm";
 import { db } from "../db";
 import { requests } from "../db/schema";
-import { getDayRange } from "./helper";
+import { getDayRange } from "./helper.repo";
 import {
   FindRequestsSchema,
   InsertRequestSchema,
