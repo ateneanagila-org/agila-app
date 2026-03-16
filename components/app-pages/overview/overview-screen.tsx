@@ -2,6 +2,7 @@ import {
   ColorBlock,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
+import { FilterDropdown } from "@/components/app-pages/shared/filter-dropdown";
 
 export function OverviewScreen() {
   return (
@@ -12,6 +13,21 @@ export function OverviewScreen() {
           label="Hero Card: Colony Snapshot (67 Cats)"
           className="h-24"
         />
+        <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-slate-300">
+          <p className="mb-2 text-xs font-semibold text-slate-700">Filters</p>
+          <div className="grid grid-cols-1 gap-2">
+            <FilterDropdown
+              label="Location"
+              options={[
+                "All Locations",
+                "Brgy. Arete",
+                "Covered Court",
+                "Market Zone",
+              ]}
+              defaultValue="Brgy. Arete"
+            />
+          </div>
+        </div>
         <ColorBlock
           tone="emerald"
           label="Stats Row: Domesticated / Feral / Unknown"
