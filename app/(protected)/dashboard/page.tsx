@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 
-const MOBILE_ROUTES = [
+const APP_ROUTES = [
   { href: "/overview", label: "Overview" },
   { href: "/tnvr", label: "TNVR" },
   { href: "/database", label: "Database List" },
@@ -30,7 +30,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {MOBILE_ROUTES.map((route) => (
+        {APP_ROUTES.map((route) => (
           <Link
             key={route.href}
             href={route.href}

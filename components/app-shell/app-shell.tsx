@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-type MobileNavItem = {
+type NavItem = {
   label: "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
   href: string;
 };
 
-const NAV_ITEMS: MobileNavItem[] = [
+const NAV_ITEMS: NavItem[] = [
   { label: "Overview", href: "/overview" },
   { label: "TNVR", href: "/tnvr" },
   { label: "Database", href: "/database" },
