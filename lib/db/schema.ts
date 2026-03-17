@@ -7,20 +7,7 @@ import {
   boolean,
   AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import {
-  authRoleEnum,
-  regionColorEnum,
-  regionNameEnum,
-  catEntryStatusEnum,
-  catColorEnum,
-  catAgeEnum,
-  catSexEnum,
-  catSociabilityEnum,
-  catStatusEnum,
-  interventionTypeEnum,
-  interventionStatusEnum,
-  catHealthRecordConditionEnum,
-} from "./enums";
+import * as e from "./enums";
 
 const authSchema = pgSchema("auth");
 
@@ -34,7 +21,7 @@ export const profiles = pgTable("profiles", {
     .primaryKey()
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
   name: text("name"),
-  auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
+  auth_role: e.authRoleEnum("auth_role").notNull().default("Volunteer"),
   last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
 });
 
@@ -49,8 +36,8 @@ export const allowedEmails = pgTable("allowed_emails", {
 
 export const regions = pgTable("regions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  color: regionColorEnum("color"),
+  name: e.regionNameEnum("name").default("UNKNOWN").notNull(),
+  color: e.regionColorEnum("color"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -102,16 +89,17 @@ export const cats = pgTable("cats", {
     },
   ),
   last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
-  entry_status: catEntryStatusEnum("entry_status")
+  entry_status: e
+    .catEntryStatusEnum("entry_status")
     .default("Unreviewed")
     .notNull(),
   photo_url: text("photo_url"),
-  color: catColorEnum("color").default("Unknown"),
-  age: catAgeEnum("age").default("Unknown"),
-  sex: catSexEnum("sex").default("Unknown"),
+  color: e.catColorEnum("color").default("Unknown"),
+  age: e.catAgeEnum("age").default("Unknown"),
+  sex: e.catSexEnum("sex").default("Unknown"),
   name: text("name"),
-  sociability: catSociabilityEnum("sociability").default("Unknown"),
-  cat_status: catStatusEnum("cat_status"),
+  sociability: e.catSociabilityEnum("sociability").default("Unknown"),
+  cat_status: e.catStatusEnum("cat_status"),
   spot_last_seen: text("spot_last_seen"),
   caretaker: text("caretaker"),
   notes: text("notes"),
@@ -127,8 +115,8 @@ export const interventions = pgTable("interventions", {
     }),
   last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
   requested_at: timestamp("requested_at").defaultNow().notNull(),
-  type: interventionTypeEnum("type"),
-  status: interventionStatusEnum("status").default("Pending"),
+  type: e.interventionTypeEnum("type"),
+  status: e.interventionStatusEnum("status").default("Pending"),
   notes: text("notes"),
 });
 
@@ -140,7 +128,7 @@ export const catHealthRecords = pgTable("cat_health_records", {
       onDelete: "cascade",
     }),
   last_updated_at: timestamp("last_updated_at").defaultNow().notNull(),
-  condition: catHealthRecordConditionEnum("condition"),
+  condition: e.catHealthRecordConditionEnum("condition"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
 });

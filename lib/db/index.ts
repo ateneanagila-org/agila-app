@@ -23,7 +23,7 @@ if (process.env.NODE_ENV !== "production") {
 
 export const db = drizzle({ client, schema });
 
-// SPECIFIC DB FOR DB.TRANSACTION TO WORK
+// SPECIFIC DB FOR DB.TRANSACTION TO WORK ACROSS SERVICE AND REPO LAYERS
 type TSchema = typeof schema;
 export type Transaction = PgTransaction<
   PgQueryResultHKT,
