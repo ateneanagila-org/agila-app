@@ -1,52 +1,6 @@
 import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { FilterDropdown } from "@/components/app-pages/shared/filter-dropdown";
-
-const LOCATIONS = [
-  "All Locations",
-  "GATE 3",
-  "ARETE",
-  "SDC",
-  "ISO",
-  "BEL",
-  "LEONG",
-  "NEW RIZAL",
-  "DELA COSTA",
-  "FAURA",
-  "OLD RIZAL",
-  "FABER",
-  "MVP",
-  "SCHMITT",
-  "GONZ",
-  "BERCH",
-  "XAVIER",
-  "KOSTKA",
-  "SEC",
-  "CTC/SOM",
-  "JSEC",
-  "PIPAC",
-  "IRH",
-  "CERVINI",
-  "ELIAZO",
-  "UNI DORM",
-  "EBAI'S",
-  "POLLOCK",
-  "COV COURTS",
-  "OLD COMMS",
-  "IGGY'S",
-  "LST",
-  "GATE 5",
-  "ASHS",
-  "AJHS",
-  "MORO",
-  "EAPI",
-  "GATE 2",
-  "GATE 1",
-  "AGS",
-  "BEG",
-  "IRWIN",
-  "MNL OBS",
-  "UNKNOWN",
-];
+import { LOCATIONS } from "@/components/app-pages/shared/constants";
 
 const LOCATION_STATS = [
   { label: "Cat Count", value: "24" },
@@ -75,6 +29,12 @@ export function OverviewScreen() {
   return (
     <PageContent title="Overview">
       <div className="space-y-3 tablet:space-y-4">
+
+        {/* About */}
+        <p className="text-xs leading-relaxed text-slate-500 tablet:text-sm">
+          This is a summary of the cat population in the Ateneo de Manila
+          University. Updates come from AGILA&apos;s cat census sheets.
+        </p>
 
         {/* Dates */}
         <div className="flex flex-col gap-0.5">

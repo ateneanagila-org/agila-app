@@ -21,34 +21,6 @@ export function PageContent({ title, subtitle, children }: PageContentProps) {
   );
 }
 
-type ColorBlockProps = {
-  label: string;
-  className?: string;
-  tone?: "sky" | "emerald" | "amber" | "rose" | "violet" | "slate";
-};
-
-const TONE_MAP = {
-  sky: "bg-sky-200 text-sky-950",
-  emerald: "bg-emerald-200 text-emerald-950",
-  amber: "bg-amber-200 text-amber-950",
-  rose: "bg-rose-200 text-rose-950",
-  violet: "bg-violet-200 text-violet-950",
-  slate: "bg-slate-200 text-slate-900",
-};
-
-export function ColorBlock({
-  label,
-  className = "",
-  tone = "slate",
-}: ColorBlockProps) {
-  return (
-    <div
-      className={`rounded-lg px-3 py-2 text-xs font-semibold tablet:rounded-xl tablet:px-4 tablet:py-3 tablet:text-sm ${TONE_MAP[tone]} ${className}`}
-    >
-      {label}
-    </div>
-  );
-}
 
 export function TopTabs({
   active,
