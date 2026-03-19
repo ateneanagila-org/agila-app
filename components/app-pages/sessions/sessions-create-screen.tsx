@@ -53,7 +53,7 @@ export function SessionsCreateScreen() {
     <div className="flex min-h-[calc(100dvh-8.5rem)] flex-col">
       <div className="flex-1 space-y-0 px-4 py-4">
         {/* Location card */}
-        <div className="relative mb-4 rounded-2xl bg-amber-50 px-4 py-3">
+        <div className="relative mb-4 rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-bold text-slate-900">Location</p>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 type PageContentProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: ReactNode;
 };
@@ -10,12 +10,14 @@ type PageContentProps = {
 export function PageContent({ title, subtitle, children }: PageContentProps) {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-3 px-3 py-4 xs:px-4 mobile:px-5 tablet:space-y-4 tablet:px-8 tablet:py-6">
-      <div className="rounded-lg bg-emerald-200 px-3 py-2 text-emerald-950 tablet:rounded-xl tablet:px-4 tablet:py-3">
-        <h1 className="text-sm font-bold tablet:text-base">{title}</h1>
-        {subtitle ? (
-          <p className="text-xs font-medium tablet:text-sm">{subtitle}</p>
-        ) : null}
-      </div>
+      {title ? (
+        <div className="rounded-lg bg-emerald-200 px-3 py-2 text-emerald-950 tablet:rounded-xl tablet:px-4 tablet:py-3">
+          <h1 className="text-sm font-bold tablet:text-base">{title}</h1>
+          {subtitle ? (
+            <p className="text-xs font-medium tablet:text-sm">{subtitle}</p>
+          ) : null}
+        </div>
+      ) : null}
       {children}
     </div>
   );

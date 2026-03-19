@@ -44,7 +44,7 @@ export function UsersScreen() {
     <div className="px-4 py-4">
       {/* Search + Add */}
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex-1 rounded-full border border-amber-100 bg-amber-50 px-4 py-2.5 text-sm text-slate-400">
+        <div className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400">
           Search
         </div>
         <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-600 text-white">

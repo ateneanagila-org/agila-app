@@ -27,7 +27,7 @@ export function SessionsScreen() {
     <div className="flex min-h-[calc(100dvh-8.5rem)] flex-col">
       <div className="flex-1 space-y-3 px-4 py-4">
         {/* Recent Sessions card */}
-        <div className="rounded-2xl bg-amber-50 p-4 space-y-3">
+        <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-slate-900">Recent Sessions</p>
             <Link
@@ -51,7 +51,7 @@ export function SessionsScreen() {
             {RECENT_SESSIONS.map((s) => (
               <div
                 key={s.no}
-                className="grid grid-cols-[auto_1fr_auto] gap-x-4 border-b border-amber-100 px-1 py-1.5"
+                className="grid grid-cols-[auto_1fr_auto] gap-x-4 border-b border-slate-100 px-1 py-1.5"
               >
                 <span className="text-xs text-slate-700">{s.no}</span>
                 <span className="text-xs text-slate-700">{s.location}</span>
@@ -66,7 +66,7 @@ export function SessionsScreen() {
         </div>
 
         {/* Priority Locations card */}
-        <div className="rounded-2xl bg-amber-50 p-4 space-y-3">
+        <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200 space-y-3">
           <div className="flex items-center gap-1.5">
             <p className="text-sm font-bold text-slate-900">
               Priority Locations

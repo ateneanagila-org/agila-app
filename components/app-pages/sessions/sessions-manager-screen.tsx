@@ -39,7 +39,7 @@ export function SessionsManagerScreen() {
         {/* Current Census Reports link */}
         <Link
           href="#"
-          className="flex w-full items-center justify-between rounded-2xl bg-amber-50 px-4 py-3"
+          className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200"
         >
           <span className="text-sm font-semibold text-slate-900">
             Current Census Reports

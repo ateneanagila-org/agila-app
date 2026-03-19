@@ -19,15 +19,18 @@ const TOTALS = [
 
 export function TnvrScreen() {
   return (
-    <PageContent title="TNVR">
+    <PageContent>
       <div className="space-y-3 tablet:space-y-4">
 
-        {/* About */}
-        <p className="text-xs leading-relaxed text-slate-500 tablet:text-sm">
-          This is a summary of the TNVR statistics of the Catenean population.
-          Updates come from AGILA&apos;s cat census sheets and responses from the
-          ACCaP Cat Census GForms.
-        </p>
+        {/* Page Header */}
+        <div>
+          <h1 className="text-base font-bold text-slate-900 tablet:text-lg">TNVR</h1>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 tablet:text-sm">
+            This is a summary of the TNVR statistics of the Catenean population.
+            Updates come from AGILA&apos;s cat census sheets and responses from the
+            ACCaP Cat Census GForms.
+          </p>
+        </div>
 
         {/* Totals Hero Card */}
         <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">

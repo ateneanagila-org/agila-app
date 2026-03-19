@@ -27,14 +27,17 @@ const ADDITIONAL_STATS = [
 
 export function OverviewScreen() {
   return (
-    <PageContent title="Overview">
+    <PageContent>
       <div className="space-y-3 tablet:space-y-4">
 
-        {/* About */}
-        <p className="text-xs leading-relaxed text-slate-500 tablet:text-sm">
-          This is a summary of the cat population in the Ateneo de Manila
-          University. Updates come from AGILA&apos;s cat census sheets.
-        </p>
+        {/* Page Header */}
+        <div>
+          <h1 className="text-base font-bold text-slate-900 tablet:text-lg">Overview</h1>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 tablet:text-sm">
+            This is a summary of the cat population in the Ateneo de Manila
+            University. Updates come from AGILA&apos;s cat census sheets.
+          </p>
+        </div>
 
         {/* Dates */}
         <div className="flex flex-col gap-0.5">
