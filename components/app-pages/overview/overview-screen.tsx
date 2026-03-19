@@ -1,79 +1,186 @@
-import {
-  ColorBlock,
-  PageContent,
-} from "@/components/app-pages/shared/page-frame";
+import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { FilterDropdown } from "@/components/app-pages/shared/filter-dropdown";
+
+const LOCATIONS = [
+  "All Locations",
+  "GATE 3",
+  "ARETE",
+  "SDC",
+  "ISO",
+  "BEL",
+  "LEONG",
+  "NEW RIZAL",
+  "DELA COSTA",
+  "FAURA",
+  "OLD RIZAL",
+  "FABER",
+  "MVP",
+  "SCHMITT",
+  "GONZ",
+  "BERCH",
+  "XAVIER",
+  "KOSTKA",
+  "SEC",
+  "CTC/SOM",
+  "JSEC",
+  "PIPAC",
+  "IRH",
+  "CERVINI",
+  "ELIAZO",
+  "UNI DORM",
+  "EBAI'S",
+  "POLLOCK",
+  "COV COURTS",
+  "OLD COMMS",
+  "IGGY'S",
+  "LST",
+  "GATE 5",
+  "ASHS",
+  "AJHS",
+  "MORO",
+  "EAPI",
+  "GATE 2",
+  "GATE 1",
+  "AGS",
+  "BEG",
+  "IRWIN",
+  "MNL OBS",
+  "UNKNOWN",
+];
+
+const LOCATION_STATS = [
+  { label: "Cat Count", value: "24" },
+  { label: "Neutered", value: "14" },
+  { label: "Unneutered", value: "10" },
+  { label: "% TNVR", value: "58%" },
+  { label: "Domesticated", value: "8" },
+  { label: "Tame", value: "10" },
+  { label: "Feral", value: "6" },
+  { label: "Sick", value: "2" },
+  { label: "Injured", value: "1" },
+  { label: "Adoptable", value: "3" },
+  { label: "Unnamed", value: "7" },
+];
+
+const ADDITIONAL_STATS = [
+  { label: "# of Fostered", value: "5", bold: false },
+  { label: "# of Adopted", value: "12", bold: false },
+  { label: "# of MIA", value: "3", bold: false },
+  { label: "# of Deceased", value: "8", bold: false },
+  { label: "TOTAL", value: "28", bold: true },
+  { label: "OVERALL TOTAL", value: "123", bold: true },
+];
 
 export function OverviewScreen() {
   return (
-    <PageContent title="Overview" subtitle="Last update: Jan 1, 2026">
+    <PageContent title="Overview">
       <div className="space-y-3 tablet:space-y-4">
-        <ColorBlock
-          tone="sky"
-          label="Hero Card: Colony Snapshot (67 Cats)"
-          className="h-24 tablet:h-32"
-        />
-        <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-slate-300 tablet:rounded-xl tablet:px-4 tablet:py-3">
-          <p className="mb-2 text-xs font-semibold text-slate-700 tablet:text-sm">
-            Filters
+
+        {/* Dates */}
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-slate-500">
+            Last PAW Update:{" "}
+            <span className="font-semibold text-slate-700">Jan 1, 2026</span>
           </p>
-          <div className="grid grid-cols-1 gap-2">
-            <FilterDropdown
-              label="Location"
-              options={[
-                "All Locations",
-                "Brgy. Arete",
-                "Covered Court",
-                "Market Zone",
-              ]}
-              defaultValue="Brgy. Arete"
-            />
+          <p className="text-xs text-slate-500">
+            Last Update:{" "}
+            <span className="font-semibold text-slate-700">Jan 1, 2026</span>
+          </p>
+        </div>
+
+        {/* Hero Card */}
+        <div className="rounded-lg bg-white px-4 py-3 ring-1 ring-slate-200 tablet:rounded-xl tablet:px-5 tablet:py-4">
+          <p className="mb-3 text-xs font-semibold text-slate-500 tablet:text-sm">
+            Colony Snapshot
+          </p>
+          <div className="flex items-center justify-around">
+            <div className="text-center">
+              <p className="text-4xl font-bold text-slate-900">123</p>
+              <p className="mt-1 text-xs font-medium text-slate-500 tablet:text-sm">
+                Total Cats
+              </p>
+            </div>
+            <div className="h-12 w-px bg-slate-200" />
+            <div className="text-center">
+              <p className="text-4xl font-bold text-slate-900">58%</p>
+              <p className="mt-1 text-xs font-medium text-slate-500 tablet:text-sm">
+                TNVR Score
+              </p>
+            </div>
           </div>
         </div>
-        <ColorBlock
-          tone="emerald"
-          label="Stats Row: Domesticated / Feral / Unknown"
-          className="h-14 tablet:h-16"
+
+        {/* Location Dropdown */}
+        <FilterDropdown
+          label="Location"
+          options={LOCATIONS}
+          defaultValue="All Locations"
         />
 
-        <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3 tablet:gap-4">
-          <ColorBlock
-            tone="amber"
-            label="Neutered: 200"
-            className="h-14 tablet:h-16"
-          />
-          <ColorBlock
-            tone="amber"
-            label="Unneutered: 149"
-            className="h-14 tablet:h-16"
-          />
-          <ColorBlock
-            tone="rose"
-            label="Male: 200"
-            className="h-14 tablet:h-16"
-          />
-          <ColorBlock
-            tone="rose"
-            label="Female: 149"
-            className="h-14 tablet:h-16"
-          />
-          <ColorBlock
-            tone="violet"
-            label="Hotspots: 12"
-            className="h-14 tablet:h-16"
-          />
-          <ColorBlock
-            tone="violet"
-            label="New Entries: 8"
-            className="h-14 tablet:h-16"
-          />
+        {/* Location Details */}
+        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+          <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+              Location Details
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-slate-100 tablet:grid-cols-3">
+            {LOCATION_STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-white px-3 py-2.5 tablet:px-4 tablet:py-3"
+              >
+                <p className="text-xs text-slate-500">{stat.label}</p>
+                <p className="mt-0.5 text-base font-bold text-slate-900 tablet:text-lg">
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <ColorBlock
-          tone="slate"
-          label="Graph Placeholder: Population Trend (Jan to Mar)"
-          className="h-40 tablet:h-56"
-        />
+        {/* Graph Placeholder */}
+        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+          <div className="border-b border-slate-200 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+              Population Trend
+            </p>
+          </div>
+          <div className="flex h-40 items-center justify-center bg-slate-100 tablet:h-52">
+            <p className="text-xs font-medium text-slate-400 tablet:text-sm">
+              Graph — coming soon
+            </p>
+          </div>
+        </div>
+
+        {/* Not Included in Total Count */}
+        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+          <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+              Not Included in Total Cat Count
+            </p>
+          </div>
+          <div className="divide-y divide-slate-100 bg-white">
+            {ADDITIONAL_STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center justify-between px-3 py-2.5 tablet:px-4 tablet:py-3"
+              >
+                <p
+                  className={`text-xs tablet:text-sm ${stat.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
+                >
+                  {stat.label}
+                </p>
+                <p
+                  className={`text-sm tablet:text-base ${stat.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
+                >
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </PageContent>
   );
