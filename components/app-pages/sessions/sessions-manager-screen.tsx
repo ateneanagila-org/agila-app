@@ -1,24 +1,10 @@
 import Link from "next/link";
-
-function ImagePlaceholderIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5" />
-      <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="1.5" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-        d="m21 15-5-5L5 21"
-      />
-    </svg>
-  );
-}
+import {
+  ImagePlaceholderIcon,
+  DoubleChevronIcon,
+  ExternalLinkIcon,
+  ArrowLeftIcon,
+} from "@/components/app-pages/shared/icons";
 
 const FOR_REVIEW = [
   {
@@ -34,35 +20,23 @@ const FOR_REVIEW = [
 
 export function SessionsManagerScreen() {
   return (
-    <div className="flex min-h-[calc(100dvh-8.5rem)] flex-col px-4 py-4">
+    <div className="flex flex-1 flex-col px-4 py-4">
       <div className="flex-1 space-y-4">
         {/* Current Census Reports link */}
         <Link
-          href="#"
+          href="/sessions"
           className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200"
         >
           <span className="text-sm font-semibold text-slate-900">
             Current Census Reports
           </span>
-          <svg
-            className="h-4 w-4 text-slate-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-            />
-          </svg>
+          <ExternalLinkIcon className="h-4 w-4 text-slate-600" />
         </Link>
 
         {/* For Review section */}
         <div>
           <p className="mb-2 text-sm font-bold text-slate-900">For Review</p>
-          <div className="overflow-hidden rounded-lg bg-white">
+          <div className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
             {FOR_REVIEW.map((cat, i) => (
               <Link
                 key={cat.id}
@@ -75,27 +49,11 @@ export function SessionsManagerScreen() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-slate-900">
-                        {cat.name}
-                      </span>
+                      <span className="text-sm font-bold text-slate-900">{cat.name}</span>
                       {cat.sex === "male" && (
-                        <span className="text-sm font-medium text-blue-500">
-                          ♂
-                        </span>
+                        <span className="text-sm font-medium text-blue-500">&#9794;</span>
                       )}
-                      <svg
-                        className="ml-auto h-4 w-4 text-slate-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                        />
-                      </svg>
+                      <DoubleChevronIcon className="ml-auto h-4 w-4 text-slate-400" />
                     </div>
                     <p className="text-xs text-slate-500">{cat.breed}</p>
                     <p className="text-xs text-slate-500">{cat.age}</p>
@@ -120,19 +78,7 @@ export function SessionsManagerScreen() {
           className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow"
         >
           My Sessions
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
+          <ArrowLeftIcon className="h-4 w-4" />
         </Link>
       </div>
     </div>

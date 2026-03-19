@@ -29,7 +29,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
     <div className="fixed inset-0 flex h-dvh flex-col overflow-hidden bg-slate-900 text-slate-900">
       <header className="sticky top-0 z-20 bg-lime-200">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 mobile:px-5 tablet:h-18 tablet:px-8">
-          <p className="text-4.5 font-medium">CATalog</p>
+          <p className="text-lg font-medium">CATalog</p>
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-slate-500 tablet:h-9 tablet:w-9" />
             <div className="space-y-1">

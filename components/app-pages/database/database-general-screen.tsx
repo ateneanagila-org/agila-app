@@ -1,25 +1,9 @@
 import {
   DetailHeader,
   TopTabs,
+  PageContent,
 } from "@/components/app-pages/shared/page-frame";
-
-function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M19 9l-7 7-7-7"
-      />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 
 function DropdownField({ label }: { label: string }) {
   return (
@@ -35,7 +19,7 @@ function DropdownField({ label }: { label: string }) {
 
 export function DatabaseGeneralScreen() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4">
+    <PageContent>
       <DetailHeader />
       <TopTabs active="General" />
 
@@ -74,6 +58,6 @@ export function DatabaseGeneralScreen() {
           <textarea className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none" />
         </div>
       </div>
-    </div>
+    </PageContent>
   );
 }

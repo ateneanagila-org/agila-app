@@ -1,25 +1,9 @@
 import {
   DetailHeader,
   TopTabs,
+  PageContent,
 } from "@/components/app-pages/shared/page-frame";
-
-function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M19 9l-7 7-7-7"
-      />
-    </svg>
-  );
-}
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 
 function DateInputRow() {
   return (
@@ -42,7 +26,7 @@ function DateInputRow() {
 
 export function DatabaseMedicalScreen() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4">
+    <PageContent>
       <DetailHeader />
       <TopTabs active="Medical" />
 
@@ -68,6 +52,6 @@ export function DatabaseMedicalScreen() {
           <DateInputRow />
         </div>
       </div>
-    </div>
+    </PageContent>
   );
 }

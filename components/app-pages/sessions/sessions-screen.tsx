@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlusCircleIcon, ChevronDownIcon, MenuIcon } from "@/components/app-pages/shared/icons";
 
 const RECENT_SESSIONS: { no: number; location: string; status: string }[] = [];
 
@@ -8,26 +9,12 @@ const PRIORITY_LOCATIONS = [
   { name: "Arete", days: 67 },
 ];
 
-function PlusCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <circle cx="12" cy="12" r="9" strokeWidth="2" />
-      <path strokeLinecap="round" strokeWidth="2" d="M12 8v8M8 12h8" />
-    </svg>
-  );
-}
-
 export function SessionsScreen() {
   return (
-    <div className="flex min-h-[calc(100dvh-8.5rem)] flex-col">
+    <div className="flex flex-1 flex-col">
       <div className="flex-1 space-y-3 px-4 py-4">
         {/* Recent Sessions card */}
-        <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200 space-y-3">
+        <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-slate-900">Recent Sessions</p>
             <Link
@@ -60,78 +47,44 @@ export function SessionsScreen() {
             ))}
           </div>
 
-          <Link href="#" className="block text-xs font-medium text-slate-500">
+          <span className="block text-xs font-medium text-slate-500">
             See all
-          </Link>
+          </span>
         </div>
 
         {/* Priority Locations card */}
-        <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200 space-y-3">
+        <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-bold text-slate-900">
-              Priority Locations
-            </p>
-            <svg
-              className="h-4 w-4 text-slate-700"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <p className="text-sm font-bold text-slate-900">Priority Locations</p>
+            <ChevronDownIcon className="h-4 w-4 text-slate-700" />
           </div>
 
           <div className="flex justify-between px-1">
             <span className="text-xs text-slate-500">Name</span>
-            <span className="text-xs text-slate-500">
-              Days Since Last Tracked
-            </span>
+            <span className="text-xs text-slate-500">Days Since Last Tracked</span>
           </div>
 
           <div className="space-y-2">
             {PRIORITY_LOCATIONS.map((loc) => (
               <div key={loc.name} className="flex justify-between px-1">
-                <span className="text-xs font-semibold text-slate-900">
-                  {loc.name}
-                </span>
-                <span className="text-xs font-semibold text-slate-900">
-                  {loc.days}
-                </span>
+                <span className="text-xs font-semibold text-slate-900">{loc.name}</span>
+                <span className="text-xs font-semibold text-slate-900">{loc.days}</span>
               </div>
             ))}
           </div>
 
-          <Link href="#" className="text-xs font-medium text-slate-500">
-            See all
-          </Link>
+          <span className="text-xs font-medium text-slate-500">See all</span>
         </div>
       </div>
 
-      {/* Manager View floating button — bottom left */}
+      {/* Manager View floating button */}
       <div className="flex justify-end px-4 pb-5">
         <Link
           href="/sessions/manager"
           className="flex items-center gap-1.5 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow"
         >
           Manager View
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          <MenuIcon className="h-4 w-4" />
         </Link>
       </div>
     </div>

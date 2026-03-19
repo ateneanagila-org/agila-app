@@ -1,23 +1,9 @@
 import Link from "next/link";
-import { DetailHeader } from "@/components/app-pages/shared/page-frame";
-
-function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M19 9l-7 7-7-7"
-      />
-    </svg>
-  );
-}
+import {
+  DetailHeader,
+  PageContent,
+} from "@/components/app-pages/shared/page-frame";
+import { ChevronDownIcon, DoubleChevronIcon } from "@/components/app-pages/shared/icons";
 
 function DropdownField({ label }: { label: string }) {
   return (
@@ -33,15 +19,21 @@ function DropdownField({ label }: { label: string }) {
 
 export function SessionsApprovalValidationScreen() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4">
+    <PageContent>
       <DetailHeader backHref="/sessions/manager" />
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <button className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white">
+        <button
+          type="button"
+          className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
+        >
           Approve Instantly
         </button>
-        <button className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white">
+        <button
+          type="button"
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+        >
           Discard
         </button>
       </div>
@@ -54,19 +46,7 @@ export function SessionsApprovalValidationScreen() {
           className="flex items-center gap-1 text-sm text-slate-600"
         >
           Next
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 5l7 7-7 7M5 5l7 7-7 7"
-            />
-          </svg>
+          <DoubleChevronIcon className="h-4 w-4" />
         </Link>
       </div>
 
@@ -95,6 +75,6 @@ export function SessionsApprovalValidationScreen() {
           <textarea className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none" />
         </div>
       </div>
-    </div>
+    </PageContent>
   );
 }

@@ -1,24 +1,5 @@
 import Link from "next/link";
-
-function ImagePlaceholderIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5" />
-      <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="1.5" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-        d="m21 15-5-5L5 21"
-      />
-    </svg>
-  );
-}
+import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
 
 const DETAIL_FIELDS = [
   "Size/Age",
@@ -47,7 +28,7 @@ function FieldRow({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-between py-2.5">
       <span className="text-xs font-medium text-slate-500">{label}</span>
-      <span className="text-xs text-slate-300">—</span>
+      <span className="text-xs text-slate-300">&mdash;</span>
     </div>
   );
 }
@@ -60,18 +41,18 @@ export function CatalogDetailScreen() {
         href="/catalog"
         className="flex items-center gap-0.5 text-sm text-slate-600"
       >
-        <span className="text-base leading-none">‹</span> Back
+        <span className="text-base leading-none">&lsaquo;</span> Back
       </Link>
 
       {/* Header */}
-      <div className="flex gap-3 overflow-hidden rounded-2xl bg-amber-50">
+      <div className="flex gap-3 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
         <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-slate-200">
           <ImagePlaceholderIcon className="h-12 w-12 text-slate-400" />
         </div>
         <div className="flex flex-col justify-center py-3 pr-3">
           <div className="flex items-center gap-1.5">
             <span className="text-lg font-bold text-slate-900">Cat Name</span>
-            <span className="text-lg font-medium text-blue-500">♂</span>
+            <span className="text-lg font-medium text-blue-500">&#9794;</span>
           </div>
           <p className="mt-0.5 text-sm text-slate-500">Color</p>
           <p className="text-sm text-slate-500">Adult</p>
@@ -81,12 +62,12 @@ export function CatalogDetailScreen() {
       {/* Details */}
       <div>
         <p className="mb-2 text-sm font-bold text-slate-900">Details</p>
-        <div className="overflow-hidden rounded-xl bg-amber-50 px-4">
+        <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
           {DETAIL_FIELDS.map((field, i) => (
             <div key={field}>
               <FieldRow label={field} />
               {i < DETAIL_FIELDS.length - 1 && (
-                <div className="border-b border-amber-100" />
+                <div className="border-b border-slate-100" />
               )}
             </div>
           ))}
@@ -96,12 +77,12 @@ export function CatalogDetailScreen() {
       {/* Notes */}
       <div>
         <p className="mb-2 text-sm font-bold text-slate-900">Notes</p>
-        <div className="overflow-hidden rounded-xl bg-amber-50 px-4">
+        <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
           {NOTE_FIELDS.map((field, i) => (
             <div key={field}>
               <FieldRow label={field} />
               {i < NOTE_FIELDS.length - 1 && (
-                <div className="border-b border-amber-100" />
+                <div className="border-b border-slate-100" />
               )}
             </div>
           ))}
