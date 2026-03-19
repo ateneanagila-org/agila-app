@@ -53,22 +53,9 @@ export function SessionsApprovalCrossRefScreen() {
         <p className="text-base font-bold text-slate-900">Cross-reference</p>
         <Link
           href="/sessions/approval/validation"
-          className="flex items-center gap-1 text-sm text-slate-600"
+          className="flex items-center gap-0.5 text-sm text-slate-600"
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M11 19l-7-7m0 0l7-7m-7 7h18M5 5l7 7-7 7"
-            />
-          </svg>
-          Prev
+          <span className="text-base leading-none">‹</span> Prev
         </Link>
       </div>
 
