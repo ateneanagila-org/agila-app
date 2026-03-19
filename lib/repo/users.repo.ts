@@ -26,7 +26,7 @@ export const deleteProfile = (id: string) =>
 export const updateProfile = (id: string, data: Partial<InsertProfile>) =>
   db
     .update(profiles)
-    .set({ ...data, last_updated_at: new Date() })
+    .set({ ...data })
     .where(eq(profiles.id, id));
 
 // ALLOWED EMAILS

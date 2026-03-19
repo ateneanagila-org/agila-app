@@ -4,12 +4,10 @@ import { z } from "zod";
 
 // PROFILES
 export const profilesSchema = createSelectSchema(profiles);
-export const createProfileSchema = createInsertSchema(profiles).omit({
-  last_updated_at: true,
-});
+export const createProfileSchema = createInsertSchema(profiles);
 export const getProfilesSchema = profilesSchema.partial();
 export const editProfileSchema = createInsertSchema(profiles)
-  .omit({ id: true, last_updated_at: true })
+  .omit({ id: true })
   .partial();
 
 // ALLOWED EMAILS

@@ -11,7 +11,7 @@ import {
 import {
   urgencyEnum,
   authRoleEnum,
-  regionStatusEnum,
+  regionColorEnum,
   regionNameEnum,
   catEntryStatusEnum,
   catColorEnum,
@@ -51,7 +51,7 @@ export const allowedEmails = pgTable("allowed_emails", {
 export const regions = pgTable("regions", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  status: regionStatusEnum("status"),
+  status: regionColorEnum("status"),
 });
 
 export const sessions = pgTable("sessions", {
