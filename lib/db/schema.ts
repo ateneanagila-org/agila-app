@@ -133,7 +133,7 @@ export const interventions = pgTable("interventions", {
   notes: text("notes"),
 });
 
-export const catHealthRecord = pgTable("cat_health_record", {
+export const catHealthRecords = pgTable("cat_health_records", {
   id: uuid("id").primaryKey().defaultRandom(),
   cat_id: uuid("cat_id")
     .notNull()

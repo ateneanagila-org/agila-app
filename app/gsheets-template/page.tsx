@@ -1,5 +1,5 @@
 "use client";
-import { getSheetData } from "@/app/actions/googlesheets";
+import { getSheetData, uploadSheetData } from "@/app/actions/gsheets";
 import { Button } from "@/components/ui/button";
 
 export default function Page() {
@@ -8,5 +8,15 @@ export default function Page() {
     console.log(response);
   };
 
-  return <Button onClick={handleOnGetSheetDataClick}>Get Sheet Data</Button>;
+  const handleOnUploadSheetDataClick = async () => {
+    const response = await uploadSheetData();
+    console.log(response);
+  };
+
+  return (
+    <>
+      <Button onClick={handleOnGetSheetDataClick}>Get Sheet Data</Button>
+      <Button onClick={handleOnUploadSheetDataClick}>Upload Sheet Data</Button>
+    </>
+  );
 }

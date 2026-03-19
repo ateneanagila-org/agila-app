@@ -1,5 +1,5 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { cats, catHealthRecord } from "@/lib/db/schema";
+import { cats, catHealthRecords } from "@/lib/db/schema";
 import { z } from "zod";
 
 // CATS
@@ -16,12 +16,12 @@ export const editCatSchema = createInsertSchema(cats)
   .partial();
 
 // CAT HEALTH RECORDS
-export const catHealthRecordSchema = createSelectSchema(catHealthRecord);
+export const catHealthRecordsSchema = createSelectSchema(catHealthRecords);
 export const createCatHealthRecordSchema = createInsertSchema(
-  catHealthRecord,
+  catHealthRecords,
 ).omit({ id: true, last_updated_at: true });
-export const getCatHealthRecordsSchema = catHealthRecordSchema.partial();
-export const editCatHealthRecordSchema = createInsertSchema(catHealthRecord)
+export const getCatHealthRecordsSchema = catHealthRecordsSchema.partial();
+export const editCatHealthRecordSchema = createInsertSchema(catHealthRecords)
   .omit({ id: true })
   .partial();
 
@@ -31,8 +31,8 @@ export type SelectCat = typeof cats.$inferSelect;
 export type CreateCatSchema = z.infer<typeof createCatSchema>;
 export type GetCatsSchema = z.infer<typeof getCatsSchema>;
 export type EditCatSchema = z.infer<typeof editCatSchema>;
-export type InsertCatHealthRecord = typeof catHealthRecord.$inferInsert;
-export type SelectCatHealthRecord = typeof catHealthRecord.$inferSelect;
+export type InsertCatHealthRecord = typeof catHealthRecords.$inferInsert;
+export type SelectCatHealthRecord = typeof catHealthRecords.$inferSelect;
 export type CreateCatHealthRecordSchema = z.infer<
   typeof createCatHealthRecordSchema
 >;

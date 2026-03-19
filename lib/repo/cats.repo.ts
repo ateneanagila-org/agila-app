@@ -1,5 +1,5 @@
 import { DB, db } from "../db";
-import { cats, catHealthRecord } from "../db/schema";
+import { cats, catHealthRecords } from "../db/schema";
 import { eq } from "drizzle-orm";
 import {
   InsertCat,
@@ -32,7 +32,7 @@ export const deleteCat = (id: string) => db.delete(cats).where(eq(cats.id, id));
 
 // CAT HEALTH RECORDS
 export const findCatHealthRecords = (filters: Partial<SelectCatHealthRecord>) =>
-  db.query.catHealthRecord.findMany({
+  db.query.catHealthRecords.findMany({
     where: (cols, { and }) => {
       const conditions = createEQFilters(cols, filters);
       return conditions.length > 0 ? and(...conditions) : undefined;
@@ -40,16 +40,16 @@ export const findCatHealthRecords = (filters: Partial<SelectCatHealthRecord>) =>
   });
 
 export const insertCatHealthRecord = (data: InsertCatHealthRecord) =>
-  db.insert(catHealthRecord).values(data);
+  db.insert(catHealthRecords).values(data);
 
 export const updateCatHealthRecord = (
   id: string,
   data: Partial<InsertCatHealthRecord>,
 ) =>
   db
-    .update(catHealthRecord)
+    .update(catHealthRecords)
     .set({ ...data, last_updated_at: new Date() })
-    .where(eq(catHealthRecord.id, id));
+    .where(eq(catHealthRecords.id, id));
 
 export const deleteCatHealthRecord = (id: string) =>
-  db.delete(catHealthRecord).where(eq(catHealthRecord.id, id));
+  db.delete(catHealthRecords).where(eq(catHealthRecords.id, id));

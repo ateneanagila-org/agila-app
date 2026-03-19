@@ -1,5 +1,6 @@
 "use server";
 import { google } from "googleapis";
+import { REGION_NAME_VALUES } from "@/lib/db/enums";
 
 export async function getSheetData() {
   const { glSheets } = await connectToSheets();
@@ -7,7 +8,6 @@ export async function getSheetData() {
     spreadsheetId: process.env.CATALOG_SPREADSHEET_ID,
     range: "'test'!A:A",
   });
-
   return { data: data.data.values };
 }
 
@@ -16,22 +16,19 @@ export async function uploadSheetData() {
   const response = await glSheets.spreadsheets.values.append({
     auth: glAuth,
     spreadsheetId: process.env.CATALOG_SPREADSHEET_ID,
-    range: "A1",
+    range: "test!A1",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        ["YOUR_DATA", "YOUR_DATA", "YOUR_DATA"],
-        ["YOUR_DATA", "YOUR_DATA", "YOUR_DATA"],
-      ],
+      values: [["try1"]],
     },
   });
   return response;
 }
 
 async function connectToSheets() {
-  const serviceAccountCredentialsString =
-    process.env.SERVICE_ACCOUNT_CREDENTIALS!;
-  const serviceAccountCredentials = JSON.parse(serviceAccountCredentialsString);
+  const serviceAccountCredentials = JSON.parse(
+    process.env.SERVICE_ACCOUNT_CREDENTIALS!,
+  );
   const privateKey = serviceAccountCredentials.private_key.replace(
     /\\n/g,
     "\n",
