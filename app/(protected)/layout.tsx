@@ -16,9 +16,10 @@ export default function ProtectedLayout({
 
   useEffect(() => {
     if (!currentUserDataLoading && !userData) {
-      router.push("/error");
+      router.push("/login");
     }
   }, [userData, currentUserDataLoading, router]);
+
 
   // Show loading state while checking auth
   if (currentUserDataLoading) {

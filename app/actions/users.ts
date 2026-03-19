@@ -1,68 +1,57 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
-import * as repo from "@/lib/repo/users.repo";
+import * as usersRepo from "@/lib/repo/users.repo";
+import { createClient } from "@/lib/supabase/server";
 import {
   getProfilesSchema,
   editProfileSchema,
   createProfileSchema,
-  createAllowedEmailSchema,
-  getAllowedEmailsSchema,
-  editAllowedEmailSchema,
+  CreateProfileSchema,
+  GetProfilesSchema,
+  EditProfileSchema,
 } from "@/lib/validation/users";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 
 export const createProfile = actionClient
   .schema(createProfileSchema)
-  .action(async ({ parsedInput }) => {
-    return await repo.insertProfile(parsedInput);
+  .action(async ({ parsedInput }: { parsedInput: CreateProfileSchema }) => {
+    return await usersRepo.insertProfile(parsedInput);
   });
 
 export const getProfiles = actionClient
   .schema(getProfilesSchema)
-  .action(async ({ parsedInput }) => {
-    return await repo.findProfiles(parsedInput);
+  .action(async ({ parsedInput }: { parsedInput: GetProfilesSchema }) => {
+    return await usersRepo.findProfiles(parsedInput);
   });
 
 export const editProfile = actionClient
   .schema(editProfileSchema)
   .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
-    return await repo.updateProfile(id, parsedInput);
-  });
+  .action(
+    async ({
+      parsedInput,
+      bindArgsClientInputs: [id],
+    }: {
+      parsedInput: EditProfileSchema;
+      bindArgsClientInputs: readonly [string];
+    }) => {
+      return await usersRepo.updateProfile(id, parsedInput);
+    },
+  );
 
 export const removeProfile = actionClient
   .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ bindArgsClientInputs: [id] }) => {
-    return await repo.deleteProfile(id);
-  });
+  .action(
+    async ({
+      bindArgsClientInputs: [id],
+    }: {
+      bindArgsClientInputs: readonly [string];
+    }) => {
+      return await usersRepo.deleteProfile(id);
+    },
+  );
 
-export const createAllowedEmail = actionClient
-  .schema(createAllowedEmailSchema)
-  .action(async ({ parsedInput }) => {
-    return await repo.insertAllowedEmail(parsedInput);
-  });
-
-export const getAllowedEmails = actionClient
-  .schema(getAllowedEmailsSchema)
-  .action(async ({ parsedInput }) => {
-    return await repo.findAllowedEmails(parsedInput);
-  });
-
-export const editAllowedEmail = actionClient
-  .schema(editAllowedEmailSchema)
-  .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
-    return await repo.updateAllowedEmail(id, parsedInput);
-  });
-
-export const removeAllowedEmail = actionClient
-  .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ bindArgsClientInputs: [id] }) => {
-    return await repo.deleteAllowedEmail(id);
-  });
-
-export async function getSupabaseUser() {
+export const getSupabaseUser = actionClient.action(async () => {
   const supabase = await createClient();
   return await supabase.auth.getUser();
-}
+});
