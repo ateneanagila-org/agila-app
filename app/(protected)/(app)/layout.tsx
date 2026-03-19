@@ -14,7 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "TNVR", href: "/tnvr" },
   { label: "Database", href: "/database" },
   { label: "Sessions", href: "/sessions" },
-  { label: "Users", href: "/admin" },
+  { label: "Users", href: "/users" },
 ];
 
 function isActive(pathname: string, href: string) {
