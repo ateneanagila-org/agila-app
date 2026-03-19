@@ -16,20 +16,23 @@ export function useCurrentUser() {
 
   useEffect(() => {
     async function loadSupabaseUser() {
-      const response = await getSupabaseUser();
-      const user = response?.data?.data?.user;
+      try {
+        const response = await getSupabaseUser();
+        const user = response?.data?.data?.user;
 
+        if (user?.id) {
+          const returnedProfile = await getProfiles({ id: user.id });
 
-      if (user?.id) {
-        const returnedProfile = await getProfiles({ id: user.id });
-
-        if (returnedProfile.data && returnedProfile.data.length > 0) {
-          setSupabaseUser(user);
-          setProfile(returnedProfile.data[0]);
+          if (returnedProfile.data && returnedProfile.data.length > 0) {
+            setSupabaseUser(user);
+            setProfile(returnedProfile.data[0]);
+          }
         }
+      } catch (error) {
+        console.error("Failed to load current user:", error);
+      } finally {
+        setCurrentUserDataLoading(false);
       }
-
-      setCurrentUserDataLoading(false);
     }
     loadSupabaseUser();
   }, []);
