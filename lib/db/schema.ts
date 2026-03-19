@@ -11,7 +11,7 @@ import {
 import {
   urgencyEnum,
   authRoleEnum,
-  regionStatusEnum,
+  regionColorEnum,
   regionNameEnum,
   catEntryStatusEnum,
   catColorEnum,
@@ -40,8 +40,8 @@ export const profiles = pgTable("profiles", {
 });
 
 export const allowedEmails = pgTable("allowed_emails", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email"),
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  email: text("email").notNull(),
   allower_id: uuid("allower_id").references(() => supabaseUsers.id, {
     onDelete: "set null",
   }),
@@ -51,7 +51,7 @@ export const allowedEmails = pgTable("allowed_emails", {
 export const regions = pgTable("regions", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  status: regionStatusEnum("status"),
+  status: regionColorEnum("status"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -159,7 +159,7 @@ export const requests = pgTable("requests", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   completed_at: timestamp("completed_at"),
   urgency: urgencyEnum("urgency").notNull().default("Now"),
-  type: text(),
+  type: text("type"),
 });
 
 export type InsertProfile = typeof profiles.$inferInsert;

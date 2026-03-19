@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-// The client you created from the Server-Side Auth instructions
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createProfile } from "@/app/actions/profiles";
+import * as usersRepo from "@/lib/repo/users.repo";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next") ?? "/dashboard";
 
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
@@ -16,17 +15,23 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data?.user) {
-      const email = data.user.email?.toLowerCase() || "";
-      const acceptedDomain = "@student.ateneo.edu";
+    if (error) {
+      console.error("Auth callback error:", error.message);
+      return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`);
+    }
 
-      // TODO: INVERSE THIS CONDITIONAL FOR PROPER AUTH TO WORK
-      if (email.endsWith(acceptedDomain)) {
+    if (data?.user) {
+      const email = data.user.email?.toLowerCase() || "";
+
+      // Domain restriction check
+      const isAteneo =
+        email.endsWith("@student.ateneo.edu") ||
+        email.endsWith("@ateneo.edu");
+
+      if (!isAteneo) {
         try {
           const supabaseAdmin = await createAdminClient();
-          // Delete the user record
           await supabaseAdmin.auth.admin.deleteUser(data.user.id);
-
           await supabase.auth.signOut();
         } catch (adminError) {
           console.error("Cleanup failed for unauthorized user:", adminError);
@@ -35,20 +40,31 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
       }
 
-      // Handle successful login redirect
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const isLocalEnv = process.env.NODE_ENV === "development";
-
-      const safeNext = next.startsWith("/") ? next : "/";
-      await createProfile(data.user.id);
-
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${baseUrl}${safeNext}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${safeNext}`);
-      } else {
-        return NextResponse.redirect(`${baseUrl}${safeNext}`);
+      // Ensure profile exists — if this fails, sign out and redirect to error
+      try {
+        const existingProfiles = await usersRepo.findProfiles({
+          id: data.user.id,
+        });
+        if (!existingProfiles || existingProfiles.length === 0) {
+          await usersRepo.insertProfile({
+            id: data.user.id,
+            name:
+              data.user.user_metadata.full_name ||
+              data.user.email?.split("@")[0] ||
+              "User",
+            auth_role: "Volunteer",
+          });
+        }
+      } catch (repoError) {
+        console.error("Error ensuring user profile:", repoError);
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`);
       }
+
+      // Handle successful login redirect
+      const safeNext = next.startsWith("/") ? next : "/dashboard";
+      const finalUrl = `${baseUrl}${safeNext}`;
+      return NextResponse.redirect(finalUrl);
     }
   }
 

@@ -23,7 +23,7 @@ export const AuthRoleEnum = z.enum(AUTH_ROLE_VALUES);
 export type AuthRole = z.infer<typeof AuthRoleEnum>;
 
 // Region Status
-export const REGION_STATUS_VALUES = [
+export const REGION_COLOR_VALUES = [
   "Red",
   "Orange",
   "Yellow",
@@ -33,9 +33,9 @@ export const REGION_STATUS_VALUES = [
   "Gray",
   "Brown",
 ] as const;
-export const regionStatusEnum = pgEnum("region_status", REGION_STATUS_VALUES);
-export const RegionStatusEnum = z.enum(REGION_STATUS_VALUES);
-export type RegionStatus = z.infer<typeof RegionStatusEnum>;
+export const regionColorEnum = pgEnum("region_color", REGION_COLOR_VALUES);
+export const RegionColorEnum = z.enum(REGION_COLOR_VALUES);
+export type RegionColor = z.infer<typeof RegionColorEnum>;
 
 // Region Name
 export const REGION_NAME_VALUES = [
