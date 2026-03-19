@@ -1,58 +1,79 @@
 import {
-  ColorBlock,
-  PageContent,
+  DetailHeader,
   TopTabs,
 } from "@/components/app-pages/shared/page-frame";
 
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  );
+}
+
+function DropdownField({ label }: { label: string }) {
+  return (
+    <div>
+      <label className="text-sm text-slate-700">{label}</label>
+      <div className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+        <span className="text-sm text-slate-400">Value</span>
+        <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+      </div>
+    </div>
+  );
+}
+
 export function DatabaseGeneralScreen() {
   return (
-    <PageContent
-      title="Cat Entry Detail"
-      subtitle="Cat: Arete | Updated: 02/21/26"
-    >
-      <div className="space-y-3">
-        <ColorBlock
-          tone="slate"
-          label="Profile Row: Avatar + Cat Name + Back"
-          className="h-12"
-        />
-        <TopTabs active="General" />
-        <ColorBlock
-          tone="emerald"
-          label="Switch: Is active in colony? YES"
-          className="h-10"
-        />
-        <ColorBlock
-          tone="sky"
-          label="Last seen at: Date / Region / Spot"
-          className="h-12"
-        />
-        <ColorBlock
-          tone="amber"
-          label="Field: Color Pattern = Orange and White Tabby"
-          className="h-12"
-        />
-        <ColorBlock
-          tone="amber"
-          label="Field: Age Group = Adult"
-          className="h-12"
-        />
-        <ColorBlock
-          tone="amber"
-          label="Field: Temperament = Cautious"
-          className="h-12"
-        />
-        <ColorBlock
-          tone="rose"
-          label="Caretaker: Juan Dela Cruz"
-          className="h-10"
-        />
-        <ColorBlock
-          tone="rose"
-          label="Notes: Seen near covered court at 7PM"
-          className="h-20"
-        />
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4">
+      <DetailHeader />
+      <TopTabs active="General" />
+
+      <div className="space-y-4">
+        {/* Adoptable/Fosterable toggle */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-700">Adoptable/Fosterable</span>
+          <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-800">
+            <span className="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white transition" />
+          </div>
+        </div>
+
+        {/* Last seen at */}
+        <div>
+          <p className="text-sm text-slate-600">Last seen at:</p>
+          <p className="text-sm font-semibold text-slate-900">
+            Date / Region / Spot
+          </p>
+        </div>
+
+        <DropdownField label="Color" />
+        <DropdownField label="Size/Age" />
+        <DropdownField label="Sex" />
+        <DropdownField label="Sociability" />
+        <DropdownField label="Status" />
+
+        {/* Caretaker */}
+        <div>
+          <label className="text-sm text-slate-700">Caretaker</label>
+          <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none" />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="text-sm text-slate-700">Notes</label>
+          <textarea className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none" />
+        </div>
       </div>
-    </PageContent>
+    </div>
   );
 }
