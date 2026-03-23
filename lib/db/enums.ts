@@ -86,7 +86,6 @@ export const CAT_COLOR_VALUES = [
   "Gray and White Tabby",
   "Brown Tabby",
   "Brown and White Tabby",
-  "Unknown",
 ] as const;
 export const catColorEnum = pgEnum("cat_color", CAT_COLOR_VALUES);
 export const CatColorEnum = z.enum(CAT_COLOR_VALUES);
@@ -98,7 +97,6 @@ export const CAT_AGE_VALUES = [
   "Kitten",
   "Juvenile",
   "Adult",
-  "Unknown",
 ] as const;
 export const catAgeEnum = pgEnum("cat_age", CAT_AGE_VALUES);
 export const CatAgeEnum = z.enum(CAT_AGE_VALUES);
@@ -129,8 +127,8 @@ export const CAT_STATUS_VALUES = [
   "Deceased",
   "Fostered",
   "Adopted",
-  "Stray",
-  "Missing",
+  "MIA",
+  "Unknown",
 ] as const;
 export const catStatusEnum = pgEnum("cat_status", CAT_STATUS_VALUES);
 export const CatStatusEnum = z.enum(CAT_STATUS_VALUES);

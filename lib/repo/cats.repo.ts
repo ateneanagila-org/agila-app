@@ -39,8 +39,10 @@ export const findCatHealthRecords = (filters: Partial<SelectCatHealthRecord>) =>
     },
   });
 
-export const insertCatHealthRecord = (data: InsertCatHealthRecord) =>
-  db.insert(catHealthRecords).values(data);
+export const insertCatHealthRecord = (
+  data: InsertCatHealthRecord,
+  client: DB = db,
+) => client.insert(catHealthRecords).values(data).returning();
 
 export const updateCatHealthRecord = (
   id: string,

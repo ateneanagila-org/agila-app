@@ -1,15 +1,17 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { cats, catHealthRecords } from "@/lib/db/schema";
 import { z } from "zod";
+import { CatHealthRecordConditionEnum } from "../db/enums";
 
 // CATS
 export const catsSchema = createSelectSchema(cats);
-export const createCatSchema = createInsertSchema(cats).omit({
-  id: true,
-  last_updated_at: true,
-  merged_into_id: true,
-  entry_status: true,
-});
+export const createCatSchema = createInsertSchema(cats)
+  .omit({
+    last_updated_at: true,
+    merged_into_id: true,
+    entry_status: true,
+  })
+  .extend({ region_id: z.string(), condition: CatHealthRecordConditionEnum });
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
   .omit({ id: true, last_updated_at: true })

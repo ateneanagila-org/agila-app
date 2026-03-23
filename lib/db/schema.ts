@@ -26,7 +26,7 @@ import {
 
 const authSchema = pgSchema("auth");
 
-const supabaseUsers = authSchema.table("users", {
+export const supabaseUsers = authSchema.table("users", {
   id: uuid("id").primaryKey(),
   email: text("email").notNull().unique(),
 });
@@ -37,21 +37,24 @@ export const profiles = pgTable("profiles", {
     .references(() => supabaseUsers.id, { onDelete: "cascade" }),
   name: text("name"),
   auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
+  last_updated_at: timestamp("last_updated_at").defaultNow(),
 });
 
 export const allowedEmails = pgTable("allowed_emails", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
   email: text("email").notNull(),
-  allower_id: uuid("allower_id").references(() => supabaseUsers.id, {
-    onDelete: "set null",
-  }),
+  allower_id: uuid("allower_id")
+    .notNull()
+    .references(() => supabaseUsers.id, {
+      onDelete: "set null",
+    }),
   allowed_at: timestamp("allowed_at").defaultNow().notNull(),
 });
 
 export const regions = pgTable("regions", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  status: regionColorEnum("status"),
+  color: regionColorEnum("color"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -62,7 +65,7 @@ export const sessions = pgTable("sessions", {
       onDelete: "cascade",
     }),
   created_at: timestamp("created_at").defaultNow().notNull(),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow(),
   is_finished: boolean("is_finished").default(false),
 });
 
@@ -102,13 +105,13 @@ export const cats = pgTable("cats", {
       onDelete: "set null",
     },
   ),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow(),
   entry_status: catEntryStatusEnum("entry_status")
     .default("Unreviewed")
     .notNull(),
   photo_url: text("photo_url"),
-  color: catColorEnum("color").default("Unknown"),
-  age: catAgeEnum("age").default("Unknown"),
+  color: catColorEnum("color"),
+  age: catAgeEnum("age"),
   sex: catSexEnum("sex").default("Unknown"),
   name: text("name"),
   sociability: catSociabilityEnum("sociability").default("Unknown"),
@@ -126,7 +129,7 @@ export const interventions = pgTable("interventions", {
     .references(() => cats.id, {
       onDelete: "cascade",
     }),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow(),
   requested_at: timestamp("requested_at").defaultNow().notNull(),
   type: interventionTypeEnum("type"),
   status: interventionStatusEnum("status").default("Pending"),
@@ -140,7 +143,7 @@ export const catHealthRecords = pgTable("cat_health_records", {
     .references(() => cats.id, {
       onDelete: "cascade",
     }),
-  last_updated_at: timestamp("last_updated_at"),
+  last_updated_at: timestamp("last_updated_at").defaultNow(),
   condition: catHealthRecordConditionEnum("condition"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),

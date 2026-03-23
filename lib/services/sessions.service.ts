@@ -5,6 +5,7 @@ import {
   CreateSessionCatSchema,
   CreateSessionSchema,
 } from "../validation/sessions";
+import { createCat } from "./cats.service";
 
 // Logic mainly for handling consecutive table queries
 export const createSession = async (data: CreateSessionSchema) => {
@@ -31,7 +32,7 @@ export const createSession = async (data: CreateSessionSchema) => {
 export const createSessionCat = async (data: CreateSessionCatSchema) => {
   return await db.transaction(async (tx) => {
     const { session_id, ...newCatData } = data;
-    const [newCat] = await catsRepo.insertCat(newCatData, tx);
+    const newCat = await createCat(newCatData);
 
     await sessionsRepo.insertSessionCat(
       {
