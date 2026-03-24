@@ -40,6 +40,7 @@ const CAT_ENTRIES = [
   },
 ];
 
+// TODO: FOR CRUDE TESTING GSHEETS POC
 const TEST_CAT: CreateSessionCatSchema = {
   region_id: "c56e32c6-6930-4f68-8096-41ff52b9fe55",
   condition: "Healthy",
@@ -52,10 +53,11 @@ const DROPDOWN_OPTIONS = ["Details", "Finish", "Save"];
 export function SessionsCreateScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+
+  // TODO: FOR CRUDE TESTING GSHEETS POC; CHANGE THIS
   const handleAddSessionEntry = async () => {
     await createSessionCat(TEST_CAT);
     setShowAdd(true);
-    console.log("REACHED");
   };
 
   return (
