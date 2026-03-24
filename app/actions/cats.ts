@@ -1,6 +1,7 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as repo from "@/lib/repo/cats.repo";
+import * as service from "@/lib/services/cats.service";
 import {
   getCatsSchema,
   editCatSchema,
@@ -15,7 +16,7 @@ import { z } from "zod";
 export const createCat = actionClient
   .schema(createCatSchema)
   .action(async ({ parsedInput }) => {
-    return await repo.insertCat(parsedInput);
+    return await service.createCat(parsedInput);
   });
 
 export const getCats = actionClient

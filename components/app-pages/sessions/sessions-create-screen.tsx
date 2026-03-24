@@ -6,6 +6,8 @@ import {
   ImagePlaceholderIcon,
   PlusCircleIcon,
 } from "@/components/app-pages/shared/icons";
+import { createSessionCat } from "@/app/actions/sessions";
+import { CreateSessionCatSchema } from "@/lib/validation/sessions";
 
 const CAT_ENTRIES = [
   {
@@ -38,11 +40,23 @@ const CAT_ENTRIES = [
   },
 ];
 
+const TEST_CAT: CreateSessionCatSchema = {
+  region_id: "c56e32c6-6930-4f68-8096-41ff52b9fe55",
+  condition: "Healthy",
+  session_id: "446ae93c-1082-4c23-b130-30816a71a786",
+  name: "BALLS",
+};
+
 const DROPDOWN_OPTIONS = ["Details", "Finish", "Save"];
 
 export function SessionsCreateScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const handleAddSessionEntry = async () => {
+    await createSessionCat(TEST_CAT);
+    setShowAdd(true);
+    console.log("REACHED");
+  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -118,7 +132,7 @@ export function SessionsCreateScreen() {
       <div className="flex justify-end px-4 pb-5">
         <button
           type="button"
-          onClick={() => setShowAdd(true)}
+          onClick={() => handleAddSessionEntry()}
           className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow"
         >
           Add Entry
