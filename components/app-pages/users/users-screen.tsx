@@ -9,11 +9,36 @@ import {
   PlusCircleIcon,
   ChevronDownIcon,
   DoubleChevronIcon,
+  SearchIcon,
 } from "@/components/app-pages/shared/icons";
 
 const USERS = [
   {
     id: "1",
+    name: "Niles Cabrera",
+    email: "niles.tristan.cabrera@student.ateneo.edu",
+    role: "Admin",
+  },
+  {
+    id: "2",
+    name: "Niles Cabrera",
+    email: "niles.tristan.cabrera@student.ateneo.edu",
+    role: "Admin",
+  },
+  {
+    id: "3",
+    name: "Niles Cabrera",
+    email: "niles.tristan.cabrera@student.ateneo.edu",
+    role: "Admin",
+  },
+  {
+    id: "4",
+    name: "Niles Cabrera",
+    email: "niles.tristan.cabrera@student.ateneo.edu",
+    role: "Admin",
+  },
+  {
+    id: "5",
     name: "Niles Cabrera",
     email: "niles.tristan.cabrera@student.ateneo.edu",
     role: "Admin",
@@ -27,52 +52,117 @@ export function UsersScreen() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   return (
-    <div className="px-4 py-4">
-      {/* Search + Add */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400">
-          Search
+    <>
+      <div className="px-4 py-4 tablet:hidden">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400">
+            Search
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddUser(true)}
+            className="flex items-center gap-1.5 rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
+          >
+            Add
+            <PlusCircleIcon className="h-3.5 w-3.5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddUser(true)}
-          className="flex items-center gap-1.5 rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
-        >
-          Add
-          <PlusCircleIcon className="h-3.5 w-3.5" />
-        </button>
+
+        <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+          {USERS.map((user, i) => (
+            <div key={user.id}>
+              <button
+                type="button"
+                onClick={() => setSelectedUser(user)}
+                className="flex w-full items-start justify-between px-4 py-3.5 text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900">{user.name}</span>
+                    <span className="flex items-center gap-0.5 rounded-full bg-stone-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                      {user.role}
+                      <ChevronDownIcon className="h-2.5 w-2.5" />
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">{user.email}</p>
+                </div>
+                <span className="ml-3 mt-0.5 shrink-0 text-slate-300">
+                  <DoubleChevronIcon className="h-4 w-4" />
+                </span>
+              </button>
+              {i < USERS.length - 1 && <div className="mx-4 border-b border-slate-100" />}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* User list */}
-      <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-        {USERS.map((user, i) => (
-          <div key={user.id}>
-            <button
-              type="button"
-              onClick={() => setSelectedUser(user)}
-              className="flex w-full items-start justify-between px-4 py-3.5 text-left"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="mb-0.5 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-slate-900">
-                    {user.name}
-                  </span>
-                  <span className="flex items-center gap-0.5 rounded-full bg-stone-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                    {user.role}
-                    <ChevronDownIcon className="h-2.5 w-2.5" />
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">{user.email}</p>
-              </div>
-              <span className="ml-3 mt-0.5 shrink-0 text-slate-300">
-                <DoubleChevronIcon className="h-4 w-4" />
-              </span>
+      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold text-slate-900">User Control</h1>
+          <button
+            type="button"
+            onClick={() => setShowAddUser(true)}
+            className="flex items-center gap-2 rounded-full bg-slate-50 px-4 py-1.5 text-2xl text-slate-700"
+          >
+            <span>Add user</span>
+            <span className="text-3xl leading-none">+</span>
+          </button>
+        </div>
+
+        <section className="mt-4 rounded-3xl bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search"
+                className="h-9 w-full rounded-full bg-amber-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+              />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            </div>
+            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+              Filter role <span className="ml-1">&#9662;</span>
             </button>
-            {i < USERS.length - 1 && (
-              <div className="mx-4 border-b border-slate-100" />
-            )}
+            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+              Sort by <span className="ml-1">&#9662;</span>
+            </button>
           </div>
-        ))}
+        </section>
+
+        <section className="mt-4 rounded-3xl bg-slate-50 px-4 py-3">
+          <div className="space-y-4">
+            {USERS.map((user) => (
+              <div key={`desktop-${user.id}`} className="flex items-start justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(user)}
+                  className="min-w-0 text-left"
+                >
+                  <p className="text-2xl font-bold text-slate-900">{user.name}</p>
+                  <p className="mt-1 text-4xl text-slate-700">{user.email}</p>
+                </button>
+
+                <div className="flex shrink-0 flex-col items-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(user)}
+                    className="flex h-10 min-w-42 items-center justify-between rounded-xl border border-lime-300 bg-white px-4 text-3.5 text-slate-700"
+                  >
+                    <span>{user.role}</span>
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(user)}
+                    className="mt-1 px-2 text-4xl leading-none text-slate-500"
+                    aria-label="More actions"
+                  >
+                    ...
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {/* Add User Dialog */}
@@ -181,6 +271,6 @@ export function UsersScreen() {
           </button>
         </DialogShell>
       )}
-    </div>
+    </>
   );
 }

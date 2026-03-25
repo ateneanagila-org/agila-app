@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DetailHeader, PageContent } from "@/components/app-pages/shared/page-frame";
+import {
+  DetailHeader,
+  PageContent,
+} from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
@@ -53,8 +56,13 @@ export function SessionsApprovalValidationScreen() {
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-base font-bold text-slate-900">Validate the info.</p>
-            <Link href="/sessions/approval/cross-ref" className="flex items-center gap-1 text-sm text-slate-600">
+            <p className="text-base font-bold text-slate-900">
+              Validate the info.
+            </p>
+            <Link
+              href="/sessions/approval/cross-ref"
+              className="flex items-center gap-1 text-sm text-slate-600"
+            >
               Next
               <DoubleChevronIcon className="h-4 w-4" />
             </Link>
@@ -63,7 +71,9 @@ export function SessionsApprovalValidationScreen() {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-slate-600">Last seen at:</p>
-              <p className="text-sm font-semibold text-slate-900">Date / Region / Spot</p>
+              <p className="text-sm font-semibold text-slate-900">
+                Date / Region / Spot
+              </p>
             </div>
             <DropdownField label="Color" />
             <DropdownField label="Size/Age" />
@@ -86,10 +96,16 @@ export function SessionsApprovalValidationScreen() {
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700"
+            >
               Census Report <span className="ml-1">&#128202;</span>
             </button>
-            <button type="button" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+            >
               Review Sessions <span className="ml-1">&#9711;</span>
             </button>
           </div>
@@ -105,10 +121,16 @@ export function SessionsApprovalValidationScreen() {
               />
               <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+            >
               Sort by <span className="ml-1">&#9662;</span>
             </button>
-            <Link href="/sessions/manager" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+            <Link
+              href="/sessions/manager"
+              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+            >
               Back <span className="ml-1">&#8249;</span>
             </Link>
           </div>
@@ -124,26 +146,38 @@ export function SessionsApprovalValidationScreen() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-5xl font-bold text-slate-900">Cat Name</h3>
+                    <h3 className="text-5xl font-bold text-slate-900">
+                      Cat Name
+                    </h3>
                     <span className="text-4xl text-blue-500">&#9794;</span>
                   </div>
                   <div className="mt-2 flex gap-2">
                     {["Intervention", "Color", "Size/Age"].map((chip) => (
-                      <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                      <span
+                        key={chip}
+                        className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700"
+                      >
                         {chip}
                       </span>
                     ))}
                   </div>
-                  <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+                  <p className="mt-4 text-sm font-medium text-slate-900">
+                    Last seen: Arete - 02/21/26
+                  </p>
                 </div>
 
-                <Link href="/sessions/approval/cross-ref" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+                <Link
+                  href="/sessions/approval/cross-ref"
+                  className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+                >
                   Next <span className="ml-1">&#8250;</span>
                 </Link>
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-slate-700 pb-1 text-4xl text-slate-900">For Validation</p>
+                <p className="inline-block border-b border-slate-700 pb-1 text-4xl text-slate-900">
+                  For Validation
+                </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -172,7 +206,9 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-sm text-slate-700">Specific Location</label>
+                <label className="text-sm text-slate-700">
+                  Specific Location
+                </label>
                 <input className="mt-1 h-10 w-full rounded-xl border border-lime-300 px-3 text-sm outline-none" />
               </div>
 

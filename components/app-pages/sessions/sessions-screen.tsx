@@ -7,7 +7,12 @@ import {
   MenuIcon,
 } from "@/components/app-pages/shared/icons";
 
-const RECENT_SESSIONS: { no: string; date: string; location: string; status: string }[] = [
+const RECENT_SESSIONS: {
+  no: string;
+  date: string;
+  location: string;
+  status: string;
+}[] = [
   { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Continue" },
   { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Submitted" },
   { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Reviewed" },
@@ -31,7 +36,9 @@ export function SessionsScreen() {
         <div className="flex-1 space-y-3 px-4 py-4">
           <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-slate-900">Recent Sessions</p>
+              <p className="text-sm font-bold text-slate-900">
+                Recent Sessions
+              </p>
               <Link
                 href="/sessions/create"
                 className="flex items-center gap-1.5 rounded-full bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white"
@@ -48,25 +55,35 @@ export function SessionsScreen() {
             </div>
 
             <div className="min-h-32" />
-            <span className="block text-xs font-medium text-slate-500">See all</span>
+            <span className="block text-xs font-medium text-slate-500">
+              See all
+            </span>
           </div>
 
           <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
             <div className="flex items-center gap-1.5">
-              <p className="text-sm font-bold text-slate-900">Priority Locations</p>
+              <p className="text-sm font-bold text-slate-900">
+                Priority Locations
+              </p>
               <ChevronDownIcon className="h-4 w-4 text-slate-700" />
             </div>
 
             <div className="flex justify-between px-1">
               <span className="text-xs text-slate-500">Name</span>
-              <span className="text-xs text-slate-500">Days Since Last Tracked</span>
+              <span className="text-xs text-slate-500">
+                Days Since Last Tracked
+              </span>
             </div>
 
             <div className="space-y-2">
               {PRIORITY_LOCATIONS.map((loc) => (
                 <div key={loc} className="flex justify-between px-1">
-                  <span className="text-xs font-semibold text-slate-900">{loc}</span>
-                  <span className="text-xs font-semibold text-slate-900">Bldg</span>
+                  <span className="text-xs font-semibold text-slate-900">
+                    {loc}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-900">
+                    Bldg
+                  </span>
                 </div>
               ))}
             </div>
@@ -90,10 +107,16 @@ export function SessionsScreen() {
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700"
+            >
               Census Report <span className="ml-1">&#128202;</span>
             </button>
-            <Link href="/sessions/manager" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700">
+            <Link
+              href="/sessions/manager"
+              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700"
+            >
               Review Sessions <span className="ml-1">&#9711;</span>
             </Link>
           </div>
@@ -101,8 +124,13 @@ export function SessionsScreen() {
 
         <div className="mt-4 grid grid-cols-4 gap-3">
           {SUMMARY.map((item) => (
-            <article key={item.label} className="rounded-3xl bg-slate-50 px-4 py-3 text-center">
-              <p className="text-6.5 font-bold leading-none text-slate-900">{item.value}</p>
+            <article
+              key={item.label}
+              className="rounded-3xl bg-slate-50 px-4 py-3 text-center"
+            >
+              <p className="text-6.5 font-bold leading-none text-slate-900">
+                {item.value}
+              </p>
               <p className="mt-1 text-base text-slate-700">{item.label}</p>
             </article>
           ))}
@@ -111,14 +139,23 @@ export function SessionsScreen() {
         <section className="mt-4 rounded-3xl bg-slate-50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex gap-2">
-              <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+              <button
+                type="button"
+                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+              >
                 Status <span className="ml-1">&#9662;</span>
               </button>
-              <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+              <button
+                type="button"
+                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+              >
                 Sort by <span className="ml-1">&#9662;</span>
               </button>
             </div>
-            <Link href="/sessions/create" className="rounded-full bg-lime-300 px-4 py-1 text-sm text-slate-700">
+            <Link
+              href="/sessions/create"
+              className="rounded-full bg-lime-300 px-4 py-1 text-sm text-slate-700"
+            >
               Add entry <span className="ml-1">+</span>
             </Link>
           </div>
@@ -132,13 +169,19 @@ export function SessionsScreen() {
 
           <div className="space-y-2 px-3">
             {RECENT_SESSIONS.map((s, idx) => (
-              <div key={`${s.no}-${idx}`} className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center text-sm text-slate-700">
+              <div
+                key={`${s.no}-${idx}`}
+                className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center text-sm text-slate-700"
+              >
                 <span>{s.no}</span>
                 <span>{s.date}</span>
                 <span>{s.location}</span>
                 <span>
                   {s.status === "Continue" ? (
-                    <Link href="/sessions/create" className="inline-flex items-center rounded-xl border border-lime-300 px-3 py-1">
+                    <Link
+                      href="/sessions/create"
+                      className="inline-flex items-center rounded-xl border border-lime-300 px-3 py-1"
+                    >
                       Continue <span className="ml-2">&#8250;</span>
                     </Link>
                   ) : (
@@ -150,7 +193,9 @@ export function SessionsScreen() {
           </div>
         </section>
 
-        <h2 className="mt-6 text-4xl font-bold text-slate-900">Priority List</h2>
+        <h2 className="mt-6 text-4xl font-bold text-slate-900">
+          Priority List
+        </h2>
 
         <section className="mt-3 rounded-3xl bg-slate-50 p-4">
           <div className="grid grid-cols-2 px-3 pb-2 text-sm font-semibold text-slate-700">
