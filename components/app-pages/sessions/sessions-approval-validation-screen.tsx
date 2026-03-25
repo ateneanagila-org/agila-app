@@ -8,7 +8,10 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import { ChevronDownIcon, DoubleChevronIcon } from "@/components/app-pages/shared/icons";
+import {
+  ChevronDownIcon,
+  DoubleChevronIcon,
+} from "@/components/app-pages/shared/icons";
 
 function DropdownField({ label }: { label: string }) {
   return (

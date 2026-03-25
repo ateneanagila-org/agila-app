@@ -54,15 +54,63 @@ export function FiltersDialog({
 }) {
   return (
     <DialogShell open={open} onClose={onClose}>
-      <DialogHeader title="Filters" onClose={onClose} />
-      <div className="h-32 rounded-lg bg-slate-100" />
-      <button
-        type="button"
-        onClick={onClose}
-        className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white"
-      >
-        Apply
-      </button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900">Filter</h2>
+          <span className="text-xs text-slate-400">XXX selected</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+          aria-label="Close"
+        >
+          &#10005;
+        </button>
+      </div>
+
+      <div className="max-h-44 space-y-3 overflow-y-auto pr-2">
+        {[1, 2, 3].map((section) => (
+          <div key={section}>
+            <p className="mb-1 text-xs text-slate-600">Category</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-r border-lime-300 pr-2">
+              {["Property X", "Property X", "Property X", "Property X"].map(
+                (label, index) => (
+                  <label
+                    key={`${section}-${label}-${index}`}
+                    className="flex items-center gap-2 text-xs text-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3 rounded border border-slate-300 accent-lime-400"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ),
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+        >
+          Reset
+          <span className="ml-1">&#10005;</span>
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+        >
+          Apply
+          <span className="ml-1">&#10003;</span>
+        </button>
+      </div>
     </DialogShell>
   );
 }
@@ -76,30 +124,47 @@ export function SortByDialog({
 }) {
   return (
     <DialogShell open={open} onClose={onClose}>
-      <DialogHeader title="Sort By" onClose={onClose} />
-      <div className="space-y-2">
-        {["Ascending", "Descending"].map((opt) => (
-          <label
-            key={opt}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5"
-          >
-            <input
-              type="radio"
-              name="sortOrder"
-              value={opt}
-              className="accent-stone-600"
-            />
-            <span className="text-sm font-medium text-slate-700">{opt}</span>
-          </label>
-        ))}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-slate-900">Sort by</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+          aria-label="Close"
+        >
+          &#10005;
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white"
-      >
-        Apply
-      </button>
+
+      <div className="grid grid-cols-2 gap-2">
+        {["Name", "Size/Age", "Sex", "Sociability", "Status", "Condition"].map(
+          (opt) => (
+            <button
+              key={opt}
+              type="button"
+              className="rounded-md border border-lime-300 bg-white px-2 py-1 text-xs text-slate-700"
+            >
+              {opt}
+            </button>
+          ),
+        )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-semibold text-slate-900">Order</p>
+        <div className="grid grid-cols-2 gap-2">
+          {["Ascending", "Descending"].map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-lime-300 bg-white px-2 py-1 text-xs text-slate-700"
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
     </DialogShell>
   );
 }

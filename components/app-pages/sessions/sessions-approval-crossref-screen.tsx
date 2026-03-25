@@ -99,11 +99,17 @@ export function SessionsApprovalCrossRefScreen() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-slate-900">{cat.name}</span>
+                  <span className="text-sm font-bold text-slate-900">
+                    {cat.name}
+                  </span>
                   {cat.sex === "male" && (
-                    <span className="text-sm font-medium text-blue-500">&#9794;</span>
+                    <span className="text-sm font-medium text-blue-500">
+                      &#9794;
+                    </span>
                   )}
-                  <span className="ml-auto text-xs tracking-widest text-slate-400">&bull;&bull;&bull;</span>
+                  <span className="ml-auto text-xs tracking-widest text-slate-400">
+                    &bull;&bull;&bull;
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500">{cat.breed}</p>
                 <p className="text-xs text-slate-500">{cat.age}</p>
@@ -120,7 +126,9 @@ export function SessionsApprovalCrossRefScreen() {
                 </div>
               </div>
             </div>
-            {i < SIMILAR_CATS.length - 1 && <div className="mx-3 border-b border-slate-200" />}
+            {i < SIMILAR_CATS.length - 1 && (
+              <div className="mx-3 border-b border-slate-200" />
+            )}
           </div>
         ))}
       </div>
