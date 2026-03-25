@@ -3,22 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DetailHeader } from "@/components/app-pages/shared/page-frame";
+import { DetailHeader, PageContent } from "@/components/app-pages/shared/page-frame";
 import {
   ChangeConfirmDialog,
   FiltersDialog,
   SortByDialog,
 } from "@/components/app-pages/shared/dialogs";
-import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
-import { PageContent } from "@/components/app-pages/shared/page-frame";
+import {
+  ImagePlaceholderIcon,
+  SearchIcon,
+} from "@/components/app-pages/shared/icons";
 
 const SIMILAR_CATS = [
   {
     id: "1",
     name: "Cat Name",
     sex: "male",
-    breed: "Orange and White Tabby",
-    age: "Adult",
     location: "Arete",
     date: "02/21/26",
   },
@@ -32,105 +32,194 @@ export function SessionsApprovalCrossRefScreen() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   return (
-    <PageContent>
-      <DetailHeader backHref="/sessions/approval/validation" />
+    <>
+      <div className="tablet:hidden">
+        <PageContent>
+          <DetailHeader backHref="/sessions/approval/validation" />
 
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setShowSaveConfirm(true)}
-          className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
-        >
-          Approve Instantly
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowDiscardConfirm(true)}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
-        >
-          Discard
-        </button>
-      </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSaveConfirm(true)}
+              className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
+            >
+              Approve Instantly
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDiscardConfirm(true)}
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+            >
+              Discard
+            </button>
+          </div>
 
-      {/* Heading + Prev */}
-      <div className="flex items-center justify-between">
-        <p className="text-base font-bold text-slate-900">Cross-reference</p>
-        <Link
-          href="/sessions/approval/validation"
-          className="flex items-center gap-0.5 text-sm text-slate-600"
-        >
-          <span className="text-base leading-none">&lsaquo;</span> Prev
-        </Link>
-      </div>
+          <div className="flex items-center justify-between">
+            <p className="text-base font-bold text-slate-900">Cross-reference</p>
+            <Link href="/sessions/approval/validation" className="flex items-center gap-0.5 text-sm text-slate-600">
+              <span className="text-base leading-none">&lsaquo;</span> Prev
+            </Link>
+          </div>
 
-      <p className="text-xs text-slate-500">
-        Check if this is a duplicate and merge accordingly.
-      </p>
+          <p className="text-xs text-slate-500">Check if this is a duplicate and merge accordingly.</p>
 
-      {/* Search + Filter + Sort */}
-      <div className="flex gap-2">
-        <div className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400">
-          Search
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowFilters(true)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700"
-        >
-          Filters
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowSort(true)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700"
-        >
-          Sort By
-        </button>
-      </div>
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-400">Search</div>
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700"
+            >
+              Filters
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSort(true)}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700"
+            >
+              Sort By
+            </button>
+          </div>
 
-      {/* Similar cats list */}
-      <div className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
-        {SIMILAR_CATS.map((cat, i) => (
-          <div key={cat.id}>
-            <div className="flex items-start gap-3 p-3 pb-2">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                <ImagePlaceholderIcon className="h-6 w-6 text-slate-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-slate-900">
-                    {cat.name}
-                  </span>
-                  {cat.sex === "male" && (
-                    <span className="text-sm font-medium text-blue-500">
-                      &#9794;
-                    </span>
-                  )}
-                  <span className="ml-auto text-xs tracking-widest text-slate-400">
-                    &bull;&bull;&bull;
-                  </span>
+          <div className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
+            {SIMILAR_CATS.map((cat) => (
+              <div key={cat.id} className="p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                    <ImagePlaceholderIcon className="h-6 w-6 text-slate-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-slate-900">{cat.name}</span>
+                      <span className="text-sm font-medium text-blue-500">&#9794;</span>
+                    </div>
+                    <p className="text-xs text-slate-500">Orange and White Tabby</p>
+                    <p className="text-xs text-slate-500">Adult</p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-xs text-slate-600">{cat.location} - {cat.date}</p>
+                      <button type="button" className="rounded-full bg-stone-600 px-3 py-1 text-xs font-semibold text-white">
+                        Merge
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500">{cat.breed}</p>
-                <p className="text-xs text-slate-500">{cat.age}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <p className="text-xs text-slate-600">
-                    {cat.location} - {cat.date}
-                  </p>
+              </div>
+            ))}
+          </div>
+        </PageContent>
+      </div>
+
+      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
+          <div className="flex items-center gap-2">
+            <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700">
+              Census Report <span className="ml-1">&#128202;</span>
+            </button>
+            <button type="button" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+              Review Sessions <span className="ml-1">&#9711;</span>
+            </button>
+          </div>
+        </div>
+
+        <section className="mt-4 rounded-3xl bg-slate-50 p-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search"
+                className="h-9 w-full rounded-full bg-amber-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+              />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSort(true)}
+              className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+            >
+              Sort by <span className="ml-1">&#9662;</span>
+            </button>
+            <Link href="/sessions/approval/validation" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+              Back <span className="ml-1">&#8249;</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-3xl bg-slate-50 p-4">
+          <div className="flex items-start gap-4">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-slate-300">
+              <ImagePlaceholderIcon className="h-10 w-10 text-slate-800" />
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-5xl font-bold text-slate-900">Cat Name</h3>
+                    <span className="text-4xl text-blue-500">&#9794;</span>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    {["Intervention", "Color", "Size/Age"].map((chip) => (
+                      <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+                </div>
+
+                <Link href="/sessions/approval/validation" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
+                  Prev <span className="ml-1">&#8249;</span>
+                </Link>
+              </div>
+
+              <div className="mt-5 flex items-center justify-between">
+                <p className="inline-block border-b border-slate-700 pb-1 text-4xl text-slate-900">Cross Reference</p>
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    className="rounded-full bg-stone-600 px-3 py-1 text-xs font-semibold text-white"
+                    onClick={() => setShowSaveConfirm(true)}
+                    className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
                   >
+                    Approve Instantly <span className="ml-1">&#10003;</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscardConfirm(true)}
+                    className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+                  >
+                    Cancel <span className="ml-1">&#10005;</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-slate-50 p-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-300">
+                    <ImagePlaceholderIcon className="h-8 w-8 text-slate-800" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-4xl font-bold text-slate-900">Cat Name</h4>
+                      <span className="text-3xl text-blue-500">&#9794;</span>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      {["Intervention", "Color", "Size/Age"].map((chip) => (
+                        <span key={`cross-${chip}`} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+                  </div>
+                  <button type="button" className="rounded-full bg-lime-300 px-4 py-1 text-sm text-slate-700">
                     Merge
                   </button>
                 </div>
               </div>
             </div>
-            {i < SIMILAR_CATS.length - 1 && (
-              <div className="mx-3 border-b border-slate-200" />
-            )}
           </div>
-        ))}
+        </section>
       </div>
 
       <FiltersDialog open={showFilters} onClose={() => setShowFilters(false)} />
@@ -157,6 +246,6 @@ export function SessionsApprovalCrossRefScreen() {
         confirmLabel="Save Changes"
         onConfirm={() => setShowSaveConfirm(false)}
       />
-    </PageContent>
+    </>
   );
 }
