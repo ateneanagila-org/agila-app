@@ -73,20 +73,30 @@ export function UsersScreen() {
 
       {/* Add User Dialog */}
       <DialogShell open={showAddUser} onClose={() => setShowAddUser(false)}>
-        <DialogHeader title="New User" onClose={() => setShowAddUser(false)} />
+        <div className="flex items-center justify-between">
+          <h2 className="text-3.5 font-bold text-slate-900">Add User</h2>
+          <button
+            type="button"
+            onClick={() => setShowAddUser(false)}
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+            aria-label="Close"
+          >
+            &#10005;
+          </button>
+        </div>
         <div className="space-y-3">
           <div>
-            <label className="text-sm text-slate-700">Name</label>
-            <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400" />
+            <label className="text-xs text-slate-700">Name</label>
+            <input className="mt-1 h-8 w-full rounded-md border border-lime-300 px-3 text-sm outline-none focus:ring-1 focus:ring-lime-300" />
           </div>
           <div>
-            <label className="text-sm text-slate-700">Ateneo Student Email Address</label>
-            <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400" />
+            <label className="text-xs text-slate-700">Ateneo Student Email</label>
+            <input className="mt-1 h-8 w-full rounded-md border border-lime-300 px-3 text-sm outline-none focus:ring-1 focus:ring-lime-300" />
           </div>
           <div>
-            <label className="text-sm text-slate-700">Role</label>
-            <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-              <select className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900">
+            <label className="text-xs text-slate-700">Role</label>
+            <div className="relative mt-1 rounded-md border border-lime-300 bg-white">
+              <select className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-10 text-sm text-slate-900">
                 <option value="">&mdash;</option>
                 <option>Admin</option>
                 <option>Member</option>
@@ -95,13 +105,24 @@ export function UsersScreen() {
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddUser(false)}
-          className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white"
-        >
-          Save
-        </button>
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setShowAddUser(false)}
+            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+          >
+            Cancel
+            <span className="ml-1">&#10005;</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAddUser(false)}
+            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+          >
+            Create
+            <span className="ml-1">&#10003;</span>
+          </button>
+        </div>
       </DialogShell>
 
       {/* User Details Dialog */}
