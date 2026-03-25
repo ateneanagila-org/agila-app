@@ -1,3 +1,5 @@
+"use client";
+
 import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { FilterDropdown } from "@/components/app-pages/shared/filter-dropdown";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
@@ -17,10 +19,31 @@ const TOTALS = [
   { label: "Overall Total", value: "32", bold: true },
 ];
 
+const TNVR_DESKTOP_CARDS = [
+  { value: "99%", label: "Overall TNVR %" },
+  { value: "99%", label: "Male TNVR %" },
+  { value: "99%", label: "Female TNVR %" },
+  { value: "99%", label: "Unknown TNVR %" },
+  { value: "999", label: "Total Count" },
+  { value: "999", label: "Male" },
+  { value: "999", label: "Female" },
+  { value: "999", label: "Unknown" },
+  { value: "999", label: "Neutered" },
+  { value: "999", label: "Male" },
+  { value: "999", label: "Female" },
+  { value: "999", label: "Unknown" },
+  { value: "999", label: "Unneutered" },
+  { value: "999", label: "Male" },
+  { value: "999", label: "Female" },
+  { value: "999", label: "Unknown" },
+];
+
 export function TnvrScreen() {
   return (
-    <PageContent>
-      <div className="space-y-3 tablet:space-y-4">
+    <>
+      <div className="tablet:hidden">
+        <PageContent>
+          <div className="space-y-3 tablet:space-y-4">
 
         {/* Page Header */}
         <div>
@@ -103,7 +126,75 @@ export function TnvrScreen() {
           </div>
         </div>
 
+          </div>
+        </PageContent>
       </div>
-    </PageContent>
+
+      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+        <div className="mb-3 flex items-center justify-between gap-5">
+          <label className="w-full max-w-52">
+            <span className="mb-1 block text-sm font-semibold text-slate-900">Location:</span>
+            <div className="relative rounded-full bg-white">
+              <select
+                defaultValue="Overall"
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-slate-800"
+                aria-label="TNVR Location"
+              >
+                <option value="Overall">Overall</option>
+                {LOCATIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+                &#9662;
+              </span>
+            </div>
+          </label>
+
+          <p className="whitespace-nowrap pt-5 text-sm font-semibold text-slate-900">
+            Last updated: XX/XX/XXXX
+          </p>
+        </div>
+
+        <section className="rounded-3xl bg-slate-50 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-900">Graph title</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+              >
+                Status
+                <span className="ml-1">&#9662;</span>
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+              >
+                Gender
+                <span className="ml-1">&#9662;</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex h-50 items-center justify-center rounded-2xl bg-slate-50 text-lg text-slate-700">
+            pie chart bar chart
+          </div>
+        </section>
+
+        <div className="mt-4 grid grid-cols-4 gap-3">
+          {TNVR_DESKTOP_CARDS.map((card, index) => (
+            <article key={`${card.label}-${index}`} className="rounded-3xl bg-slate-50 px-4 py-3">
+              <p className="text-center text-5xl font-bold leading-none text-slate-900">
+                {card.value}
+              </p>
+              <p className="mt-1 text-center text-base text-slate-700">{card.label}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
