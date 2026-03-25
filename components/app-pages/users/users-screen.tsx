@@ -54,7 +54,9 @@ export function UsersScreen() {
             >
               <div className="min-w-0 flex-1">
                 <div className="mb-0.5 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-slate-900">{user.name}</span>
+                  <span className="text-sm font-bold text-slate-900">
+                    {user.name}
+                  </span>
                   <span className="flex items-center gap-0.5 rounded-full bg-stone-600 px-2.5 py-0.5 text-xs font-medium text-white">
                     {user.role}
                     <ChevronDownIcon className="h-2.5 w-2.5" />
@@ -66,7 +68,9 @@ export function UsersScreen() {
                 <DoubleChevronIcon className="h-4 w-4" />
               </span>
             </button>
-            {i < USERS.length - 1 && <div className="mx-4 border-b border-slate-100" />}
+            {i < USERS.length - 1 && (
+              <div className="mx-4 border-b border-slate-100" />
+            )}
           </div>
         ))}
       </div>
@@ -90,7 +94,9 @@ export function UsersScreen() {
             <input className="mt-1 h-8 w-full rounded-md border border-lime-300 px-3 text-sm outline-none focus:ring-1 focus:ring-lime-300" />
           </div>
           <div>
-            <label className="text-xs text-slate-700">Ateneo Student Email</label>
+            <label className="text-xs text-slate-700">
+              Ateneo Student Email
+            </label>
             <input className="mt-1 h-8 w-full rounded-md border border-lime-300 px-3 text-sm outline-none focus:ring-1 focus:ring-lime-300" />
           </div>
           <div>
@@ -101,7 +107,9 @@ export function UsersScreen() {
                 <option>Admin</option>
                 <option>Member</option>
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">&#9660;</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                &#9660;
+              </span>
             </div>
           </div>
         </div>
@@ -128,15 +136,24 @@ export function UsersScreen() {
       {/* User Details Dialog */}
       {selectedUser && (
         <DialogShell open onClose={() => setSelectedUser(null)}>
-          <DialogHeader title="User Details" onClose={() => setSelectedUser(null)} />
+          <DialogHeader
+            title="User Details"
+            onClose={() => setSelectedUser(null)}
+          />
           <div className="space-y-3">
             <div>
               <p className="text-xs font-medium text-slate-500">Name</p>
-              <p className="mt-0.5 text-sm font-semibold text-slate-900">{selectedUser.name}</p>
+              <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                {selectedUser.name}
+              </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Ateneo Student Email Address</p>
-              <p className="mt-0.5 text-sm text-slate-700">{selectedUser.email}</p>
+              <p className="text-xs font-medium text-slate-500">
+                Ateneo Student Email Address
+              </p>
+              <p className="mt-0.5 text-sm text-slate-700">
+                {selectedUser.email}
+              </p>
             </div>
             <div>
               <label className="text-sm text-slate-700">Role</label>
@@ -149,7 +166,9 @@ export function UsersScreen() {
                   <option>Admin</option>
                   <option>Member</option>
                 </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">&#9660;</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  &#9660;
+                </span>
               </div>
             </div>
           </div>

@@ -44,7 +44,9 @@ export function DatabaseGeneralScreen() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Adoptable/Fosterable</span>
+              <span className="text-sm text-slate-700">
+                Adoptable/Fosterable
+              </span>
               <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-800">
                 <span className="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white transition" />
               </div>
@@ -145,13 +147,18 @@ export function DatabaseGeneralScreen() {
 
               <div className="mt-2 flex flex-wrap gap-2">
                 {["Intervention", "Color", "Size/Age"].map((chip) => (
-                  <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                  <span
+                    key={chip}
+                    className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700"
+                  >
                     {chip}
                   </span>
                 ))}
               </div>
 
-              <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+              <p className="mt-4 text-sm font-medium text-slate-900">
+                Last seen: Arete - 02/21/26
+              </p>
             </div>
           </div>
 
@@ -180,10 +187,16 @@ export function DatabaseGeneralScreen() {
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Save <span className="ml-1">&#10003;</span>
             </button>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Cancel <span className="ml-1">&#10005;</span>
             </button>
           </div>

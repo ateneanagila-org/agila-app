@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
-import { FiltersDialog, SortByDialog } from "@/components/app-pages/shared/dialogs";
+import {
+  FiltersDialog,
+  SortByDialog,
+} from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
@@ -88,9 +91,13 @@ export function DatabaseListScreen() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-slate-900">{cat.name}</span>
+                      <span className="text-sm font-bold text-slate-900">
+                        {cat.name}
+                      </span>
                       {cat.sex === "male" && (
-                        <span className="text-sm font-medium text-blue-500">&#9794;</span>
+                        <span className="text-sm font-medium text-blue-500">
+                          &#9794;
+                        </span>
                       )}
                       <span className="ml-auto text-xs tracking-widest text-slate-400">
                         &bull;&bull;&bull;
@@ -103,7 +110,9 @@ export function DatabaseListScreen() {
                     </p>
                   </div>
                 </div>
-                {i < CAT_DATA.length - 1 && <div className="mx-3 border-b border-slate-200" />}
+                {i < CAT_DATA.length - 1 && (
+                  <div className="mx-3 border-b border-slate-200" />
+                )}
               </Link>
             ))}
           </div>
@@ -174,8 +183,12 @@ export function DatabaseListScreen() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-4xl font-bold text-slate-900">{cat.name}</h2>
-                  {cat.sex === "male" && <span className="text-4xl text-blue-500">&#9794;</span>}
+                  <h2 className="text-4xl font-bold text-slate-900">
+                    {cat.name}
+                  </h2>
+                  {cat.sex === "male" && (
+                    <span className="text-4xl text-blue-500">&#9794;</span>
+                  )}
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2">

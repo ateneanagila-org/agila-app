@@ -140,13 +140,18 @@ export function DatabaseMedicalScreen() {
 
               <div className="mt-2 flex flex-wrap gap-2">
                 {["Intervention", "Color", "Size/Age"].map((chip) => (
-                  <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                  <span
+                    key={chip}
+                    className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700"
+                  >
                     {chip}
                   </span>
                 ))}
               </div>
 
-              <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+              <p className="mt-4 text-sm font-medium text-slate-900">
+                Last seen: Arete - 02/21/26
+              </p>
             </div>
           </div>
 
@@ -179,10 +184,16 @@ export function DatabaseMedicalScreen() {
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Save <span className="ml-1">&#10003;</span>
             </button>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Cancel <span className="ml-1">&#10005;</span>
             </button>
           </div>

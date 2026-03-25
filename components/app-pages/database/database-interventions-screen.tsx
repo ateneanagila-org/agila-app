@@ -60,13 +60,17 @@ export function DatabaseInterventionsScreen() {
           {INTERVENTIONS.map((item) => (
             <div key={item.id}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-900">Intervention No. __</span>
+                <span className="text-sm font-bold text-slate-900">
+                  Intervention No. __
+                </span>
                 <span className="flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700">
                   Status
                   <ChevronDownIcon className="h-3 w-3" />
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">Requested At MM/DD/YY</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Requested At MM/DD/YY
+              </p>
               <p className="text-xs text-slate-500">Notes:</p>
               <div className="mt-3 border-b border-slate-200" />
             </div>
@@ -143,13 +147,18 @@ export function DatabaseInterventionsScreen() {
 
               <div className="mt-2 flex flex-wrap gap-2">
                 {["Intervention", "Color", "Size/Age"].map((chip) => (
-                  <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                  <span
+                    key={chip}
+                    className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700"
+                  >
                     {chip}
                   </span>
                 ))}
               </div>
 
-              <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
+              <p className="mt-4 text-sm font-medium text-slate-900">
+                Last seen: Arete - 02/21/26
+              </p>
             </div>
           </div>
 
@@ -182,10 +191,17 @@ export function DatabaseInterventionsScreen() {
 
           <div className="mt-3 space-y-3">
             {INTERVENTIONS.map((item) => (
-              <div key={`desktop-${item.id}`} className="flex items-center justify-between">
+              <div
+                key={`desktop-${item.id}`}
+                className="flex items-center justify-between"
+              >
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">Intervention No. __</p>
-                  <p className="mt-1 text-2xl text-slate-600">Requested at MM/DD/YYYY</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    Intervention No. __
+                  </p>
+                  <p className="mt-1 text-2xl text-slate-600">
+                    Requested at MM/DD/YYYY
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -199,10 +215,16 @@ export function DatabaseInterventionsScreen() {
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Save <span className="ml-1">&#10003;</span>
             </button>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+            <button
+              type="button"
+              className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+            >
               Cancel <span className="ml-1">&#10005;</span>
             </button>
           </div>
@@ -211,9 +233,14 @@ export function DatabaseInterventionsScreen() {
 
       <SortByDialog open={showSort} onClose={() => setShowSort(false)} />
 
-      <DialogShell open={showIntervention} onClose={() => setShowIntervention(false)}>
+      <DialogShell
+        open={showIntervention}
+        onClose={() => setShowIntervention(false)}
+      >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Create Intervention</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            Create Intervention
+          </h2>
           <button
             type="button"
             onClick={() => setShowIntervention(false)}

@@ -76,7 +76,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
       <div className="hidden h-dvh w-full tablet:flex">
         <aside className="flex w-56 flex-col bg-lime-200 px-5 py-6">
           <div>
-            <h1 className="text-[2rem] font-medium leading-none text-slate-900">CATalog</h1>
+            <h1 className="text-[2rem] font-medium leading-none text-slate-900">
+              CATalog
+            </h1>
           </div>
 
           <nav className="mt-8 rounded-3xl bg-amber-100 p-5">
@@ -88,7 +90,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                     <Link
                       href={item.href}
                       className={`block text-left text-lg transition-colors ${
-                        active ? "font-semibold text-slate-900" : "text-slate-800"
+                        active
+                          ? "font-semibold text-slate-900"
+                          : "text-slate-800"
                       }`}
                     >
                       {item.label}
@@ -108,8 +112,12 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 />
               </svg>
             </div>
-            <p className="text-center text-base text-slate-900">Niles Cabrera</p>
-            <p className="text-center text-base font-medium text-slate-900">ADMIN</p>
+            <p className="text-center text-base text-slate-900">
+              Niles Cabrera
+            </p>
+            <p className="text-center text-base font-medium text-slate-900">
+              ADMIN
+            </p>
           </div>
         </aside>
 

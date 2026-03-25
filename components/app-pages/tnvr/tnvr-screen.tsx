@@ -44,88 +44,88 @@ export function TnvrScreen() {
       <div className="tablet:hidden">
         <PageContent>
           <div className="space-y-3 tablet:space-y-4">
+            {/* Page Header */}
+            <div>
+              <h1 className="text-base font-bold text-slate-900 tablet:text-lg">
+                TNVR
+              </h1>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 tablet:text-sm">
+                This is a summary of the TNVR statistics of the Catenean
+                population. Updates come from AGILA&apos;s cat census sheets and
+                responses from the ACCaP Cat Census GForms.
+              </p>
+            </div>
 
-        {/* Page Header */}
-        <div>
-          <h1 className="text-base font-bold text-slate-900 tablet:text-lg">TNVR</h1>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 tablet:text-sm">
-            This is a summary of the TNVR statistics of the Catenean population.
-            Updates come from AGILA&apos;s cat census sheets and responses from the
-            ACCaP Cat Census GForms.
-          </p>
-        </div>
-
-        {/* Totals Hero Card */}
-        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-          <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
-              Totals
-            </p>
-          </div>
-          <div className="divide-y divide-slate-100 bg-white">
-            {TOTALS.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between px-3 py-2.5 tablet:px-4 tablet:py-3"
-              >
-                <p
-                  className={`text-xs tablet:text-sm ${item.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
-                >
-                  {item.label}
-                </p>
-                <p
-                  className={`text-sm tablet:text-base ${item.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
-                >
-                  {item.value}
+            {/* Totals Hero Card */}
+            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+              <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+                  Totals
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="divide-y divide-slate-100 bg-white">
+                {TOTALS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between px-3 py-2.5 tablet:px-4 tablet:py-3"
+                  >
+                    <p
+                      className={`text-xs tablet:text-sm ${item.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
+                    >
+                      {item.label}
+                    </p>
+                    <p
+                      className={`text-sm tablet:text-base ${item.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
+                    >
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        {/* Location Dropdown */}
-        <FilterDropdown
-          label="Location"
-          options={LOCATIONS}
-          defaultValue="All Locations"
-        />
+            {/* Location Dropdown */}
+            <FilterDropdown
+              label="Location"
+              options={LOCATIONS}
+              defaultValue="All Locations"
+            />
 
-        {/* Location Stats */}
-        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-          <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
-              Location Details
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-px bg-slate-100 tablet:grid-cols-3">
-            {TNVR_STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white px-3 py-2.5 tablet:px-4 tablet:py-3"
-              >
-                <p className="text-xs text-slate-500">{stat.label}</p>
-                <p className="mt-0.5 text-base font-bold text-slate-900 tablet:text-lg">
-                  {stat.value}
+            {/* Location Stats */}
+            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+              <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+                  Location Details
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="grid grid-cols-2 gap-px bg-slate-100 tablet:grid-cols-3">
+                {TNVR_STATS.map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="bg-white px-3 py-2.5 tablet:px-4 tablet:py-3"
+                  >
+                    <p className="text-xs text-slate-500">{stat.label}</p>
+                    <p className="mt-0.5 text-base font-bold text-slate-900 tablet:text-lg">
+                      {stat.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        {/* Graph Placeholder */}
-        <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-          <div className="border-b border-slate-200 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-            <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
-              TNVR Trend
-            </p>
-          </div>
-          <div className="flex h-40 items-center justify-center bg-slate-100 tablet:h-52">
-            <p className="text-xs font-medium text-slate-400 tablet:text-sm">
-              Graph — coming soon
-            </p>
-          </div>
-        </div>
-
+            {/* Graph Placeholder */}
+            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
+              <div className="border-b border-slate-200 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
+                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+                  TNVR Trend
+                </p>
+              </div>
+              <div className="flex h-40 items-center justify-center bg-slate-100 tablet:h-52">
+                <p className="text-xs font-medium text-slate-400 tablet:text-sm">
+                  Graph — coming soon
+                </p>
+              </div>
+            </div>
           </div>
         </PageContent>
       </div>
@@ -133,7 +133,9 @@ export function TnvrScreen() {
       <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
         <div className="mb-3 flex items-center justify-between gap-5">
           <label className="w-full max-w-52">
-            <span className="mb-1 block text-sm font-semibold text-slate-900">Location:</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-900">
+              Location:
+            </span>
             <div className="relative rounded-full bg-white">
               <select
                 defaultValue="Overall"
@@ -186,11 +188,16 @@ export function TnvrScreen() {
 
         <div className="mt-4 grid grid-cols-4 gap-3">
           {TNVR_DESKTOP_CARDS.map((card, index) => (
-            <article key={`${card.label}-${index}`} className="rounded-3xl bg-slate-50 px-4 py-3">
+            <article
+              key={`${card.label}-${index}`}
+              className="rounded-3xl bg-slate-50 px-4 py-3"
+            >
               <p className="text-center text-5xl font-bold leading-none text-slate-900">
                 {card.value}
               </p>
-              <p className="mt-1 text-center text-base text-slate-700">{card.label}</p>
+              <p className="mt-1 text-center text-base text-slate-700">
+                {card.label}
+              </p>
             </article>
           ))}
         </div>
