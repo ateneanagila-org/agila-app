@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/app-pages/shared/page-frame";
-import { FiltersDialog, SortByDialog } from "@/components/app-pages/shared/dialogs";
+import {
+  ChangeConfirmDialog,
+  FiltersDialog,
+  SortByDialog,
+} from "@/components/app-pages/shared/dialogs";
 import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
 import { PageContent } from "@/components/app-pages/shared/page-frame";
 
@@ -20,8 +25,11 @@ const SIMILAR_CATS = [
 ];
 
 export function SessionsApprovalCrossRefScreen() {
+  const router = useRouter();
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   return (
     <PageContent>
@@ -31,12 +39,14 @@ export function SessionsApprovalCrossRefScreen() {
       <div className="flex gap-2">
         <button
           type="button"
+          onClick={() => setShowSaveConfirm(true)}
           className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white"
         >
           Approve Instantly
         </button>
         <button
           type="button"
+          onClick={() => setShowDiscardConfirm(true)}
           className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
         >
           Discard
@@ -117,6 +127,28 @@ export function SessionsApprovalCrossRefScreen() {
 
       <FiltersDialog open={showFilters} onClose={() => setShowFilters(false)} />
       <SortByDialog open={showSort} onClose={() => setShowSort(false)} />
+
+      <ChangeConfirmDialog
+        open={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        title="Discard changes?"
+        description="These changes will be lost if not saved."
+        confirmLabel="Discard Changes"
+        showAvatar
+        onConfirm={() => {
+          setShowDiscardConfirm(false);
+          router.push("/sessions/manager");
+        }}
+      />
+
+      <ChangeConfirmDialog
+        open={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        title="Save changes?"
+        description="Old data will be overwritten."
+        confirmLabel="Save Changes"
+        onConfirm={() => setShowSaveConfirm(false)}
+      />
     </PageContent>
   );
 }
