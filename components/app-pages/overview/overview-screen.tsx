@@ -186,7 +186,7 @@ export function OverviewScreen() {
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="mb-5 flex items-start justify-between gap-6">
           <label className="w-full max-w-92">
             <span className="mb-1 block text-sm font-semibold text-slate-900">
@@ -242,7 +242,7 @@ export function OverviewScreen() {
                 </p>
                 <button
                   type="button"
-                  className="rounded-full bg-amber-100 px-3 py-1 text-sm text-slate-700"
+                  className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"
                 >
                   Sort by
                   <span className="ml-1">&#9662;</span>
@@ -260,13 +260,13 @@ export function OverviewScreen() {
             </div>
 
             {showPeriodMenu && (
-              <div className="absolute right-4 top-12 z-10 w-24 rounded-2xl bg-amber-100 p-2 shadow-sm">
+              <div className="absolute right-4 top-12 z-10 w-24 rounded-2xl bg-slate-100 p-2 shadow-sm">
                 {activePeriods.map((period) => (
                   <button
                     key={period}
                     type="button"
                     onClick={() => setShowPeriodMenu(false)}
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm text-slate-800 hover:bg-amber-200"
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm text-slate-800 hover:bg-slate-200"
                   >
                     <span>{period}</span>
                     <span className="text-base leading-none">&#8250;</span>

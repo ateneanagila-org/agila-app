@@ -62,7 +62,7 @@ export function FiltersDialog({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-500"
           aria-label="Close"
         >
           &#10005;
@@ -97,7 +97,7 @@ export function FiltersDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
         >
           Reset
           <span className="ml-1">&#10005;</span>
@@ -105,7 +105,7 @@ export function FiltersDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
         >
           Apply
           <span className="ml-1">&#10003;</span>
@@ -129,7 +129,7 @@ export function SortByDialog({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-500"
           aria-label="Close"
         >
           &#10005;
@@ -203,7 +203,7 @@ export function ChangeConfirmDialog({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-500"
         >
           &#10005;
         </button>
@@ -221,7 +221,7 @@ export function ChangeConfirmDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
           >
             Keep Editing
           </button>

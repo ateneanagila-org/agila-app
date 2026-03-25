@@ -109,7 +109,7 @@ export function SessionsApprovalCrossRefScreen() {
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
@@ -128,14 +128,14 @@ export function SessionsApprovalCrossRefScreen() {
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-amber-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-slate-100 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
               <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
             <button
               type="button"
               onClick={() => setShowSort(true)}
-              className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
             >
               Sort by <span className="ml-1">&#9662;</span>
             </button>
@@ -160,7 +160,7 @@ export function SessionsApprovalCrossRefScreen() {
                   </div>
                   <div className="mt-2 flex gap-2">
                     {["Intervention", "Color", "Size/Age"].map((chip) => (
-                      <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                      <span key={chip} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                         {chip}
                       </span>
                     ))}
@@ -179,14 +179,14 @@ export function SessionsApprovalCrossRefScreen() {
                   <button
                     type="button"
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+                    className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
                   >
                     Approve Instantly <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+                    className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
                   >
                     Cancel <span className="ml-1">&#10005;</span>
                   </button>
@@ -205,7 +205,7 @@ export function SessionsApprovalCrossRefScreen() {
                     </div>
                     <div className="mt-2 flex gap-2">
                       {["Intervention", "Color", "Size/Age"].map((chip) => (
-                        <span key={`cross-${chip}`} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                        <span key={`cross-${chip}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                           {chip}
                         </span>
                       ))}

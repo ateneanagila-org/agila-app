@@ -96,7 +96,7 @@ export function UsersScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">User Control</h1>
           <button
@@ -115,14 +115,14 @@ export function UsersScreen() {
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-amber-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-slate-100 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
               <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+            <button type="button" className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700">
               Filter role <span className="ml-1">&#9662;</span>
             </button>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+            <button type="button" className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700">
               Sort by <span className="ml-1">&#9662;</span>
             </button>
           </div>
@@ -172,7 +172,7 @@ export function UsersScreen() {
           <button
             type="button"
             onClick={() => setShowAddUser(false)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-sm text-slate-500"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-500"
             aria-label="Close"
           >
             &#10005;
@@ -207,7 +207,7 @@ export function UsersScreen() {
           <button
             type="button"
             onClick={() => setShowAddUser(false)}
-            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
           >
             Cancel
             <span className="ml-1">&#10005;</span>
@@ -215,7 +215,7 @@ export function UsersScreen() {
           <button
             type="button"
             onClick={() => setShowAddUser(false)}
-            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
           >
             Create
             <span className="ml-1">&#10003;</span>

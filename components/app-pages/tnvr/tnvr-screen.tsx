@@ -130,7 +130,7 @@ export function TnvrScreen() {
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="mb-3 flex items-center justify-between gap-5">
           <label className="w-full max-w-52">
             <span className="mb-1 block text-sm font-semibold text-slate-900">
@@ -166,14 +166,14 @@ export function TnvrScreen() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+                className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700"
               >
                 Status
                 <span className="ml-1">&#9662;</span>
               </button>
               <button
                 type="button"
-                className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+                className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700"
               >
                 Gender
                 <span className="ml-1">&#9662;</span>

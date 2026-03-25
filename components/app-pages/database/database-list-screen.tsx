@@ -130,7 +130,7 @@ export function DatabaseListScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Database</h1>
           <button
@@ -155,7 +155,7 @@ export function DatabaseListScreen() {
           <button
             type="button"
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-sm text-slate-700"
+            className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
           >
             Filter
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -163,7 +163,7 @@ export function DatabaseListScreen() {
           <button
             type="button"
             onClick={() => setShowSort(true)}
-            className="flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-sm text-slate-700"
+            className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
           >
             Sort by
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -195,7 +195,7 @@ export function DatabaseListScreen() {
                   {["Intervention", "Color", "Size/Age"].map((chip) => (
                     <span
                       key={`${cat.id}-${chip}`}
-                      className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700"
+                      className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
                     >
                       {chip}
                     </span>
@@ -206,7 +206,7 @@ export function DatabaseListScreen() {
                   <p className="text-sm font-medium text-slate-900">
                     Last seen: {cat.location} - {cat.date}
                   </p>
-                  <span className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+                  <span className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700">
                     Edit entry <span className="ml-1">&#9998;</span>
                   </span>
                 </div>

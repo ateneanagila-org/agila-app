@@ -55,7 +55,7 @@ export function SessionsManagerScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
@@ -74,11 +74,11 @@ export function SessionsManagerScreen() {
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-amber-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-slate-100 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
               <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
-            <button type="button" className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700">
+            <button type="button" className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700">
               Sort by <span className="ml-1">&#9662;</span>
             </button>
             <Link href="/sessions" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700">
@@ -101,14 +101,14 @@ export function SessionsManagerScreen() {
                   </div>
                   <div className="mt-2 flex gap-2">
                     {["Intervention", "Color", "Size/Age"].map((chip) => (
-                      <span key={`${id}-${chip}`} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                      <span key={`${id}-${chip}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                         {chip}
                       </span>
                     ))}
                   </div>
                   <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
                 </div>
-                <Link href="/sessions/approval/validation" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+                <Link href="/sessions/approval/validation" className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700">
                   Review <span className="ml-1">&#9998;</span>
                 </Link>
               </div>

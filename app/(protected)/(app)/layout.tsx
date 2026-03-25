@@ -81,7 +81,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             </h1>
           </div>
 
-          <nav className="mt-8 rounded-3xl bg-amber-100 p-5">
+          <nav className="mt-8 rounded-3xl bg-slate-100 p-5">
             <ul className="space-y-4">
               {NAV_ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -103,7 +103,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="mt-auto rounded-2xl bg-amber-100 px-4 py-5">
+          <div className="mt-auto rounded-2xl bg-slate-100 px-4 py-5">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-300 text-slate-600">
               <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                 <path

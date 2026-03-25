@@ -100,7 +100,7 @@ export function SessionsCreateScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-amber-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export function SessionsCreateScreen() {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(true)}
-                  className="rounded-full bg-amber-100 px-4 py-1.5 text-sm text-slate-700"
+                  className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
                 >
                   Add entry <span className="ml-1">+</span>
                 </button>
@@ -164,7 +164,7 @@ export function SessionsCreateScreen() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {["Intervention", "Color", "Size/Age"].map((chip) => (
-                      <span key={chip} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                      <span key={chip} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                         {chip}
                       </span>
                     ))}
@@ -173,20 +173,20 @@ export function SessionsCreateScreen() {
                 </div>
 
                 {!showAddForm && (
-                  <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+                  <button type="button" className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700">
                     Edit <span className="ml-1">&#9998;</span>
                   </button>
                 )}
 
                 {showAddForm && (
                   <div className="flex items-center gap-2">
-                    <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+                    <button type="button" className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700">
                       Save <span className="ml-1">&#10003;</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700"
+                      className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700"
                     >
                       Cancel <span className="ml-1">&#10005;</span>
                     </button>
@@ -230,14 +230,14 @@ export function SessionsCreateScreen() {
                     </div>
                     <div className="mt-2 flex gap-2">
                       {["Intervention", "Color", "Size/Age"].map((chip) => (
-                        <span key={`${cat.id}-${chip}`} className="rounded-full bg-amber-100 px-3 py-1 text-xs text-slate-700">
+                        <span key={`${cat.id}-${chip}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
                           {chip}
                         </span>
                       ))}
                     </div>
                     <p className="mt-4 text-sm font-medium text-slate-900">Last seen: Arete - 02/21/26</p>
                   </div>
-                  <button type="button" className="rounded-full bg-amber-100 px-4 py-1 text-sm text-slate-700">
+                  <button type="button" className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700">
                     Edit <span className="ml-1">&#9998;</span>
                   </button>
                 </div>
