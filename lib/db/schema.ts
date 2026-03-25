@@ -164,6 +164,3 @@ export const requests = pgTable("requests", {
   urgency: urgencyEnum("urgency").notNull().default("Now"),
   type: text("type"),
 });
-
-export type InsertProfile = typeof profiles.$inferInsert;
-export type SelectProfile = typeof profiles.$inferSelect;

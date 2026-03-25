@@ -22,11 +22,16 @@ export const findCats = (filters: Partial<SelectCat>) =>
 export const insertCat = (data: InsertCat, client: DB = db) =>
   client.insert(cats).values(data).returning();
 
-export const updateCat = (id: string, data: Partial<InsertCat>) =>
-  db
+export const updateCat = (
+  id: string,
+  data: Partial<InsertCat>,
+  client: DB = db,
+) =>
+  client
     .update(cats)
     .set({ ...data, last_updated_at: new Date() })
-    .where(eq(cats.id, id));
+    .where(eq(cats.id, id))
+    .returning();
 
 export const deleteCat = (id: string) => db.delete(cats).where(eq(cats.id, id));
 
@@ -55,3 +60,5 @@ export const updateCatHealthRecord = (
 
 export const deleteCatHealthRecord = (id: string) =>
   db.delete(catHealthRecords).where(eq(catHealthRecords.id, id));
+
+export const findCatRegion = (id: string, client: DB = db) => client.select();
