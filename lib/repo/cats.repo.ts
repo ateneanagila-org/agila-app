@@ -52,13 +52,13 @@ export const insertCatHealthRecord = (
 export const updateCatHealthRecord = (
   id: string,
   data: Partial<InsertCatHealthRecord>,
+  client: DB = db,
 ) =>
-  db
+  client
     .update(catHealthRecords)
     .set({ ...data, last_updated_at: new Date() })
-    .where(eq(catHealthRecords.id, id));
+    .where(eq(catHealthRecords.cat_id, id))
+    .returning();
 
 export const deleteCatHealthRecord = (id: string) =>
-  db.delete(catHealthRecords).where(eq(catHealthRecords.id, id));
-
-export const findCatRegion = (id: string, client: DB = db) => client.select();
+  db.delete(catHealthRecords).where(eq(catHealthRecords.cat_id, id));

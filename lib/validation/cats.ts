@@ -3,7 +3,15 @@ import { cats, catHealthRecords } from "@/lib/db/schema";
 import { z } from "zod";
 import { CatHealthRecordConditionEnum } from "../db/enums";
 
-// CATS
+// CAT HEALTH RECORDS
+export const catHealthRecordsSchema = createSelectSchema(catHealthRecords);
+export const createCatHealthRecordSchema = createInsertSchema(catHealthRecords);
+export const getCatHealthRecordsSchema = catHealthRecordsSchema.partial();
+export const editCatHealthRecordSchema = createInsertSchema(catHealthRecords)
+  .omit({ cat_id: true })
+  .partial();
+
+// CATS;
 export const catsSchema = createSelectSchema(cats);
 export const createCatSchema = createInsertSchema(cats)
   .omit({
@@ -15,16 +23,8 @@ export const createCatSchema = createInsertSchema(cats)
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
   .omit({ id: true, last_updated_at: true })
-  .partial();
-
-// CAT HEALTH RECORDS
-export const catHealthRecordsSchema = createSelectSchema(catHealthRecords);
-export const createCatHealthRecordSchema = createInsertSchema(
-  catHealthRecords,
-).omit({ id: true, last_updated_at: true });
-export const getCatHealthRecordsSchema = catHealthRecordsSchema.partial();
-export const editCatHealthRecordSchema = createInsertSchema(catHealthRecords)
-  .omit({ id: true })
+  .extend({ region_id: z.string() })
+  .merge(editCatHealthRecordSchema)
   .partial();
 
 // TYPES

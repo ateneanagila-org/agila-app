@@ -137,8 +137,9 @@ export const interventions = pgTable("interventions", {
 });
 
 export const catHealthRecords = pgTable("cat_health_records", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  // Use .primaryKey() directly on the cat_id column
   cat_id: uuid("cat_id")
+    .primaryKey()
     .notNull()
     .references(() => cats.id, {
       onDelete: "cascade",
@@ -148,7 +149,6 @@ export const catHealthRecords = pgTable("cat_health_records", {
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
 });
-
 // TEMPLATE
 export const requests = pgTable("requests", {
   id: uuid("id").primaryKey().defaultRandom(),

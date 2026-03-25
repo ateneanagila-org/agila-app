@@ -1,6 +1,34 @@
-// lib/db/relations.ts
 import { relations } from "drizzle-orm";
-import * as schema from "./schema"; // Import your tables
+import * as schema from "./schema";
+
+export const supabaseUsersRelations = relations(
+  schema.supabaseUsers,
+  ({ one, many }) => ({
+    profile: one(schema.profiles, {
+      fields: [schema.supabaseUsers.id],
+      references: [schema.profiles.id],
+    }),
+    allowedEmails: many(schema.allowedEmails),
+    sessionUsers: many(schema.sessionUsers),
+  }),
+);
+
+export const profilesRelations = relations(schema.profiles, ({ one }) => ({
+  user: one(schema.supabaseUsers, {
+    fields: [schema.profiles.id],
+    references: [schema.supabaseUsers.id],
+  }),
+}));
+
+export const allowedEmailsRelations = relations(
+  schema.allowedEmails,
+  ({ one }) => ({
+    allower: one(schema.supabaseUsers, {
+      fields: [schema.allowedEmails.allower_id],
+      references: [schema.supabaseUsers.id],
+    }),
+  }),
+);
 
 export const sessionsRelations = relations(
   schema.sessions,
@@ -10,6 +38,21 @@ export const sessionsRelations = relations(
       references: [schema.regions.id],
     }),
     sessionCats: many(schema.sessionCats),
+    sessionUsers: many(schema.sessionUsers),
+  }),
+);
+
+export const sessionsUsersRelations = relations(
+  schema.sessionUsers,
+  ({ one }) => ({
+    session: one(schema.sessions, {
+      fields: [schema.sessionUsers.session_id],
+      references: [schema.sessions.id],
+    }),
+    user: one(schema.supabaseUsers, {
+      fields: [schema.sessionUsers.user_id],
+      references: [schema.supabaseUsers.id],
+    }),
   }),
 );
 
@@ -33,15 +76,33 @@ export const catsRelations = relations(schema.cats, ({ one, many }) => ({
     references: [schema.cats.id],
   }),
   sessionCats: many(schema.sessionCats),
+  interventions: many(schema.interventions),
+  catHealthRecords: one(schema.catHealthRecords, {
+    fields: [schema.cats.id],
+    references: [schema.catHealthRecords.cat_id],
+  }),
 }));
 
 export const interventionsRelations = relations(
-  schema.cats,
-  ({ one, many }) => ({
+  schema.interventions,
+  ({ one }) => ({
     cat: one(schema.cats, {
-      fields: [schema.cats.merged_into_id],
+      fields: [schema.interventions.cat_id],
       references: [schema.cats.id],
     }),
-    sessionCats: many(schema.sessionCats),
   }),
 );
+
+export const catHealthRecordsRelations = relations(
+  schema.catHealthRecords,
+  ({ one }) => ({
+    cat: one(schema.cats, {
+      fields: [schema.catHealthRecords.cat_id],
+      references: [schema.cats.id],
+    }),
+  }),
+);
+
+export const regionsRelations = relations(schema.regions, ({ many }) => ({
+  session: many(schema.sessions),
+}));
