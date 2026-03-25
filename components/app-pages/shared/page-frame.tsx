@@ -26,12 +26,12 @@ export function TopTabs({
   ];
 
   return (
-    <div className="flex border-b border-slate-200">
+    <div className="flex w-full border-b border-slate-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-4">
       {tabs.map((tab) => (
         <Link
           key={tab.label}
           href={tab.href}
-          className={`flex-1 pb-2.5 text-center text-sm transition-colors ${
+          className={`flex-1 pb-2 text-center text-sm transition-colors tablet:flex-none tablet:text-left ${
             tab.label === active
               ? "-mb-px border-b-2 border-slate-900 font-bold text-slate-900"
               : "font-medium text-slate-400"
