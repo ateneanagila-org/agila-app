@@ -18,10 +18,10 @@ import {
 function DropdownField({ label }: { label: string }) {
   return (
     <div>
-      <label className="text-sm text-slate-700">{label}</label>
-      <div className="mt-1 flex h-10 items-center justify-between rounded-xl border border-lime-300 bg-white px-3">
+      <label className="text-xs font-medium text-slate-600">{label}</label>
+      <div className="mt-1 flex h-9 items-center justify-between rounded-lg border border-slate-200 bg-white px-3">
         <span className="text-sm text-slate-400">&nbsp;</span>
-        <ChevronDownIcon className="h-4 w-4 text-slate-500" />
+        <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
       </div>
     </div>
   );
@@ -94,102 +94,102 @@ export function SessionsApprovalValidationScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-slate-900">Sessions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700"
+              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
             >
               Census Report <span className="ml-1">&#128202;</span>
             </button>
             <button
               type="button"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
             >
               Review Sessions <span className="ml-1">&#9711;</span>
             </button>
           </div>
         </div>
 
-        <section className="mt-4 rounded-3xl bg-slate-50 p-3">
+        <section className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
             <button
               type="button"
-              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
+              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
               Sort by <span className="ml-1">&#9662;</span>
             </button>
             <Link
               href="/sessions/manager"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
             >
               Back <span className="ml-1">&#8249;</span>
             </Link>
           </div>
         </section>
 
-        <section className="mt-4 rounded-3xl bg-slate-50 p-4">
+        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
           <div className="flex items-start gap-4">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-slate-300">
-              <ImagePlaceholderIcon className="h-10 w-10 text-slate-800" />
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+              <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
             </div>
 
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-5xl font-bold text-slate-900">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
                       Cat Name
                     </h3>
-                    <span className="text-4xl text-blue-500">&#9794;</span>
+                    <span className="text-xl text-blue-500">&#9794;</span>
                   </div>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex gap-1.5">
                     {["Intervention", "Color", "Size/Age"].map((chip) => (
                       <span
                         key={chip}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+                        className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
                       >
                         {chip}
                       </span>
                     ))}
                   </div>
-                  <p className="mt-4 text-sm font-medium text-slate-900">
-                    Last seen: Arete - 02/21/26
+                  <p className="mt-3 text-sm text-slate-600">
+                    Last seen: Arete &middot; 02/21/26
                   </p>
                 </div>
 
                 <Link
                   href="/sessions/approval/cross-ref"
-                  className="rounded-full bg-lime-300 px-4 py-1.5 text-sm text-slate-700"
+                  className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
                 >
                   Next <span className="ml-1">&#8250;</span>
                 </Link>
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-slate-700 pb-1 text-4xl text-slate-900">
+                <p className="inline-block border-b border-slate-300 pb-1 text-base font-semibold text-slate-800">
                   For Validation
                 </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
+                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
                   >
                     Approve Instantly <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700"
+                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
                   >
                     Cancel <span className="ml-1">&#10005;</span>
                   </button>
@@ -206,15 +206,15 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-sm text-slate-700">
+                <label className="text-xs font-medium text-slate-600">
                   Specific Location
                 </label>
-                <input className="mt-1 h-10 w-full rounded-xl border border-lime-300 px-3 text-sm outline-none" />
+                <input className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200" />
               </div>
 
               <div className="mt-3">
-                <label className="text-sm text-slate-700">Notes</label>
-                <textarea className="mt-1 h-24 w-full resize-none rounded-xl border border-lime-300 px-3 py-2 text-sm outline-none" />
+                <label className="text-xs font-medium text-slate-600">Notes</label>
+                <textarea className="mt-1 h-24 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200" />
               </div>
             </div>
           </div>

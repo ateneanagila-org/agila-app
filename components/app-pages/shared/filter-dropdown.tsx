@@ -14,9 +14,9 @@ export function FilterDropdown({
   const safeOptions = options.length > 0 ? options : ["No options available"];
 
   return (
-    <label className={`flex w-full flex-col gap-1 ${className}`}>
-      <span className="text-xs font-semibold text-slate-800">{label}</span>
-      <div className="relative rounded-lg bg-white ring-1 ring-slate-300">
+    <label className={`flex w-full flex-col gap-1.5 ${className}`}>
+      <span className="text-xs font-semibold tracking-wide text-slate-700">{label}</span>
+      <div className="relative rounded-lg bg-white ring-1 ring-slate-200">
         <select
           defaultValue={defaultValue ?? safeOptions[0]}
           className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm font-medium text-slate-900"

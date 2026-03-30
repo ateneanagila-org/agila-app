@@ -8,7 +8,7 @@ type PageContentProps = {
 
 export function PageContent({ children }: PageContentProps) {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-3 px-3 py-4 xs:px-4 mobile:px-5 tablet:space-y-4 tablet:px-8 tablet:py-6">
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 xs:px-4 mobile:px-5 tablet:space-y-5 tablet:px-8 tablet:py-6">
       {children}
     </div>
   );
@@ -26,15 +26,15 @@ export function TopTabs({
   ];
 
   return (
-    <div className="flex w-full border-b border-slate-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-4">
+    <div className="flex w-full border-b border-slate-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-5">
       {tabs.map((tab) => (
         <Link
           key={tab.label}
           href={tab.href}
-          className={`flex-1 pb-2 text-center text-sm transition-colors tablet:flex-none tablet:text-left ${
+          className={`flex-1 pb-2.5 text-center text-sm tracking-wide transition-colors tablet:flex-none tablet:text-left ${
             tab.label === active
               ? "-mb-px border-b-2 border-slate-900 font-bold text-slate-900"
-              : "font-medium text-slate-400"
+              : "font-medium text-slate-400 hover:text-slate-600"
           }`}
         >
           {tab.label}
@@ -58,7 +58,7 @@ export function DetailHeader({
   return (
     <div className="flex items-start gap-3">
       <div className="relative h-14 w-14 shrink-0">
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-200">
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
           <ImagePlaceholderIcon className="h-7 w-7 text-slate-400" />
         </div>
         <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-500">
@@ -66,12 +66,12 @@ export function DetailHeader({
         </div>
       </div>
       <div className="min-w-0 flex-1 pt-1">
-        <p className="text-base font-bold text-slate-900">{name}</p>
-        <p className="text-xs text-slate-500">Last Updated At: {lastUpdated}</p>
+        <p className="text-base font-bold tracking-tight text-slate-900">{name}</p>
+        <p className="mt-0.5 text-xs text-slate-500">Last Updated: {lastUpdated}</p>
       </div>
       <Link
         href={backHref}
-        className="flex shrink-0 items-center gap-0.5 pt-1 text-sm text-slate-600"
+        className="flex shrink-0 items-center gap-0.5 pt-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
       >
         <span className="text-base leading-none">&lsaquo;</span> Back
       </Link>

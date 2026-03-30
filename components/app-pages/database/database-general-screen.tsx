@@ -80,31 +80,31 @@ export function DatabaseGeneralScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-slate-900">Database</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Database</h1>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800"
+            className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
           >
             Add entry
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4 rounded-3xl bg-white p-3">
+        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-100 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <button
               type="button"
               onClick={() => setShowDesktopFilters((v) => !v)}
-              className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
+              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
               Filter
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -112,7 +112,7 @@ export function DatabaseGeneralScreen() {
 
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
+              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
               Sort by
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -120,11 +120,11 @@ export function DatabaseGeneralScreen() {
           </div>
 
           {showDesktopFilters && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {FILTER_CHIPS.map((chip, index) => (
                 <span
                   key={`${chip}-${index}`}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"
+                  className="rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-600"
                 >
                   {chip}
                 </span>
@@ -133,38 +133,38 @@ export function DatabaseGeneralScreen() {
           )}
         </div>
 
-        <section className="mt-4 rounded-3xl bg-slate-50 p-5">
+        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
           <div className="flex gap-4">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-slate-300">
-              <span className="text-4xl text-slate-800">&#9635;</span>
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+              <span className="text-2xl text-slate-400">&#9635;</span>
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-4xl font-bold text-slate-900">Cat Name</h2>
-                <span className="text-4xl text-blue-500">&#9794;</span>
+                <h2 className="text-xl font-bold tracking-tight text-slate-900">Cat Name</h2>
+                <span className="text-xl text-blue-500">&#9794;</span>
               </div>
 
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {["Intervention", "Color", "Size/Age"].map((chip) => (
                   <span
                     key={chip}
-                    className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+                    className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
                   >
                     {chip}
                   </span>
                 ))}
               </div>
 
-              <p className="mt-4 text-sm font-medium text-slate-900">
-                Last seen: Arete - 02/21/26
+              <p className="mt-3 text-sm text-slate-600">
+                Last seen: Arete &middot; 02/21/26
               </p>
             </div>
           </div>
 
           <div className="mt-4 flex items-center justify-between">
             <TopTabs active="General" />
-            <div className="ml-4 flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+            <div className="ml-4 flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
               <span>Adoptable</span>
               <span className="relative inline-flex h-4 w-7 items-center rounded-full bg-slate-300">
                 <span className="inline-block h-3 w-3 translate-x-3.5 rounded-full bg-slate-800" />
@@ -182,20 +182,20 @@ export function DatabaseGeneralScreen() {
           </div>
 
           <div className="mt-3">
-            <label className="text-xs text-slate-700">Notes</label>
-            <textarea className="mt-1 h-13 w-full resize-none rounded-md border border-lime-300 px-3 py-2 text-sm outline-none" />
+            <label className="text-xs font-medium text-slate-600">Notes</label>
+            <textarea className="mt-1 h-13 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200" />
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
-              className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700"
+              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
             >
               Save <span className="ml-1">&#10003;</span>
             </button>
             <button
               type="button"
-              className="rounded-full bg-slate-100 px-4 py-1 text-sm text-slate-700"
+              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
             >
               Cancel <span className="ml-1">&#10005;</span>
             </button>

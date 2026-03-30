@@ -65,17 +65,17 @@ export function OverviewScreen() {
           <div className="space-y-3 tablet:space-y-4">
             {/* Page Header */}
             <div>
-              <h1 className="text-base font-bold text-slate-900 tablet:text-lg">
+              <h1 className="text-lg font-bold tracking-tight text-slate-900">
                 Overview
               </h1>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500 tablet:text-sm">
-                This is a summary of the cat population in the Ateneo de Manila
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                A summary of the cat population in Ateneo de Manila
                 University. Updates come from AGILA&apos;s cat census sheets.
               </p>
             </div>
 
             {/* Dates */}
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1 rounded-lg bg-slate-50 px-3 py-2.5">
               <p className="text-xs text-slate-500">
                 Last PAW Update:{" "}
                 <span className="font-semibold text-slate-700">
@@ -91,21 +91,21 @@ export function OverviewScreen() {
             </div>
 
             {/* Hero Card */}
-            <div className="rounded-lg bg-white px-4 py-3 ring-1 ring-slate-200 tablet:rounded-xl tablet:px-5 tablet:py-4">
-              <p className="mb-3 text-xs font-semibold text-slate-500 tablet:text-sm">
+            <div className="rounded-xl bg-white px-4 py-4 ring-1 ring-slate-200">
+              <p className="mb-3 text-xs font-semibold tracking-wide text-slate-500">
                 Colony Snapshot
               </p>
               <div className="flex items-center justify-around">
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-slate-900">123</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500 tablet:text-sm">
+                  <p className="text-3xl font-bold tracking-tight text-slate-900">123</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
                     Total Cats
                   </p>
                 </div>
-                <div className="h-12 w-px bg-slate-200" />
+                <div className="h-10 w-px bg-slate-200" />
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-slate-900">58%</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500 tablet:text-sm">
+                  <p className="text-3xl font-bold tracking-tight text-slate-900">58%</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
                     TNVR Score
                   </p>
                 </div>
@@ -120,20 +120,20 @@ export function OverviewScreen() {
             />
 
             {/* Location Details */}
-            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-              <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
+                <p className="text-xs font-semibold tracking-wide text-slate-700">
                   Location Details
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-px bg-slate-100 tablet:grid-cols-3">
+              <div className="grid grid-cols-2 gap-px bg-slate-100">
                 {LOCATION_STATS.map((stat) => (
                   <div
                     key={stat.label}
-                    className="bg-white px-3 py-2.5 tablet:px-4 tablet:py-3"
+                    className="bg-white px-3.5 py-3"
                   >
-                    <p className="text-xs text-slate-500">{stat.label}</p>
-                    <p className="mt-0.5 text-base font-bold text-slate-900 tablet:text-lg">
+                    <p className="text-[11px] font-medium text-slate-500">{stat.label}</p>
+                    <p className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                       {stat.value}
                     </p>
                   </div>
@@ -142,23 +142,23 @@ export function OverviewScreen() {
             </div>
 
             {/* Graph Placeholder */}
-            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-              <div className="border-b border-slate-200 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
+                <p className="text-xs font-semibold tracking-wide text-slate-700">
                   Population Trend
                 </p>
               </div>
-              <div className="flex h-40 items-center justify-center bg-slate-100 tablet:h-52">
-                <p className="text-xs font-medium text-slate-400 tablet:text-sm">
+              <div className="flex h-40 items-center justify-center bg-slate-50">
+                <p className="text-xs font-medium text-slate-400">
                   Graph — coming soon
                 </p>
               </div>
             </div>
 
             {/* Not Included in Total Count */}
-            <div className="overflow-hidden rounded-lg ring-1 ring-slate-200 tablet:rounded-xl">
-              <div className="border-b border-slate-100 bg-white px-3 py-2 tablet:px-4 tablet:py-3">
-                <p className="text-xs font-semibold text-slate-700 tablet:text-sm">
+            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
+                <p className="text-xs font-semibold tracking-wide text-slate-700">
                   Not Included in Total Cat Count
                 </p>
               </div>
@@ -166,15 +166,15 @@ export function OverviewScreen() {
                 {ADDITIONAL_STATS.map((stat) => (
                   <div
                     key={stat.label}
-                    className="flex items-center justify-between px-3 py-2.5 tablet:px-4 tablet:py-3"
+                    className="flex items-center justify-between px-4 py-3"
                   >
                     <p
-                      className={`text-xs tablet:text-sm ${stat.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
+                      className={`text-xs ${stat.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
                     >
                       {stat.label}
                     </p>
                     <p
-                      className={`text-sm tablet:text-base ${stat.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
+                      className={`tabular-nums text-sm ${stat.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
                     >
                       {stat.value}
                     </p>
@@ -189,7 +189,7 @@ export function OverviewScreen() {
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="mb-5 flex items-start justify-between gap-6">
           <label className="w-full max-w-92">
-            <span className="mb-1 block text-sm font-semibold text-slate-900">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-900">
               Location:
             </span>
             <div className="relative rounded-full bg-white">
@@ -223,21 +223,21 @@ export function OverviewScreen() {
           {DESKTOP_PRIMARY_STATS.map((stat) => (
             <article
               key={stat.label}
-              className="rounded-3xl bg-slate-50 px-4 py-3 text-center"
+              className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-slate-100"
             >
-              <p className="text-6.5 font-bold leading-none text-slate-900">
+              <p className="text-3xl font-bold tabular-nums tracking-tight text-slate-900">
                 {stat.value}
               </p>
-              <p className="mt-1 text-base text-slate-700">{stat.label}</p>
+              <p className="mt-1 text-sm text-slate-600">{stat.label}</p>
             </article>
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_7.5rem] gap-3">
-          <section className="relative rounded-3xl bg-slate-50 p-4">
+        <div className="mt-4 grid grid-cols-[1fr_8rem] gap-3">
+          <section className="relative rounded-2xl bg-white p-5 ring-1 ring-slate-100">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <p className="text-base font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-slate-900">
                   Graph title
                 </p>
                 <button
@@ -275,7 +275,7 @@ export function OverviewScreen() {
               </div>
             )}
 
-            <div className="flex h-75 items-center justify-center rounded-2xl bg-slate-50 text-lg text-slate-700">
+            <div className="flex h-75 items-center justify-center rounded-xl bg-slate-50 text-sm text-slate-500">
               {isOverall
                 ? "horizontal bar chart"
                 : "line chart (display all months in a year)"}
@@ -286,12 +286,12 @@ export function OverviewScreen() {
             {DESKTOP_STATUS_STATS.map((stat) => (
               <div
                 key={stat.label}
-                className="flex items-center justify-between rounded-3xl bg-slate-50 px-3 py-2"
+                className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 ring-1 ring-slate-100"
               >
-                <span className="text-sm font-semibold text-slate-900">
+                <span className="text-xs font-medium text-slate-600">
                   {stat.label}
                 </span>
-                <span className="text-sm font-semibold text-slate-900">
+                <span className="text-sm font-bold tabular-nums text-slate-900">
                   {stat.value}
                 </span>
               </div>

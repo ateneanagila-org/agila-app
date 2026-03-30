@@ -28,24 +28,24 @@ function TextField({ label }: { label: string }) {
 export function CatEntryForm({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white"
+        className="w-full max-w-sm rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header: avatar + name + close */}
         <div className="flex items-center gap-3 px-5 pb-3 pt-5">
           <div className="relative h-12 w-12 shrink-0">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-200">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
               <ImagePlaceholderIcon className="h-6 w-6 text-slate-400" />
             </div>
             <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-500">
               <UploadIcon className="h-2.5 w-2.5 text-white" />
             </div>
           </div>
-          <p className="flex-1 text-base font-bold text-slate-900">Cat Name</p>
+          <p className="flex-1 text-base font-bold tracking-tight text-slate-900">Cat Name</p>
           <button
             type="button"
             onClick={onClose}
@@ -76,7 +76,7 @@ export function CatEntryForm({ onClose }: { onClose: () => void }) {
         <div className="px-5 pb-5 pt-3">
           <button
             type="button"
-            className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white"
+            className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
           >
             Save
           </button>

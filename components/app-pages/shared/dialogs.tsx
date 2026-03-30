@@ -10,11 +10,11 @@ export function DialogShell({ open, onClose, children }: DialogShellProps) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-5"
+        className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -32,11 +32,11 @@ export function DialogHeader({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-base font-bold text-slate-900">{title}</h2>
+      <h2 className="text-base font-bold tracking-tight text-slate-900">{title}</h2>
       <button
         type="button"
         onClick={onClose}
-        className="text-xl leading-none text-slate-400"
+        className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm text-slate-500 transition-colors hover:bg-slate-200"
         aria-label="Close"
       >
         ✕
@@ -97,7 +97,7 @@ export function FiltersDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+          className="rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
         >
           Reset
           <span className="ml-1">&#10005;</span>
@@ -105,7 +105,7 @@ export function FiltersDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+          className="rounded-full bg-lime-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-lime-300"
         >
           Apply
           <span className="ml-1">&#10003;</span>
@@ -192,7 +192,7 @@ export function ChangeConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <div
@@ -214,21 +214,21 @@ export function ChangeConfirmDialog({
           </div>
         )}
 
-        <h3 className="pr-8 text-lg font-bold text-slate-900">{title}</h3>
-        <p className="mt-4 text-sm text-slate-600">{description}</p>
+        <h3 className="pr-8 text-lg font-bold tracking-tight text-slate-900">{title}</h3>
+        <p className="mt-4 text-sm leading-relaxed text-slate-600">{description}</p>
 
         <div className="mt-8 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200"
           >
             Keep Editing
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-full bg-lime-300 px-3 py-1 text-xs font-medium text-slate-700"
+            className="rounded-full bg-lime-300 px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-lime-400"
           >
             {confirmLabel}
           </button>
