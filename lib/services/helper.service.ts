@@ -54,16 +54,16 @@ function getInterventionDisplayStatus(
   // (Since we sorted by date in the DB, this finds the newest Pending one)
   const pending = filtered.find((i) => i.status === "Pending");
   if (pending) {
-    const typeLabel = targetType === "TNVR" ? "TNVR " : "";
-    return `Will have ${typeLabel}intervention`;
+    const typeLabel = targetType === "TNVR" ? "TNVR" : "Vet";
+    return `Will have ${typeLabel} intervention`;
   }
 
   // 3. PRIORITY 2: Is there a FINISHED one?
   // (This finds the newest Finished one)
   const finished = filtered.find((i) => i.status === "Finished");
   if (finished) {
-    const typeLabel = targetType === "TNVR" ? "TNVR " : "";
-    return `Had ${typeLabel}intervention`;
+    const typeLabel = targetType === "TNVR" ? "TNVR" : "Vet";
+    return `Had ${typeLabel} intervention`;
   }
 
   // 4. DEFAULT: Fallback if everything is Cancelled or Unknown
