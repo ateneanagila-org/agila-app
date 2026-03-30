@@ -9,6 +9,7 @@ import {
   createCatHealthRecordSchema,
   getCatHealthRecordsSchema,
   editCatHealthRecordSchema,
+  removeCatSchema,
 } from "@/lib/validation/cats";
 import { z } from "zod";
 
@@ -27,15 +28,14 @@ export const getCats = actionClient
 
 export const editCat = actionClient
   .schema(editCatSchema)
-  .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
-    return await repo.updateCat(id, parsedInput);
+  .action(async ({ parsedInput }) => {
+    return await service.editCat(parsedInput);
   });
 
 export const removeCat = actionClient
-  .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ bindArgsClientInputs: [id] }) => {
-    return await repo.deleteCat(id);
+  .schema(removeCatSchema)
+  .action(async ({ parsedInput }) => {
+    return await service.removeCat(parsedInput);
   });
 
 // CAT HEALTH RECORDS

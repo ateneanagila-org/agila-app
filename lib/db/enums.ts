@@ -1,16 +1,17 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-// FOR TESTING
-export const URGENCY_VALUES = [
-  "Now",
-  "Within the hour",
-  "Within the day",
-  "Within the week",
-  "Indefinite",
-] as const;
-export const UrgencyEnum = z.enum(URGENCY_VALUES);
-export const urgencyEnum = pgEnum("urgency", URGENCY_VALUES);
+// GSheets Sync Queue Action Status
+export const ACTION_STATUS = ["PENDING", "COMPLETED", "FAILED"] as const;
+export const actionStatusEnum = pgEnum("action_status", ACTION_STATUS);
+export const ActionStatusEnum = z.enum(ACTION_STATUS);
+export type ActionStatus = z.infer<typeof actionStatusEnum>;
+
+// GSheets Sync Queue Action
+export const ACTION = ["CREATE", "UPDATE", "DELETE"] as const;
+export const actionEnum = pgEnum("action", ACTION);
+export const ActionEnum = z.enum(ACTION);
+export type Action = z.infer<typeof actionEnum>;
 
 // User AuthRoles
 export const AUTH_ROLE_VALUES = [
@@ -186,3 +187,14 @@ export const interventionStatusEnum = pgEnum(
 );
 export const InterventionStatusEnum = z.enum(INTERVENTION_STATUS_VALUES);
 export type InterventionStatus = z.infer<typeof InterventionStatusEnum>;
+
+// FOR TESTING
+export const URGENCY_VALUES = [
+  "Now",
+  "Within the hour",
+  "Within the day",
+  "Within the week",
+  "Indefinite",
+] as const;
+export const UrgencyEnum = z.enum(URGENCY_VALUES);
+export const urgencyEnum = pgEnum("urgency", URGENCY_VALUES);

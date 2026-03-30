@@ -1,7 +1,19 @@
 import { db, DB } from "../db";
 import { interventions } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { InsertIntervention } from "../validation/interventions";
+import {
+  InsertIntervention,
+  SelectIntervention,
+} from "../validation/interventions";
+import { createEQFilters } from "./helper.repo";
+
+export const findInterventions = (filters: Partial<SelectIntervention>) =>
+  db.query.interventions.findMany({
+    where: (cols, { and }) => {
+      const conditions = createEQFilters(cols, filters);
+      return conditions.length > 0 ? and(...conditions) : undefined;
+    },
+  });
 
 export const insertIntervention = (data: InsertIntervention, client: DB = db) =>
   client.insert(interventions).values(data).returning();

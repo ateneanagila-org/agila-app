@@ -23,6 +23,8 @@ import {
   interventionTypeEnum,
   interventionStatusEnum,
   catHealthRecordConditionEnum,
+  actionStatusEnum,
+  actionEnum,
 } from "./enums";
 
 const authSchema = pgSchema("auth");
@@ -168,10 +170,10 @@ export const requests = pgTable("requests", {
 
 export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
   id: uuid("id").primaryKey().defaultRandom(),
-  action: text("action").$type<"CREATE" | "UPDATE" | "DELETE">().notNull(),
+  action: actionEnum("action").notNull(),
   entityId: uuid("entity_id").notNull(), // The Cat's UUID
   regionId: uuid("region_id").notNull(), // Target Sheet Tab
   payload: jsonb("payload").$type<string[]>(), // The [A, B, C...] array
-  status: text("status").default("PENDING").notNull(), // PENDING, COMPLETED, FAILED
+  status: actionStatusEnum("status").default("PENDING").notNull(), // PENDING, COMPLETED, FAILED
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
