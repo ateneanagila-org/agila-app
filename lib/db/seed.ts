@@ -7,29 +7,63 @@ import { sql } from "drizzle-orm";
 async function main() {
   console.log("Emptying existing data...");
 
-  // 1. Manually clear tables to avoid "Duplicate Key" errors
-  // We use CASCADE to handle foreign key dependencies
-  await db.execute(sql`TRUNCATE TABLE ${schema.profiles} CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE ${schema.allowedEmails} CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE ${schema.cats} CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE ${schema.regions} CASCADE`);
-  // Note: TRUNCATE on auth.users might require superuser perms.
-  // If it fails, use: DELETE FROM auth.users;
+  // 1. Clear tables in order of dependency to avoid Foreign Key violations
+  const tables = [
+    schema.gsheetSyncQueue,
+    schema.interventions,
+    schema.catHealthRecords,
+    schema.sessionCats,
+    schema.sessionUsers,
+    schema.sessions,
+    schema.cats,
+    schema.regions,
+    schema.allowedEmails,
+    schema.profiles,
+  ];
+
+  for (const table of tables) {
+    await db.execute(sql`TRUNCATE TABLE ${table} CASCADE`);
+  }
+
+  // Clear Supabase Auth users
   await db.execute(sql`DELETE FROM auth.users`);
 
   console.log("Seeding fresh data...");
 
-  // Pass the entire schema object so it recognizes the 'auth' schema too
+  // 2. Mock payload for Google Sheets Sync Queue (22 columns: A-V)
+  // We stringify it so drizzle-seed can handle it as a primitive string
+  const mockPayload = JSON.stringify([
+    "seed-uuid-123", // A: ID
+    "", // B: Photo
+    "Seed Cat", // C: Nickname
+    "Black", // D: Color
+    "Adult", // E: Age
+    "Unknown", // F: Sex
+    "YES", // G: Neutered
+    "Tame", // H: Tame
+    "NO", // I: Sick
+    "NO", // J: Injured
+    "YES", // K: Adoptable
+    "Available", // L: Status
+    "Volunteer", // M: Caretaker
+    new Date().toLocaleDateString(), // N: Date Last Seen
+    "Campus", // O: Place Last Seen
+    "N/A", // P: Date of Kapon
+    "N/A", // Q: Date of Vaccination
+    "Notes", // R: Notes
+    "", // S: Separator (Blacked out)
+    "Will have TNVR intervention", // T: TNVR
+    "Will not have intervention", // U: Vet
+    "Healthy & Adoptable", // V: FOR FA
+  ]);
+
   await seed(db, schema).refine((f) => ({
-    // 1. We MUST seed users first because profiles and allowed_emails depend on them
     supabaseUsers: {
       count: 10,
       columns: {
         email: f.email(),
       },
     },
-
-    // 2. Profiles depend on supabaseUsers
     profiles: {
       count: 10,
       columns: {
@@ -37,32 +71,25 @@ async function main() {
         auth_role: f.valuesFromArray({ values: [...enums.AUTH_ROLE_VALUES] }),
       },
     },
-
-    // 3. FIX: Seed allowed_emails and link it to the users we just made
     allowedEmails: {
       count: 5,
       columns: {
         email: f.email(),
       },
     },
-
     regions: {
-      count: 15,
+      count: 10,
       columns: {
         name: f.valuesFromArray({ values: [...enums.REGION_NAME_VALUES] }),
         color: f.valuesFromArray({ values: [...enums.REGION_COLOR_VALUES] }),
       },
     },
-
     cats: {
-      count: 30,
+      count: 40,
       columns: {
         name: f.firstName(),
         photo_url: f.valuesFromArray({
-          values: [
-            "https://placekitten.com/400/400",
-            "https://placekitten.com/401/401",
-          ],
+          values: ["https://placekitten.com/400/400", ""],
         }),
         color: f.valuesFromArray({ values: [...enums.CAT_COLOR_VALUES] }),
         age: f.valuesFromArray({ values: [...enums.CAT_AGE_VALUES] }),
@@ -74,28 +101,24 @@ async function main() {
         entry_status: f.valuesFromArray({
           values: [...enums.CAT_ENTRY_STATUS_VALUES],
         }),
-        notes: f.loremIpsum({ sentencesCount: 2 }),
       },
     },
-
     catHealthRecords: {
-      count: 30,
+      count: 40, // Match cat count for 1:1 relation
       columns: {
         condition: f.valuesFromArray({
           values: [...enums.CATHEALTHRECORD_CONDITION_VALUES],
         }),
       },
     },
-
     sessions: {
-      count: 10,
+      count: 15,
       columns: {
         is_finished: f.boolean(),
       },
     },
-
     interventions: {
-      count: 10,
+      count: 20,
       columns: {
         type: f.valuesFromArray({
           values: [...enums.INTERVENTION_TYPE_VALUES],
@@ -103,6 +126,20 @@ async function main() {
         status: f.valuesFromArray({
           values: [...enums.INTERVENTION_STATUS_VALUES],
         }),
+      },
+    },
+    gsheetSyncQueue: {
+      count: 5,
+      columns: {
+        // actionEnum and actionStatusEnum values from your schema
+        action: f.valuesFromArray({ values: ["CREATE", "UPDATE", "DELETE"] }),
+        status: f.valuesFromArray({
+          values: ["PENDING", "COMPLETED", "FAILED"],
+        }),
+
+        // We use valuesFromArray with our stringified JSON array.
+        // This avoids the 'any' type and prevents the generator crash.
+        payload: f.valuesFromArray({ values: [mockPayload] }),
       },
     },
   }));

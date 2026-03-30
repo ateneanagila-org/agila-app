@@ -1,5 +1,4 @@
 import {
-  integer,
   pgTable,
   pgSchema,
   text,
@@ -10,7 +9,6 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import {
-  urgencyEnum,
   authRoleEnum,
   regionColorEnum,
   regionNameEnum,
@@ -151,21 +149,6 @@ export const catHealthRecords = pgTable("cat_health_records", {
   condition: catHealthRecordConditionEnum("condition"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
-});
-// TEMPLATE
-export const requests = pgTable("requests", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id").references(() => profiles.id, {
-    onDelete: "cascade",
-  }),
-  // For currency we use the smallest unit: Php in cents
-  fee: integer("fee"),
-  title: text("title").notNull(),
-  description: text("description"),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  completed_at: timestamp("completed_at"),
-  urgency: urgencyEnum("urgency").notNull().default("Now"),
-  type: text("type"),
 });
 
 export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
