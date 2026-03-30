@@ -33,7 +33,8 @@ export const updateCat = (
     .where(eq(cats.id, id))
     .returning();
 
-export const deleteCat = (id: string) => db.delete(cats).where(eq(cats.id, id));
+export const deleteCat = (id: string, client: DB = db) =>
+  client.delete(cats).where(eq(cats.id, id)).returning();
 
 // CAT HEALTH RECORDS
 export const findCatHealthRecords = (filters: Partial<SelectCatHealthRecord>) =>
@@ -60,5 +61,8 @@ export const updateCatHealthRecord = (
     .where(eq(catHealthRecords.cat_id, id))
     .returning();
 
-export const deleteCatHealthRecord = (id: string) =>
-  db.delete(catHealthRecords).where(eq(catHealthRecords.cat_id, id));
+export const deleteCatHealthRecord = (id: string, client: DB = db) =>
+  client
+    .delete(catHealthRecords)
+    .where(eq(catHealthRecords.cat_id, id))
+    .returning();

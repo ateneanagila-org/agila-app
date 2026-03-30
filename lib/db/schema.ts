@@ -7,6 +7,7 @@ import {
   timestamp,
   boolean,
   AnyPgColumn,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import {
   urgencyEnum,
@@ -163,4 +164,14 @@ export const requests = pgTable("requests", {
   completed_at: timestamp("completed_at"),
   urgency: urgencyEnum("urgency").notNull().default("Now"),
   type: text("type"),
+});
+
+export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  action: text("action").$type<"CREATE" | "UPDATE" | "DELETE">().notNull(),
+  entityId: uuid("entity_id").notNull(), // The Cat's UUID
+  regionId: uuid("region_id").notNull(), // Target Sheet Tab
+  payload: jsonb("payload").$type<string[]>(), // The [A, B, C...] array
+  status: text("status").default("PENDING").notNull(), // PENDING, COMPLETED, FAILED
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
