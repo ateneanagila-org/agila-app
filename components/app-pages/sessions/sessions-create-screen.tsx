@@ -62,7 +62,9 @@ export function SessionsCreateScreen() {
 
       setRegionOptions(options);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load locations.");
+      setError(
+        err instanceof Error ? err.message : "Failed to load locations.",
+      );
     }
   }, []);
 
@@ -103,7 +105,9 @@ export function SessionsCreateScreen() {
         setSelectedRegionId(existing.region_id);
         await fetchSessionCats(existing.id);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load session.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load session.",
+        );
       } finally {
         setLoading(false);
       }
@@ -128,7 +132,9 @@ export function SessionsCreateScreen() {
       return;
     }
 
-    const option = regionOptions.find((region) => region.id === selectedRegionId);
+    const option = regionOptions.find(
+      (region) => region.id === selectedRegionId,
+    );
     setSelectedRegionName(option ? option.name : selectedRegionId.slice(0, 8));
   }, [selectedRegionId, regionOptions]);
 
@@ -166,7 +172,9 @@ export function SessionsCreateScreen() {
         setSessionId(newSession.id);
         await fetchSessionCats(newSession.id);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create session.");
+        setError(
+          err instanceof Error ? err.message : "Failed to create session.",
+        );
       } finally {
         setLoading(false);
       }
@@ -188,7 +196,9 @@ export function SessionsCreateScreen() {
       // Navigate back
       window.location.href = "/sessions";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit session.");
+      setError(
+        err instanceof Error ? err.message : "Failed to submit session.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -306,7 +316,9 @@ export function SessionsCreateScreen() {
               Select a location to start a session.
             </div>
           ) : cats.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">No cats in this session yet.</div>
+            <div className="py-8 text-center text-sm text-slate-400">
+              No cats in this session yet.
+            </div>
           ) : (
             <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
               {cats.map((cat, i) => (
@@ -325,13 +337,21 @@ export function SessionsCreateScreen() {
                             {sexSymbol(cat.sex)}
                           </span>
                         ) : null}
-                        <span className="ml-auto text-xs tracking-widest text-slate-400">&bull;&bull;&bull;</span>
+                        <span className="ml-auto text-xs tracking-widest text-slate-400">
+                          &bull;&bull;&bull;
+                        </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">{cat.color || "Unknown"}</p>
-                      <p className="text-xs text-slate-500">{cat.age || "Unknown"}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {cat.color || "Unknown"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {cat.age || "Unknown"}
+                      </p>
                     </div>
                   </div>
-                  {i < cats.length - 1 ? <div className="mx-3.5 border-b border-slate-100" /> : null}
+                  {i < cats.length - 1 ? (
+                    <div className="mx-3.5 border-b border-slate-100" />
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -352,12 +372,20 @@ export function SessionsCreateScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Sessions
+          </h1>
           <div className="flex items-center gap-2">
-            <button type="button" className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50">
+            <button
+              type="button"
+              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+            >
               Census Report <span className="ml-1">&#128202;</span>
             </button>
-            <button type="button" className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50">
+            <button
+              type="button"
+              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+            >
               Review Sessions <span className="ml-1">&#9711;</span>
             </button>
           </div>
@@ -384,7 +412,10 @@ export function SessionsCreateScreen() {
             </div>
           </label>
 
-          <Link href="/sessions" className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400">
+          <Link
+            href="/sessions"
+            className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+          >
             Back <span className="ml-1">&#8249;</span>
           </Link>
         </div>
@@ -399,7 +430,9 @@ export function SessionsCreateScreen() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold tracking-tight text-slate-900">
               Census No. {sessionId ? sessionId.slice(0, 8) : "—"}{" "}
-              <span className="ml-1 text-base font-normal text-slate-400">&#128247;</span>
+              <span className="ml-1 text-base font-normal text-slate-400">
+                &#128247;
+              </span>
             </h2>
             <div className="flex items-center gap-2">
               <button
@@ -415,7 +448,8 @@ export function SessionsCreateScreen() {
                 onClick={handleSubmitSession}
                 className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400 disabled:opacity-50"
               >
-                {submitting ? "Submitting..." : "Submit"} <span className="ml-1">&#8250;</span>
+                {submitting ? "Submitting..." : "Submit"}{" "}
+                <span className="ml-1">&#8250;</span>
               </button>
             </div>
           </div>
@@ -436,7 +470,10 @@ export function SessionsCreateScreen() {
         ) : (
           <div className="mt-3 space-y-3">
             {cats.map((cat) => (
-              <article key={`entry-${cat.id}`} className="rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+              <article
+                key={`entry-${cat.id}`}
+                className="rounded-2xl bg-white p-4 ring-1 ring-slate-100"
+              >
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
                     <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />

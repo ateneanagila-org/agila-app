@@ -11,7 +11,11 @@ import {
   ChevronDownIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import { getCats, getCatHealthRecords, editCathHealthRecord } from "@/app/actions/cats";
+import {
+  getCats,
+  getCatHealthRecords,
+  editCathHealthRecord,
+} from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
@@ -25,8 +29,12 @@ const FILTER_CHIPS = [
   "Filter 2 Sample",
 ];
 
-const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+const MONTHS = Array.from({ length: 12 }, (_, i) =>
+  String(i + 1).padStart(2, "0"),
+);
+const DAYS = Array.from({ length: 31 }, (_, i) =>
+  String(i + 1).padStart(2, "0"),
+);
 const YEARS = Array.from({ length: 10 }, (_, i) => String(2020 + i));
 
 function DateInputRow({
@@ -54,7 +62,9 @@ function DateInputRow({
         >
           <option value="">MM</option>
           {MONTHS.map((m) => (
-            <option key={m} value={m}>{m}</option>
+            <option key={m} value={m}>
+              {m}
+            </option>
           ))}
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -67,7 +77,9 @@ function DateInputRow({
         >
           <option value="">DD</option>
           {DAYS.map((d) => (
-            <option key={d} value={d}>{d}</option>
+            <option key={d} value={d}>
+              {d}
+            </option>
           ))}
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -80,7 +92,9 @@ function DateInputRow({
         >
           <option value="">YYYY</option>
           {YEARS.map((y) => (
-            <option key={y} value={y}>{y}</option>
+            <option key={y} value={y}>
+              {y}
+            </option>
           ))}
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -112,7 +126,8 @@ export function DatabaseMedicalScreen() {
   const catId = searchParams.get("id");
 
   const [cat, setCat] = useState<SelectCat | null>(null);
-  const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(null);
+  const [healthRecord, setHealthRecord] =
+    useState<SelectCatHealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +197,9 @@ export function DatabaseMedicalScreen() {
     try {
       const boundEdit = editCathHealthRecord.bind(null, healthRecord.id);
       const result = await boundEdit({
-        condition: (condition || undefined) as CatHealthRecordCondition | undefined,
+        condition: (condition || undefined) as
+          | CatHealthRecordCondition
+          | undefined,
         neuter_date: buildDate(neuterMonth, neuterDay, neuterYear) ?? undefined,
         vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear) ?? undefined,
       });
@@ -196,7 +213,17 @@ export function DatabaseMedicalScreen() {
     } finally {
       setSaving(false);
     }
-  }, [healthRecord?.id, condition, neuterMonth, neuterDay, neuterYear, vaccMonth, vaccDay, vaccYear, fetchData]);
+  }, [
+    healthRecord?.id,
+    condition,
+    neuterMonth,
+    neuterDay,
+    neuterYear,
+    vaccMonth,
+    vaccDay,
+    vaccYear,
+    fetchData,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (healthRecord) populateForm(healthRecord);
@@ -256,7 +283,9 @@ export function DatabaseMedicalScreen() {
                 >
                   <option value="">—</option>
                   {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option key={v} value={v}>{v}</option>
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
                   ))}
                 </select>
                 <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -294,7 +323,8 @@ export function DatabaseMedicalScreen() {
                 onClick={handleSave}
                 className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"} <span className="ml-1">&#10003;</span>
+                {saving ? "Saving..." : "Save"}{" "}
+                <span className="ml-1">&#10003;</span>
               </button>
               <button
                 type="button"
@@ -310,7 +340,9 @@ export function DatabaseMedicalScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Database</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Database
+          </h1>
           <button
             type="button"
             className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
@@ -411,15 +443,21 @@ export function DatabaseMedicalScreen() {
             <TopTabs active="Medical" />
             <div className="ml-4 flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
               <span>Adoptable</span>
-              <span className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-slate-800" : "bg-slate-300"}`}>
-                <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`} />
+              <span
+                className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-slate-800" : "bg-slate-300"}`}
+              >
+                <span
+                  className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
+                />
               </span>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-600">Condition</label>
+              <label className="text-xs font-medium text-slate-600">
+                Condition
+              </label>
               <div className="relative mt-1 rounded-md border border-lime-300 bg-white">
                 <select
                   value={condition}
@@ -428,7 +466,9 @@ export function DatabaseMedicalScreen() {
                 >
                   <option value="">—</option>
                   {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option key={v} value={v}>{v}</option>
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
                   ))}
                 </select>
                 <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -437,7 +477,9 @@ export function DatabaseMedicalScreen() {
             <div />
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Neuter Date</label>
+              <label className="text-xs font-medium text-slate-600">
+                Neuter Date
+              </label>
               <DateInputRow
                 month={neuterMonth}
                 day={neuterDay}
@@ -449,7 +491,9 @@ export function DatabaseMedicalScreen() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Vaccination Date</label>
+              <label className="text-xs font-medium text-slate-600">
+                Vaccination Date
+              </label>
               <DateInputRow
                 month={vaccMonth}
                 day={vaccDay}
@@ -468,7 +512,8 @@ export function DatabaseMedicalScreen() {
               onClick={handleSave}
               className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"} <span className="ml-1">&#10003;</span>
+              {saving ? "Saving..." : "Save"}{" "}
+              <span className="ml-1">&#10003;</span>
             </button>
             <button
               type="button"

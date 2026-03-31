@@ -130,19 +130,30 @@ export function SessionsScreen() {
             </div>
 
             <div className="grid grid-cols-[auto_1fr_auto] gap-x-4 border-b border-slate-100 px-1 pb-2">
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">No.</span>
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">Location</span>
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">Status</span>
+              <span className="text-[11px] font-medium tracking-wide text-slate-400">
+                No.
+              </span>
+              <span className="text-[11px] font-medium tracking-wide text-slate-400">
+                Location
+              </span>
+              <span className="text-[11px] font-medium tracking-wide text-slate-400">
+                Status
+              </span>
             </div>
 
             {loading ? (
               <LoadingIndicator />
             ) : sessions.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">No sessions yet.</div>
+              <div className="py-6 text-center text-xs text-slate-400">
+                No sessions yet.
+              </div>
             ) : (
               <div className="divide-y divide-slate-50">
                 {sessions.slice(0, 5).map((s) => (
-                  <div key={s.id} className="grid grid-cols-[auto_1fr_auto] gap-x-4 px-1 py-2">
+                  <div
+                    key={s.id}
+                    className="grid grid-cols-[auto_1fr_auto] gap-x-4 px-1 py-2"
+                  >
                     <span className="text-xs font-semibold tabular-nums text-slate-900">
                       {s.id.slice(0, 6)}
                     </span>
@@ -170,7 +181,9 @@ export function SessionsScreen() {
             </div>
 
             <div className="flex justify-between border-b border-slate-100 px-1 pb-2">
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">Name</span>
+              <span className="text-[11px] font-medium tracking-wide text-slate-400">
+                Name
+              </span>
               <span className="text-[11px] font-medium tracking-wide text-slate-400">
                 Days Since Last Tracked
               </span>
@@ -189,7 +202,9 @@ export function SessionsScreen() {
               ))}
             </div>
 
-            <span className="block text-xs font-medium text-slate-500">See all</span>
+            <span className="block text-xs font-medium text-slate-500">
+              See all
+            </span>
           </div>
         </div>
 
@@ -206,7 +221,9 @@ export function SessionsScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Sessions
+          </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -273,16 +290,24 @@ export function SessionsScreen() {
           ) : (
             <div className="divide-y divide-slate-50 px-3">
               {sessions.length === 0 ? (
-                <div className="py-6 text-center text-sm text-slate-400">No sessions yet.</div>
+                <div className="py-6 text-center text-sm text-slate-400">
+                  No sessions yet.
+                </div>
               ) : (
                 sessions.map((s) => (
                   <div
                     key={s.id}
                     className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center py-2.5 text-sm text-slate-700"
                   >
-                    <span className="font-medium tabular-nums">{s.id.slice(0, 8)}</span>
-                    <span className="tabular-nums">{formatDate(s.created_at)}</span>
-                    <span className="truncate">{regionMap[s.region_id] ?? s.region_id.slice(0, 8)}</span>
+                    <span className="font-medium tabular-nums">
+                      {s.id.slice(0, 8)}
+                    </span>
+                    <span className="tabular-nums">
+                      {formatDate(s.created_at)}
+                    </span>
+                    <span className="truncate">
+                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
+                    </span>
                     <span>
                       {!s.is_finished ? (
                         <Link
@@ -292,7 +317,9 @@ export function SessionsScreen() {
                           Continue <span className="ml-2">&#8250;</span>
                         </Link>
                       ) : (
-                        <span className="text-slate-500">{sessionStatus(s)}</span>
+                        <span className="text-slate-500">
+                          {sessionStatus(s)}
+                        </span>
                       )}
                     </span>
                   </div>
@@ -313,7 +340,10 @@ export function SessionsScreen() {
           </div>
           <div className="divide-y divide-slate-50 px-3">
             {priorityLocations.map((loc) => (
-              <div key={`priority-${loc.name}`} className="grid grid-cols-2 py-2.5 text-sm text-slate-700">
+              <div
+                key={`priority-${loc.name}`}
+                className="grid grid-cols-2 py-2.5 text-sm text-slate-700"
+              >
                 <span className="font-medium">{loc.name}</span>
                 <span className="tabular-nums">{loc.daysSince}</span>
               </div>

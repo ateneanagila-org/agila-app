@@ -80,7 +80,9 @@ export function SessionsApprovalCrossRefScreen() {
       const sexMatch = !!cat.sex && c.sex === cat.sex;
 
       // Show entries that are likely the same cat without being too aggressive.
-      const matchCount = [colorMatch, ageMatch, sexMatch].filter(Boolean).length;
+      const matchCount = [colorMatch, ageMatch, sexMatch].filter(
+        Boolean,
+      ).length;
       return matchCount >= 2;
     });
   }, [cat, allCats]);
@@ -218,8 +220,13 @@ export function SessionsApprovalCrossRefScreen() {
           ) : null}
 
           <div className="flex items-center justify-between">
-            <p className="text-base font-bold text-slate-900">Cross-reference</p>
-            <Link href={validationHref} className="flex items-center gap-0.5 text-sm text-slate-600">
+            <p className="text-base font-bold text-slate-900">
+              Cross-reference
+            </p>
+            <Link
+              href={validationHref}
+              className="flex items-center gap-0.5 text-sm text-slate-600"
+            >
               <span className="text-base leading-none">&lsaquo;</span> Prev
             </Link>
           </div>
@@ -264,7 +271,8 @@ export function SessionsApprovalCrossRefScreen() {
                       {c.color || "—"} · {c.age || "—"}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {c.spot_last_seen || "—"} · {formatDate(c.last_updated_at)}
+                      {c.spot_last_seen || "—"} ·{" "}
+                      {formatDate(c.last_updated_at)}
                     </p>
                   </div>
                   <button
@@ -286,7 +294,9 @@ export function SessionsApprovalCrossRefScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Sessions
+          </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -420,7 +430,8 @@ export function SessionsApprovalCrossRefScreen() {
                             ) : null}
                           </div>
                           <p className="mt-0.5 text-xs text-slate-500">
-                            {c.color || "—"} · {c.age || "—"} · {c.spot_last_seen || "—"}
+                            {c.color || "—"} · {c.age || "—"} ·{" "}
+                            {c.spot_last_seen || "—"}
                           </p>
                         </div>
                       </div>

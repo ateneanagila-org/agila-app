@@ -13,7 +13,14 @@ import {
   CAT_STATUS_VALUES,
   CATHEALTHRECORD_CONDITION_VALUES,
 } from "@/lib/db/enums";
-import type { CatColor, CatAge, CatSex, CatSociability, CatStatus, CatHealthRecordCondition } from "@/lib/db/enums";
+import type {
+  CatColor,
+  CatAge,
+  CatSex,
+  CatSociability,
+  CatStatus,
+  CatHealthRecordCondition,
+} from "@/lib/db/enums";
 
 type RegionOption = {
   id: string;
@@ -132,7 +139,9 @@ export function CatEntryForm({
 
         setRegionOptions(options);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load regions.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load regions.",
+        );
       } finally {
         setRegionsLoading(false);
       }
@@ -260,7 +269,9 @@ export function CatEntryForm({
                   disabled={regionsLoading}
                   className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
                 >
-                  <option value="">{regionsLoading ? "Loading..." : "—"}</option>
+                  <option value="">
+                    {regionsLoading ? "Loading..." : "—"}
+                  </option>
                   {regionOptions.map((region) => (
                     <option key={region.id} value={region.id}>
                       {region.name}
@@ -273,14 +284,52 @@ export function CatEntryForm({
               </div>
             </div>
           ) : null}
-          <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-          <DropdownField label="Size / Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-          <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-          <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-          <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
-          <DropdownField label="Condition" options={CATHEALTHRECORD_CONDITION_VALUES} value={condition} onChange={setCondition} />
-          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
-          <TextField label="Caretaker" value={caretaker} onChange={setCaretaker} />
+          <DropdownField
+            label="Color"
+            options={CAT_COLOR_VALUES}
+            value={color}
+            onChange={setColor}
+          />
+          <DropdownField
+            label="Size / Age"
+            options={CAT_AGE_VALUES}
+            value={age}
+            onChange={setAge}
+          />
+          <DropdownField
+            label="Sex"
+            options={CAT_SEX_VALUES}
+            value={sex}
+            onChange={setSex}
+          />
+          <DropdownField
+            label="Sociability"
+            options={CAT_SOCIABILITY_VALUES}
+            value={sociability}
+            onChange={setSociability}
+          />
+          <DropdownField
+            label="Status"
+            options={CAT_STATUS_VALUES}
+            value={catStatus}
+            onChange={setCatStatus}
+          />
+          <DropdownField
+            label="Condition"
+            options={CATHEALTHRECORD_CONDITION_VALUES}
+            value={condition}
+            onChange={setCondition}
+          />
+          <TextField
+            label="Spot Last Seen"
+            value={spotLastSeen}
+            onChange={setSpotLastSeen}
+          />
+          <TextField
+            label="Caretaker"
+            value={caretaker}
+            onChange={setCaretaker}
+          />
           <div>
             <label className="text-sm text-slate-700">Notes</label>
             <textarea

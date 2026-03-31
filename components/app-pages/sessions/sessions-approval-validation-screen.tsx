@@ -157,7 +157,17 @@ export function SessionsApprovalValidationScreen() {
     } finally {
       setSaving(false);
     }
-  }, [catId, color, age, sex, sociability, catStatus, caretaker, notes, router]);
+  }, [
+    catId,
+    color,
+    age,
+    sex,
+    sociability,
+    catStatus,
+    caretaker,
+    notes,
+    router,
+  ]);
 
   /** Discard: delete the cat entry entirely */
   const handleDiscard = useCallback(async () => {
@@ -261,14 +271,40 @@ export function SessionsApprovalValidationScreen() {
             <div>
               <p className="text-sm text-slate-600">Last seen at:</p>
               <p className="text-sm font-semibold text-slate-900">
-                {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
+                {formatDate(cat?.last_updated_at)} /{" "}
+                {cat?.spot_last_seen || "—"}
               </p>
             </div>
-            <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-            <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-            <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-            <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+            <DropdownField
+              label="Color"
+              options={CAT_COLOR_VALUES}
+              value={color}
+              onChange={setColor}
+            />
+            <DropdownField
+              label="Size/Age"
+              options={CAT_AGE_VALUES}
+              value={age}
+              onChange={setAge}
+            />
+            <DropdownField
+              label="Sex"
+              options={CAT_SEX_VALUES}
+              value={sex}
+              onChange={setSex}
+            />
+            <DropdownField
+              label="Sociability"
+              options={CAT_SOCIABILITY_VALUES}
+              value={sociability}
+              onChange={setSociability}
+            />
+            <DropdownField
+              label="Status"
+              options={CAT_STATUS_VALUES}
+              value={catStatus}
+              onChange={setCatStatus}
+            />
             <div>
               <label className="text-sm text-slate-700">Caretaker</label>
               <input
@@ -291,7 +327,9 @@ export function SessionsApprovalValidationScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Sessions
+          </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -408,13 +446,40 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-                <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-                <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-                <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-                <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+                <DropdownField
+                  label="Color"
+                  options={CAT_COLOR_VALUES}
+                  value={color}
+                  onChange={setColor}
+                />
+                <DropdownField
+                  label="Size/Age"
+                  options={CAT_AGE_VALUES}
+                  value={age}
+                  onChange={setAge}
+                />
+                <DropdownField
+                  label="Sex"
+                  options={CAT_SEX_VALUES}
+                  value={sex}
+                  onChange={setSex}
+                />
+                <DropdownField
+                  label="Sociability"
+                  options={CAT_SOCIABILITY_VALUES}
+                  value={sociability}
+                  onChange={setSociability}
+                />
+                <DropdownField
+                  label="Status"
+                  options={CAT_STATUS_VALUES}
+                  value={catStatus}
+                  onChange={setCatStatus}
+                />
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Caretaker</label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Caretaker
+                  </label>
                   <input
                     value={caretaker}
                     onChange={(e) => setCaretaker(e.target.value)}
@@ -434,7 +499,9 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-medium text-slate-600">Notes</label>
+                <label className="text-xs font-medium text-slate-600">
+                  Notes
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}

@@ -25,7 +25,8 @@ function FieldRow({ label, value }: { label: string; value: string }) {
 
 export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const [cat, setCat] = useState<SelectCat | null>(null);
-  const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(null);
+  const [healthRecord, setHealthRecord] =
+    useState<SelectCatHealthRecord | null>(null);
   const [interventions, setInterventions] = useState<SelectIntervention[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,7 +99,9 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
         >
           <span className="text-base leading-none">&lsaquo;</span> Back
         </Link>
-        <div className="py-8 text-center text-sm text-slate-400">Cat not found.</div>
+        <div className="py-8 text-center text-sm text-slate-400">
+          Cat not found.
+        </div>
       </div>
     );
   }
@@ -186,7 +189,9 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
       {/* Details */}
       <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">Details</p>
+        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">
+          Details
+        </p>
         <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
           {detailFields.map((field, i) => (
             <div key={field.label}>
@@ -201,7 +206,9 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
       {/* Notes */}
       <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">Notes</p>
+        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">
+          Notes
+        </p>
         <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
           {noteFields.map((field, i) => (
             <div key={field.label}>

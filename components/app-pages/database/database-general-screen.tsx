@@ -20,7 +20,13 @@ import {
   CAT_SOCIABILITY_VALUES,
   CAT_STATUS_VALUES,
 } from "@/lib/db/enums";
-import type { CatColor, CatAge, CatSex, CatSociability, CatStatus } from "@/lib/db/enums";
+import type {
+  CatColor,
+  CatAge,
+  CatSex,
+  CatSociability,
+  CatStatus,
+} from "@/lib/db/enums";
 
 const FILTER_CHIPS = [
   "Include +",
@@ -154,7 +160,18 @@ export function DatabaseGeneralScreen() {
     } finally {
       setSaving(false);
     }
-  }, [catId, color, age, sex, sociability, catStatus, caretaker, notes, isAdoptable, fetchCat]);
+  }, [
+    catId,
+    color,
+    age,
+    sex,
+    sociability,
+    catStatus,
+    caretaker,
+    notes,
+    isAdoptable,
+    fetchCat,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (cat) populateForm(cat);
@@ -235,15 +252,41 @@ export function DatabaseGeneralScreen() {
             <div>
               <p className="text-sm text-slate-600">Last seen at:</p>
               <p className="text-sm font-semibold text-slate-900">
-                {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
+                {formatDate(cat?.last_updated_at)} /{" "}
+                {cat?.spot_last_seen || "—"}
               </p>
             </div>
 
-            <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-            <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-            <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-            <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+            <DropdownField
+              label="Color"
+              options={CAT_COLOR_VALUES}
+              value={color}
+              onChange={setColor}
+            />
+            <DropdownField
+              label="Size/Age"
+              options={CAT_AGE_VALUES}
+              value={age}
+              onChange={setAge}
+            />
+            <DropdownField
+              label="Sex"
+              options={CAT_SEX_VALUES}
+              value={sex}
+              onChange={setSex}
+            />
+            <DropdownField
+              label="Sociability"
+              options={CAT_SOCIABILITY_VALUES}
+              value={sociability}
+              onChange={setSociability}
+            />
+            <DropdownField
+              label="Status"
+              options={CAT_STATUS_VALUES}
+              value={catStatus}
+              onChange={setCatStatus}
+            />
 
             <div>
               <label className="text-sm text-slate-700">Caretaker</label>
@@ -270,7 +313,8 @@ export function DatabaseGeneralScreen() {
                 onClick={handleSave}
                 className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"} <span className="ml-1">&#10003;</span>
+                {saving ? "Saving..." : "Save"}{" "}
+                <span className="ml-1">&#10003;</span>
               </button>
               <button
                 type="button"
@@ -286,7 +330,9 @@ export function DatabaseGeneralScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Database</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Database
+          </h1>
           <button
             type="button"
             className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
@@ -407,11 +453,36 @@ export function DatabaseGeneralScreen() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-            <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-            <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-            <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+            <DropdownField
+              label="Color"
+              options={CAT_COLOR_VALUES}
+              value={color}
+              onChange={setColor}
+            />
+            <DropdownField
+              label="Size/Age"
+              options={CAT_AGE_VALUES}
+              value={age}
+              onChange={setAge}
+            />
+            <DropdownField
+              label="Sex"
+              options={CAT_SEX_VALUES}
+              value={sex}
+              onChange={setSex}
+            />
+            <DropdownField
+              label="Sociability"
+              options={CAT_SOCIABILITY_VALUES}
+              value={sociability}
+              onChange={setSociability}
+            />
+            <DropdownField
+              label="Status"
+              options={CAT_STATUS_VALUES}
+              value={catStatus}
+              onChange={setCatStatus}
+            />
             <div>
               <label className="text-xs text-slate-700">Caretaker</label>
               <input
@@ -438,7 +509,8 @@ export function DatabaseGeneralScreen() {
               onClick={handleSave}
               className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"} <span className="ml-1">&#10003;</span>
+              {saving ? "Saving..." : "Save"}{" "}
+              <span className="ml-1">&#10003;</span>
             </button>
             <button
               type="button"

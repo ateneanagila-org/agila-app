@@ -44,7 +44,9 @@ export function DatabaseInterventionsScreen() {
   const catId = searchParams.get("id");
 
   const [cat, setCat] = useState<SelectCat | null>(null);
-  const [interventionsList, setInterventionsList] = useState<SelectIntervention[]>([]);
+  const [interventionsList, setInterventionsList] = useState<
+    SelectIntervention[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [showSort, setShowSort] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
@@ -191,7 +193,10 @@ export function DatabaseInterventionsScreen() {
             </div>
           ) : (
             interventionsList.map((item) => (
-              <div key={item.id} className="rounded-xl bg-white p-3.5 ring-1 ring-slate-200">
+              <div
+                key={item.id}
+                className="rounded-xl bg-white p-3.5 ring-1 ring-slate-200"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold tracking-tight text-slate-900">
                     {item.type || "Intervention"}
@@ -199,11 +204,15 @@ export function DatabaseInterventionsScreen() {
                   <div className="relative">
                     <select
                       value={item.status ?? "Pending"}
-                      onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                      onChange={(e) =>
+                        handleStatusChange(item.id, e.target.value)
+                      }
                       className="flex appearance-none items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 pr-7 text-[11px] font-medium text-slate-600"
                     >
                       {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                     <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
@@ -223,7 +232,9 @@ export function DatabaseInterventionsScreen() {
 
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Database</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Database
+          </h1>
           <button
             type="button"
             className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
@@ -318,8 +329,12 @@ export function DatabaseInterventionsScreen() {
             <TopTabs active="Interventions" />
             <div className="ml-4 flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
               <span>Adoptable</span>
-              <span className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-slate-800" : "bg-slate-300"}`}>
-                <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`} />
+              <span
+                className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-slate-800" : "bg-slate-300"}`}
+              >
+                <span
+                  className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
+                />
               </span>
             </div>
           </div>
@@ -368,11 +383,15 @@ export function DatabaseInterventionsScreen() {
                   <div className="relative">
                     <select
                       value={item.status ?? "Pending"}
-                      onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                      onChange={(e) =>
+                        handleStatusChange(item.id, e.target.value)
+                      }
                       className="flex h-9 min-w-36 appearance-none items-center justify-between rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm text-slate-700"
                     >
                       {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                     <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -421,7 +440,9 @@ export function DatabaseInterventionsScreen() {
               >
                 <option value="">&mdash;</option>
                 {INTERVENTION_TYPE_VALUES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
