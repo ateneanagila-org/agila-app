@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { ImagePlaceholderIcon, UploadIcon } from "./icons";
 
@@ -19,10 +22,14 @@ export function TopTabs({
 }: {
   active: "General" | "Medical" | "Interventions";
 }) {
+  const searchParams = useSearchParams();
+  const catId = searchParams.get("id");
+  const idParam = catId ? `?id=${catId}` : "";
+
   const tabs = [
-    { label: "General" as const, href: "/database/general" },
-    { label: "Medical" as const, href: "/database/medical" },
-    { label: "Interventions" as const, href: "/database/interventions" },
+    { label: "General" as const, href: `/database/general${idParam}` },
+    { label: "Medical" as const, href: `/database/medical${idParam}` },
+    { label: "Interventions" as const, href: `/database/interventions${idParam}` },
   ];
 
   return (

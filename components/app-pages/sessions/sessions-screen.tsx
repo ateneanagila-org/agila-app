@@ -1,35 +1,90 @@
 "use client";
 
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   PlusCircleIcon,
   ChevronDownIcon,
   MenuIcon,
 } from "@/components/app-pages/shared/icons";
-
-const RECENT_SESSIONS: {
-  no: string;
-  date: string;
-  location: string;
-  status: string;
-}[] = [
-  { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Continue" },
-  { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Submitted" },
-  { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Reviewed" },
-  { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Reviewed" },
-  { no: "XXX", date: "MM/DD/YY", location: "Bldg", status: "Reviewed" },
-];
-
-const PRIORITY_LOCATIONS = ["Bldg A", "Bldg B", "Bldg C", "Bldg D", "Bldg E"];
-
-const SUMMARY = [
-  { label: "Reviewed", value: "XX" },
-  { label: "Submitted", value: "XX" },
-  { label: "Unfinished", value: "XX" },
-  { label: "For Review", value: "XX" },
-];
+import { getSessions } from "@/app/actions/sessions";
+import type { SelectSession } from "@/lib/validation/sessions";
+import { REGION_NAME_VALUES } from "@/lib/db/enums";
 
 export function SessionsScreen() {
+  const [sessions, setSessions] = useState<SelectSession[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSessions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getSessions({});
+      if (result?.data) {
+        setSessions(result.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "—";
+    const d = new Date(date);
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+  };
+
+  const sessionStatus = (s: SelectSession): string => {
+    if (s.is_finished) return "Reviewed";
+    return "Continue";
+  };
+
+  /** Compute summary stats from sessions */
+  const summary = useMemo(() => {
+    const reviewed = sessions.filter((s) => s.is_finished).length;
+    const unfinished = sessions.filter((s) => !s.is_finished).length;
+    return [
+      { label: "Reviewed", value: String(reviewed) },
+      { label: "Submitted", value: "0" },
+      { label: "Unfinished", value: String(unfinished) },
+      { label: "For Review", value: "0" },
+    ];
+  }, [sessions]);
+
+  /** Compute priority locations — regions sorted by days since last session */
+  const priorityLocations = useMemo(() => {
+    const regionLastSession = new Map<string, Date>();
+    for (const s of sessions) {
+      const rid = s.region_id;
+      const date = new Date(s.created_at);
+      const existing = regionLastSession.get(rid);
+      if (!existing || date > existing) {
+        regionLastSession.set(rid, date);
+      }
+    }
+
+    const now = Date.now();
+    const regions = REGION_NAME_VALUES.slice(0, 5).map((name, i) => {
+      // Try to map — since we have region_id not name, show IDs
+      return {
+        name,
+        daysSince: "—",
+      };
+    });
+    return regions;
+  }, [sessions]);
+
+  const LoadingIndicator = () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+    </div>
+  );
+
   return (
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
@@ -54,7 +109,27 @@ export function SessionsScreen() {
               <span className="text-[11px] font-medium tracking-wide text-slate-400">Status</span>
             </div>
 
-            <div className="min-h-32" />
+            {loading ? (
+              <LoadingIndicator />
+            ) : sessions.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">No sessions yet.</div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {sessions.slice(0, 5).map((s) => (
+                  <div key={s.id} className="grid grid-cols-[auto_1fr_auto] gap-x-4 px-1 py-2">
+                    <span className="text-xs font-semibold tabular-nums text-slate-900">
+                      {s.id.slice(0, 6)}
+                    </span>
+                    <span className="text-xs text-slate-600 truncate">
+                      {s.region_id.slice(0, 8)}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {sessionStatus(s)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <span className="block text-xs font-medium text-slate-500">
               See all
             </span>
@@ -76,13 +151,13 @@ export function SessionsScreen() {
             </div>
 
             <div className="divide-y divide-slate-50">
-              {PRIORITY_LOCATIONS.map((loc) => (
-                <div key={loc} className="flex justify-between px-1 py-2">
+              {priorityLocations.map((loc) => (
+                <div key={loc.name} className="flex justify-between px-1 py-2">
                   <span className="text-xs font-semibold text-slate-900">
-                    {loc}
+                    {loc.name}
                   </span>
                   <span className="text-xs font-semibold tabular-nums text-slate-700">
-                    Bldg
+                    {loc.daysSince}
                   </span>
                 </div>
               ))}
@@ -123,7 +198,7 @@ export function SessionsScreen() {
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-3">
-          {SUMMARY.map((item) => (
+          {summary.map((item) => (
             <article
               key={item.label}
               className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-slate-100"
@@ -167,30 +242,38 @@ export function SessionsScreen() {
             <span>Status</span>
           </div>
 
-          <div className="divide-y divide-slate-50 px-3">
-            {RECENT_SESSIONS.map((s, idx) => (
-              <div
-                key={`${s.no}-${idx}`}
-                className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center py-2.5 text-sm text-slate-700"
-              >
-                <span className="font-medium tabular-nums">{s.no}</span>
-                <span className="tabular-nums">{s.date}</span>
-                <span>{s.location}</span>
-                <span>
-                  {s.status === "Continue" ? (
-                    <Link
-                      href="/sessions/create"
-                      className="inline-flex items-center rounded-lg border border-lime-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-lime-50"
-                    >
-                      Continue <span className="ml-2">&#8250;</span>
-                    </Link>
-                  ) : (
-                    <span className="text-slate-500">{s.status}</span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <LoadingIndicator />
+          ) : (
+            <div className="divide-y divide-slate-50 px-3">
+              {sessions.length === 0 ? (
+                <div className="py-6 text-center text-sm text-slate-400">No sessions yet.</div>
+              ) : (
+                sessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center py-2.5 text-sm text-slate-700"
+                  >
+                    <span className="font-medium tabular-nums">{s.id.slice(0, 8)}</span>
+                    <span className="tabular-nums">{formatDate(s.created_at)}</span>
+                    <span className="truncate">{s.region_id.slice(0, 8)}</span>
+                    <span>
+                      {!s.is_finished ? (
+                        <Link
+                          href={`/sessions/create?sessionId=${s.id}`}
+                          className="inline-flex items-center rounded-lg border border-lime-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-lime-50"
+                        >
+                          Continue <span className="ml-2">&#8250;</span>
+                        </Link>
+                      ) : (
+                        <span className="text-slate-500">{sessionStatus(s)}</span>
+                      )}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </section>
 
         <h2 className="mt-6 text-xl font-bold tracking-tight text-slate-900">
@@ -203,10 +286,10 @@ export function SessionsScreen() {
             <span>Days Since Last Census</span>
           </div>
           <div className="divide-y divide-slate-50 px-3">
-            {PRIORITY_LOCATIONS.map((loc) => (
-              <div key={`priority-${loc}`} className="grid grid-cols-2 py-2.5 text-sm text-slate-700">
-                <span className="font-medium">{loc}</span>
-                <span className="tabular-nums">Bldg</span>
+            {priorityLocations.map((loc) => (
+              <div key={`priority-${loc.name}`} className="grid grid-cols-2 py-2.5 text-sm text-slate-700">
+                <span className="font-medium">{loc.name}</span>
+                <span className="tabular-nums">{loc.daysSince}</span>
               </div>
             ))}
           </div>

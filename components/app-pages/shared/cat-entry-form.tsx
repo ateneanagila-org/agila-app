@@ -1,12 +1,54 @@
-import { ImagePlaceholderIcon, UploadIcon } from "./icons";
+"use client";
 
-function DropdownField({ label }: { label: string }) {
+import { useState, useCallback } from "react";
+import { ImagePlaceholderIcon, UploadIcon } from "./icons";
+import { createCat } from "@/app/actions/cats";
+import {
+  CAT_COLOR_VALUES,
+  CAT_AGE_VALUES,
+  CAT_SEX_VALUES,
+  CAT_SOCIABILITY_VALUES,
+  CAT_STATUS_VALUES,
+  CATHEALTHRECORD_CONDITION_VALUES,
+  REGION_NAME_VALUES,
+} from "@/lib/db/enums";
+import type { CatColor, CatAge, CatSex, CatSociability, CatStatus, CatHealthRecordCondition } from "@/lib/db/enums";
+import type { RegionName } from "@/lib/db/enums";
+
+type CatEntryFormProps = {
+  onClose: () => void;
+  /** Called after successful save — parent can re-fetch data */
+  onSave?: () => void;
+  /** Pre-selected region ID. If provided, region dropdown is hidden. */
+  regionId?: string;
+};
+
+function DropdownField({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly string[];
+  value: string;
+  onChange: (val: string) => void;
+}) {
   return (
     <div>
       <label className="text-sm text-slate-700">{label}</label>
       <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-        <select className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900"
+        >
           <option value="">&mdash;</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
         </select>
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
           &#9660;
@@ -16,16 +58,99 @@ function DropdownField({ label }: { label: string }) {
   );
 }
 
-function TextField({ label }: { label: string }) {
+function TextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) {
   return (
     <div>
       <label className="text-sm text-slate-700">{label}</label>
-      <input className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400"
+      />
     </div>
   );
 }
 
-export function CatEntryForm({ onClose }: { onClose: () => void }) {
+export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
+  const [color, setColor] = useState("");
+  const [age, setAge] = useState("");
+  const [sex, setSex] = useState("");
+  const [sociability, setSociability] = useState("");
+  const [catStatus, setCatStatus] = useState("");
+  const [condition, setCondition] = useState("");
+  const [spotLastSeen, setSpotLastSeen] = useState("");
+  const [caretaker, setCaretaker] = useState("");
+  const [notes, setNotes] = useState("");
+  const [name, setName] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = useCallback(async () => {
+    const effectiveRegionId = regionId ?? selectedRegion;
+    if (!effectiveRegionId) {
+      setError("Please select a region/location.");
+      return;
+    }
+    if (!condition) {
+      setError("Please select a condition.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await createCat({
+        region_id: effectiveRegionId,
+        condition: condition as CatHealthRecordCondition,
+        color: (color || undefined) as CatColor | undefined,
+        age: (age || undefined) as CatAge | undefined,
+        sex: (sex || undefined) as CatSex | undefined,
+        sociability: (sociability || undefined) as CatSociability | undefined,
+        cat_status: (catStatus || undefined) as CatStatus | undefined,
+        spot_last_seen: spotLastSeen || undefined,
+        caretaker: caretaker || undefined,
+        notes: notes || undefined,
+        name: name || undefined,
+      });
+
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
+
+      onSave?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save cat.");
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    regionId,
+    selectedRegion,
+    condition,
+    color,
+    age,
+    sex,
+    sociability,
+    catStatus,
+    spotLastSeen,
+    caretaker,
+    notes,
+    name,
+    onSave,
+    onClose,
+  ]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
@@ -45,7 +170,12 @@ export function CatEntryForm({ onClose }: { onClose: () => void }) {
               <UploadIcon className="h-2.5 w-2.5 text-white" />
             </div>
           </div>
-          <p className="flex-1 text-base font-bold tracking-tight text-slate-900">Cat Name</p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Cat Name"
+            className="flex-1 text-base font-bold tracking-tight text-slate-900 outline-none placeholder:text-slate-400"
+          />
           <button
             type="button"
             onClick={onClose}
@@ -56,19 +186,38 @@ export function CatEntryForm({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        {/* Error message */}
+        {error ? (
+          <div className="mx-5 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+            {error}
+          </div>
+        ) : null}
+
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 pb-2">
-          <DropdownField label="Color" />
-          <DropdownField label="Size / Age" />
-          <DropdownField label="Sex" />
-          <DropdownField label="Sociability" />
-          <DropdownField label="Status" />
-          <DropdownField label="Condition" />
-          <TextField label="Spot Last Seen" />
-          <TextField label="Caretaker" />
+          {!regionId ? (
+            <DropdownField
+              label="Location"
+              options={REGION_NAME_VALUES}
+              value={selectedRegion}
+              onChange={setSelectedRegion}
+            />
+          ) : null}
+          <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
+          <DropdownField label="Size / Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
+          <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
+          <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
+          <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+          <DropdownField label="Condition" options={CATHEALTHRECORD_CONDITION_VALUES} value={condition} onChange={setCondition} />
+          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
+          <TextField label="Caretaker" value={caretaker} onChange={setCaretaker} />
           <div>
             <label className="text-sm text-slate-700">Notes</label>
-            <textarea className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400" />
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400"
+            />
           </div>
         </div>
 
@@ -76,9 +225,11 @@ export function CatEntryForm({ onClose }: { onClose: () => void }) {
         <div className="px-5 pb-5 pt-3">
           <button
             type="button"
-            className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
+            disabled={saving}
+            onClick={handleSave}
+            className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700 disabled:opacity-50"
           >
-            Save
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

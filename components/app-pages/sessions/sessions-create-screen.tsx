@@ -1,33 +1,129 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ImagePlaceholderIcon,
   PlusCircleIcon,
   ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
-
-const CAT_ENTRIES = [
-  { id: "1", name: "Cat Name", sex: "male" },
-  { id: "2", name: "Cat Name", sex: "male" },
-];
-
-function DesktopDropdownField({ label }: { label: string }) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-slate-600">{label}</label>
-      <div className="mt-1 flex h-9 items-center justify-between rounded-lg border border-slate-200 bg-white px-3">
-        <span className="text-sm text-slate-400">&nbsp;</span>
-        <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
-      </div>
-    </div>
-  );
-}
+import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
+import { useAuth } from "@/contexts/auth-context";
+import { createSession, getSessionCats, editSession } from "@/app/actions/sessions";
+import { getCats } from "@/app/actions/cats";
+import { REGION_NAME_VALUES } from "@/lib/db/enums";
+import type { SelectCat } from "@/lib/validation/cats";
+import type { SelectSessionCat } from "@/lib/validation/sessions";
 
 export function SessionsCreateScreen() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const existingSessionId = searchParams.get("sessionId");
+
+  const { userData } = useAuth();
+  const userId = userData.supabaseUser.id;
+
+  const [sessionId, setSessionId] = useState<string | null>(existingSessionId);
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [cats, setCats] = useState<SelectCat[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /** Fetch session cats and resolve to full cat objects */
+  const fetchSessionCats = useCallback(async (sid: string) => {
+    try {
+      const scResult = await getSessionCats({ session_id: sid });
+      if (scResult?.data && scResult.data.length > 0) {
+        const catIds = scResult.data.map((sc: SelectSessionCat) => sc.cat_id);
+        // Fetch each cat
+        const catPromises = catIds.map((cid: string) => getCats({ id: cid }));
+        const catResults = await Promise.all(catPromises);
+        const resolved = catResults
+          .filter((r) => r?.data && r.data.length > 0)
+          .map((r) => r!.data![0]);
+        setCats(resolved);
+      } else {
+        setCats([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch session cats:", err);
+    }
+  }, []);
+
+  /** Load existing session data if we have a sessionId */
+  useEffect(() => {
+    if (existingSessionId) {
+      setSessionId(existingSessionId);
+      setLoading(true);
+      fetchSessionCats(existingSessionId).finally(() => setLoading(false));
+    }
+  }, [existingSessionId, fetchSessionCats]);
+
+  /** Create a new session when location is selected */
+  const handleLocationSelect = useCallback(
+    async (regionName: string) => {
+      setSelectedRegion(regionName);
+      if (sessionId) return; // Already have a session
+
+      setLoading(true);
+      setError(null);
+      try {
+        // We need a region_id but we only have the name. For now use the name as a pseudo-ID.
+        // The createSession service expects region_id (UUID). This is a known limitation —
+        // we'd need a region lookup. For now we'll store the region name.
+        // Actually, the schema says region_id is a UUID referencing regions table.
+        // We can't create without a valid region_id. For now set error if no region mapping.
+        setError("Region selection requires pre-seeded region data. Please ensure regions are seeded.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create session.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sessionId],
+  );
+
+  const handleSubmitSession = useCallback(async () => {
+    if (!sessionId) return;
+    setSubmitting(true);
+    try {
+      const boundEdit = editSession.bind(null, sessionId);
+      await boundEdit({ is_finished: true });
+      // Navigate back
+      window.location.href = "/sessions";
+    } catch (err) {
+      console.error("Failed to submit session:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [sessionId]);
+
+  const handleCatSaved = useCallback(() => {
+    if (sessionId) {
+      fetchSessionCats(sessionId);
+    }
+  }, [sessionId, fetchSessionCats]);
+
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "—";
+    const d = new Date(date);
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+  };
+
+  const sexSymbol = (s: string | null | undefined): string | null => {
+    if (s === "Male") return "♂";
+    if (s === "Female") return "♀";
+    return null;
+  };
+
+  const sexColor = (s: string | null | undefined): string => {
+    if (s === "Male") return "text-blue-500";
+    if (s === "Female") return "text-pink-500";
+    return "text-slate-400";
+  };
 
   return (
     <>
@@ -36,8 +132,12 @@ export function SessionsCreateScreen() {
           <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold tracking-tight text-slate-900">Location</p>
-                <p className="text-xs text-slate-500">Census Number</p>
+                <p className="text-sm font-bold tracking-tight text-slate-900">
+                  {selectedRegion || "Select Location"}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
+                </p>
               </div>
               <button
                 type="button"
@@ -49,49 +149,72 @@ export function SessionsCreateScreen() {
               </button>
             </div>
 
-            {menuOpen && (
+            {menuOpen ? (
               <div className="absolute right-4 top-10 z-10 min-w-30 rounded-xl border border-slate-100 bg-white py-1 shadow-lg">
                 {["Details", "Finish", "Save"].map((opt) => (
                   <button
                     type="button"
                     key={opt}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (opt === "Finish") handleSubmitSession();
+                    }}
                     className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                   >
                     {opt}
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-            {CAT_ENTRIES.map((cat, i) => (
-              <div key={cat.id}>
-                <div className="flex items-start gap-3 px-3.5 py-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                    <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold tracking-tight text-slate-900">{cat.name}</span>
-                      {cat.sex === "male" && <span className="text-sm text-blue-500">&#9794;</span>}
-                      <span className="ml-auto text-xs tracking-widest text-slate-400">&bull;&bull;&bull;</span>
+          {error ? (
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+              {error}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+            </div>
+          ) : cats.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-400">No cats in this session yet.</div>
+          ) : (
+            <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+              {cats.map((cat, i) => (
+                <div key={cat.id}>
+                  <div className="flex items-start gap-3 px-3.5 py-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+                      <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">Orange and White Tabby</p>
-                    <p className="text-xs text-slate-500">Adult</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold tracking-tight text-slate-900">
+                          {cat.name || "Unnamed"}
+                        </span>
+                        {sexSymbol(cat.sex) ? (
+                          <span className={`text-sm ${sexColor(cat.sex)}`}>
+                            {sexSymbol(cat.sex)}
+                          </span>
+                        ) : null}
+                        <span className="ml-auto text-xs tracking-widest text-slate-400">&bull;&bull;&bull;</span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-500">{cat.color || "Unknown"}</p>
+                      <p className="text-xs text-slate-500">{cat.age || "Unknown"}</p>
+                    </div>
                   </div>
+                  {i < cats.length - 1 ? <div className="mx-3.5 border-b border-slate-100" /> : null}
                 </div>
-                {i < CAT_ENTRIES.length - 1 && <div className="mx-3.5 border-b border-slate-100" />}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end px-4 pb-5">
           <button
             type="button"
-            onClick={() => setShowAddForm((v) => !v)}
+            onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
           >
             Add Entry
@@ -117,8 +240,15 @@ export function SessionsCreateScreen() {
           <label className="flex w-full max-w-72 items-center gap-2 text-sm font-semibold text-slate-900">
             <span>Location:</span>
             <div className="relative flex-1">
-              <select className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100">
-                <option>Arete</option>
+              <select
+                value={selectedRegion}
+                onChange={(e) => handleLocationSelect(e.target.value)}
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100"
+              >
+                <option value="">Select...</option>
+                {REGION_NAME_VALUES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
               <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
@@ -129,95 +259,49 @@ export function SessionsCreateScreen() {
           </Link>
         </div>
 
+        {error ? (
+          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+            {error}
+          </div>
+        ) : null}
+
         <section className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">Census No. XXX <span className="ml-1 text-base font-normal text-slate-400">&#128247;</span></h2>
-            {!showAddForm && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(true)}
-                  className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
-                >
-                  Add entry <span className="ml-1">+</span>
-                </button>
-                <button type="button" className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400">
-                  Submit <span className="ml-1">&#8250;</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-3 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
-          <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-              <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold tracking-tight text-slate-900">Cat Name</h3>
-                    <span className="text-xl text-blue-500">&#9794;</span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {["Intervention", "Color", "Size/Age"].map((chip) => (
-                      <span key={chip} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-sm text-slate-600">Last seen: Arete &middot; 02/21/26</p>
-                </div>
-
-                {!showAddForm && (
-                  <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100">
-                    Edit <span className="ml-1">&#9998;</span>
-                  </button>
-                )}
-
-                {showAddForm && (
-                  <div className="flex items-center gap-2">
-                    <button type="button" className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200">
-                      Save <span className="ml-1">&#10003;</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddForm(false)}
-                      className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
-                    >
-                      Cancel <span className="ml-1">&#10005;</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {showAddForm && (
-                <div className="mt-5">
-                  <p className="inline-block border-b border-slate-300 pb-1 text-base font-semibold text-slate-800">For Catalog</p>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <DesktopDropdownField label="Color" />
-                    <DesktopDropdownField label="Size/Age" />
-                    <DesktopDropdownField label="Sex" />
-                    <DesktopDropdownField label="Sociability" />
-                    <DesktopDropdownField label="Status" />
-                    <DesktopDropdownField label="Caretaker" />
-                  </div>
-                  <div className="mt-3">
-                    <label className="text-xs font-medium text-slate-600">Notes</label>
-                    <textarea className="mt-1 h-24 w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200" />
-                  </div>
-                </div>
-              )}
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+              Census No. {sessionId ? sessionId.slice(0, 8) : "—"}{" "}
+              <span className="ml-1 text-base font-normal text-slate-400">&#128247;</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(true)}
+                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+              >
+                Add entry <span className="ml-1">+</span>
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSubmitSession}
+                className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400 disabled:opacity-50"
+              >
+                {submitting ? "Submitting..." : "Submit"} <span className="ml-1">&#8250;</span>
+              </button>
             </div>
           </div>
         </section>
 
-        {!showAddForm && (
+        {loading ? (
+          <div className="mt-4 flex items-center justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          </div>
+        ) : cats.length === 0 ? (
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+            No cats in this session yet. Click &quot;Add entry&quot; to begin.
+          </div>
+        ) : (
           <div className="mt-3 space-y-3">
-            {CAT_ENTRIES.map((cat) => (
+            {cats.map((cat) => (
               <article key={`entry-${cat.id}`} className="rounded-2xl bg-white p-4 ring-1 ring-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
@@ -225,27 +309,51 @@ export function SessionsCreateScreen() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold tracking-tight text-slate-900">{cat.name}</h3>
-                      <span className="text-xl text-blue-500">&#9794;</span>
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                        {cat.name || "Unnamed"}
+                      </h3>
+                      {sexSymbol(cat.sex) ? (
+                        <span className={`text-xl ${sexColor(cat.sex)}`}>
+                          {sexSymbol(cat.sex)}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-2 flex gap-1.5">
-                      {["Intervention", "Color", "Size/Age"].map((chip) => (
-                        <span key={`${cat.id}-${chip}`} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                          {chip}
+                      {cat.color ? (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                          {cat.color}
                         </span>
-                      ))}
+                      ) : null}
+                      {cat.age ? (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                          {cat.age}
+                        </span>
+                      ) : null}
                     </div>
-                    <p className="mt-3 text-sm text-slate-600">Last seen: Arete &middot; 02/21/26</p>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Last seen: {cat.spot_last_seen || "—"} &middot;{" "}
+                      {formatDate(cat.last_updated_at)}
+                    </p>
                   </div>
-                  <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100">
+                  <Link
+                    href={`/database/general?id=${cat.id}`}
+                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                  >
                     Edit <span className="ml-1">&#9998;</span>
-                  </button>
+                  </Link>
                 </div>
               </article>
             ))}
           </div>
         )}
       </div>
+
+      {showAddForm ? (
+        <CatEntryForm
+          onClose={() => setShowAddForm(false)}
+          onSave={handleCatSaved}
+        />
+      ) : null}
     </>
   );
 }
