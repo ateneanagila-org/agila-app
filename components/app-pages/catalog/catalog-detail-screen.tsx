@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import { getInterventions } from "@/app/actions/interventions";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { SelectIntervention } from "@/lib/validation/interventions";
 
 type CatalogDetailScreenProps = {
   catId: string;
@@ -24,20 +26,31 @@ function FieldRow({ label, value }: { label: string; value: string }) {
 export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const [cat, setCat] = useState<SelectCat | null>(null);
   const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(null);
+  const [interventions, setInterventions] = useState<SelectIntervention[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [catResult, hrResult] = await Promise.all([
+      const [catResult, hrResult, interventionsResult] = await Promise.all([
         getCats({ id: catId }),
         getCatHealthRecords({ cat_id: catId }),
+        getInterventions({ cat_id: catId }),
       ]);
       if (catResult?.data && catResult.data.length > 0) {
         setCat(catResult.data[0]);
       }
       if (hrResult?.data && hrResult.data.length > 0) {
         setHealthRecord(hrResult.data[0]);
+      }
+
+      if (interventionsResult?.data) {
+        const sorted = [...interventionsResult.data].sort((a, b) => {
+          const aTime = a.requested_at ? new Date(a.requested_at).getTime() : 0;
+          const bTime = b.requested_at ? new Date(b.requested_at).getTime() : 0;
+          return bTime - aTime;
+        });
+        setInterventions(sorted);
       }
     } catch (err) {
       console.error("Failed to fetch cat detail:", err);
@@ -90,6 +103,8 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     );
   }
 
+  const latestIntervention = interventions[0] ?? null;
+
   const detailFields = [
     { label: "Size/Age", value: cat.age ?? "" },
     { label: "Sex", value: cat.sex ?? "" },
@@ -108,6 +123,12 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     },
     { label: "Adoptable", value: cat.is_adoptable ? "Yes" : "No" },
     { label: "Status", value: cat.cat_status ?? "" },
+    {
+      label: "Intervention",
+      value: latestIntervention
+        ? `${latestIntervention.type ?? "—"} (${latestIntervention.status ?? "Pending"})`
+        : "",
+    },
     { label: "Caretaker", value: cat.caretaker ?? "" },
   ];
 
@@ -124,6 +145,10 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     {
       label: "Date of Vaccination",
       value: formatDate(healthRecord?.vaccination_date),
+    },
+    {
+      label: "Intervention Date",
+      value: formatDate(latestIntervention?.requested_at),
     },
     { label: "Notes", value: cat.notes ?? "" },
   ];

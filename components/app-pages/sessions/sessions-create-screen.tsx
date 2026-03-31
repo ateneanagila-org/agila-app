@@ -10,27 +10,61 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { useAuth } from "@/contexts/auth-context";
-import { createSession, getSessionCats, editSession } from "@/app/actions/sessions";
+import {
+  createSession,
+  getSessionCats,
+  getSessions,
+  editSession,
+} from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
-import { REGION_NAME_VALUES } from "@/lib/db/enums";
+import { createClient } from "@/lib/supabase/client";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
+
+type RegionOption = {
+  id: string;
+  name: string;
+};
 
 export function SessionsCreateScreen() {
   const searchParams = useSearchParams();
   const existingSessionId = searchParams.get("sessionId");
 
   const { userData } = useAuth();
-  const userId = userData.supabaseUser.id;
+  const userId = userData?.supabaseUser?.id;
 
   const [sessionId, setSessionId] = useState<string | null>(existingSessionId);
-  const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedRegionId, setSelectedRegionId] = useState("");
+  const [selectedRegionName, setSelectedRegionName] = useState("");
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
   const [cats, setCats] = useState<SelectCat[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadRegions = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error: fetchError } = await supabase
+        .from("regions")
+        .select("id,name");
+
+      if (fetchError) {
+        setError(fetchError.message);
+        return;
+      }
+
+      const options = (data ?? [])
+        .filter((row): row is RegionOption => Boolean(row?.id && row?.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setRegionOptions(options);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load locations.");
+    }
+  }, []);
 
   /** Fetch session cats and resolve to full cat objects */
   const fetchSessionCats = useCallback(async (sid: string) => {
@@ -53,52 +87,119 @@ export function SessionsCreateScreen() {
     }
   }, []);
 
-  /** Load existing session data if we have a sessionId */
-  useEffect(() => {
-    if (existingSessionId) {
-      setSessionId(existingSessionId);
-      setLoading(true);
-      fetchSessionCats(existingSessionId).finally(() => setLoading(false));
-    }
-  }, [existingSessionId, fetchSessionCats]);
-
-  /** Create a new session when location is selected */
-  const handleLocationSelect = useCallback(
-    async (regionName: string) => {
-      setSelectedRegion(regionName);
-      if (sessionId) return; // Already have a session
-
+  const hydrateExistingSession = useCallback(
+    async (sid: string) => {
       setLoading(true);
       setError(null);
       try {
-        // We need a region_id but we only have the name. For now use the name as a pseudo-ID.
-        // The createSession service expects region_id (UUID). This is a known limitation —
-        // we'd need a region lookup. For now we'll store the region name.
-        // Actually, the schema says region_id is a UUID referencing regions table.
-        // We can't create without a valid region_id. For now set error if no region mapping.
-        setError("Region selection requires pre-seeded region data. Please ensure regions are seeded.");
+        const result = await getSessions({ id: sid });
+        const existing = result?.data?.[0];
+        if (!existing) {
+          setError("Session not found.");
+          return;
+        }
+
+        setSessionId(existing.id);
+        setSelectedRegionId(existing.region_id);
+        await fetchSessionCats(existing.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load session.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchSessionCats],
+  );
+
+  useEffect(() => {
+    loadRegions();
+  }, [loadRegions]);
+
+  /** Load existing session data if we have a sessionId */
+  useEffect(() => {
+    if (existingSessionId) {
+      hydrateExistingSession(existingSessionId);
+    }
+  }, [existingSessionId, hydrateExistingSession]);
+
+  useEffect(() => {
+    if (!selectedRegionId) {
+      setSelectedRegionName("");
+      return;
+    }
+
+    const option = regionOptions.find((region) => region.id === selectedRegionId);
+    setSelectedRegionName(option ? option.name : selectedRegionId.slice(0, 8));
+  }, [selectedRegionId, regionOptions]);
+
+  /** Create a new session when location is selected */
+  const handleLocationSelect = useCallback(
+    async (regionId: string) => {
+      setSelectedRegionId(regionId);
+      setError(null);
+
+      if (sessionId) return; // Already have a session
+      if (!regionId) return;
+      if (!userId) {
+        setError("Unable to identify current user.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const result = await createSession({
+          region_id: regionId,
+          user_id: userId,
+        });
+
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
+
+        const newSession = result?.data;
+        if (!newSession?.id) {
+          setError("Session was created but no ID was returned.");
+          return;
+        }
+
+        setSessionId(newSession.id);
+        await fetchSessionCats(newSession.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to create session.");
       } finally {
         setLoading(false);
       }
     },
-    [sessionId],
+    [sessionId, userId, fetchSessionCats],
   );
 
   const handleSubmitSession = useCallback(async () => {
     if (!sessionId) return;
     setSubmitting(true);
+    setError(null);
     try {
       const boundEdit = editSession.bind(null, sessionId);
-      await boundEdit({ is_finished: true });
+      const result = await boundEdit({ is_finished: true });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
       // Navigate back
       window.location.href = "/sessions";
     } catch (err) {
-      console.error("Failed to submit session:", err);
+      setError(err instanceof Error ? err.message : "Failed to submit session.");
     } finally {
       setSubmitting(false);
     }
+  }, [sessionId]);
+
+  const handleOpenAddForm = useCallback(() => {
+    if (!sessionId) {
+      setError("Select a location first to create a session.");
+      return;
+    }
+    setShowAddForm(true);
   }, [sessionId]);
 
   const handleCatSaved = useCallback(() => {
@@ -133,7 +234,7 @@ export function SessionsCreateScreen() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-bold tracking-tight text-slate-900">
-                  {selectedRegion || "Select Location"}
+                  {selectedRegionName || "Select Location"}
                 </p>
                 <p className="text-xs text-slate-500">
                   Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
@@ -168,6 +269,28 @@ export function SessionsCreateScreen() {
             ) : null}
           </div>
 
+          <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
+            <label className="text-xs font-semibold tracking-wide text-slate-700">
+              Location
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                value={selectedRegionId}
+                onChange={(e) => handleLocationSelect(e.target.value)}
+                disabled={!!sessionId || loading}
+                className="h-9 w-full appearance-none rounded-full bg-slate-50 px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
+              >
+                <option value="">Select...</option>
+                {regionOptions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+          </div>
+
           {error ? (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
               {error}
@@ -177,6 +300,10 @@ export function SessionsCreateScreen() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+            </div>
+          ) : !sessionId ? (
+            <div className="py-8 text-center text-sm text-slate-400">
+              Select a location to start a session.
             </div>
           ) : cats.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-400">No cats in this session yet.</div>
@@ -214,7 +341,7 @@ export function SessionsCreateScreen() {
         <div className="flex justify-end px-4 pb-5">
           <button
             type="button"
-            onClick={() => setShowAddForm(true)}
+            onClick={handleOpenAddForm}
             className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
           >
             Add Entry
@@ -241,13 +368,16 @@ export function SessionsCreateScreen() {
             <span>Location:</span>
             <div className="relative flex-1">
               <select
-                value={selectedRegion}
+                value={selectedRegionId}
                 onChange={(e) => handleLocationSelect(e.target.value)}
-                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100"
+                disabled={!!sessionId || loading}
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
               >
                 <option value="">Select...</option>
-                {REGION_NAME_VALUES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                {regionOptions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
+                  </option>
                 ))}
               </select>
               <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -274,7 +404,7 @@ export function SessionsCreateScreen() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowAddForm(true)}
+                onClick={handleOpenAddForm}
                 className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
               >
                 Add entry <span className="ml-1">+</span>
@@ -294,6 +424,10 @@ export function SessionsCreateScreen() {
         {loading ? (
           <div className="mt-4 flex items-center justify-center py-12">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          </div>
+        ) : !sessionId ? (
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+            Select a location to start a session.
           </div>
         ) : cats.length === 0 ? (
           <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
@@ -352,6 +486,8 @@ export function SessionsCreateScreen() {
         <CatEntryForm
           onClose={() => setShowAddForm(false)}
           onSave={handleCatSaved}
+          sessionId={sessionId ?? undefined}
+          regionId={selectedRegionId || undefined}
         />
       ) : null}
     </>

@@ -57,8 +57,14 @@ export function DatabaseInterventionsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!catId) return;
+    if (!catId) {
+      setError("Missing cat ID.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const [catResult, intResult] = await Promise.all([
         getCats({ id: catId }),
@@ -66,12 +72,15 @@ export function DatabaseInterventionsScreen() {
       ]);
       if (catResult?.data && catResult.data.length > 0) {
         setCat(catResult.data[0]);
+      } else {
+        setError("Cat not found.");
       }
       if (intResult?.data) {
         setInterventionsList(intResult.data);
       }
     } catch (err) {
       console.error("Failed to fetch interventions:", err);
+      setError("Failed to load interventions.");
     } finally {
       setLoading(false);
     }

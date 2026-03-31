@@ -98,17 +98,26 @@ export function DatabaseGeneralScreen() {
   }, []);
 
   const fetchCat = useCallback(async () => {
-    if (!catId) return;
+    if (!catId) {
+      setError("Missing cat ID.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const result = await getCats({ id: catId });
       if (result?.data && result.data.length > 0) {
         const catData = result.data[0];
         setCat(catData);
         populateForm(catData);
+      } else {
+        setError("Cat not found.");
       }
     } catch (err) {
       console.error("Failed to fetch cat:", err);
+      setError("Failed to load cat data.");
     } finally {
       setLoading(false);
     }

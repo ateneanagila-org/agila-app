@@ -11,16 +11,22 @@ import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectSession, SelectSessionCat } from "@/lib/validation/sessions";
 
+type ReviewItem = {
+  cat: SelectCat;
+  sessionId: string;
+  sessionCatId: string;
+};
+
 export function SessionsManagerScreen() {
-  const [forReview, setForReview] = useState<SelectCat[]>([]);
+  const [forReview, setForReview] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   /** Fetch cats from unfinished sessions (pending review) */
   const fetchPendingCats = useCallback(async () => {
     setLoading(true);
     try {
-      // Get sessions that are not finished
-      const sessionsResult = await getSessions({ is_finished: false });
+      // Get all sessions, then keep entries that are still unreviewed.
+      const sessionsResult = await getSessions({});
       if (!sessionsResult?.data || sessionsResult.data.length === 0) {
         setForReview([]);
         return;
@@ -45,9 +51,23 @@ export function SessionsManagerScreen() {
         getCats({ id: sc.cat_id }),
       );
       const catResults = await Promise.all(catPromises);
+
       const resolved = catResults
-        .filter((r) => r?.data && r.data.length > 0)
-        .map((r) => r!.data![0]);
+        .map((r, index) => {
+          const cat = r?.data?.[0];
+          const sessionCat = allSessionCats[index];
+          if (!cat || !sessionCat) return null;
+
+          if (cat.entry_status !== "Unreviewed") return null;
+
+          return {
+            cat,
+            sessionId: sessionCat.session_id,
+            sessionCatId: sessionCat.id,
+          } as ReviewItem;
+        })
+        .filter((item): item is ReviewItem => item !== null);
+
       setForReview(resolved);
     } catch (err) {
       console.error("Failed to fetch pending cats:", err);
@@ -106,8 +126,12 @@ export function SessionsManagerScreen() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-                {forReview.map((cat, i) => (
-                  <Link key={cat.id} href={`/sessions/approval/validation?catId=${cat.id}`} className="block">
+                {forReview.map((item, i) => (
+                  <Link
+                    key={item.sessionCatId}
+                    href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                    className="block"
+                  >
                     <div className="flex items-start gap-3 px-3.5 py-3">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
                         <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
@@ -115,19 +139,19 @@ export function SessionsManagerScreen() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-bold tracking-tight text-slate-900">
-                            {cat.name || "Unnamed"}
+                            {item.cat.name || "Unnamed"}
                           </span>
-                          {sexSymbol(cat.sex) ? (
-                            <span className={`text-sm ${sexColor(cat.sex)}`}>
-                              {sexSymbol(cat.sex)}
+                          {sexSymbol(item.cat.sex) ? (
+                            <span className={`text-sm ${sexColor(item.cat.sex)}`}>
+                              {sexSymbol(item.cat.sex)}
                             </span>
                           ) : null}
                           <span className="ml-auto text-slate-400">&#8250;</span>
                         </div>
-                        <p className="mt-0.5 text-xs text-slate-500">{cat.color || "Unknown"}</p>
-                        <p className="text-xs text-slate-500">{cat.age || "Unknown"}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{item.cat.color || "Unknown"}</p>
+                        <p className="text-xs text-slate-500">{item.cat.age || "Unknown"}</p>
                         <p className="mt-1.5 text-[11px] font-medium text-slate-600">
-                          {cat.spot_last_seen || "—"} &middot; {formatDate(cat.last_updated_at)}
+                          {item.cat.spot_last_seen || "—"} &middot; {formatDate(item.cat.last_updated_at)}
                         </p>
                       </div>
                     </div>
@@ -186,8 +210,8 @@ export function SessionsManagerScreen() {
               No cats pending review.
             </div>
           ) : (
-            forReview.map((cat) => (
-              <article key={`review-${cat.id}`} className="rounded-2xl bg-white p-4 ring-1 ring-slate-100 transition-shadow hover:shadow-sm">
+            forReview.map((item) => (
+              <article key={`review-${item.sessionCatId}`} className="rounded-2xl bg-white p-4 ring-1 ring-slate-100 transition-shadow hover:shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
                     <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
@@ -195,31 +219,34 @@ export function SessionsManagerScreen() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-bold tracking-tight text-slate-900">
-                        {cat.name || "Unnamed"}
+                        {item.cat.name || "Unnamed"}
                       </h3>
-                      {sexSymbol(cat.sex) ? (
-                        <span className={`text-xl ${sexColor(cat.sex)}`}>
-                          {sexSymbol(cat.sex)}
+                      {sexSymbol(item.cat.sex) ? (
+                        <span className={`text-xl ${sexColor(item.cat.sex)}`}>
+                          {sexSymbol(item.cat.sex)}
                         </span>
                       ) : null}
                     </div>
                     <div className="mt-2 flex gap-1.5">
-                      {cat.color ? (
+                      {item.cat.color ? (
                         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                          {cat.color}
+                          {item.cat.color}
                         </span>
                       ) : null}
-                      {cat.age ? (
+                      {item.cat.age ? (
                         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
-                          {cat.age}
+                          {item.cat.age}
                         </span>
                       ) : null}
                     </div>
                     <p className="mt-3 text-sm text-slate-600">
-                      Last seen: {cat.spot_last_seen || "—"} &middot; {formatDate(cat.last_updated_at)}
+                      Last seen: {item.cat.spot_last_seen || "—"} &middot; {formatDate(item.cat.last_updated_at)}
                     </p>
                   </div>
-                  <Link href={`/sessions/approval/validation?catId=${cat.id}`} className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100">
+                  <Link
+                    href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                  >
                     Review <span className="ml-1">&#9998;</span>
                   </Link>
                 </div>

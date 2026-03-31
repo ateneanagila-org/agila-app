@@ -15,6 +15,7 @@ import {
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import { removeSessionCat } from "@/app/actions/sessions";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
   CAT_COLOR_VALUES,
@@ -69,6 +70,8 @@ export function SessionsApprovalValidationScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const catId = searchParams.get("catId");
+  const sessionId = searchParams.get("sessionId");
+  const sessionCatId = searchParams.get("sessionCatId");
 
   const [cat, setCat] = useState<SelectCat | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,17 +100,26 @@ export function SessionsApprovalValidationScreen() {
   }, []);
 
   const fetchCat = useCallback(async () => {
-    if (!catId) return;
+    if (!catId) {
+      setError("Missing cat ID.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const result = await getCats({ id: catId });
       if (result?.data && result.data.length > 0) {
         const catData = result.data[0];
         setCat(catData);
         populateForm(catData);
+      } else {
+        setError("Cat not found.");
       }
     } catch (err) {
       console.error("Failed to fetch cat:", err);
+      setError("Failed to load cat data.");
     } finally {
       setLoading(false);
     }
@@ -151,14 +163,21 @@ export function SessionsApprovalValidationScreen() {
   const handleDiscard = useCallback(async () => {
     if (!catId) return;
     try {
-      const boundRemove = removeCat.bind(null, catId);
-      await boundRemove();
+      if (sessionCatId) {
+        const boundRemoveSessionCat = removeSessionCat.bind(null, sessionCatId);
+        await boundRemoveSessionCat();
+      } else {
+        const boundRemove = removeCat.bind(null, catId);
+        await boundRemove();
+      }
+
       setShowDiscardConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
       console.error("Failed to discard:", err);
+      setError("Failed to discard this entry.");
     }
-  }, [catId, router]);
+  }, [catId, router, sessionCatId]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
@@ -187,7 +206,7 @@ export function SessionsApprovalValidationScreen() {
   }
 
   const crossRefHref = catId
-    ? `/sessions/approval/cross-ref?catId=${catId}`
+    ? `/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
     : "/sessions/approval/cross-ref";
   const backHref = "/sessions/manager";
 

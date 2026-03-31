@@ -140,8 +140,14 @@ export function DatabaseMedicalScreen() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    if (!catId) return;
+    if (!catId) {
+      setError("Missing cat ID.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const [catResult, hrResult] = await Promise.all([
         getCats({ id: catId }),
@@ -149,6 +155,8 @@ export function DatabaseMedicalScreen() {
       ]);
       if (catResult?.data && catResult.data.length > 0) {
         setCat(catResult.data[0]);
+      } else {
+        setError("Cat not found.");
       }
       if (hrResult?.data && hrResult.data.length > 0) {
         const hr = hrResult.data[0];
@@ -157,6 +165,7 @@ export function DatabaseMedicalScreen() {
       }
     } catch (err) {
       console.error("Failed to fetch medical data:", err);
+      setError("Failed to load medical data.");
     } finally {
       setLoading(false);
     }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ImagePlaceholderIcon, UploadIcon } from "./icons";
 import { createCat } from "@/app/actions/cats";
+import { createSessionCat } from "@/app/actions/sessions";
+import { createClient } from "@/lib/supabase/client";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -10,10 +12,13 @@ import {
   CAT_SOCIABILITY_VALUES,
   CAT_STATUS_VALUES,
   CATHEALTHRECORD_CONDITION_VALUES,
-  REGION_NAME_VALUES,
 } from "@/lib/db/enums";
 import type { CatColor, CatAge, CatSex, CatSociability, CatStatus, CatHealthRecordCondition } from "@/lib/db/enums";
-import type { RegionName } from "@/lib/db/enums";
+
+type RegionOption = {
+  id: string;
+  name: string;
+};
 
 type CatEntryFormProps = {
   onClose: () => void;
@@ -21,6 +26,8 @@ type CatEntryFormProps = {
   onSave?: () => void;
   /** Pre-selected region ID. If provided, region dropdown is hidden. */
   regionId?: string;
+  /** If provided, entry will be created under this session via createSessionCat. */
+  sessionId?: string;
 };
 
 function DropdownField({
@@ -79,7 +86,12 @@ function TextField({
   );
 }
 
-export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
+export function CatEntryForm({
+  onClose,
+  onSave,
+  regionId,
+  sessionId,
+}: CatEntryFormProps) {
   const [color, setColor] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -91,8 +103,43 @@ export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
   const [notes, setNotes] = useState("");
   const [name, setName] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (regionId) return;
+
+    const loadRegions = async () => {
+      setRegionsLoading(true);
+      try {
+        const supabase = createClient();
+        const { data, error: fetchError } = await supabase
+          .from("regions")
+          .select("id,name");
+
+        if (fetchError) {
+          setError(fetchError.message);
+          return;
+        }
+
+        const options = (data ?? [])
+          .filter((row): row is { id: string; name: string } =>
+            Boolean(row?.id && row?.name),
+          )
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        setRegionOptions(options);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load regions.");
+      } finally {
+        setRegionsLoading(false);
+      }
+    };
+
+    loadRegions();
+  }, [regionId]);
 
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
@@ -108,7 +155,7 @@ export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
     setSaving(true);
     setError(null);
     try {
-      const result = await createCat({
+      const payload = {
         region_id: effectiveRegionId,
         condition: condition as CatHealthRecordCondition,
         color: (color || undefined) as CatColor | undefined,
@@ -120,7 +167,14 @@ export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         name: name || undefined,
-      });
+      };
+
+      const result = sessionId
+        ? await createSessionCat({
+            ...payload,
+            session_id: sessionId,
+          })
+        : await createCat(payload);
 
       if (result?.serverError) {
         setError(result.serverError);
@@ -147,6 +201,7 @@ export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
     caretaker,
     notes,
     name,
+    sessionId,
     onSave,
     onClose,
   ]);
@@ -196,12 +251,27 @@ export function CatEntryForm({ onClose, onSave, regionId }: CatEntryFormProps) {
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 pb-2">
           {!regionId ? (
-            <DropdownField
-              label="Location"
-              options={REGION_NAME_VALUES}
-              value={selectedRegion}
-              onChange={setSelectedRegion}
-            />
+            <div>
+              <label className="text-sm text-slate-700">Location</label>
+              <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  disabled={regionsLoading}
+                  className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  <option value="">{regionsLoading ? "Loading..." : "—"}</option>
+                  {regionOptions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  &#9660;
+                </span>
+              </div>
+            </div>
           ) : null}
           <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
           <DropdownField label="Size / Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />

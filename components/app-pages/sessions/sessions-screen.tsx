@@ -8,12 +8,31 @@ import {
   MenuIcon,
 } from "@/components/app-pages/shared/icons";
 import { getSessions } from "@/app/actions/sessions";
+import { createClient } from "@/lib/supabase/client";
 import type { SelectSession } from "@/lib/validation/sessions";
-import { REGION_NAME_VALUES } from "@/lib/db/enums";
 
 export function SessionsScreen() {
   const [sessions, setSessions] = useState<SelectSession[]>([]);
+  const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
+  const fetchRegions = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from("regions").select("id,name");
+      if (!data) return;
+
+      const map: Record<string, string> = {};
+      for (const row of data) {
+        if (row?.id && row?.name) {
+          map[row.id] = row.name;
+        }
+      }
+      setRegionMap(map);
+    } catch (err) {
+      console.error("Failed to fetch regions:", err);
+    }
+  }, []);
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -30,6 +49,10 @@ export function SessionsScreen() {
   }, []);
 
   useEffect(() => {
+    fetchRegions();
+  }, [fetchRegions]);
+
+  useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
@@ -41,7 +64,7 @@ export function SessionsScreen() {
 
   const sessionStatus = (s: SelectSession): string => {
     if (s.is_finished) return "Reviewed";
-    return "Continue";
+    return "Unfinished";
   };
 
   /** Compute summary stats from sessions */
@@ -50,18 +73,18 @@ export function SessionsScreen() {
     const unfinished = sessions.filter((s) => !s.is_finished).length;
     return [
       { label: "Reviewed", value: String(reviewed) },
-      { label: "Submitted", value: "0" },
+      { label: "Submitted", value: String(reviewed) },
       { label: "Unfinished", value: String(unfinished) },
-      { label: "For Review", value: "0" },
+      { label: "For Review", value: String(unfinished) },
     ];
   }, [sessions]);
 
   /** Compute priority locations — regions sorted by days since last session */
   const priorityLocations = useMemo(() => {
-    const regionLastSession = new Map<string, Date>();
+    const regionLastSession = new Map<string, number>();
     for (const s of sessions) {
       const rid = s.region_id;
-      const date = new Date(s.created_at);
+      const date = new Date(s.created_at).getTime();
       const existing = regionLastSession.get(rid);
       if (!existing || date > existing) {
         regionLastSession.set(rid, date);
@@ -69,15 +92,18 @@ export function SessionsScreen() {
     }
 
     const now = Date.now();
-    const regions = REGION_NAME_VALUES.slice(0, 5).map((name, i) => {
-      // Try to map — since we have region_id not name, show IDs
-      return {
-        name,
-        daysSince: "—",
-      };
-    });
-    return regions;
-  }, [sessions]);
+    return Array.from(regionLastSession.entries())
+      .map(([regionId, lastSeen]) => ({
+        name: regionMap[regionId] ?? regionId.slice(0, 8),
+        daysSince: Math.max(0, Math.floor((now - lastSeen) / 86400000)),
+      }))
+      .sort((a, b) => b.daysSince - a.daysSince)
+      .slice(0, 5)
+      .map((entry) => ({
+        ...entry,
+        daysSince: String(entry.daysSince),
+      }));
+  }, [sessions, regionMap]);
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
@@ -121,7 +147,7 @@ export function SessionsScreen() {
                       {s.id.slice(0, 6)}
                     </span>
                     <span className="text-xs text-slate-600 truncate">
-                      {s.region_id.slice(0, 8)}
+                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
                     </span>
                     <span className="text-xs text-slate-500">
                       {sessionStatus(s)}
@@ -256,7 +282,7 @@ export function SessionsScreen() {
                   >
                     <span className="font-medium tabular-nums">{s.id.slice(0, 8)}</span>
                     <span className="tabular-nums">{formatDate(s.created_at)}</span>
-                    <span className="truncate">{s.region_id.slice(0, 8)}</span>
+                    <span className="truncate">{regionMap[s.region_id] ?? s.region_id.slice(0, 8)}</span>
                     <span>
                       {!s.is_finished ? (
                         <Link
