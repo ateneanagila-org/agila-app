@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -10,114 +10,93 @@ import {
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
-  DoubleChevronIcon,
   ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
-import {
-  CAT_COLOR_VALUES,
-  CAT_AGE_VALUES,
-  CAT_SEX_VALUES,
-  CAT_SOCIABILITY_VALUES,
-  CAT_STATUS_VALUES,
-} from "@/lib/db/enums";
-import type {
-  CatColor,
-  CatAge,
-  CatSex,
-  CatSociability,
-  CatStatus,
-  CatEntryStatus,
-} from "@/lib/db/enums";
+import type { CatEntryStatus } from "@/lib/db/enums";
 
-function DropdownField({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string;
-  onChange: (val: string) => void;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-slate-600">{label}</label>
-      <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900"
-        >
-          <option value="">&mdash;</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-      </div>
-    </div>
-  );
-}
-
-export function SessionsApprovalValidationScreen() {
+export function SessionsApprovalCrossRefScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const catId = searchParams.get("catId");
 
   const [cat, setCat] = useState<SelectCat | null>(null);
+  const [allCats, setAllCats] = useState<SelectCat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
-  // Form state
-  const [color, setColor] = useState("");
-  const [age, setAge] = useState("");
-  const [sex, setSex] = useState("");
-  const [sociability, setSociability] = useState("");
-  const [catStatus, setCatStatus] = useState("");
-  const [caretaker, setCaretaker] = useState("");
-  const [notes, setNotes] = useState("");
-
-  const populateForm = useCallback((catData: SelectCat) => {
-    setColor(catData.color ?? "");
-    setAge(catData.age ?? "");
-    setSex(catData.sex ?? "");
-    setSociability(catData.sociability ?? "");
-    setCatStatus(catData.cat_status ?? "");
-    setCaretaker(catData.caretaker ?? "");
-    setNotes(catData.notes ?? "");
-  }, []);
-
-  const fetchCat = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!catId) return;
     setLoading(true);
     try {
-      const result = await getCats({ id: catId });
-      if (result?.data && result.data.length > 0) {
-        const catData = result.data[0];
-        setCat(catData);
-        populateForm(catData);
+      const [catResult, allCatsResult] = await Promise.all([
+        getCats({ id: catId }),
+        getCats({}),
+      ]);
+      if (catResult?.data && catResult.data.length > 0) {
+        setCat(catResult.data[0]);
+      }
+      if (allCatsResult?.data) {
+        setAllCats(allCatsResult.data);
       }
     } catch (err) {
-      console.error("Failed to fetch cat:", err);
+      console.error("Failed to fetch data:", err);
     } finally {
       setLoading(false);
     }
-  }, [catId, populateForm]);
+  }, [catId]);
 
   useEffect(() => {
-    fetchCat();
-  }, [fetchCat]);
+    fetchData();
+  }, [fetchData]);
 
-  /** Approve: save form edits + set entry_status to "Original" */
+  /** Find similar cats for cross-referencing (same color, age, or sex, excluding self) */
+  const similarCats = useMemo(() => {
+    if (!cat) return [];
+    return allCats.filter((c) => {
+      if (c.id === cat.id) return false;
+      // Consider cats that share at least one attribute as similar
+      const colorMatch = cat.color && c.color === cat.color;
+      const ageMatch = cat.age && c.age === cat.age;
+      const sexMatch = cat.sex && c.sex === cat.sex;
+      // Only show if at least 2 attributes match
+      const matchCount = [colorMatch, ageMatch, sexMatch].filter(Boolean).length;
+      return matchCount >= 2;
+    });
+  }, [cat, allCats]);
+
+  /** Merge: set current cat as merged into selected target */
+  const handleMerge = useCallback(async () => {
+    if (!catId || !mergeTargetId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const boundEdit = editCat.bind(null, catId);
+      const result = await boundEdit({
+        merged_into_id: mergeTargetId,
+        entry_status: "Merged" as CatEntryStatus,
+      });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
+      setShowMergeConfirm(false);
+      router.push("/sessions/manager");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to merge.");
+    } finally {
+      setSaving(false);
+    }
+  }, [catId, mergeTargetId, router]);
+
+  /** Approve as original (new cat, not a duplicate) */
   const handleApprove = useCallback(async () => {
     if (!catId) return;
     setSaving(true);
@@ -125,27 +104,20 @@ export function SessionsApprovalValidationScreen() {
     try {
       const boundEdit = editCat.bind(null, catId);
       const result = await boundEdit({
-        color: (color || undefined) as CatColor | undefined,
-        age: (age || undefined) as CatAge | undefined,
-        sex: (sex || undefined) as CatSex | undefined,
-        sociability: (sociability || undefined) as CatSociability | undefined,
-        cat_status: (catStatus || undefined) as CatStatus | undefined,
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
         entry_status: "Original" as CatEntryStatus,
       });
       if (result?.serverError) {
         setError(result.serverError);
         return;
       }
-      setShowSaveConfirm(false);
+      setShowApproveConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve.");
     } finally {
       setSaving(false);
     }
-  }, [catId, color, age, sex, sociability, catStatus, caretaker, notes, router]);
+  }, [catId, router]);
 
   /** Discard: delete the cat entry entirely */
   const handleDiscard = useCallback(async () => {
@@ -186,29 +158,29 @@ export function SessionsApprovalValidationScreen() {
     );
   }
 
-  const crossRefHref = catId
-    ? `/sessions/approval/cross-ref?catId=${catId}`
-    : "/sessions/approval/cross-ref";
-  const backHref = "/sessions/manager";
+  const validationHref = catId
+    ? `/sessions/approval/validation?catId=${catId}`
+    : "/sessions/approval/validation";
 
   return (
     <>
+      {/* Mobile */}
       <div className="tablet:hidden">
         <PageContent>
           <DetailHeader
             name={cat?.name || "Unnamed"}
             lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref={backHref}
+            backHref={validationHref}
           />
 
           <div className="flex gap-2">
             <button
               type="button"
               disabled={saving}
-              onClick={() => setShowSaveConfirm(true)}
+              onClick={() => setShowApproveConfirm(true)}
               className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Approve Instantly
+              New cat, Approve
             </button>
             <button
               type="button"
@@ -225,51 +197,58 @@ export function SessionsApprovalValidationScreen() {
             </div>
           ) : null}
 
-          <div className="flex items-center justify-between">
-            <p className="text-base font-bold text-slate-900">
-              Validate the info.
-            </p>
-            <Link
-              href={crossRefHref}
-              className="flex items-center gap-1 text-sm text-slate-600"
-            >
-              Next
-              <DoubleChevronIcon className="h-4 w-4" />
-            </Link>
-          </div>
+          <p className="text-base font-bold text-slate-900">Cross Reference</p>
+          <p className="text-sm text-slate-500">
+            Does this cat match an existing entry?
+          </p>
 
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-slate-600">Last seen at:</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
-              </p>
+          {similarCats.length === 0 ? (
+            <div className="py-6 text-center text-sm text-slate-400">
+              No similar cats found. This is likely a new entry.
             </div>
-            <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-            <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-            <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-            <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
-            <div>
-              <label className="text-sm text-slate-700">Caretaker</label>
-              <input
-                value={caretaker}
-                onChange={(e) => setCaretaker(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
+          ) : (
+            <div className="space-y-2">
+              {similarCats.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 rounded-xl bg-white p-3.5 ring-1 ring-slate-200"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+                    <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold tracking-tight text-slate-900">
+                        {c.name || "Unnamed"}
+                      </span>
+                      {sexSymbol(c.sex) ? (
+                        <span className={`text-sm ${sexColor(c.sex)}`}>
+                          {sexSymbol(c.sex)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {c.color || "—"} · {c.age || "—"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMergeTargetId(c.id);
+                      setShowMergeConfirm(true);
+                    }}
+                    className="shrink-0 rounded-full bg-lime-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-lime-300"
+                  >
+                    Merge
+                  </button>
+                </div>
+              ))}
             </div>
-            <div>
-              <label className="text-sm text-slate-700">Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
-            </div>
-          </div>
+          )}
         </PageContent>
       </div>
 
+      {/* Desktop */}
       <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sessions</h1>
@@ -306,7 +285,7 @@ export function SessionsApprovalValidationScreen() {
               Sort by <span className="ml-1">&#9662;</span>
             </button>
             <Link
-              href={backHref}
+              href={validationHref}
               className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
             >
               Back <span className="ml-1">&#8249;</span>
@@ -325,7 +304,6 @@ export function SessionsApprovalValidationScreen() {
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
               <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
             </div>
-
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
@@ -356,76 +334,102 @@ export function SessionsApprovalValidationScreen() {
                     {formatDate(cat?.last_updated_at)}
                   </p>
                 </div>
-
-                <Link
-                  href={crossRefHref}
-                  className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
-                >
-                  Next <span className="ml-1">&#8250;</span>
-                </Link>
               </div>
 
               <div className="mt-5 flex items-center justify-between">
                 <p className="inline-block border-b border-slate-300 pb-1 text-base font-semibold text-slate-800">
-                  For Validation
+                  Cross Reference
                 </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     disabled={saving}
-                    onClick={() => setShowSaveConfirm(true)}
+                    onClick={() => setShowApproveConfirm(true)}
                     className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100 disabled:opacity-50"
                   >
-                    Approve Instantly <span className="ml-1">&#10003;</span>
+                    New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
                     className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
                   >
-                    Cancel <span className="ml-1">&#10005;</span>
+                    Discard <span className="ml-1">&#10005;</span>
                   </button>
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <DropdownField label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-                <DropdownField label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-                <DropdownField label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-                <DropdownField label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-                <DropdownField label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
-                <div>
-                  <label className="text-xs font-medium text-slate-600">Caretaker</label>
-                  <input
-                    value={caretaker}
-                    onChange={(e) => setCaretaker(e.target.value)}
-                    className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200"
-                  />
-                </div>
-              </div>
+              <p className="mt-3 text-sm text-slate-500">
+                Does this cat match an existing entry? If so, merge.
+              </p>
 
-              <div className="mt-3">
-                <label className="text-xs font-medium text-slate-600">
-                  Specific Location
-                </label>
-                <input
-                  defaultValue={cat?.spot_last_seen ?? ""}
-                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200"
-                />
-              </div>
-
-              <div className="mt-3">
-                <label className="text-xs font-medium text-slate-600">Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="mt-1 h-24 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200"
-                />
+              <div className="mt-3 space-y-2">
+                {similarCats.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-slate-400">
+                    No similar cats found. This is likely a new entry.
+                  </div>
+                ) : (
+                  similarCats.map((c) => (
+                    <div
+                      key={`desktop-${c.id}`}
+                      className="flex items-center justify-between rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+                          <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold tracking-tight text-slate-900">
+                              {c.name || "Unnamed"}
+                            </span>
+                            {sexSymbol(c.sex) ? (
+                              <span className={`text-sm ${sexColor(c.sex)}`}>
+                                {sexSymbol(c.sex)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {c.color || "—"} · {c.age || "—"} · {c.spot_last_seen || "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMergeTargetId(c.id);
+                          setShowMergeConfirm(true);
+                        }}
+                        className="rounded-full bg-lime-200 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-lime-300"
+                      >
+                        Merge <span className="ml-1">&#8618;</span>
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
         </section>
       </div>
+
+      <ChangeConfirmDialog
+        open={showMergeConfirm}
+        onClose={() => setShowMergeConfirm(false)}
+        title="Merge this cat?"
+        description="This will mark the current entry as a duplicate and merge it into the selected existing cat."
+        confirmLabel="Merge"
+        onConfirm={handleMerge}
+      />
+
+      <ChangeConfirmDialog
+        open={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        title="Approve as new cat?"
+        description="This cat will be approved as an original, unique entry."
+        confirmLabel="Approve"
+        onConfirm={handleApprove}
+      />
 
       <ChangeConfirmDialog
         open={showDiscardConfirm}
@@ -435,15 +439,6 @@ export function SessionsApprovalValidationScreen() {
         confirmLabel="Discard Entry"
         showAvatar
         onConfirm={handleDiscard}
-      />
-
-      <ChangeConfirmDialog
-        open={showSaveConfirm}
-        onClose={() => setShowSaveConfirm(false)}
-        title="Approve this entry?"
-        description="This will approve the cat and mark it as an original entry."
-        confirmLabel="Approve"
-        onConfirm={handleApprove}
       />
     </>
   );

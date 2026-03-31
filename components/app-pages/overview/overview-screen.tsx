@@ -1,62 +1,247 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageContent } from "@/components/app-pages/shared/page-frame";
-import { FilterDropdown } from "@/components/app-pages/shared/filter-dropdown";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
-
-const LOCATION_STATS = [
-  { label: "Cat Count", value: "24" },
-  { label: "Neutered", value: "14" },
-  { label: "Unneutered", value: "10" },
-  { label: "% TNVR", value: "58%" },
-  { label: "Domesticated", value: "8" },
-  { label: "Tame", value: "10" },
-  { label: "Feral", value: "6" },
-  { label: "Sick", value: "2" },
-  { label: "Injured", value: "1" },
-  { label: "Adoptable", value: "3" },
-  { label: "Unnamed", value: "7" },
-];
-
-const ADDITIONAL_STATS = [
-  { label: "# of Fostered", value: "5", bold: false },
-  { label: "# of Adopted", value: "12", bold: false },
-  { label: "# of MIA", value: "3", bold: false },
-  { label: "# of Deceased", value: "8", bold: false },
-  { label: "TOTAL", value: "28", bold: true },
-  { label: "OVERALL TOTAL", value: "123", bold: true },
-];
+import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
-
-const DESKTOP_PRIMARY_STATS = [
-  { label: "Total Count", value: "999" },
-  { label: "Neutered", value: "999" },
-  { label: "Unneutered", value: "999" },
-  { label: "TNVR %", value: "99%" },
-];
-
-const DESKTOP_STATUS_STATS = [
-  { label: "Tame", value: "999" },
-  { label: "Feral", value: "999" },
-  { label: "Sick", value: "999" },
-  { label: "Adoptable", value: "999" },
-  { label: "Unnamed", value: "999" },
-  { label: "Injured", value: "999" },
-];
-
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
 const LOCATION_PERIODS = ["Current", "2025", "2024", "2023"];
+
+/** Compute all stats from cats + health records, given an optional location filter */
+function computeStats(
+  cats: SelectCat[],
+  healthRecords: SelectCatHealthRecord[],
+) {
+  const hrByCatId = new Map<string, SelectCatHealthRecord>();
+  for (const hr of healthRecords) {
+    hrByCatId.set(hr.cat_id, hr);
+  }
+
+  // Only count cats with entry_status "Original" or "Unreviewed" as active census cats
+  const activeCats = cats.filter(
+    (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
+  );
+
+  const total = activeCats.length;
+  let neutered = 0;
+  let domesticated = 0;
+  let tame = 0;
+  let feral = 0;
+  let sick = 0;
+  let injured = 0;
+  let adoptable = 0;
+  let unnamed = 0;
+  let fostered = 0;
+  let adopted = 0;
+  let mia = 0;
+  let deceased = 0;
+
+  for (const cat of activeCats) {
+    const hr = hrByCatId.get(cat.id);
+
+    // Neutered = has neuter_date
+    if (hr?.neuter_date) neutered++;
+
+    // Sociability
+    if (cat.sociability === "Domesticated") domesticated++;
+    else if (cat.sociability === "Tame") tame++;
+    else if (cat.sociability === "Feral") feral++;
+
+    // Health (from health record condition)
+    if (hr?.condition === "Sick" || hr?.condition === "Sick and Injured") sick++;
+    if (hr?.condition === "Injured" || hr?.condition === "Sick and Injured")
+      injured++;
+
+    // Adoptable
+    if (cat.is_adoptable) adoptable++;
+
+    // Unnamed
+    if (!cat.name || cat.name.trim() === "") unnamed++;
+
+    // Status counts (off-census)
+    if (cat.cat_status === "Fostered") fostered++;
+    if (cat.cat_status === "Adopted") adopted++;
+    if (cat.cat_status === "MIA") mia++;
+    if (cat.cat_status === "Deceased") deceased++;
+  }
+
+  const unneutered = total - neutered;
+  const tnvrPct = total > 0 ? Math.round((neutered / total) * 100) : 0;
+  const offCensusTotal = fostered + adopted + mia + deceased;
+  const overallTotal = total + offCensusTotal;
+
+  return {
+    total,
+    neutered,
+    unneutered,
+    tnvrPct,
+    domesticated,
+    tame,
+    feral,
+    sick,
+    injured,
+    adoptable,
+    unnamed,
+    fostered,
+    adopted,
+    mia,
+    deceased,
+    offCensusTotal,
+    overallTotal,
+  };
+}
 
 export function OverviewScreen() {
   const [dashboardMode, setDashboardMode] = useState(DASHBOARD_MODE_OPTIONS[0]);
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const [location, setLocation] = useState("All Locations");
+  const [allCats, setAllCats] = useState<SelectCat[]>([]);
+  const [allHealthRecords, setAllHealthRecords] = useState<
+    SelectCatHealthRecord[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState("—");
+
   const isOverall = dashboardMode === "Overall";
   const activePeriods = useMemo(
     () => (isOverall ? OVERALL_PERIODS : LOCATION_PERIODS),
     [isOverall],
   );
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [catResult, hrResult] = await Promise.all([
+        getCats({}),
+        getCatHealthRecords({}),
+      ]);
+      if (catResult?.data) {
+        setAllCats(catResult.data);
+        // Find the most recent last_updated_at
+        const dates = catResult.data
+          .map((c) => c.last_updated_at)
+          .filter(Boolean)
+          .map((d) => new Date(d as string | Date).getTime());
+        if (dates.length > 0) {
+          const latest = new Date(Math.max(...dates));
+          setLastUpdated(
+            `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`,
+          );
+        }
+      }
+      if (hrResult?.data) {
+        setAllHealthRecords(hrResult.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch overview data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Filter cats by location (spot_last_seen)
+  const filteredCats = useMemo(() => {
+    if (location === "All Locations") return allCats;
+    return allCats.filter(
+      (c) =>
+        c.spot_last_seen &&
+        c.spot_last_seen.toUpperCase().includes(location.toUpperCase()),
+    );
+  }, [allCats, location]);
+
+  const stats = useMemo(
+    () => computeStats(filteredCats, allHealthRecords),
+    [filteredCats, allHealthRecords],
+  );
+
+  // Desktop-specific view: use dashboardMode for filtering
+  const desktopCats = useMemo(() => {
+    if (dashboardMode === "Overall") return allCats;
+    return allCats.filter(
+      (c) =>
+        c.spot_last_seen &&
+        c.spot_last_seen.toUpperCase().includes(dashboardMode.toUpperCase()),
+    );
+  }, [allCats, dashboardMode]);
+
+  const desktopStats = useMemo(
+    () => computeStats(desktopCats, allHealthRecords),
+    [desktopCats, allHealthRecords],
+  );
+
+  const locationStats = useMemo(
+    () => [
+      { label: "Cat Count", value: String(stats.total) },
+      { label: "Neutered", value: String(stats.neutered) },
+      { label: "Unneutered", value: String(stats.unneutered) },
+      { label: "% TNVR", value: `${stats.tnvrPct}%` },
+      { label: "Domesticated", value: String(stats.domesticated) },
+      { label: "Tame", value: String(stats.tame) },
+      { label: "Feral", value: String(stats.feral) },
+      { label: "Sick", value: String(stats.sick) },
+      { label: "Injured", value: String(stats.injured) },
+      { label: "Adoptable", value: String(stats.adoptable) },
+      { label: "Unnamed", value: String(stats.unnamed) },
+    ],
+    [stats],
+  );
+
+  const additionalStats = useMemo(
+    () => [
+      { label: "# of Fostered", value: String(stats.fostered), bold: false },
+      { label: "# of Adopted", value: String(stats.adopted), bold: false },
+      { label: "# of MIA", value: String(stats.mia), bold: false },
+      { label: "# of Deceased", value: String(stats.deceased), bold: false },
+      {
+        label: "TOTAL",
+        value: String(stats.offCensusTotal),
+        bold: true,
+      },
+      {
+        label: "OVERALL TOTAL",
+        value: String(stats.overallTotal),
+        bold: true,
+      },
+    ],
+    [stats],
+  );
+
+  const desktopPrimaryStats = useMemo(
+    () => [
+      { label: "Total Count", value: String(desktopStats.total) },
+      { label: "Neutered", value: String(desktopStats.neutered) },
+      { label: "Unneutered", value: String(desktopStats.unneutered) },
+      { label: "TNVR %", value: `${desktopStats.tnvrPct}%` },
+    ],
+    [desktopStats],
+  );
+
+  const desktopStatusStats = useMemo(
+    () => [
+      { label: "Tame", value: String(desktopStats.tame) },
+      { label: "Feral", value: String(desktopStats.feral) },
+      { label: "Sick", value: String(desktopStats.sick) },
+      { label: "Adoptable", value: String(desktopStats.adoptable) },
+      { label: "Unnamed", value: String(desktopStats.unnamed) },
+      { label: "Injured", value: String(desktopStats.injured) },
+    ],
+    [desktopStats],
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -79,13 +264,13 @@ export function OverviewScreen() {
               <p className="text-xs text-slate-500">
                 Last PAW Update:{" "}
                 <span className="font-semibold text-slate-700">
-                  Jan 1, 2026
+                  {lastUpdated}
                 </span>
               </p>
               <p className="text-xs text-slate-500">
                 Last Update:{" "}
                 <span className="font-semibold text-slate-700">
-                  Jan 1, 2026
+                  {lastUpdated}
                 </span>
               </p>
             </div>
@@ -97,14 +282,18 @@ export function OverviewScreen() {
               </p>
               <div className="flex items-center justify-around">
                 <div className="text-center">
-                  <p className="text-3xl font-bold tracking-tight text-slate-900">123</p>
+                  <p className="text-3xl font-bold tracking-tight text-slate-900">
+                    {stats.total}
+                  </p>
                   <p className="mt-1 text-xs font-medium text-slate-500">
                     Total Cats
                   </p>
                 </div>
                 <div className="h-10 w-px bg-slate-200" />
                 <div className="text-center">
-                  <p className="text-3xl font-bold tracking-tight text-slate-900">58%</p>
+                  <p className="text-3xl font-bold tracking-tight text-slate-900">
+                    {stats.tnvrPct}%
+                  </p>
                   <p className="mt-1 text-xs font-medium text-slate-500">
                     TNVR Score
                   </p>
@@ -113,11 +302,28 @@ export function OverviewScreen() {
             </div>
 
             {/* Location Dropdown */}
-            <FilterDropdown
-              label="Location"
-              options={LOCATIONS}
-              defaultValue="All Locations"
-            />
+            <label className="flex w-full flex-col gap-1.5">
+              <span className="text-xs font-semibold tracking-wide text-slate-700">
+                Location
+              </span>
+              <div className="relative rounded-lg bg-white ring-1 ring-slate-200">
+                <select
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm font-medium text-slate-900"
+                  aria-label="Location"
+                >
+                  {LOCATIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-600">
+                  ▼
+                </span>
+              </div>
+            </label>
 
             {/* Location Details */}
             <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
@@ -127,7 +333,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-px bg-slate-100">
-                {LOCATION_STATS.map((stat) => (
+                {locationStats.map((stat) => (
                   <div
                     key={stat.label}
                     className="bg-white px-3.5 py-3"
@@ -163,7 +369,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="divide-y divide-slate-100 bg-white">
-                {ADDITIONAL_STATS.map((stat) => (
+                {additionalStats.map((stat) => (
                   <div
                     key={stat.label}
                     className="flex items-center justify-between px-4 py-3"
@@ -215,12 +421,12 @@ export function OverviewScreen() {
           </label>
 
           <p className="mt-1 whitespace-nowrap text-sm font-semibold text-slate-900">
-            Last updated: XX/XX/XXXX
+            Last updated: {lastUpdated}
           </p>
         </div>
 
         <div className="grid grid-cols-4 gap-3">
-          {DESKTOP_PRIMARY_STATS.map((stat) => (
+          {desktopPrimaryStats.map((stat) => (
             <article
               key={stat.label}
               className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-slate-100"
@@ -259,7 +465,7 @@ export function OverviewScreen() {
               </button>
             </div>
 
-            {showPeriodMenu && (
+            {showPeriodMenu ? (
               <div className="absolute right-4 top-12 z-10 w-24 rounded-2xl bg-slate-100 p-2 shadow-sm">
                 {activePeriods.map((period) => (
                   <button
@@ -273,7 +479,7 @@ export function OverviewScreen() {
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
 
             <div className="flex h-75 items-center justify-center rounded-xl bg-slate-50 text-sm text-slate-500">
               {isOverall
@@ -283,7 +489,7 @@ export function OverviewScreen() {
           </section>
 
           <section className="space-y-2">
-            {DESKTOP_STATUS_STATS.map((stat) => (
+            {desktopStatusStats.map((stat) => (
               <div
                 key={stat.label}
                 className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 ring-1 ring-slate-100"
