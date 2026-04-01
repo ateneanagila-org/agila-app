@@ -12,6 +12,7 @@ import {
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat } from "@/app/actions/cats";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
   CAT_COLOR_VALUES,
@@ -153,6 +154,7 @@ export function DatabaseGeneralScreen() {
         setError(result.serverError);
         return;
       }
+      syncAllPendingRegions();
       // Re-fetch to get updated data
       await fetchCat();
     } catch (err) {
@@ -184,6 +186,7 @@ export function DatabaseGeneralScreen() {
     try {
       const boundEdit = editCat.bind(null, catId);
       await boundEdit({ is_adoptable: newVal });
+      syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal); // revert

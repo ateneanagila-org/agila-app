@@ -13,6 +13,7 @@ import {
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { removeSessionCat } from "@/app/actions/sessions";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatEntryStatus } from "@/lib/db/enums";
@@ -102,7 +103,7 @@ export function SessionsApprovalCrossRefScreen() {
         setError(result.serverError);
         return;
       }
-
+      syncAllPendingRegions();
       setShowMergeConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
@@ -126,7 +127,7 @@ export function SessionsApprovalCrossRefScreen() {
         setError(result.serverError);
         return;
       }
-
+      syncAllPendingRegions();
       setShowApproveConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
@@ -146,7 +147,7 @@ export function SessionsApprovalCrossRefScreen() {
         const boundRemoveCat = removeCat.bind(null, catId);
         await boundRemoveCat();
       }
-
+      syncAllPendingRegions();
       setShowDiscardConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {

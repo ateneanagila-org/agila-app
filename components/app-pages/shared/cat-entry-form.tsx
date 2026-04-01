@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { ImagePlaceholderIcon, UploadIcon } from "./icons";
-import { createCat } from "@/app/actions/cats";
+import { createCat, editCat } from "@/app/actions/cats";
 import { createSessionCat } from "@/app/actions/sessions";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
 import {
   CAT_COLOR_VALUES,
@@ -178,16 +179,27 @@ export function CatEntryForm({
         name: name || undefined,
       };
 
-      const result = sessionId
-        ? await createSessionCat({
-            ...payload,
-            session_id: sessionId,
-          })
-        : await createCat(payload);
-
-      if (result?.serverError) {
-        setError(result.serverError);
-        return;
+      if (sessionId) {
+        const result = await createSessionCat({
+          ...payload,
+          session_id: sessionId,
+        });
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
+        // Re-trigger sync queue now that the session-cat link exists
+        if (result?.data) {
+          await editCat({ id: result.data.id });
+        }
+        syncAllPendingRegions();
+      } else {
+        const result = await createCat(payload);
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
+        syncAllPendingRegions();
       }
 
       onSave?.();

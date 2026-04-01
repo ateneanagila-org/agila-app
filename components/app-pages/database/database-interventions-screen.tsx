@@ -23,6 +23,7 @@ import {
   createIntervention,
   editIntervention,
 } from "@/app/actions/interventions";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import {
@@ -126,6 +127,7 @@ export function DatabaseInterventionsScreen() {
         setError(result.serverError);
         return;
       }
+      syncAllPendingRegions();
       setNewType("");
       setNewNotes("");
       setShowIntervention(false);
@@ -144,6 +146,7 @@ export function DatabaseInterventionsScreen() {
         await boundEdit({
           status: newStatus as InterventionStatus,
         });
+        syncAllPendingRegions();
         await fetchData();
       } catch (err) {
         console.error("Failed to update status:", err);

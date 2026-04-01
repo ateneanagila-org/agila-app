@@ -14,8 +14,9 @@ import {
 import {
   getCats,
   getCatHealthRecords,
-  editCathHealthRecord,
+  editCat,
 } from "@/app/actions/cats";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
@@ -191,12 +192,12 @@ export function DatabaseMedicalScreen() {
   }, [fetchData]);
 
   const handleSave = useCallback(async () => {
-    if (!healthRecord?.id) return;
+    if (!catId) return;
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editCathHealthRecord.bind(null, healthRecord.id);
-      const result = await boundEdit({
+      const result = await editCat({
+        id: catId,
         condition: (condition || undefined) as
           | CatHealthRecordCondition
           | undefined,
@@ -207,6 +208,7 @@ export function DatabaseMedicalScreen() {
         setError(result.serverError);
         return;
       }
+      syncAllPendingRegions();
       await fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -214,7 +216,7 @@ export function DatabaseMedicalScreen() {
       setSaving(false);
     }
   }, [
-    healthRecord?.id,
+    catId,
     condition,
     neuterMonth,
     neuterDay,
