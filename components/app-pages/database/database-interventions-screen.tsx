@@ -9,6 +9,7 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   DialogShell,
+  FiltersDialog,
   SortByDialog,
 } from "@/components/app-pages/shared/dialogs";
 import {
@@ -29,15 +30,8 @@ import {
   INTERVENTION_STATUS_VALUES,
 } from "@/lib/db/enums";
 import type { InterventionType, InterventionStatus } from "@/lib/db/enums";
-
-const FILTER_CHIPS = [
-  "Include +",
-  "Filter 1 Sample",
-  "Filter 2 Sample",
-  "Exclude -",
-  "Filter 1 Sample",
-  "Filter 2 Sample",
-];
+import { useFilterSort } from "@/lib/hooks/use-filter-sort";
+import { INTERVENTIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 export function DatabaseInterventionsScreen() {
   const searchParams = useSearchParams();
@@ -49,14 +43,40 @@ export function DatabaseInterventionsScreen() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [showSort, setShowSort] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
-  const [showDesktopFilters, setShowDesktopFilters] = useState(false);
 
   // Create form state
   const [newType, setNewType] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    filtered: filteredInterventions,
+    activeFilters,
+    toggleFilter,
+    clearFilters,
+    activeFilterCount,
+    sortKey,
+    setSortKey,
+    sortOrder,
+    setSortOrder,
+  } = useFilterSort<SelectIntervention>(
+    interventionsList,
+    INTERVENTIONS_CONFIG,
+    (item, key) => {
+      if (key === "type") return item.type ?? null;
+      if (key === "status") return item.status ?? null;
+      return null;
+    },
+    (item, key) => {
+      if (key === "requested_at") return item.requested_at ? new Date(item.requested_at) : null;
+      if (key === "type") return item.type ?? "";
+      if (key === "status") return item.status ?? "";
+      return null;
+    },
+  );
 
   const fetchData = useCallback(async () => {
     if (!catId) {
@@ -187,7 +207,7 @@ export function DatabaseInterventionsScreen() {
             </button>
           </div>
 
-          {interventionsList.length === 0 ? (
+          {filteredInterventions.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-400">
               No interventions yet.
             </div>
@@ -257,34 +277,22 @@ export function DatabaseInterventionsScreen() {
 
             <button
               type="button"
-              onClick={() => setShowDesktopFilters((v) => !v)}
+              onClick={() => setShowFilters(true)}
               className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
-              Filter
+              Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
 
             <button
               type="button"
+              onClick={() => setShowSort(true)}
               className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
             >
               Sort by
               <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </div>
-
-          {showDesktopFilters ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {FILTER_CHIPS.map((chip, index) => (
-                <span
-                  key={`${chip}-${index}`}
-                  className="rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-600"
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
 
         <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
@@ -357,12 +365,12 @@ export function DatabaseInterventionsScreen() {
           </div>
 
           <div className="mt-3 divide-y divide-slate-100">
-            {interventionsList.length === 0 ? (
+            {filteredInterventions.length === 0 ? (
               <div className="py-8 text-center text-sm text-slate-400">
                 No interventions yet.
               </div>
             ) : (
-              interventionsList.map((item) => (
+              filteredInterventions.map((item) => (
                 <div
                   key={`desktop-${item.id}`}
                   className="flex items-center justify-between py-3"
@@ -403,7 +411,24 @@ export function DatabaseInterventionsScreen() {
         </section>
       </div>
 
-      <SortByDialog open={showSort} onClose={() => setShowSort(false)} />
+      <FiltersDialog
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        categories={INTERVENTIONS_CONFIG.filters}
+        activeFilters={activeFilters}
+        onToggle={toggleFilter}
+        onClear={clearFilters}
+        activeCount={activeFilterCount}
+      />
+      <SortByDialog
+        open={showSort}
+        onClose={() => setShowSort(false)}
+        options={INTERVENTIONS_CONFIG.sortOptions}
+        activeKey={sortKey}
+        order={sortOrder}
+        onSort={setSortKey}
+        onOrder={setSortOrder}
+      />
 
       <DialogShell
         open={showIntervention}

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   DialogShell,
   DialogHeader,
+  FiltersDialog,
+  SortByDialog,
 } from "@/components/app-pages/shared/dialogs";
 import {
   PlusCircleIcon,
@@ -20,9 +22,13 @@ import {
 import type { SelectProfile } from "@/lib/validation/users";
 import { AUTH_ROLE_VALUES } from "@/lib/db/enums";
 import type { AuthRole } from "@/lib/db/enums";
+import { useFilterSort } from "@/lib/hooks/use-filter-sort";
+import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 export function UsersScreen() {
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSort, setShowSort] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SelectProfile | null>(null);
   const [users, setUsers] = useState<SelectProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +44,42 @@ export function UsersScreen() {
   const [saving, setSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    filtered: filteredUsers,
+    activeFilters,
+    toggleFilter,
+    clearFilters,
+    activeFilterCount,
+    sortKey,
+    setSortKey,
+    sortOrder,
+    setSortOrder,
+    search,
+    setSearch,
+  } = useFilterSort<SelectProfile>(
+    users,
+    USERS_CONFIG,
+    (user, key) => {
+      if (key === "auth_role") return user.auth_role ?? null;
+      return null;
+    },
+    (user, key) => {
+      if (key === "name") return user.name ?? "";
+      if (key === "auth_role") return user.auth_role ?? "";
+      return null;
+    },
+  );
+
+  const searchedUsers = search
+    ? filteredUsers.filter((u) => {
+        const q = search.toLowerCase();
+        return (
+          u.name?.toLowerCase().includes(q) ||
+          u.id.toLowerCase().includes(q)
+        );
+      })
+    : filteredUsers;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -157,11 +199,11 @@ export function UsersScreen() {
 
         {loading ? (
           <LoadingIndicator />
-        ) : users.length === 0 ? (
+        ) : searchedUsers.length === 0 ? (
           <div className="py-8 text-center text-sm text-slate-400">No users found.</div>
         ) : (
           <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-            {users.map((user, i) => (
+            {searchedUsers.map((user, i) => (
               <div key={user.id}>
                 <button
                   type="button"
@@ -186,7 +228,7 @@ export function UsersScreen() {
                     <DoubleChevronIcon className="h-4 w-4" />
                   </span>
                 </button>
-                {i < users.length - 1 ? <div className="mx-4 border-b border-slate-100" /> : null}
+                {i < searchedUsers.length - 1 ? <div className="mx-4 border-b border-slate-100" /> : null}
               </div>
             ))}
           </div>
@@ -212,15 +254,25 @@ export function UsersScreen() {
               <input
                 type="text"
                 placeholder="Search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
               />
               <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
-            <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100">
-              Filter role <span className="ml-1">&#9662;</span>
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              Filter role{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""} <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
-            <button type="button" className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100">
-              Sort by <span className="ml-1">&#9662;</span>
+            <button
+              type="button"
+              onClick={() => setShowSort(true)}
+              className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </div>
         </section>
@@ -230,10 +282,10 @@ export function UsersScreen() {
         ) : (
           <section className="mt-4 rounded-2xl bg-white ring-1 ring-slate-100">
             <div className="divide-y divide-slate-100 px-5">
-              {users.length === 0 ? (
+              {searchedUsers.length === 0 ? (
                 <div className="py-8 text-center text-sm text-slate-400">No users found.</div>
               ) : (
-                users.map((user) => (
+                searchedUsers.map((user) => (
                   <div key={`desktop-${user.id}`} className="flex items-center justify-between gap-4 py-3.5">
                     <button
                       type="button"
@@ -355,6 +407,25 @@ export function UsersScreen() {
       </DialogShell>
 
       {/* User Details Dialog */}
+      <FiltersDialog
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        categories={USERS_CONFIG.filters}
+        activeFilters={activeFilters}
+        onToggle={toggleFilter}
+        onClear={clearFilters}
+        activeCount={activeFilterCount}
+      />
+      <SortByDialog
+        open={showSort}
+        onClose={() => setShowSort(false)}
+        options={USERS_CONFIG.sortOptions}
+        activeKey={sortKey}
+        order={sortOrder}
+        onSort={setSortKey}
+        onOrder={setSortOrder}
+      />
+
       {selectedUser ? (
         <DialogShell open onClose={() => setSelectedUser(null)}>
           <DialogHeader

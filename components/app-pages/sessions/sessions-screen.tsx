@@ -7,14 +7,22 @@ import {
   ChevronDownIcon,
   MenuIcon,
 } from "@/components/app-pages/shared/icons";
+import {
+  FiltersDialog,
+  SortByDialog,
+} from "@/components/app-pages/shared/dialogs";
 import { getSessions } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
 import type { SelectSession } from "@/lib/validation/sessions";
+import { useFilterSort } from "@/lib/hooks/use-filter-sort";
+import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 export function SessionsScreen() {
   const [sessions, setSessions] = useState<SelectSession[]>([]);
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSort, setShowSort] = useState(false);
 
   const fetchRegions = useCallback(async () => {
     try {
@@ -66,6 +74,30 @@ export function SessionsScreen() {
     if (s.is_finished) return "Reviewed";
     return "Unfinished";
   };
+
+  const {
+    filtered: filteredSessions,
+    activeFilters,
+    toggleFilter,
+    clearFilters,
+    activeFilterCount,
+    sortKey,
+    setSortKey,
+    sortOrder,
+    setSortOrder,
+  } = useFilterSort<SelectSession>(
+    sessions,
+    SESSIONS_CONFIG,
+    (session, key) => {
+      if (key === "status") return sessionStatus(session);
+      return null;
+    },
+    (session, key) => {
+      if (key === "created_at") return new Date(session.created_at);
+      if (key === "location") return regionMap[session.region_id] ?? "";
+      return null;
+    },
+  );
 
   /** Compute summary stats from sessions */
   const summary = useMemo(() => {
@@ -259,15 +291,18 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                onClick={() => setShowFilters(true)}
+                className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
               >
-                Status <span className="ml-1">&#9662;</span>
+                Status{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
+                <ChevronDownIcon className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                onClick={() => setShowSort(true)}
+                className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
               >
-                Sort by <span className="ml-1">&#9662;</span>
+                Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
               </button>
             </div>
             <Link
@@ -278,26 +313,27 @@ export function SessionsScreen() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-[1fr_1fr_1fr_1fr] border-b border-slate-100 px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500">
+          <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-x-2 border-b border-slate-100 px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500">
             <span>Census No.</span>
             <span>Date</span>
             <span>Location</span>
             <span>Status</span>
+            <span className="w-20" />
           </div>
 
           {loading ? (
             <LoadingIndicator />
           ) : (
             <div className="divide-y divide-slate-50 px-3">
-              {sessions.length === 0 ? (
+              {filteredSessions.length === 0 ? (
                 <div className="py-6 text-center text-sm text-slate-400">
                   No sessions yet.
                 </div>
               ) : (
-                sessions.map((s) => (
+                filteredSessions.map((s) => (
                   <div
                     key={s.id}
-                    className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center py-2.5 text-sm text-slate-700"
+                    className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-center gap-x-2 py-2.5 text-sm text-slate-700"
                   >
                     <span className="font-medium tabular-nums">
                       {s.id.slice(0, 8)}
@@ -308,19 +344,24 @@ export function SessionsScreen() {
                     <span className="truncate">
                       {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
                     </span>
-                    <span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        s.is_finished
+                          ? "bg-green-50 text-green-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {sessionStatus(s)}
+                    </span>
+                    <span className="w-20 text-right">
                       {!s.is_finished ? (
                         <Link
                           href={`/sessions/create?sessionId=${s.id}`}
                           className="inline-flex items-center rounded-lg border border-lime-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-lime-50"
                         >
-                          Continue <span className="ml-2">&#8250;</span>
+                          Continue <span className="ml-1">&#8250;</span>
                         </Link>
-                      ) : (
-                        <span className="text-slate-500">
-                          {sessionStatus(s)}
-                        </span>
-                      )}
+                      ) : null}
                     </span>
                   </div>
                 ))
@@ -351,6 +392,25 @@ export function SessionsScreen() {
           </div>
         </section>
       </div>
+
+      <FiltersDialog
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        categories={SESSIONS_CONFIG.filters}
+        activeFilters={activeFilters}
+        onToggle={toggleFilter}
+        onClear={clearFilters}
+        activeCount={activeFilterCount}
+      />
+      <SortByDialog
+        open={showSort}
+        onClose={() => setShowSort(false)}
+        options={SESSIONS_CONFIG.sortOptions}
+        activeKey={sortKey}
+        order={sortOrder}
+        onSort={setSortKey}
+        onOrder={setSortOrder}
+      />
     </>
   );
 }
