@@ -1,148 +1,532 @@
 "use client";
 
-import { useState } from "react";
-import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ImagePlaceholderIcon,
   PlusCircleIcon,
+  ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
-import { createSessionCat } from "@/app/actions/sessions";
-import { CreateSessionCatSchema } from "@/lib/validation/sessions";
+import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  createSession,
+  getSessionCats,
+  getSessions,
+  editSession,
+} from "@/app/actions/sessions";
+import { getCats } from "@/app/actions/cats";
+import { createClient } from "@/lib/supabase/client";
+import type { SelectCat } from "@/lib/validation/cats";
+import type { SelectSessionCat } from "@/lib/validation/sessions";
 
-const CAT_ENTRIES = [
-  {
-    id: "1",
-    name: "Cat Name",
-    sex: "male",
-    breed: "Orange and White Tabby",
-    age: "Adult",
-  },
-  {
-    id: "2",
-    name: "Cat Name",
-    sex: "male",
-    breed: "Orange and White Tabby",
-    age: "Adult",
-  },
-  {
-    id: "3",
-    name: "Cat Name",
-    sex: "male",
-    breed: "Orange and White Tabby",
-    age: "Adult",
-  },
-  {
-    id: "4",
-    name: "Cat Name",
-    sex: "male",
-    breed: "Orange and White Tabby",
-    age: "Adult",
-  },
-];
-
-// TODO: FOR CRUDE TESTING GSHEETS POC
-const TEST_CAT: CreateSessionCatSchema = {
-  region_id: "c56e32c6-6930-4f68-8096-41ff52b9fe55",
-  condition: "Healthy",
-  session_id: "446ae93c-1082-4c23-b130-30816a71a786",
-  name: "BALLS",
+type RegionOption = {
+  id: string;
+  name: string;
 };
 
-const DROPDOWN_OPTIONS = ["Details", "Finish", "Save"];
-
 export function SessionsCreateScreen() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  const searchParams = useSearchParams();
+  const existingSessionId = searchParams.get("sessionId");
 
-  // TODO: FOR CRUDE TESTING GSHEETS POC; CHANGE THIS
-  const handleAddSessionEntry = async () => {
-    await createSessionCat(TEST_CAT);
-    setShowAdd(true);
+  const { userData } = useAuth();
+  const userId = userData?.supabaseUser?.id;
+
+  const [sessionId, setSessionId] = useState<string | null>(existingSessionId);
+  const [selectedRegionId, setSelectedRegionId] = useState("");
+  const [selectedRegionName, setSelectedRegionName] = useState("");
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
+  const [cats, setCats] = useState<SelectCat[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadRegions = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error: fetchError } = await supabase
+        .from("regions")
+        .select("id,name");
+
+      if (fetchError) {
+        setError(fetchError.message);
+        return;
+      }
+
+      const options = (data ?? [])
+        .filter((row): row is RegionOption => Boolean(row?.id && row?.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setRegionOptions(options);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load locations.",
+      );
+    }
+  }, []);
+
+  /** Fetch session cats and resolve to full cat objects */
+  const fetchSessionCats = useCallback(async (sid: string) => {
+    try {
+      const scResult = await getSessionCats({ session_id: sid });
+      if (scResult?.data && scResult.data.length > 0) {
+        const catIds = scResult.data.map((sc: SelectSessionCat) => sc.cat_id);
+        // Fetch each cat
+        const catPromises = catIds.map((cid: string) => getCats({ id: cid }));
+        const catResults = await Promise.all(catPromises);
+        const resolved = catResults
+          .filter((r) => r?.data && r.data.length > 0)
+          .map((r) => r!.data![0]);
+        setCats(resolved);
+      } else {
+        setCats([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch session cats:", err);
+    }
+  }, []);
+
+  const hydrateExistingSession = useCallback(
+    async (sid: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await getSessions({ id: sid });
+        const existing = result?.data?.[0];
+        if (!existing) {
+          setError("Session not found.");
+          return;
+        }
+
+        setSessionId(existing.id);
+        setSelectedRegionId(existing.region_id);
+        await fetchSessionCats(existing.id);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load session.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchSessionCats],
+  );
+
+  useEffect(() => {
+    loadRegions();
+  }, [loadRegions]);
+
+  /** Load existing session data if we have a sessionId */
+  useEffect(() => {
+    if (existingSessionId) {
+      hydrateExistingSession(existingSessionId);
+    }
+  }, [existingSessionId, hydrateExistingSession]);
+
+  useEffect(() => {
+    if (!selectedRegionId) {
+      setSelectedRegionName("");
+      return;
+    }
+
+    const option = regionOptions.find(
+      (region) => region.id === selectedRegionId,
+    );
+    setSelectedRegionName(option ? option.name : selectedRegionId.slice(0, 8));
+  }, [selectedRegionId, regionOptions]);
+
+  /** Create a new session when location is selected */
+  const handleLocationSelect = useCallback(
+    async (regionId: string) => {
+      setSelectedRegionId(regionId);
+      setError(null);
+
+      if (sessionId) return; // Already have a session
+      if (!regionId) return;
+      if (!userId) {
+        setError("Unable to identify current user.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const result = await createSession({
+          region_id: regionId,
+          user_id: userId,
+        });
+
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
+
+        const newSession = result?.data;
+        if (!newSession?.id) {
+          setError("Session was created but no ID was returned.");
+          return;
+        }
+
+        setSessionId(newSession.id);
+        await fetchSessionCats(newSession.id);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to create session.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sessionId, userId, fetchSessionCats],
+  );
+
+  const handleSubmitSession = useCallback(async () => {
+    if (!sessionId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const boundEdit = editSession.bind(null, sessionId);
+      const result = await boundEdit({ is_finished: true });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
+      // Navigate back
+      window.location.href = "/sessions";
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to submit session.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }, [sessionId]);
+
+  const handleOpenAddForm = useCallback(() => {
+    if (!sessionId) {
+      setError("Select a location first to create a session.");
+      return;
+    }
+    setShowAddForm(true);
+  }, [sessionId]);
+
+  const handleCatSaved = useCallback(() => {
+    if (sessionId) {
+      fetchSessionCats(sessionId);
+    }
+  }, [sessionId, fetchSessionCats]);
+
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "—";
+    const d = new Date(date);
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+  };
+
+  const sexSymbol = (s: string | null | undefined): string | null => {
+    if (s === "Male") return "♂";
+    if (s === "Female") return "♀";
+    return null;
+  };
+
+  const sexColor = (s: string | null | undefined): string => {
+    if (s === "Male") return "text-blue-500";
+    if (s === "Female") return "text-pink-500";
+    return "text-slate-400";
   };
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex-1 space-y-4 px-4 py-4">
-        {/* Location card */}
-        <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-bold text-slate-900">Location</p>
-              <p className="text-xs text-slate-500">Census Number</p>
+    <>
+      <div className="flex flex-1 flex-col tablet:hidden">
+        <div className="flex-1 space-y-4 px-4 py-4">
+          <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold tracking-tight text-slate-900">
+                  {selectedRegionName || "Select Location"}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="px-1 text-xs tracking-widest text-slate-400"
+                aria-label="More options"
+              >
+                &bull;&bull;&bull;
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="px-1 text-xs tracking-widest text-slate-500"
-              aria-label="More options"
-            >
-              &bull;&bull;&bull;
-            </button>
+
+            {menuOpen ? (
+              <div className="absolute right-4 top-10 z-10 min-w-30 rounded-xl border border-slate-100 bg-white py-1 shadow-lg">
+                {["Details", "Finish", "Save"].map((opt) => (
+                  <button
+                    type="button"
+                    key={opt}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (opt === "Finish") handleSubmitSession();
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
-          {menuOpen && (
-            <div className="absolute right-4 top-10 z-10 min-w-[120px] rounded-xl border border-slate-100 bg-white py-1 shadow-lg">
-              {DROPDOWN_OPTIONS.map((opt) => (
-                <button
-                  type="button"
-                  key={opt}
-                  onClick={() => setMenuOpen(false)}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  {opt}
-                </button>
+          <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
+            <label className="text-xs font-semibold tracking-wide text-slate-700">
+              Location
+            </label>
+            <div className="relative mt-1.5">
+              <select
+                value={selectedRegionId}
+                onChange={(e) => handleLocationSelect(e.target.value)}
+                disabled={!!sessionId || loading}
+                className="h-9 w-full appearance-none rounded-full bg-slate-50 px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
+              >
+                <option value="">Select...</option>
+                {regionOptions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+          </div>
+
+          {error ? (
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+              {error}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+            </div>
+          ) : !sessionId ? (
+            <div className="py-8 text-center text-sm text-slate-400">
+              Select a location to start a session.
+            </div>
+          ) : cats.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-400">
+              No cats in this session yet.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+              {cats.map((cat, i) => (
+                <div key={cat.id}>
+                  <div className="flex items-start gap-3 px-3.5 py-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+                      <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold tracking-tight text-slate-900">
+                          {cat.name || "Unnamed"}
+                        </span>
+                        {sexSymbol(cat.sex) ? (
+                          <span className={`text-sm ${sexColor(cat.sex)}`}>
+                            {sexSymbol(cat.sex)}
+                          </span>
+                        ) : null}
+                        <span className="ml-auto text-xs tracking-widest text-slate-400">
+                          &bull;&bull;&bull;
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {cat.color || "Unknown"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {cat.age || "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+                  {i < cats.length - 1 ? (
+                    <div className="mx-3.5 border-b border-slate-100" />
+                  ) : null}
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Cat entries list */}
-        <div className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
-          {CAT_ENTRIES.map((cat, i) => (
-            <div key={cat.id}>
-              <div className="flex items-start gap-3 px-3 py-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                  <ImagePlaceholderIcon className="h-6 w-6 text-slate-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-slate-900">
-                      {cat.name}
-                    </span>
-                    {cat.sex === "male" && (
-                      <span className="text-sm font-medium text-blue-500">
-                        &#9794;
-                      </span>
-                    )}
-                    <span className="ml-auto text-xs tracking-widest text-slate-400">
-                      &bull;&bull;&bull;
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">{cat.breed}</p>
-                  <p className="text-xs text-slate-500">{cat.age}</p>
-                </div>
-              </div>
-              {i < CAT_ENTRIES.length - 1 && (
-                <div className="mx-3 border-b border-slate-200" />
-              )}
-            </div>
-          ))}
+        <div className="flex justify-end px-4 pb-5">
+          <button
+            type="button"
+            onClick={handleOpenAddForm}
+            className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
+          >
+            Add Entry
+            <PlusCircleIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* Add Entry button */}
-      <div className="flex justify-end px-4 pb-5">
-        <button
-          type="button"
-          onClick={() => handleAddSessionEntry()}
-          className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow"
-        >
-          Add Entry
-          <PlusCircleIcon className="h-4 w-4" />
-        </button>
+      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Sessions
+          </h1>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+            >
+              Census Report <span className="ml-1">&#128202;</span>
+            </button>
+            <button
+              type="button"
+              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+            >
+              Review Sessions <span className="ml-1">&#9711;</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <label className="flex w-full max-w-72 items-center gap-2 text-sm font-semibold text-slate-900">
+            <span>Location:</span>
+            <div className="relative flex-1">
+              <select
+                value={selectedRegionId}
+                onChange={(e) => handleLocationSelect(e.target.value)}
+                disabled={!!sessionId || loading}
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
+              >
+                <option value="">Select...</option>
+                {regionOptions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+          </label>
+
+          <Link
+            href="/sessions"
+            className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+          >
+            Back <span className="ml-1">&#8249;</span>
+          </Link>
+        </div>
+
+        {error ? (
+          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+            {error}
+          </div>
+        ) : null}
+
+        <section className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+              Census No. {sessionId ? sessionId.slice(0, 8) : "—"}{" "}
+              <span className="ml-1 text-base font-normal text-slate-400">
+                &#128247;
+              </span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenAddForm}
+                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+              >
+                Add entry <span className="ml-1">+</span>
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSubmitSession}
+                className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400 disabled:opacity-50"
+              >
+                {submitting ? "Submitting..." : "Submit"}{" "}
+                <span className="ml-1">&#8250;</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {loading ? (
+          <div className="mt-4 flex items-center justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          </div>
+        ) : !sessionId ? (
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+            Select a location to start a session.
+          </div>
+        ) : cats.length === 0 ? (
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+            No cats in this session yet. Click &quot;Add entry&quot; to begin.
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {cats.map((cat) => (
+              <article
+                key={`entry-${cat.id}`}
+                className="rounded-2xl bg-white p-4 ring-1 ring-slate-100"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+                    <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                        {cat.name || "Unnamed"}
+                      </h3>
+                      {sexSymbol(cat.sex) ? (
+                        <span className={`text-xl ${sexColor(cat.sex)}`}>
+                          {sexSymbol(cat.sex)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex gap-1.5">
+                      {cat.color ? (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                          {cat.color}
+                        </span>
+                      ) : null}
+                      {cat.age ? (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                          {cat.age}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Last seen: {cat.spot_last_seen || "—"} &middot;{" "}
+                      {formatDate(cat.last_updated_at)}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/database/general?id=${cat.id}`}
+                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                  >
+                    Edit <span className="ml-1">&#9998;</span>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
 
-      {showAdd && <CatEntryForm onClose={() => setShowAdd(false)} />}
-    </div>
+      {showAddForm ? (
+        <CatEntryForm
+          onClose={() => setShowAddForm(false)}
+          onSave={handleCatSaved}
+          sessionId={sessionId ?? undefined}
+          regionId={selectedRegionId || undefined}
+        />
+      ) : null}
+    </>
   );
 }
