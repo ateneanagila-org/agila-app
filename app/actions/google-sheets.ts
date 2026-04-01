@@ -1,26 +1,20 @@
 "use server";
-import { google } from "googleapis";
+import { db } from "@/lib/db";
+import { gsheetSyncQueue } from "@/lib/db/schema";
+import { syncAndCompactRegion } from "@/lib/services/helper.service";
+import { eq } from "drizzle-orm";
 
-export async function getSheetData() {
-  const glAuth = await google.auth.getClient({
-    projectId: "YOUR_PROJECT_ID",
-    credentials: {
-      type: "service_account",
-      project_id: "YOUR_PROJECT_ID",
-      private_key_id: "YOUR_PRIVATE_KEY_ID",
-      private_key: "YOUR_PRIVATE_KEY",
-      client_email: "YOUR_CLIENT_EMAIL",
-      universe_domain: "googleapis.com",
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+export async function syncRegion(regionId: string) {
+  await syncAndCompactRegion(regionId);
+}
 
-  const glSheets = google.sheets({ version: "v4", auth: glAuth });
+export async function syncAllPendingRegions() {
+  const pendingTasks = await db
+    .selectDistinct({ regionId: gsheetSyncQueue.regionId })
+    .from(gsheetSyncQueue)
+    .where(eq(gsheetSyncQueue.status, "PENDING"));
 
-  const data = await glSheets.spreadsheets.values.get({
-    spreadsheetId: "SHEET_ID",
-    range: "RANGE",
-  });
-
-  return { data: data.data.values };
+  await Promise.all(
+    pendingTasks.map((task) => syncAndCompactRegion(task.regionId)),
+  );
 }

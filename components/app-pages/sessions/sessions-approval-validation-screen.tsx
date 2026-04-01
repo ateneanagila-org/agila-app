@@ -15,6 +15,7 @@ import {
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { removeSessionCat } from "@/app/actions/sessions";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
@@ -150,6 +151,7 @@ export function SessionsApprovalValidationScreen() {
         setError(result.serverError);
         return;
       }
+      syncAllPendingRegions();
       setShowSaveConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
@@ -180,7 +182,7 @@ export function SessionsApprovalValidationScreen() {
         const boundRemove = removeCat.bind(null, catId);
         await boundRemove();
       }
-
+      syncAllPendingRegions();
       setShowDiscardConfirm(false);
       router.push("/sessions/manager");
     } catch (err) {
