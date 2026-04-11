@@ -5,6 +5,7 @@ import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
+import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
 
 /** Compute TNVR stats from cats + health records */
 function computeTnvrStats(
@@ -76,6 +77,76 @@ function computeTnvrStats(
     unknownTnvr: pct(neuteredUnknown, totalUnknown),
   };
 }
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+
+function GreenStatRow({
+  label,
+  value,
+  labelClass = "text-white/70",
+  valueClass = "text-white font-semibold",
+}: {
+  label: string;
+  value: string;
+  labelClass?: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-2.5">
+      <p className={`text-xs font-medium ${labelClass}`}>{label}</p>
+      <p className={`tabular-nums text-sm ${valueClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function SexSection({
+  title,
+  total,
+  tnvr,
+  neuteredLabel,
+  neuteredCount,
+  unneuteredLabel,
+  unneuteredCount,
+}: {
+  title: string;
+  total: number;
+  tnvr: string;
+  neuteredLabel: string;
+  neuteredCount: number;
+  unneuteredLabel: string;
+  unneuteredCount: number;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-brand-green">
+      {/* Header */}
+      <div className="grid grid-cols-2 divide-x divide-white/20 px-0">
+        <div className="px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+            {title}
+          </p>
+          <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+            {total}
+          </p>
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+            TNVR Score
+          </p>
+          <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+            {tnvr}
+          </p>
+        </div>
+      </div>
+      {/* Rows */}
+      <div className="divide-y divide-white/10 border-t border-white/10">
+        <GreenStatRow label={neuteredLabel} value={String(neuteredCount)} />
+        <GreenStatRow label={unneuteredLabel} value={String(unneuteredCount)} />
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export function TnvrScreen() {
   const [allCats, setAllCats] = useState<SelectCat[]>([]);
@@ -153,48 +224,6 @@ export function TnvrScreen() {
     [desktopCats, allHealthRecords],
   );
 
-  const tnvrMobileStats = useMemo(
-    () => [
-      { label: "Neutered Male", value: String(mobileStats.neuteredMale) },
-      { label: "Spayed Female", value: String(mobileStats.spayedFemale) },
-      {
-        label: "Neutered Unknown Sex",
-        value: String(mobileStats.neuteredUnknown),
-      },
-      { label: "Unneutered Male", value: String(mobileStats.unneuteredMale) },
-      {
-        label: "Unneutered Female",
-        value: String(mobileStats.unneuteredFemale),
-      },
-      {
-        label: "Unneutered Unknown Sex",
-        value: String(mobileStats.unneuteredUnknown),
-      },
-    ],
-    [mobileStats],
-  );
-
-  const mobileTotals = useMemo(
-    () => [
-      {
-        label: "Total Neutered / Spayed",
-        value: String(mobileStats.totalNeutered),
-        bold: false,
-      },
-      {
-        label: "Total Unneutered",
-        value: String(mobileStats.totalUnneutered),
-        bold: false,
-      },
-      {
-        label: "Overall Total",
-        value: String(mobileStats.total),
-        bold: true,
-      },
-    ],
-    [mobileStats],
-  );
-
   const desktopCards = useMemo(
     () => [
       { value: desktopStats.overallTnvr, label: "Overall TNVR %" },
@@ -217,133 +246,199 @@ export function TnvrScreen() {
     [desktopStats],
   );
 
+  const isOverall = location === "All Locations";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
   }
 
   return (
     <>
+      {/* ── Mobile ─────────────────────────────────────────────────────── */}
       <div className="tablet:hidden">
         <PageContent>
-          <div className="space-y-3 tablet:space-y-4">
-            {/* Page Header */}
+          <div className="space-y-3">
+            {/* Date + title */}
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-slate-900">
+              <p className="text-[11px] font-medium text-slate-400">
+                Updated {lastUpdated}
+              </p>
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-slate-900">
                 TNVR
               </h1>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                A summary of TNVR statistics for the Catenean population.
-                Updates come from AGILA&apos;s cat census sheets and ACCaP Cat
-                Census GForms.
-              </p>
             </div>
 
-            {/* Totals Hero Card */}
-            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
-                <p className="text-xs font-semibold tracking-wide text-slate-700">
-                  Totals
-                </p>
-              </div>
-              <div className="divide-y divide-slate-100 bg-white">
-                {mobileTotals.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
-                    <p
-                      className={`text-xs ${item.bold ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}
-                    >
-                      {item.label}
-                    </p>
-                    <p
-                      className={`tabular-nums text-sm ${item.bold ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}
-                    >
-                      {item.value}
-                    </p>
-                  </div>
+            {/* Location search bar — orange */}
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
+              <select
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white"
+                aria-label="Location"
+              >
+                {LOCATIONS.map((opt) => (
+                  <option key={opt} value={opt} className="bg-white text-slate-900">
+                    {opt}
+                  </option>
                 ))}
-              </div>
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             </div>
 
-            {/* Location Dropdown */}
-            <label className="flex w-full flex-col gap-1.5">
-              <span className="text-xs font-semibold tracking-wide text-slate-700">
-                Location
-              </span>
-              <div className="relative rounded-lg bg-white ring-1 ring-slate-200">
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm font-medium text-slate-900"
-                  aria-label="Location"
-                >
-                  {LOCATIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-600">
-                  ▼
-                </span>
-              </div>
-            </label>
-
-            {/* Location Stats */}
-            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
-                <p className="text-xs font-semibold tracking-wide text-slate-700">
-                  Location Details
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-px bg-slate-100">
-                {tnvrMobileStats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="bg-white px-3.5 py-3"
-                  >
-                    <p className="text-[11px] font-medium text-slate-500">{stat.label}</p>
-                    <p className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            {/* Category dropdown — outlined */}
+            <div className="relative">
+              <select
+                className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 pr-9 text-sm font-medium text-slate-700"
+                aria-label="Category"
+                defaultValue="all"
+              >
+                <option value="all">All Categories</option>
+                <option value="neutered">Neutered / Spayed</option>
+                <option value="unneutered">Unneutered</option>
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
 
-            {/* Graph Placeholder */}
-            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-              <div className="border-b border-slate-100 bg-white px-4 py-2.5">
-                <p className="text-xs font-semibold tracking-wide text-slate-700">
+            {/* Chart placeholder */}
+            <div className="overflow-hidden rounded-2xl bg-brand-green">
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
                   TNVR Trend
                 </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-brand-orange px-3 py-1 text-[11px] font-bold text-white"
+                  >
+                    •••
+                  </button>
+                  <div className="relative">
+                    <select
+                      className="appearance-none rounded-lg bg-white/15 py-1 pl-2.5 pr-6 text-[11px] font-semibold text-white"
+                      defaultValue="monthly"
+                    >
+                      <option value="monthly" className="bg-white text-slate-900">Monthly</option>
+                      <option value="quarterly" className="bg-white text-slate-900">Quarterly</option>
+                      <option value="yearly" className="bg-white text-slate-900">Yearly</option>
+                    </select>
+                    <ChevronDownIcon className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/70" />
+                  </div>
+                </div>
               </div>
-              <div className="flex h-40 items-center justify-center bg-slate-50">
-                <p className="text-xs font-medium text-slate-400">
-                  Graph — coming soon
-                </p>
+              <div className="mx-4 mb-4 flex h-36 items-center justify-center rounded-xl bg-white/10">
+                <p className="text-xs font-medium text-white/40">Graph — coming soon</p>
               </div>
             </div>
+
+            {/* ── Overall mode ──────────────────────────────────────── */}
+            {isOverall ? (
+              <>
+                {/* Hero stat card — Total + TNVR Score */}
+                <div className="overflow-hidden rounded-2xl bg-brand-green">
+                  <div className="grid grid-cols-2 divide-x divide-white/20">
+                    <div className="px-4 py-3.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                        Total Overall
+                      </p>
+                      <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">
+                        {mobileStats.total}
+                      </p>
+                    </div>
+                    <div className="px-4 py-3.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                        TNVR Score
+                      </p>
+                      <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">
+                        {mobileStats.overallTnvr}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-white/10 border-t border-white/10">
+                    <GreenStatRow
+                      label="Neutered / Spayed"
+                      value={String(mobileStats.totalNeutered)}
+                    />
+                    <GreenStatRow
+                      label="Unneutered"
+                      value={String(mobileStats.totalUnneutered)}
+                    />
+                    <GreenStatRow
+                      label="Male"
+                      value={String(mobileStats.totalMale)}
+                    />
+                    <GreenStatRow
+                      label="Female"
+                      value={String(mobileStats.totalFemale)}
+                    />
+                    <GreenStatRow
+                      label="Unknown Sex"
+                      value={String(mobileStats.totalUnknown)}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* ── Location-specific mode ──────────────────────────── */
+              <div className="space-y-3">
+                <SexSection
+                  title="Total Overall"
+                  total={mobileStats.total}
+                  tnvr={mobileStats.overallTnvr}
+                  neuteredLabel="Neutered / Spayed"
+                  neuteredCount={mobileStats.totalNeutered}
+                  unneuteredLabel="Unneutered"
+                  unneuteredCount={mobileStats.totalUnneutered}
+                />
+                <SexSection
+                  title="Total Male"
+                  total={mobileStats.totalMale}
+                  tnvr={mobileStats.maleTnvr}
+                  neuteredLabel="Neutered Male"
+                  neuteredCount={mobileStats.neuteredMale}
+                  unneuteredLabel="Unneutered Male"
+                  unneuteredCount={mobileStats.unneuteredMale}
+                />
+                <SexSection
+                  title="Total Female"
+                  total={mobileStats.totalFemale}
+                  tnvr={mobileStats.femaleTnvr}
+                  neuteredLabel="Spayed Female"
+                  neuteredCount={mobileStats.spayedFemale}
+                  unneuteredLabel="Unneutered Female"
+                  unneuteredCount={mobileStats.unneuteredFemale}
+                />
+                <SexSection
+                  title="Total Unknown Sex"
+                  total={mobileStats.totalUnknown}
+                  tnvr={mobileStats.unknownTnvr}
+                  neuteredLabel="Neutered Unknown"
+                  neuteredCount={mobileStats.neuteredUnknown}
+                  unneuteredLabel="Unneutered Unknown"
+                  unneuteredCount={mobileStats.unneuteredUnknown}
+                />
+              </div>
+            )}
           </div>
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      {/* ── Desktop ─────────────────────────────────────────────────────── */}
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="mb-4 flex items-center justify-between gap-5">
           <label className="w-full max-w-52">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-900">
+            <span className="mb-1.5 block text-sm font-semibold text-foreground">
               Location:
             </span>
-            <div className="relative rounded-full bg-white ring-1 ring-slate-100">
+            <div className="relative rounded-full bg-white ring-1 ring-border">
               <select
                 value={desktopLocation}
                 onChange={(e) => setDesktopLocation(e.target.value)}
-                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-slate-800"
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-foreground"
                 aria-label="TNVR Location"
               >
                 <option value="Overall">Overall</option>
@@ -353,31 +448,31 @@ export function TnvrScreen() {
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                 &#9662;
               </span>
             </div>
           </label>
 
-          <p className="whitespace-nowrap pt-5 text-xs font-medium text-slate-500">
+          <p className="whitespace-nowrap pt-5 text-xs font-medium text-muted-foreground">
             Last updated: {lastUpdated}
           </p>
         </div>
 
-        <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+        <section className="rounded-2xl bg-white p-4 ring-1 ring-border">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-900">Graph title</p>
+            <p className="text-sm font-semibold text-foreground">Graph title</p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
               >
                 Status
                 <span className="ml-1">&#9662;</span>
               </button>
               <button
                 type="button"
-                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
               >
                 Gender
                 <span className="ml-1">&#9662;</span>
@@ -385,7 +480,7 @@ export function TnvrScreen() {
             </div>
           </div>
 
-          <div className="flex h-48 items-center justify-center rounded-xl bg-slate-50 text-sm text-slate-500">
+          <div className="flex h-48 items-center justify-center rounded-xl bg-brand-cream text-sm text-muted-foreground">
             pie chart / bar chart
           </div>
         </section>
@@ -394,12 +489,12 @@ export function TnvrScreen() {
           {desktopCards.map((card, index) => (
             <article
               key={`${card.label}-${index}`}
-              className="rounded-2xl bg-white px-4 py-3.5 ring-1 ring-slate-100"
+              className="rounded-2xl bg-white px-4 py-3.5 ring-1 ring-border"
             >
-              <p className="text-center text-2xl font-bold tabular-nums tracking-tight text-slate-900">
+              <p className="text-center text-2xl font-bold tabular-nums tracking-tight text-foreground">
                 {card.value}
               </p>
-              <p className="mt-1 text-center text-xs text-slate-600">
+              <p className="mt-1 text-center text-xs text-muted-foreground">
                 {card.label}
               </p>
             </article>
