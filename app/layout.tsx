@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Gantari } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body font — Google Fonts
+const gantari = Gantari({
+  variable: "--font-gantari",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Heading font — AVETON (commercial)
+// Add Aveton.woff2 to public/fonts/ to activate
+// Download from your font source and place at: public/fonts/Aveton.woff2
 
 export const metadata: Metadata = {
   title: {
@@ -29,11 +31,7 @@ export default function RootLayout({
     <>
       <script src="https://accounts.google.com/gsi/client" async></script>
       <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          {children}
-        </body>
+        <body className={`${gantari.variable} antialiased`}>{children}</body>
       </html>
     </>
   );
