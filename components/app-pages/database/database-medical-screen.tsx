@@ -45,6 +45,7 @@ function DateInputRow({
   onMonthChange,
   onDayChange,
   onYearChange,
+  isMobile = false,
 }: {
   month: string;
   day: string;
@@ -52,53 +53,58 @@ function DateInputRow({
   onMonthChange: (val: string) => void;
   onDayChange: (val: string) => void;
   onYearChange: (val: string) => void;
+  isMobile?: boolean;
 }) {
+  const classes = isMobile
+    ? "h-10 bg-white/15 border border-white/20 text-white"
+    : "h-9 bg-white/15 border border-white/20 text-white";
+
   return (
-    <div className="mt-1 grid grid-cols-3 gap-2">
-      <div className="relative rounded-md border border-lime-300 bg-white">
+    <div className="mt-1.5 grid grid-cols-3 gap-2">
+      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
         <select
           value={month}
           onChange={(e) => onMonthChange(e.target.value)}
-          className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-8 text-sm text-slate-700"
+          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="">MM</option>
+          <option value="" className="bg-white text-slate-900">MM</option>
           {MONTHS.map((m) => (
-            <option key={m} value={m}>
+            <option key={m} value={m} className="bg-white text-slate-900">
               {m}
             </option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
       </div>
-      <div className="relative rounded-md border border-lime-300 bg-white">
+      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
         <select
           value={day}
           onChange={(e) => onDayChange(e.target.value)}
-          className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-8 text-sm text-slate-700"
+          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="">DD</option>
+          <option value="" className="bg-white text-slate-900">DD</option>
           {DAYS.map((d) => (
-            <option key={d} value={d}>
+            <option key={d} value={d} className="bg-white text-slate-900">
               {d}
             </option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
       </div>
-      <div className="relative rounded-md border border-lime-300 bg-white">
+      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
         <select
           value={year}
           onChange={(e) => onYearChange(e.target.value)}
-          className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-8 text-sm text-slate-700"
+          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="">YYYY</option>
+          <option value="" className="bg-white text-slate-900">YYYY</option>
           {YEARS.map((y) => (
-            <option key={y} value={y}>
+            <option key={y} value={y} className="bg-white text-slate-900">
               {y}
             </option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
       </div>
     </div>
   );
@@ -252,7 +258,7 @@ export function DatabaseMedicalScreen() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
   }
@@ -275,100 +281,106 @@ export function DatabaseMedicalScreen() {
           ) : null}
 
           <div className="space-y-4">
-            <div>
-              <label className="text-sm text-slate-700">Condition</label>
-              <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-                <select
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900"
-                >
-                  <option value="">—</option>
-                  {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            {/* Green form section */}
+            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-white/70">Condition</label>
+                  <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
+                    <select
+                      value={condition}
+                      onChange={(e) => setCondition(e.target.value)}
+                      className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
+                    >
+                      <option value="" className="bg-white text-slate-900">—</option>
+                      {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
+                        <option key={v} value={v} className="bg-white text-slate-900">
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-white/70">Neuter Date</label>
+                  <DateInputRow
+                    month={neuterMonth}
+                    day={neuterDay}
+                    year={neuterYear}
+                    onMonthChange={setNeuterMonth}
+                    onDayChange={setNeuterDay}
+                    onYearChange={setNeuterYear}
+                    isMobile
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-white/70">Vaccination Date</label>
+                  <DateInputRow
+                    month={vaccMonth}
+                    day={vaccDay}
+                    year={vaccYear}
+                    onMonthChange={setVaccMonth}
+                    onDayChange={setVaccDay}
+                    onYearChange={setVaccYear}
+                    isMobile
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-700">Neuter Date</label>
-              <DateInputRow
-                month={neuterMonth}
-                day={neuterDay}
-                year={neuterYear}
-                onMonthChange={setNeuterMonth}
-                onDayChange={setNeuterDay}
-                onYearChange={setNeuterYear}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-700">Vaccination Date</label>
-              <DateInputRow
-                month={vaccMonth}
-                day={vaccDay}
-                year={vaccYear}
-                onMonthChange={setVaccMonth}
-                onDayChange={setVaccDay}
-                onYearChange={setVaccYear}
-              />
             </div>
 
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                disabled={saving}
-                onClick={handleSave}
-                className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                onClick={handleCancel}
+                className="rounded-full border-2 border-brand-orange px-4 py-2 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
               >
-                {saving ? "Saving..." : "Save"}{" "}
-                <span className="ml-1">&#10003;</span>
+                Cancel
               </button>
               <button
                 type="button"
-                onClick={handleCancel}
-                className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                disabled={saving}
+                onClick={handleSave}
+                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                Cancel <span className="ml-1">&#10005;</span>
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Database
           </h1>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
+        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-border">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             <button
               type="button"
               onClick={() => setShowDesktopFilters((v) => !v)}
-              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
             >
               Filter
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -376,7 +388,7 @@ export function DatabaseMedicalScreen() {
 
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
             >
               Sort by
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -388,7 +400,7 @@ export function DatabaseMedicalScreen() {
               {FILTER_CHIPS.map((chip, index) => (
                 <span
                   key={`${chip}-${index}`}
-                  className="rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-600"
+                  className="rounded-full bg-brand-cream px-3 py-1 text-xs text-foreground"
                 >
                   {chip}
                 </span>
@@ -403,19 +415,19 @@ export function DatabaseMedicalScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-              <span className="text-2xl text-slate-400">&#9635;</span>
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                <h2 className="font-heading text-xl font-bold tracking-tight text-white">
                   {cat?.name || "Unnamed"}
                 </h2>
                 {sexSymbol(cat?.sex) ? (
-                  <span className={`text-xl ${sexColor(cat?.sex)}`}>
+                  <span className="text-xl font-semibold text-white/70">
                     {sexSymbol(cat?.sex)}
                   </span>
                 ) : null}
@@ -423,18 +435,18 @@ export function DatabaseMedicalScreen() {
 
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {cat?.color ? (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                     {cat.color}
                   </span>
                 ) : null}
                 {cat?.age ? (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                     {cat.age}
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-white/70">
                 Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
                 {formatDate(cat?.last_updated_at)}
               </p>
@@ -443,10 +455,10 @@ export function DatabaseMedicalScreen() {
 
           <div className="mt-4 flex items-center justify-between">
             <TopTabs active="Medical" />
-            <div className="ml-4 flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
+            <div className="ml-4 flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white">
               <span>Adoptable</span>
               <span
-                className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-slate-800" : "bg-slate-300"}`}
+                className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-brand-orange" : "bg-white/30"}`}
               >
                 <span
                   className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
@@ -457,29 +469,29 @@ export function DatabaseMedicalScreen() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-semibold text-white/70">
                 Condition
               </label>
-              <div className="relative mt-1 rounded-md border border-lime-300 bg-white">
+              <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
                 <select
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-10 text-sm text-slate-900"
+                  className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
                 >
-                  <option value="">—</option>
+                  <option value="" className="bg-white text-slate-900">—</option>
                   {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option key={v} value={v}>
+                    <option key={v} value={v} className="bg-white text-slate-900">
                       {v}
                     </option>
                   ))}
                 </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
               </div>
             </div>
             <div />
 
             <div>
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-semibold text-white/70">
                 Neuter Date
               </label>
               <DateInputRow
@@ -489,11 +501,12 @@ export function DatabaseMedicalScreen() {
                 onMonthChange={setNeuterMonth}
                 onDayChange={setNeuterDay}
                 onYearChange={setNeuterYear}
+                isMobile={false}
               />
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">
+              <label className="text-xs font-semibold text-white/70">
                 Vaccination Date
               </label>
               <DateInputRow
@@ -503,6 +516,7 @@ export function DatabaseMedicalScreen() {
                 onMonthChange={setVaccMonth}
                 onDayChange={setVaccDay}
                 onYearChange={setVaccYear}
+                isMobile={false}
               />
             </div>
           </div>
@@ -510,19 +524,18 @@ export function DatabaseMedicalScreen() {
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+              onClick={handleCancel}
+              className="rounded-full border-2 border-white px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
             >
-              {saving ? "Saving..." : "Save"}{" "}
-              <span className="ml-1">&#10003;</span>
+              Cancel
             </button>
             <button
               type="button"
-              onClick={handleCancel}
-              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+              disabled={saving}
+              onClick={handleSave}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Cancel <span className="ml-1">&#10005;</span>
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
         </section>

@@ -103,7 +103,7 @@ export function SessionsManagerScreen() {
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
     </div>
   );
 
@@ -113,26 +113,26 @@ export function SessionsManagerScreen() {
         <div className="flex-1 space-y-4">
           <Link
             href="/sessions"
-            className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200 transition-colors hover:bg-slate-50"
+            className="flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-3 transition-opacity hover:opacity-90"
           >
-            <span className="text-sm font-semibold tracking-tight text-slate-900">
+            <span className="text-sm font-semibold tracking-tight text-white">
               Current Census Reports
             </span>
-            <span className="text-slate-400">&#8599;</span>
+            <span className="text-white/70">&#8599;</span>
           </Link>
 
           <div>
-            <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">
+            <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
               For Review
             </p>
             {loading ? (
               <LoadingIndicator />
             ) : forReview.length === 0 ? (
-              <div className="py-6 text-center text-sm text-slate-400">
+              <div className="py-6 text-center text-sm text-white/50">
                 No cats pending review.
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+              <div className="overflow-hidden rounded-2xl bg-brand-green">
                 {forReview.map((item, i) => (
                   <Link
                     key={item.sessionCatId}
@@ -140,12 +140,12 @@ export function SessionsManagerScreen() {
                     className="block"
                   >
                     <div className="flex items-start gap-3 px-3.5 py-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                        <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
+                        <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold tracking-tight text-slate-900">
+                          <span className="text-sm font-bold tracking-tight text-white">
                             {item.cat.name || "Unnamed"}
                           </span>
                           {sexSymbol(item.cat.sex) ? (
@@ -155,24 +155,24 @@ export function SessionsManagerScreen() {
                               {sexSymbol(item.cat.sex)}
                             </span>
                           ) : null}
-                          <span className="ml-auto text-slate-400">
+                          <span className="ml-auto text-white/70">
                             &#8250;
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-slate-500">
+                        <p className="mt-0.5 text-xs text-white/70">
                           {item.cat.color || "Unknown"}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-white/70">
                           {item.cat.age || "Unknown"}
                         </p>
-                        <p className="mt-1.5 text-[11px] font-medium text-slate-600">
+                        <p className="mt-1.5 text-[11px] font-medium text-white/60">
                           {item.cat.spot_last_seen || "—"} &middot;{" "}
                           {formatDate(item.cat.last_updated_at)}
                         </p>
                       </div>
                     </div>
                     {i < forReview.length - 1 ? (
-                      <div className="mx-3.5 border-b border-slate-100" />
+                      <div className="mx-3.5 border-b border-white/10" />
                     ) : null}
                   </Link>
                 ))}
@@ -184,56 +184,50 @@ export function SessionsManagerScreen() {
         <div className="flex justify-end pb-5 pt-4">
           <Link
             href="/sessions"
-            className="rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
+            className="rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-90"
           >
             My Sessions
           </Link>
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Sessions
           </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">&#128202;</span>
+              Census Report <span className="ml-1">📊</span>
             </button>
-            <button
-              type="button"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+            <Link
+              href="/sessions"
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions <span className="ml-1">&#9711;</span>
-            </button>
+              Back <span className="ml-1">&#8249;</span>
+            </Link>
           </div>
         </div>
 
-        <section className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
-          <div className="flex items-center gap-2">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
+          <div className="mb-3 flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             </div>
             <button
               type="button"
-              className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Sort by <span className="ml-1">&#9662;</span>
             </button>
-            <Link
-              href="/sessions"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
-            >
-              Back <span className="ml-1">&#8249;</span>
-            </Link>
           </div>
         </section>
 
@@ -241,22 +235,22 @@ export function SessionsManagerScreen() {
           {loading ? (
             <LoadingIndicator />
           ) : forReview.length === 0 ? (
-            <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+            <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-border">
               No cats pending review.
             </div>
           ) : (
             forReview.map((item) => (
               <article
                 key={`review-${item.sessionCatId}`}
-                className="rounded-2xl bg-white p-4 ring-1 ring-slate-100 transition-shadow hover:shadow-sm"
+                className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                    <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                    <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                      <h3 className="font-heading text-xl font-bold tracking-tight text-white">
                         {item.cat.name || "Unnamed"}
                       </h3>
                       {sexSymbol(item.cat.sex) ? (
@@ -267,24 +261,24 @@ export function SessionsManagerScreen() {
                     </div>
                     <div className="mt-2 flex gap-1.5">
                       {item.cat.color ? (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {item.cat.color}
                         </span>
                       ) : null}
                       {item.cat.age ? (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {item.cat.age}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-3 text-sm text-slate-600">
+                    <p className="mt-3 text-sm text-white/70">
                       Last seen: {item.cat.spot_last_seen || "—"} &middot;{" "}
                       {formatDate(item.cat.last_updated_at)}
                     </p>
                   </div>
                   <Link
                     href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Review <span className="ml-1">&#9998;</span>
                   </Link>

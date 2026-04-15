@@ -15,8 +15,8 @@ type CatalogDetailScreenProps = {
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-3">
-      <span className="text-xs font-medium text-slate-500">{label}</span>
-      <span className="text-xs font-medium tabular-nums text-slate-700">
+      <span className="text-xs font-medium text-white/70">{label}</span>
+      <span className="text-xs font-medium tabular-nums text-white/80">
         {value || "—"}
       </span>
     </div>
@@ -85,7 +85,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
   }
@@ -95,11 +95,11 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
       <div className="space-y-4 px-4 py-5">
         <Link
           href="/catalog"
-          className="flex items-center gap-0.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
+          className="flex items-center gap-0.5 text-sm font-medium text-white/70 transition-opacity hover:opacity-90"
         >
           <span className="text-base leading-none">&lsaquo;</span> Back
         </Link>
-        <div className="py-8 text-center text-sm text-slate-400">
+        <div className="py-8 text-center text-sm text-white/50">
           Cat not found.
         </div>
       </div>
@@ -161,19 +161,19 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
       {/* Back */}
       <Link
         href="/catalog"
-        className="flex items-center gap-0.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
+        className="flex items-center gap-0.5 text-sm font-medium text-white/70 transition-opacity hover:opacity-90"
       >
         <span className="text-base leading-none">&lsaquo;</span> Back
       </Link>
 
       {/* Header */}
-      <div className="flex gap-3 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-        <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-          <ImagePlaceholderIcon className="h-11 w-11 text-slate-400" />
+      <div className="flex gap-3 overflow-hidden rounded-2xl bg-brand-green">
+        <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+          <ImagePlaceholderIcon className="h-11 w-11 text-white/50" />
         </div>
         <div className="flex flex-col justify-center py-3 pr-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-base font-bold tracking-tight text-slate-900">
+            <span className="text-base font-bold tracking-tight text-white">
               {cat.name || "Unnamed"}
             </span>
             {sexSymbol(cat.sex) ? (
@@ -182,22 +182,22 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-xs text-slate-500">{cat.color || "—"}</p>
-          <p className="text-xs text-slate-500">{cat.age || "—"}</p>
+          <p className="mt-1 text-xs text-white/70">{cat.color || "—"}</p>
+          <p className="text-xs text-white/70">{cat.age || "—"}</p>
         </div>
       </div>
 
       {/* Details */}
       <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">
+        <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
           Details
         </p>
-        <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
+        <div className="overflow-hidden rounded-2xl bg-brand-green px-4">
           {detailFields.map((field, i) => (
             <div key={field.label}>
               <FieldRow label={field.label} value={field.value} />
               {i < detailFields.length - 1 ? (
-                <div className="border-b border-slate-50" />
+                <div className="border-b border-white/10" />
               ) : null}
             </div>
           ))}
@@ -206,15 +206,15 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
       {/* Notes */}
       <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-slate-900">
+        <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
           Notes
         </p>
-        <div className="overflow-hidden rounded-xl bg-white px-4 ring-1 ring-slate-200">
+        <div className="overflow-hidden rounded-2xl bg-brand-green px-4">
           {noteFields.map((field, i) => (
             <div key={field.label}>
               <FieldRow label={field.label} value={field.value} />
               {i < noteFields.length - 1 ? (
-                <div className="border-b border-slate-50" />
+                <div className="border-b border-white/10" />
               ) : null}
             </div>
           ))}
