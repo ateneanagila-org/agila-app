@@ -12,21 +12,36 @@ type CatalogDetailScreenProps = {
   catId: string;
 };
 
-function FieldRow({ label, value }: { label: string; value: string }) {
+/** Scalloped bottom edge — green bumps into cream below */
+function ScallopEdge() {
   return (
-    <div className="flex items-center justify-between py-3">
-      <span className="text-xs font-medium text-white/70">{label}</span>
-      <span className="text-xs font-medium tabular-nums text-white/80">
-        {value || "—"}
-      </span>
+    <svg
+      viewBox="0 0 400 28"
+      preserveAspectRatio="none"
+      className="block h-7 w-full"
+      aria-hidden="true"
+    >
+      <path
+        d="M0 0 H400 V6 Q380 28 360 6 Q340 28 320 6 Q300 28 280 6 Q260 28 240 6 Q220 28 200 6 Q180 28 160 6 Q140 28 120 6 Q100 28 80 6 Q60 28 40 6 Q20 28 0 6 Z"
+        className="fill-brand-green"
+      />
+    </svg>
+  );
+}
+
+function GreenField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">{label}</p>
+      <p className="mt-0.5 text-xs font-semibold text-white">{value || "—"}</p>
     </div>
   );
 }
 
+
 export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const [cat, setCat] = useState<SelectCat | null>(null);
-  const [healthRecord, setHealthRecord] =
-    useState<SelectCatHealthRecord | null>(null);
+  const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(null);
   const [interventions, setInterventions] = useState<SelectIntervention[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +59,6 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
       if (hrResult?.data && hrResult.data.length > 0) {
         setHealthRecord(hrResult.data[0]);
       }
-
       if (interventionsResult?.data) {
         const sorted = [...interventionsResult.data].sort((a, b) => {
           const aTime = a.requested_at ? new Date(a.requested_at).getTime() : 0;
@@ -76,12 +90,6 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     return null;
   };
 
-  const sexColor = (s: string | null | undefined): string => {
-    if (s === "Male") return "text-blue-500";
-    if (s === "Female") return "text-pink-500";
-    return "text-slate-400";
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -92,15 +100,18 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
   if (!cat) {
     return (
-      <div className="space-y-4 px-4 py-5">
-        <Link
-          href="/catalog"
-          className="flex items-center gap-0.5 text-sm font-medium text-white/70 transition-opacity hover:opacity-90"
-        >
-          <span className="text-base leading-none">&lsaquo;</span> Back
-        </Link>
-        <div className="py-8 text-center text-sm text-white/50">
-          Cat not found.
+      <div className="flex flex-col">
+        <div className="bg-brand-green px-5 pt-5 pb-0">
+          <Link href="/catalog" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+            <span className="text-base leading-none">&lsaquo;</span> Back
+          </Link>
+          <p className="pb-5 text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
+            Cat Not Found
+          </p>
+        </div>
+        <ScallopEdge />
+        <div className="px-4 py-8 text-center text-sm text-foreground/50">
+          This cat could not be found in our catalog.
         </div>
       </div>
     );
@@ -108,116 +119,120 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
   const latestIntervention = interventions[0] ?? null;
 
+  // 10 fields → 5 rows × 2 cols
   const detailFields = [
-    { label: "Size/Age", value: cat.age ?? "" },
-    { label: "Sex", value: cat.sex ?? "" },
-    {
-      label: "Neutered",
-      value: healthRecord?.neuter_date ? "Yes" : "No",
-    },
-    { label: "Sociability", value: cat.sociability ?? "" },
-    {
-      label: "Sick",
-      value: healthRecord?.condition?.includes("Sick") ? "Yes" : "No",
-    },
-    {
-      label: "Injured",
-      value: healthRecord?.condition?.includes("Injured") ? "Yes" : "No",
-    },
-    { label: "Adoptable", value: cat.is_adoptable ? "Yes" : "No" },
-    { label: "Status", value: cat.cat_status ?? "" },
-    {
-      label: "Intervention",
-      value: latestIntervention
-        ? `${latestIntervention.type ?? "—"} (${latestIntervention.status ?? "Pending"})`
-        : "",
-    },
-    { label: "Caretaker", value: cat.caretaker ?? "" },
+    { label: "Size/Age",    value: cat.age ?? "" },
+    { label: "Injured",     value: healthRecord?.condition?.includes("Injured") ? "Yes" : "No" },
+    { label: "Neutered",    value: healthRecord?.neuter_date ? "Yes" : "No" },
+    { label: "Adoptable",   value: cat.is_adoptable ? "Yes" : "No" },
+    { label: "Tame",        value: cat.sociability ?? "" },
+    { label: "Status",      value: cat.cat_status ?? "" },
+    { label: "Sick",        value: healthRecord?.condition?.includes("Sick") ? "Yes" : "No" },
+    { label: "Caretaker",   value: cat.caretaker ?? "" },
+    { label: "Sex",         value: cat.sex ?? "" },
+    { label: "Intervention",value: latestIntervention ? `${latestIntervention.type ?? "—"}` : "" },
   ];
 
-  const noteFields = [
-    {
-      label: "Date Last Seen",
-      value: formatDate(cat.last_updated_at),
-    },
-    { label: "Place Last Seen", value: cat.spot_last_seen ?? "" },
-    {
-      label: "Date of Kapon",
-      value: formatDate(healthRecord?.neuter_date),
-    },
-    {
-      label: "Date of Vaccination",
-      value: formatDate(healthRecord?.vaccination_date),
-    },
-    {
-      label: "Intervention Date",
-      value: formatDate(latestIntervention?.requested_at),
-    },
-    { label: "Notes", value: cat.notes ?? "" },
+  // 6 fields → 3 rows × 2 cols (notes spans right col)
+  const noteColLeft = [
+    { label: "Date Last Seen",       value: formatDate(cat.last_updated_at) },
+    { label: "Place Last Seen",      value: cat.spot_last_seen ?? "" },
+    { label: "Date of Kapon",        value: formatDate(healthRecord?.neuter_date) },
+    { label: "Date of Vaccination",  value: formatDate(healthRecord?.vaccination_date) },
   ];
 
   return (
-    <div className="space-y-5 px-4 py-5">
-      {/* Back */}
-      <Link
-        href="/catalog"
-        className="flex items-center gap-0.5 text-sm font-medium text-white/70 transition-opacity hover:opacity-90"
-      >
-        <span className="text-base leading-none">&lsaquo;</span> Back
-      </Link>
-
-      {/* Header */}
-      <div className="flex gap-3 overflow-hidden rounded-2xl bg-brand-green">
-        <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-          <ImagePlaceholderIcon className="h-11 w-11 text-white/50" />
+    <div className="flex flex-col">
+      {/* Green hero band */}
+      <div className="bg-brand-green px-5 pt-5 pb-0">
+        <Link href="/catalog" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+          <span className="text-base leading-none">&lsaquo;</span> Back
+        </Link>
+        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
+          ADOPT/FOSTER{cat.name ? ` ${cat.name.toUpperCase()}` : " A CAT"}?
+        </p>
+        <div className="mt-3 flex justify-center pb-5">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Apply <span className="text-base leading-none">🔗</span>
+          </button>
         </div>
-        <div className="flex flex-col justify-center py-3 pr-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-base font-bold tracking-tight text-white">
-              {cat.name || "Unnamed"}
-            </span>
-            {sexSymbol(cat.sex) ? (
-              <span className={`text-base ${sexColor(cat.sex)}`}>
-                {sexSymbol(cat.sex)}
-              </span>
-            ) : null}
+      </div>
+      <ScallopEdge />
+
+      {/* Content on cream */}
+      <div className="flex flex-col gap-5 px-4 pt-3 pb-8">
+
+        {/* Cat info — green card matching catalog list style */}
+        <div className="flex items-center gap-0 overflow-hidden rounded-2xl bg-brand-green">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/10">
+            <ImagePlaceholderIcon className="h-8 w-8 text-white/40" />
           </div>
-          <p className="mt-1 text-xs text-white/70">{cat.color || "—"}</p>
-          <p className="text-xs text-white/70">{cat.age || "—"}</p>
-        </div>
-      </div>
-
-      {/* Details */}
-      <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
-          Details
-        </p>
-        <div className="overflow-hidden rounded-2xl bg-brand-green px-4">
-          {detailFields.map((field, i) => (
-            <div key={field.label}>
-              <FieldRow label={field.label} value={field.value} />
-              {i < detailFields.length - 1 ? (
-                <div className="border-b border-white/10" />
+          <div className="px-3 py-2">
+            <div className="flex items-center gap-1">
+              <span className="text-base font-bold tracking-tight text-white">
+                {cat.name || "Unnamed"}
+              </span>
+              {sexSymbol(cat.sex) ? (
+                <span className="text-base font-bold text-white/70">
+                  {sexSymbol(cat.sex)}
+                </span>
               ) : null}
             </div>
-          ))}
+            <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
+            <p className="text-xs text-white/60">{cat.age || "—"}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Notes */}
-      <div>
-        <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
-          Notes
-        </p>
-        <div className="overflow-hidden rounded-2xl bg-brand-green px-4">
-          {noteFields.map((field, i) => (
-            <div key={field.label}>
-              <FieldRow label={field.label} value={field.value} />
-              {i < noteFields.length - 1 ? (
-                <div className="border-b border-white/10" />
-              ) : null}
+        {/* Details — green card, 2-col grid */}
+        <div>
+          <p className="mb-2 text-base font-bold tracking-tight text-brand-orange">Details</p>
+          <div className="overflow-hidden rounded-2xl bg-brand-green">
+            <div className="grid grid-cols-2">
+              {detailFields.map((field, i) => {
+                const isLastRow = i >= detailFields.length - 2;
+                const isLeftCol = i % 2 === 0;
+                return (
+                  <div
+                    key={field.label}
+                    className={[
+                      "px-4",
+                      !isLastRow ? "border-b border-white/10" : "",
+                      isLeftCol ? "border-r border-white/10" : "",
+                    ].join(" ")}
+                  >
+                    <GreenField label={field.label} value={field.value} />
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        </div>
+
+        {/* Notes — green card matching Details */}
+        <div>
+          <p className="mb-2 text-base font-bold tracking-tight text-brand-orange">Notes</p>
+          <div className="overflow-hidden rounded-2xl bg-brand-green">
+            <div className="grid grid-cols-2">
+              {/* Left col: date fields */}
+              <div className="divide-y divide-white/10 border-r border-white/10">
+                {noteColLeft.map((field) => (
+                  <div key={field.label} className="px-4">
+                    <GreenField label={field.label} value={field.value} />
+                  </div>
+                ))}
+              </div>
+              {/* Right col: notes text */}
+              <div className="px-4 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">Notes</p>
+                <p className="mt-0.5 text-xs text-white/80 leading-relaxed">
+                  {cat.notes || "—"}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

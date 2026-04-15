@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { SearchIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
+import { SearchIcon, ChevronDownIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
 import {
   FiltersDialog,
   SortByDialog,
@@ -12,11 +12,28 @@ import type { SelectCat } from "@/lib/validation/cats";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
+function ScallopEdge() {
+  return (
+    <svg
+      viewBox="0 0 400 28"
+      preserveAspectRatio="none"
+      className="block h-7 w-full"
+      aria-hidden="true"
+    >
+      <path
+        d="M0 0 H400 V6 Q380 28 360 6 Q340 28 320 6 Q300 28 280 6 Q260 28 240 6 Q220 28 200 6 Q180 28 160 6 Q140 28 120 6 Q100 28 80 6 Q60 28 40 6 Q20 28 0 6 Z"
+        className="fill-brand-green"
+      />
+    </svg>
+  );
+}
+
 export function CatalogScreen() {
   const [cats, setCats] = useState<SelectCat[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const {
     filtered: filteredCats,
@@ -57,7 +74,6 @@ export function CatalogScreen() {
   const fetchCats = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch only adoptable cats for the catalog
       const result = await getCats({ is_adoptable: true });
       if (result?.data) {
         setCats(result.data);
@@ -79,90 +95,112 @@ export function CatalogScreen() {
     return null;
   };
 
-  const sexColor = (s: string | null | undefined): string => {
-    if (s === "Male") return "text-blue-500";
-    if (s === "Female") return "text-pink-500";
-    return "text-slate-400";
-  };
-
   return (
-    <div className="space-y-4 px-4 py-5">
-      {/* Heading */}
-      <div className="flex items-center justify-between rounded-2xl bg-brand-green p-4">
-        <p className="font-heading text-lg font-bold tracking-tight text-yellow-200">
-          Adopt/Foster A Cat Now!
+    <div className="flex flex-col">
+      {/* Green hero band */}
+      <div className="bg-brand-green px-5 pt-6 pb-0">
+        <p className="font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200 text-center">
+          ADOPT/FOSTER A CAT NOW!
         </p>
-        <button
-          type="button"
-          className="rounded-full bg-brand-orange px-5 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-        >
-          Apply
-        </button>
-      </div>
-
-      {/* Search + Filter + Sort */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2.5 text-white transition-opacity hover:opacity-90"
-        >
-          <SearchIcon className="h-4 w-4 shrink-0" />
-          <span className="text-sm text-white/70">Search</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowFilters(true)}
-          className="rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-        >
-          Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowSort(true)}
-          className="rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-        >
-          Sort By
-        </button>
-      </div>
-
-      {/* Cat cards */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+        <div className="mt-3 flex justify-center pb-5">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Apply <span className="text-base leading-none">🔗</span>
+          </button>
         </div>
-      ) : searchedCats.length === 0 ? (
-        <div className="py-8 text-center text-sm text-white/50">
-          No adoptable/fosterable cats available right now.
+      </div>
+      <ScallopEdge />
+
+      {/* Content on cream */}
+      <div className="flex flex-col gap-3 px-4 pt-3 pb-6">
+        {/* Search + Filter + Sort */}
+        <div className="flex gap-2">
+          {searchOpen ? (
+            <div className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2">
+              <SearchIcon className="h-4 w-4 shrink-0 text-white" />
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onBlur={() => { if (!search) setSearchOpen(false); }}
+                placeholder="Search..."
+                className="flex-1 bg-transparent text-sm text-white placeholder-white/60 outline-none"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2 transition-opacity hover:opacity-90"
+            >
+              <SearchIcon className="h-4 w-4 shrink-0 text-white" />
+              <span className="text-sm text-white/80">Search</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            <ChevronDownIcon className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSort(true)}
+            className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Sort By
+            <ChevronDownIcon className="h-3 w-3" />
+          </button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {searchedCats.map((cat) => (
-            <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-              <div className="flex items-center gap-3 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
-                {/* Photo */}
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                  <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
-                </div>
-                {/* Info */}
-                <div className="py-2 pr-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold tracking-tight text-white">
-                      {cat.name || "Unnamed"}
-                    </span>
-                    {sexSymbol(cat.sex) ? (
-                      <span className={`text-sm ${sexColor(cat.sex)}`}>
-                        {sexSymbol(cat.sex)}
-                      </span>
-                    ) : null}
+
+        {/* Cat cards */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+          </div>
+        ) : searchedCats.length === 0 ? (
+          <div className="py-8 text-center text-sm text-foreground/50">
+            No adoptable/fosterable cats available right now.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {searchedCats.map((cat) => (
+              <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
+                <div className="flex items-center gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
+                  {/* Square photo */}
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/10">
+                    <ImagePlaceholderIcon className="h-8 w-8 text-white/40" />
                   </div>
-                  <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
-                  <p className="text-xs text-white/70">{cat.age || "—"}</p>
+                  {/* Info */}
+                  <div className="flex flex-1 items-center justify-between px-3 py-2">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-bold tracking-tight text-white">
+                          {cat.name || "Unnamed"}
+                        </span>
+                        {sexSymbol(cat.sex) ? (
+                          <span className="text-sm font-bold text-white/80">
+                            {sexSymbol(cat.sex)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
+                      <p className="text-xs text-white/60">{cat.age || "—"}</p>
+                    </div>
+                    <span className="text-xl font-bold text-brand-orange leading-none">›</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       <FiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
