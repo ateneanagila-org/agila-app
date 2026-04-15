@@ -9,9 +9,14 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
+  ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat } from "@/app/actions/cats";
+import {
+  DiscardChangesDialog,
+  SaveChangesDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
@@ -108,6 +113,8 @@ export function DatabaseGeneralScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showDesktopFilters, setShowDesktopFilters] = useState(false);
 
   // Form state
@@ -349,7 +356,7 @@ export function DatabaseGeneralScreen() {
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={handleCancel}
+                onClick={() => setShowDiscardDialog(true)}
                 className="rounded-full border-2 border-brand-orange px-4 py-2 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
               >
                 Cancel
@@ -357,10 +364,10 @@ export function DatabaseGeneralScreen() {
               <button
                 type="button"
                 disabled={saving}
-                onClick={handleSave}
+                onClick={() => setShowSaveDialog(true)}
                 className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"}
+                Save
               </button>
             </div>
           </div>
@@ -565,6 +572,18 @@ export function DatabaseGeneralScreen() {
           </div>
         </section>
       </div>
+
+      <DiscardChangesDialog
+        open={showDiscardDialog}
+        onClose={() => setShowDiscardDialog(false)}
+        onConfirm={() => { handleCancel(); setShowDiscardDialog(false); }}
+      />
+      <SaveChangesDialog
+        open={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        onConfirm={() => { handleSave(); setShowSaveDialog(false); }}
+        isLoading={saving}
+      />
     </>
   );
 }

@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  DatabaseFiltersDialog,
+  DatabaseSortByDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
@@ -322,7 +322,7 @@ export function DatabaseListScreen() {
           onSave={handleSave}
         />
       ) : null}
-      <FiltersDialog
+      <DatabaseFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={DATABASE_LIST_CONFIG.filters}
@@ -331,7 +331,7 @@ export function DatabaseListScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={DATABASE_LIST_CONFIG.sortOptions}

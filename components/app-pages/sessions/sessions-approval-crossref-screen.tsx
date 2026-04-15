@@ -7,7 +7,11 @@ import {
   DetailHeader,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
-import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
+import {
+  ApproveSessionDialog,
+  DiscardSessionDialog,
+  MergeDetailsDialog,
+} from "@/components/app-pages/sessions/session-dialogs";
 import {
   ImagePlaceholderIcon,
   SearchIcon,
@@ -70,6 +74,11 @@ export function SessionsApprovalCrossRefScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const mergeTargetCat = useMemo(
+    () => (mergeTargetId ? allCats.find((c) => c.id === mergeTargetId) ?? null : null),
+    [mergeTargetId, allCats],
+  );
 
   const similarCats = useMemo(() => {
     if (!cat) return [];
@@ -449,32 +458,27 @@ export function SessionsApprovalCrossRefScreen() {
         </section>
       </div>
 
-      <ChangeConfirmDialog
+      <MergeDetailsDialog
         open={showMergeConfirm}
         onClose={() => setShowMergeConfirm(false)}
-        title="Merge this cat?"
-        description="This will mark the current entry as a duplicate and merge it into the selected existing cat."
-        confirmLabel="Merge"
-        onConfirm={handleMerge}
+        catA={cat}
+        catB={mergeTargetCat}
+        onMerge={() => handleMerge()}
+        isLoading={saving}
       />
 
-      <ChangeConfirmDialog
+      <ApproveSessionDialog
         open={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
-        title="Approve as new cat?"
-        description="This cat will be approved as an original, unique entry."
-        confirmLabel="Approve"
         onConfirm={handleApprove}
+        isLoading={saving}
       />
 
-      <ChangeConfirmDialog
+      <DiscardSessionDialog
         open={showDiscardConfirm}
         onClose={() => setShowDiscardConfirm(false)}
-        title="Discard changes?"
-        description="This cat entry will be permanently deleted."
-        confirmLabel="Discard Entry"
-        showAvatar
         onConfirm={handleDiscard}
+        isLoading={saving}
       />
     </>
   );

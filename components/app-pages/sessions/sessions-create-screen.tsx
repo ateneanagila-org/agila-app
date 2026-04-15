@@ -9,6 +9,7 @@ import {
   ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
+import { FinishSessionDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { useAuth } from "@/contexts/auth-context";
 import {
   createSession,
@@ -41,6 +42,7 @@ export function SessionsCreateScreen() {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showFinish, setShowFinish] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -268,7 +270,7 @@ export function SessionsCreateScreen() {
                     key={opt}
                     onClick={() => {
                       setMenuOpen(false);
-                      if (opt === "Finish") handleSubmitSession();
+                      if (opt === "Finish") setShowFinish(true);
                     }}
                     className="block w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10"
                   >
@@ -508,6 +510,13 @@ export function SessionsCreateScreen() {
           </div>
         )}
       </div>
+
+      <FinishSessionDialog
+        open={showFinish}
+        onClose={() => setShowFinish(false)}
+        onConfirm={handleSubmitSession}
+        isLoading={submitting}
+      />
 
       {showAddForm ? (
         <CatEntryForm

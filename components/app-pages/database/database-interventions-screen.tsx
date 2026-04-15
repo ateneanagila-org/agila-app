@@ -8,10 +8,10 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
-  DialogShell,
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  DatabaseFiltersDialog,
+  DatabaseSortByDialog,
+  NewInterventionDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
@@ -415,7 +415,7 @@ export function DatabaseInterventionsScreen() {
         </section>
       </div>
 
-      <FiltersDialog
+      <DatabaseFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={INTERVENTIONS_CONFIG.filters}
@@ -424,7 +424,7 @@ export function DatabaseInterventionsScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={INTERVENTIONS_CONFIG.sortOptions}
@@ -433,79 +433,18 @@ export function DatabaseInterventionsScreen() {
         onSort={setSortKey}
         onOrder={setSortOrder}
       />
-
-      <DialogShell
+      <NewInterventionDialog
         open={showIntervention}
-        onClose={() => setShowIntervention(false)}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-base font-bold text-white">
-            Create Intervention
-          </h2>
-          <button
-            type="button"
-            onClick={() => setShowIntervention(false)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm text-white/70 hover:bg-white/30"
-            aria-label="Close"
-          >
-            &#10005;
-          </button>
-        </div>
-
-        {error ? (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-white/70">Type</label>
-            <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
-              <select
-                value={newType}
-                onChange={(e) => setNewType(e.target.value)}
-                className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
-              >
-                <option value="" className="bg-white text-slate-900">&mdash;</option>
-                {INTERVENTION_TYPE_VALUES.map((t) => (
-                  <option key={t} value={t} className="bg-white text-slate-900">
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50">
-                &#9660;
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-white/70">Notes</label>
-            <textarea
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              className="mt-1.5 h-16 w-full resize-none rounded-lg bg-white/15 border border-white/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/50"
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowIntervention(false)}
-            className="rounded-full border-2 border-white px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={creating}
-            onClick={handleCreate}
-            className="rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {creating ? "Creating..." : "Create"}
-          </button>
-        </div>
-      </DialogShell>
+        onClose={() => { setShowIntervention(false); setError(null); }}
+        type={newType}
+        onTypeChange={setNewType}
+        notes={newNotes}
+        onNotesChange={setNewNotes}
+        typeOptions={INTERVENTION_TYPE_VALUES}
+        onCreate={handleCreate}
+        creating={creating}
+        error={error}
+      />
     </>
   );
 }

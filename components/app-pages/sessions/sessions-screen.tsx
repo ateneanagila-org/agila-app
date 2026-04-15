@@ -8,9 +8,9 @@ import {
   MenuIcon,
 } from "@/components/app-pages/shared/icons";
 import {
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  SessionFiltersDialog,
+  SessionSortByDialog,
+} from "@/components/app-pages/sessions/session-dialogs";
 import { getSessions } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
 import type { SelectSession } from "@/lib/validation/sessions";
@@ -397,7 +397,7 @@ export function SessionsScreen() {
         </section>
       </div>
 
-      <FiltersDialog
+      <SessionFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={SESSIONS_CONFIG.filters}
@@ -406,7 +406,7 @@ export function SessionsScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <SessionSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={SESSIONS_CONFIG.sortOptions}

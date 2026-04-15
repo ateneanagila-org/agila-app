@@ -4,17 +4,19 @@ import { useState, useEffect, useCallback } from "react";
 import {
   DialogShell,
   DialogHeader,
-  FiltersDialog,
-  SortByDialog,
-  DeleteConfirmDialog,
   SearchDialog,
 } from "@/components/app-pages/shared/dialogs";
+
+import {
+  AddUserDialog,
+  DeleteUserDialog,
+  UserFiltersDialog,
+  UserSortByDialog,
+} from "@/components/app-pages/users/user-dialogs";
 import {
   PlusCircleIcon,
   ChevronDownIcon,
-  DoubleChevronIcon,
   SearchIcon,
-  TrashIcon,
 } from "@/components/app-pages/shared/icons";
 import {
   getProfiles,
@@ -385,88 +387,22 @@ export function UsersScreen() {
         )}
       </div>
 
-      {/* Add User Dialog */}
-      <DialogShell open={showAddUser} onClose={() => setShowAddUser(false)}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold tracking-tight text-white">Add User</h2>
-          <button
-            type="button"
-            onClick={() => setShowAddUser(false)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm text-white"
-            aria-label="Close"
-          >
-            &#10005;
-          </button>
-        </div>
+      <AddUserDialog
+        open={showAddUser}
+        onClose={() => { setShowAddUser(false); setError(null); }}
+        name={newName}
+        onNameChange={setNewName}
+        userId={newUserId}
+        onUserIdChange={setNewUserId}
+        role={newRole}
+        onRoleChange={setNewRole}
+        roleOptions={AUTH_ROLE_VALUES}
+        onCreate={handleCreate}
+        creating={creating}
+        error={showAddUser ? error : null}
+      />
 
-        {error && showAddUser ? (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-white/70">Name</label>
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="mt-1 h-8 w-full rounded-md border border-white/20 bg-white/15 px-3 text-sm text-white outline-none focus:ring-1 focus:ring-white/20"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-white/70">
-              Supabase User ID (UUID)
-            </label>
-            <input
-              value={newUserId}
-              onChange={(e) => setNewUserId(e.target.value)}
-              placeholder="e.g. 123e4567-e89b-..."
-              className="mt-1 h-8 w-full rounded-md border border-white/20 bg-white/15 px-3 text-sm text-white outline-none placeholder:text-white/50 focus:ring-1 focus:ring-white/20"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-white/70">Role</label>
-            <div className="relative mt-1 rounded-md border border-white/20 bg-white/15">
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="h-8 w-full appearance-none rounded-md bg-white/15 px-3 pr-10 text-sm text-white"
-              >
-                <option value="">&mdash;</option>
-                {AUTH_ROLE_VALUES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">
-                &#9660;
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => setShowAddUser(false)}
-            className="rounded-full border border-brand-orange bg-transparent px-3 py-1 text-xs font-medium text-brand-orange"
-          >
-            Cancel
-            <span className="ml-1">&#10005;</span>
-          </button>
-          <button
-            type="button"
-            disabled={creating}
-            onClick={handleCreate}
-            className="rounded-full bg-brand-orange px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
-          >
-            {creating ? "Creating..." : "Create"}
-            <span className="ml-1">&#10003;</span>
-          </button>
-        </div>
-      </DialogShell>
-
-      {/* User Details Dialog */}
-      <FiltersDialog
+      <UserFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={USERS_CONFIG.filters}
@@ -475,7 +411,7 @@ export function UsersScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <UserSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={USERS_CONFIG.sortOptions}
@@ -486,10 +422,10 @@ export function UsersScreen() {
       />
 
       {selectedUser ? (
-        <DialogShell open onClose={() => setSelectedUser(null)}>
+        <DialogShell open onClose={() => { setSelectedUser(null); setError(null); }}>
           <DialogHeader
             title="User Details"
-            onClose={() => setSelectedUser(null)}
+            onClose={() => { setSelectedUser(null); setError(null); }}
           />
 
           {error && selectedUser ? (
@@ -506,9 +442,7 @@ export function UsersScreen() {
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-white/70">
-                Email
-              </p>
+              <p className="text-xs font-medium text-white/70">Email</p>
               <p className="mt-0.5 text-sm text-white/80">
                 {selectedUser.user?.email ?? selectedUser.id}
               </p>
@@ -551,7 +485,7 @@ export function UsersScreen() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <DeleteConfirmDialog
+      <DeleteUserDialog
         open={showDeleteConfirm}
         onClose={() => {
           setShowDeleteConfirm(false);
