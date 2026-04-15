@@ -6,12 +6,15 @@ import {
   DialogHeader,
   FiltersDialog,
   SortByDialog,
+  DeleteConfirmDialog,
+  SearchDialog,
 } from "@/components/app-pages/shared/dialogs";
 import {
   PlusCircleIcon,
   ChevronDownIcon,
   DoubleChevronIcon,
   SearchIcon,
+  TrashIcon,
 } from "@/components/app-pages/shared/icons";
 import {
   getProfiles,
@@ -19,19 +22,25 @@ import {
   editProfile,
   removeProfile,
 } from "@/app/actions/users";
-import type { SelectProfile } from "@/lib/validation/users";
+import type { findProfiles } from "@/lib/repo/users.repo";
 import { AUTH_ROLE_VALUES } from "@/lib/db/enums";
 import type { AuthRole } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
+type ProfileWithEmail = Awaited<ReturnType<typeof findProfiles>>[number];
+
 export function UsersScreen() {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<SelectProfile | null>(null);
-  const [users, setUsers] = useState<SelectProfile[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [users, setUsers] = useState<ProfileWithEmail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   // Add user form
   const [newUserId, setNewUserId] = useState("");
@@ -57,7 +66,7 @@ export function UsersScreen() {
     setSortOrder,
     search,
     setSearch,
-  } = useFilterSort<SelectProfile>(
+  } = useFilterSort<ProfileWithEmail>(
     users,
     USERS_CONFIG,
     (user, key) => {
@@ -76,7 +85,7 @@ export function UsersScreen() {
         const q = search.toLowerCase();
         return (
           u.name?.toLowerCase().includes(q) ||
-          u.id.toLowerCase().includes(q)
+          u.user?.email.toLowerCase().includes(q)
         );
       })
     : filteredUsers;
@@ -150,21 +159,29 @@ export function UsersScreen() {
     }
   }, [selectedUser, editRole, fetchUsers]);
 
-  const handleDelete = useCallback(
-    async (userId: string) => {
-      if (!confirm("Are you sure you want to remove this user?")) return;
-      try {
-        const boundRemove = removeProfile.bind(null, userId);
-        await boundRemove();
-        await fetchUsers();
-      } catch (err) {
-        console.error("Failed to delete user:", err);
-      }
-    },
-    [fetchUsers],
-  );
+  const handleDeleteClick = useCallback((userId: string) => {
+    setUserToDelete(userId);
+    setShowDeleteConfirm(true);
+  }, []);
 
-  const handleSelectUser = useCallback((user: SelectProfile) => {
+  const handleConfirmDelete = useCallback(async () => {
+    if (!userToDelete) return;
+    setDeleting(true);
+    try {
+      const boundRemove = removeProfile.bind(null, userToDelete);
+      await boundRemove();
+      await fetchUsers();
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete user.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [userToDelete, fetchUsers]);
+
+  const handleSelectUser = useCallback((user: ProfileWithEmail) => {
     setSelectedUser(user);
     setEditRole(user.auth_role ?? "Volunteer");
   }, []);
@@ -182,66 +199,99 @@ export function UsersScreen() {
 
   return (
     <>
-      <div className="px-4 py-4 tablet:hidden">
-        <div className="mb-4 flex items-center gap-2">
-          <button
-            type="button"
-            className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2.5 text-sm text-white transition-opacity hover:opacity-90"
-          >
-            <SearchIcon className="h-4 w-4 shrink-0" />
-            <span className="text-white/70">Search</span>
-          </button>
+      <div className="relative flex min-h-screen flex-col tablet:hidden">
+        <div className="flex-1 overflow-auto px-4 py-4">
+          {/* Add Entry Button */}
           <button
             type="button"
             onClick={() => setShowAddUser(true)}
-            className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add Entry
-            <PlusCircleIcon className="h-3.5 w-3.5" />
+            <PlusCircleIcon className="h-4 w-4" />
           </button>
+
+          {/* Search, Filter, Sort */}
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSearch(true)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-orange px-3 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              <SearchIcon className="h-4 w-4" />
+              <span>Search</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Filter
+              <ChevronDownIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSort(true)}
+              className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Sort By
+              <ChevronDownIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* User List */}
+          {loading ? (
+            <LoadingIndicator />
+          ) : searchedUsers.length === 0 ? (
+            <div className="py-8 text-center text-sm text-white/50">No users found.</div>
+          ) : (
+            <div className="space-y-2 pb-20">
+              {searchedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-start justify-between overflow-hidden rounded-2xl bg-brand-green p-3.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold tracking-tight text-yellow-200">
+                        {user.name || "Unnamed"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectUser(user)}
+                        className="flex items-center gap-0.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                      >
+                        {roleLabel(user.auth_role)}
+                        <ChevronDownIcon className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-white/70">
+                      {user.user?.email ?? user.id.slice(0, 8) + "..."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(user.id)}
+                    className="ml-3 mt-0.5 shrink-0 text-white transition-opacity hover:opacity-90"
+                    aria-label="Delete user"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {loading ? (
-          <LoadingIndicator />
-        ) : searchedUsers.length === 0 ? (
-          <div className="py-8 text-center text-sm text-white/50">No users found.</div>
-        ) : (
-          <div className="space-y-2">
-            {searchedUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-start justify-between overflow-hidden rounded-2xl bg-brand-green p-3.5"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleSelectUser(user)}
-                  className="min-w-0 flex-1 text-left"
-                >
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold tracking-tight text-yellow-200">
-                      {user.name || "Unnamed"}
-                    </span>
-                    <span className="flex items-center gap-0.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white">
-                      {roleLabel(user.auth_role)}
-                      <ChevronDownIcon className="h-2.5 w-2.5" />
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/70">
-                    {user.id.slice(0, 8)}...
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(user.id)}
-                  className="ml-3 mt-0.5 shrink-0 text-white transition-opacity hover:opacity-90"
-                  aria-label="Delete user"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* FAB Button - fixed above bottom nav */}
+        <button
+          type="button"
+          onClick={() => setShowAddUser(true)}
+          className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-transform hover:scale-110 active:scale-95 tablet:hidden"
+          aria-label="Add entry"
+        >
+          <span className="text-2xl font-bold text-white">+</span>
+        </button>
       </div>
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
@@ -305,7 +355,7 @@ export function UsersScreen() {
                         {user.name || "Unnamed"}
                       </p>
                       <p className="mt-0.5 text-xs text-white/70">
-                        ID: {user.id.slice(0, 12)}...
+                        {user.user?.email ?? user.id.slice(0, 12) + "..."}
                       </p>
                     </button>
 
@@ -320,7 +370,7 @@ export function UsersScreen() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDeleteClick(user.id)}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90"
                         aria-label="Delete user"
                       >
@@ -457,10 +507,10 @@ export function UsersScreen() {
             </div>
             <div>
               <p className="text-xs font-medium text-white/70">
-                User ID
+                Email
               </p>
               <p className="mt-0.5 text-sm text-white/80">
-                {selectedUser.id}
+                {selectedUser.user?.email ?? selectedUser.id}
               </p>
             </div>
             <div>
@@ -491,6 +541,25 @@ export function UsersScreen() {
           </button>
         </DialogShell>
       ) : null}
+
+      {/* Search Dialog */}
+      <SearchDialog
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        search={search}
+        onSearchChange={setSearch}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleting}
+      />
     </>
   );
 }

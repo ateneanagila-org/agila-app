@@ -11,6 +11,7 @@ import { createEQFilters } from "./helper.repo";
 
 export const findProfiles = (filters: Partial<SelectProfile>) =>
   db.query.profiles.findMany({
+    with: { user: true },
     where: (cols, { and }) => {
       const conditions = createEQFilters(cols, filters);
       return conditions.length > 0 ? and(...conditions) : undefined;
