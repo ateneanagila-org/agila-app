@@ -181,7 +181,7 @@ export function SessionsApprovalCrossRefScreen() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
   }
@@ -201,14 +201,14 @@ export function SessionsApprovalCrossRefScreen() {
               type="button"
               disabled={saving}
               onClick={() => setShowApproveConfirm(true)}
-              className="rounded-full bg-stone-600 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              className="rounded-full bg-brand-orange px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
             >
               New cat, Approve
             </button>
             <button
               type="button"
               onClick={() => setShowDiscardConfirm(true)}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+              className="rounded-full border border-brand-orange bg-transparent px-4 py-2 text-xs font-semibold text-brand-orange"
             >
               Discard
             </button>
@@ -252,14 +252,14 @@ export function SessionsApprovalCrossRefScreen() {
               {similarCats.map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center gap-3 rounded-xl bg-white p-3.5 ring-1 ring-slate-200"
+                  className="flex items-center gap-3 rounded-2xl bg-brand-green p-3.5"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                    <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
+                    <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold tracking-tight text-slate-900">
+                      <span className="text-sm font-bold tracking-tight text-white">
                         {c.name || "Unnamed"}
                       </span>
                       {sexSymbol(c.sex) ? (
@@ -268,10 +268,10 @@ export function SessionsApprovalCrossRefScreen() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-white/70">
                       {c.color || "—"} · {c.age || "—"}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-white/70">
                       {c.spot_last_seen || "—"} ·{" "}
                       {formatDate(c.last_updated_at)}
                     </p>
@@ -282,7 +282,7 @@ export function SessionsApprovalCrossRefScreen() {
                       setMergeTargetId(c.id);
                       setShowMergeConfirm(true);
                     }}
-                    className="shrink-0 rounded-full bg-lime-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-lime-300"
+                    className="shrink-0 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
                   >
                     Merge
                   </button>
@@ -293,43 +293,37 @@ export function SessionsApprovalCrossRefScreen() {
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Sessions
           </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">&#128202;</span>
+              Census Report <span className="ml-1">📊</span>
             </button>
-            <button
-              type="button"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+            <Link
+              href={validationHref}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions <span className="ml-1">&#9711;</span>
-            </button>
+              Back <span className="ml-1">&#8249;</span>
+            </Link>
           </div>
         </div>
 
-        <section className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             </div>
-            <Link
-              href={validationHref}
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
-            >
-              Back <span className="ml-1">&#8249;</span>
-            </Link>
           </div>
         </section>
 
@@ -339,17 +333,17 @@ export function SessionsApprovalCrossRefScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
+        <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-              <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                    <h3 className="font-heading text-xl font-bold tracking-tight text-white">
                       {cat?.name || "Unnamed"}
                     </h3>
                     {sexSymbol(cat?.sex) ? (
@@ -360,17 +354,17 @@ export function SessionsApprovalCrossRefScreen() {
                   </div>
                   <div className="mt-2 flex gap-1.5">
                     {cat?.color ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.color}
                       </span>
                     ) : null}
                     {cat?.age ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.age}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm text-slate-600">
+                  <p className="mt-3 text-sm text-white/70">
                     Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
                     {formatDate(cat?.last_updated_at)}
                   </p>
@@ -378,7 +372,7 @@ export function SessionsApprovalCrossRefScreen() {
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-slate-300 pb-1 text-base font-semibold text-slate-800">
+                <p className="inline-block border-b border-white/30 pb-1 text-base font-semibold text-white">
                   Cross Reference
                 </p>
                 <div className="flex gap-2">
@@ -386,42 +380,42 @@ export function SessionsApprovalCrossRefScreen() {
                     type="button"
                     disabled={saving}
                     onClick={() => setShowApproveConfirm(true)}
-                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                    className="rounded-full border border-brand-orange bg-transparent px-4 py-1.5 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90"
                   >
                     Discard <span className="ml-1">&#10005;</span>
                   </button>
                 </div>
               </div>
 
-              <p className="mt-3 text-sm text-slate-500">
+              <p className="mt-3 text-sm text-white/70">
                 Does this cat match an existing entry? If so, merge.
               </p>
 
               <div className="mt-3 space-y-2">
                 {similarCats.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-slate-400">
+                  <div className="py-6 text-center text-sm text-white/50">
                     No similar cats found. This is likely a new entry.
                   </div>
                 ) : (
                   similarCats.map((c) => (
                     <div
                       key={`desktop-${c.id}`}
-                      className="flex items-center justify-between rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100"
+                      className="flex items-center justify-between rounded-xl bg-white/10 p-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                          <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
+                          <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold tracking-tight text-slate-900">
+                            <span className="text-sm font-bold tracking-tight text-white">
                               {c.name || "Unnamed"}
                             </span>
                             {sexSymbol(c.sex) ? (
@@ -430,7 +424,7 @@ export function SessionsApprovalCrossRefScreen() {
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-0.5 text-xs text-slate-500">
+                          <p className="mt-0.5 text-xs text-white/70">
                             {c.color || "—"} · {c.age || "—"} ·{" "}
                             {c.spot_last_seen || "—"}
                           </p>
@@ -442,7 +436,7 @@ export function SessionsApprovalCrossRefScreen() {
                           setMergeTargetId(c.id);
                           setShowMergeConfirm(true);
                         }}
-                        className="rounded-full bg-lime-200 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-lime-300"
+                        className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                       >
                         Merge <span className="ml-1">&#8618;</span>
                       </button>

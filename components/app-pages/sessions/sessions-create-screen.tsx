@@ -370,36 +370,36 @@ export function SessionsCreateScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Sessions
           </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">&#128202;</span>
+              Census Report <span className="ml-1">📊</span>
             </button>
-            <button
-              type="button"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+            <Link
+              href="/sessions"
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions <span className="ml-1">&#9711;</span>
-            </button>
+              Back <span className="ml-1">&#8249;</span>
+            </Link>
           </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <label className="flex w-full max-w-72 items-center gap-2 text-sm font-semibold text-slate-900">
+          <label className="flex w-full max-w-72 items-center gap-2 text-sm font-semibold text-foreground">
             <span>Location:</span>
             <div className="relative flex-1">
               <select
                 value={selectedRegionId}
                 onChange={(e) => handleLocationSelect(e.target.value)}
                 disabled={!!sessionId || loading}
-                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
+                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-9 text-sm text-foreground ring-1 ring-border disabled:opacity-60"
               >
                 <option value="">Select...</option>
                 {regionOptions.map((region) => (
@@ -408,16 +408,9 @@ export function SessionsCreateScreen() {
                   </option>
                 ))}
               </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
           </label>
-
-          <Link
-            href="/sessions"
-            className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
-          >
-            Back <span className="ml-1">&#8249;</span>
-          </Link>
         </div>
 
         {error ? (
@@ -426,19 +419,16 @@ export function SessionsCreateScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              Census No. {sessionId ? sessionId.slice(0, 8) : "—"}{" "}
-              <span className="ml-1 text-base font-normal text-slate-400">
-                &#128247;
-              </span>
+            <h2 className="font-heading text-xl font-bold tracking-tight text-white">
+              Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
             </h2>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleOpenAddForm}
-                className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Add entry <span className="ml-1">+</span>
               </button>
@@ -446,9 +436,9 @@ export function SessionsCreateScreen() {
                 type="button"
                 disabled={submitting}
                 onClick={handleSubmitSession}
-                className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400 disabled:opacity-50"
+                className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {submitting ? "Submitting..." : "Submit"}{" "}
+                {submitting ? "Submitting..." : "Submit"}
                 <span className="ml-1">&#8250;</span>
               </button>
             </div>
@@ -457,14 +447,14 @@ export function SessionsCreateScreen() {
 
         {loading ? (
           <div className="mt-4 flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
           </div>
         ) : !sessionId ? (
-          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-muted-foreground ring-1 ring-border">
             Select a location to start a session.
           </div>
         ) : cats.length === 0 ? (
-          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+          <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-muted-foreground ring-1 ring-border">
             No cats in this session yet. Click &quot;Add entry&quot; to begin.
           </div>
         ) : (
@@ -472,15 +462,15 @@ export function SessionsCreateScreen() {
             {cats.map((cat) => (
               <article
                 key={`entry-${cat.id}`}
-                className="rounded-2xl bg-white p-4 ring-1 ring-slate-100"
+                className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                    <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                    <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                      <h3 className="font-heading text-xl font-bold tracking-tight text-white">
                         {cat.name || "Unnamed"}
                       </h3>
                       {sexSymbol(cat.sex) ? (
@@ -491,24 +481,24 @@ export function SessionsCreateScreen() {
                     </div>
                     <div className="mt-2 flex gap-1.5">
                       {cat.color ? (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {cat.color}
                         </span>
                       ) : null}
                       {cat.age ? (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {cat.age}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-3 text-sm text-slate-600">
+                    <p className="mt-3 text-sm text-white/70">
                       Last seen: {cat.spot_last_seen || "—"} &middot;{" "}
                       {formatDate(cat.last_updated_at)}
                     </p>
                   </div>
                   <Link
                     href={`/database/general?id=${cat.id}`}
-                    className="rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-100"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Edit <span className="ml-1">&#9998;</span>
                   </Link>
