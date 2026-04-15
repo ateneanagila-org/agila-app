@@ -139,7 +139,7 @@ export function SessionsScreen() {
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
     </div>
   );
 
@@ -147,127 +147,131 @@ export function SessionsScreen() {
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 space-y-4 px-4 py-4">
-          <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-bold tracking-tight text-slate-900">
-                Recent Sessions
-              </p>
-              <Link
-                href="/sessions/create"
-                className="flex items-center gap-1.5 rounded-full bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-stone-700"
-              >
-                Create New
-                <PlusCircleIcon className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-[auto_1fr_auto] gap-x-4 border-b border-slate-100 px-1 pb-2">
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">
-                No.
-              </span>
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">
-                Location
-              </span>
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">
-                Status
-              </span>
-            </div>
-
-            {loading ? (
-              <LoadingIndicator />
-            ) : sessions.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                No sessions yet.
+          <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-heading text-lg font-bold text-white">
+                  Recent Sessions
+                </p>
+                <Link
+                  href="/sessions/create"
+                  className="flex items-center gap-1.5 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Create New
+                  <span className="text-lg leading-none">+</span>
+                </Link>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-50">
-                {sessions.slice(0, 5).map((s) => (
-                  <div
-                    key={s.id}
-                    className="grid grid-cols-[auto_1fr_auto] gap-x-4 px-1 py-2"
-                  >
-                    <span className="text-xs font-semibold tabular-nums text-slate-900">
-                      {s.id.slice(0, 6)}
+
+              <div className="grid grid-cols-[auto_1fr_auto] gap-x-4 border-b border-white/20 px-1 pb-2">
+                <span className="text-[11px] font-semibold tracking-wide text-white/70">
+                  No.
+                </span>
+                <span className="text-[11px] font-semibold tracking-wide text-white/70">
+                  Location
+                </span>
+                <span className="text-[11px] font-semibold tracking-wide text-white/70">
+                  Status
+                </span>
+              </div>
+
+              {loading ? (
+                <LoadingIndicator />
+              ) : sessions.length === 0 ? (
+                <div className="py-6 text-center text-xs text-white/50">
+                  No sessions yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {sessions.slice(0, 5).map((s) => (
+                    <div
+                      key={s.id}
+                      className="grid grid-cols-[auto_1fr_auto] gap-x-4 px-1 py-2"
+                    >
+                      <span className="text-xs font-semibold tabular-nums text-white">
+                        {s.id.slice(0, 6)}
+                      </span>
+                      <span className="text-xs text-white/70 truncate">
+                        {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
+                      </span>
+                      <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white">
+                        {sessionStatus(s)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <span className="block text-xs font-medium text-white/60">
+                Show all sessions
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5">
+                <p className="font-heading text-lg font-bold text-white">
+                  Priority Locations
+                </p>
+                <ChevronDownIcon className="h-4 w-4 text-white/70" />
+              </div>
+
+              <div className="flex justify-between border-b border-white/20 px-1 pb-2">
+                <span className="text-[11px] font-semibold tracking-wide text-white/70">
+                  Name
+                </span>
+                <span className="text-[11px] font-semibold tracking-wide text-white/70">
+                  Last Tracked
+                </span>
+              </div>
+
+              <div className="divide-y divide-white/10">
+                {priorityLocations.map((loc) => (
+                  <div key={loc.name} className="flex justify-between px-1 py-2">
+                    <span className="text-xs font-semibold text-white">
+                      {loc.name}
                     </span>
-                    <span className="text-xs text-slate-600 truncate">
-                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {sessionStatus(s)}
+                    <span className="text-xs font-semibold tabular-nums text-white/70">
+                      {loc.daysSince} days ago
                     </span>
                   </div>
                 ))}
               </div>
-            )}
-            <span className="block text-xs font-medium text-slate-500">
-              See all
-            </span>
-          </div>
 
-          <div className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm font-bold tracking-tight text-slate-900">
-                Priority Locations
-              </p>
-              <ChevronDownIcon className="h-4 w-4 text-slate-700" />
-            </div>
-
-            <div className="flex justify-between border-b border-slate-100 px-1 pb-2">
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">
-                Name
-              </span>
-              <span className="text-[11px] font-medium tracking-wide text-slate-400">
-                Days Since Last Tracked
+              <span className="block text-xs font-medium text-white underline">
+                More
               </span>
             </div>
-
-            <div className="divide-y divide-slate-50">
-              {priorityLocations.map((loc) => (
-                <div key={loc.name} className="flex justify-between px-1 py-2">
-                  <span className="text-xs font-semibold text-slate-900">
-                    {loc.name}
-                  </span>
-                  <span className="text-xs font-semibold tabular-nums text-slate-700">
-                    {loc.daysSince}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <span className="block text-xs font-medium text-slate-500">
-              See all
-            </span>
           </div>
         </div>
 
         <div className="flex justify-end px-4 pb-5">
           <Link
             href="/sessions/manager"
-            className="flex items-center gap-1.5 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
+            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
           >
-            Manager View
-            <MenuIcon className="h-4 w-4" />
+            Review Sessions
+            <span>👁</span>
           </Link>
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Sessions
           </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">&#128202;</span>
+              Census Report <span className="ml-1">📊</span>
             </button>
             <Link
               href="/sessions/manager"
-              className="rounded-full bg-white px-4 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100 transition-colors hover:bg-slate-50"
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions <span className="ml-1">&#9711;</span>
+              Review Sessions <span className="ml-1">👁</span>
             </Link>
           </div>
         </div>
@@ -276,40 +280,40 @@ export function SessionsScreen() {
           {summary.map((item) => (
             <article
               key={item.label}
-              className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-slate-100"
+              className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-border"
             >
-              <p className="text-3xl font-bold tabular-nums tracking-tight text-slate-900">
+              <p className="font-heading text-3xl font-bold tabular-nums tracking-tight text-foreground">
                 {item.value}
               </p>
-              <p className="mt-1 text-sm text-slate-600">{item.label}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
             </article>
           ))}
         </div>
 
-        <section className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowFilters(true)}
-                className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
-                Status{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
+                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
                 <ChevronDownIcon className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowSort(true)}
-                className="flex items-center gap-1 rounded-full bg-slate-50 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
               </button>
             </div>
             <Link
               href="/sessions/create"
-              className="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-lime-400"
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Add entry <span className="ml-1">+</span>
+              Create New <span className="ml-1">+</span>
             </Link>
           </div>
 

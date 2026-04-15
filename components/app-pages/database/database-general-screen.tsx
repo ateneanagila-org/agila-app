@@ -43,29 +43,56 @@ function DropdownField({
   options,
   value,
   onChange,
+  isMobile = false,
 }: {
   label: string;
   options: readonly string[];
   value: string;
   onChange: (val: string) => void;
+  isMobile?: boolean;
 }) {
+  if (isMobile) {
+    return (
+      <div>
+        <label className="text-xs font-semibold text-white/70">{label}</label>
+        <div className="relative mt-1.5 rounded-xl bg-white/15 border border-white/20">
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-10 w-full appearance-none rounded-xl bg-white/15 px-3 pr-10 text-sm text-white font-medium"
+          >
+            <option value="" className="bg-white text-slate-900">&mdash;</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt} className="bg-white text-slate-900">
+                {opt}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50">
+            &#9660;
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <label className="text-xs text-slate-700">{label}</label>
-      <div className="relative mt-1 rounded-md border border-lime-300 bg-white">
+      <label className="text-xs font-semibold text-white/70">{label}</label>
+      <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-full appearance-none rounded-md bg-white px-3 pr-10 text-sm text-slate-900"
+          className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm text-white font-medium"
         >
-          <option value="">&mdash;</option>
+          <option value="" className="bg-white text-slate-900">&mdash;</option>
           {options.map((opt) => (
-            <option key={opt} value={opt}>
+            <option key={opt} value={opt} className="bg-white text-slate-900">
               {opt}
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50">
           &#9660;
         </span>
       </div>
@@ -214,7 +241,7 @@ export function DatabaseGeneralScreen() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
   }
@@ -237,129 +264,138 @@ export function DatabaseGeneralScreen() {
           ) : null}
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">
-                Adoptable/Fosterable
-              </span>
-              <button
-                type="button"
-                onClick={handleToggleAdoptable}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAdoptable ? "bg-slate-800" : "bg-slate-300"}`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${isAdoptable ? "translate-x-6" : "translate-x-1"}`}
+            {/* Green form section */}
+            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">
+                    Adoptable/Fosterable
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleAdoptable}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAdoptable ? "bg-brand-orange" : "bg-white/30"}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${isAdoptable ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-white/70">Last seen at:</p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {formatDate(cat?.last_updated_at)} /{" "}
+                    {cat?.spot_last_seen || "—"}
+                  </p>
+                </div>
+
+                <DropdownField
+                  label="Color"
+                  options={CAT_COLOR_VALUES}
+                  value={color}
+                  onChange={setColor}
+                  isMobile
                 />
-              </button>
-            </div>
+                <DropdownField
+                  label="Size/Age"
+                  options={CAT_AGE_VALUES}
+                  value={age}
+                  onChange={setAge}
+                  isMobile
+                />
+                <DropdownField
+                  label="Sex"
+                  options={CAT_SEX_VALUES}
+                  value={sex}
+                  onChange={setSex}
+                  isMobile
+                />
+                <DropdownField
+                  label="Sociability"
+                  options={CAT_SOCIABILITY_VALUES}
+                  value={sociability}
+                  onChange={setSociability}
+                  isMobile
+                />
+                <DropdownField
+                  label="Status"
+                  options={CAT_STATUS_VALUES}
+                  value={catStatus}
+                  onChange={setCatStatus}
+                  isMobile
+                />
 
-            <div>
-              <p className="text-sm text-slate-600">Last seen at:</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {formatDate(cat?.last_updated_at)} /{" "}
-                {cat?.spot_last_seen || "—"}
-              </p>
-            </div>
+                <div>
+                  <label className="text-xs font-semibold text-white/70">Caretaker</label>
+                  <input
+                    value={caretaker}
+                    onChange={(e) => setCaretaker(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl bg-white/15 border border-white/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
+                  />
+                </div>
 
-            <DropdownField
-              label="Color"
-              options={CAT_COLOR_VALUES}
-              value={color}
-              onChange={setColor}
-            />
-            <DropdownField
-              label="Size/Age"
-              options={CAT_AGE_VALUES}
-              value={age}
-              onChange={setAge}
-            />
-            <DropdownField
-              label="Sex"
-              options={CAT_SEX_VALUES}
-              value={sex}
-              onChange={setSex}
-            />
-            <DropdownField
-              label="Sociability"
-              options={CAT_SOCIABILITY_VALUES}
-              value={sociability}
-              onChange={setSociability}
-            />
-            <DropdownField
-              label="Status"
-              options={CAT_STATUS_VALUES}
-              value={catStatus}
-              onChange={setCatStatus}
-            />
-
-            <div>
-              <label className="text-sm text-slate-700">Caretaker</label>
-              <input
-                value={caretaker}
-                onChange={(e) => setCaretaker(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-700">Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
+                <div>
+                  <label className="text-xs font-semibold text-white/70">Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-1.5 h-20 w-full resize-none rounded-xl bg-white/15 border border-white/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                disabled={saving}
-                onClick={handleSave}
-                className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                onClick={handleCancel}
+                className="rounded-full border-2 border-brand-orange px-4 py-2 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
               >
-                {saving ? "Saving..." : "Save"}{" "}
-                <span className="ml-1">&#10003;</span>
+                Cancel
               </button>
               <button
                 type="button"
-                onClick={handleCancel}
-                className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+                disabled={saving}
+                onClick={handleSave}
+                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                Cancel <span className="ml-1">&#10005;</span>
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
         </PageContent>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             Database
           </h1>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-slate-100">
+        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-border">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search"
-                className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
+                className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             <button
               type="button"
               onClick={() => setShowDesktopFilters((v) => !v)}
-              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
             >
               Filter
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -367,7 +403,7 @@ export function DatabaseGeneralScreen() {
 
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
             >
               Sort by
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -379,7 +415,7 @@ export function DatabaseGeneralScreen() {
               {FILTER_CHIPS.map((chip, index) => (
                 <span
                   key={`${chip}-${index}`}
-                  className="rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-600"
+                  className="rounded-full bg-brand-cream px-3 py-1 text-xs text-foreground"
                 >
                   {chip}
                 </span>
@@ -394,19 +430,19 @@ export function DatabaseGeneralScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-100">
+        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-              <span className="text-2xl text-slate-400">&#9635;</span>
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                <h2 className="font-heading text-xl font-bold tracking-tight text-white">
                   {cat?.name || "Unnamed"}
                 </h2>
                 {sexSymbol(cat?.sex) ? (
-                  <span className={`text-xl ${sexColor(cat?.sex)}`}>
+                  <span className="text-xl font-semibold text-white/70">
                     {sexSymbol(cat?.sex)}
                   </span>
                 ) : null}
@@ -414,23 +450,23 @@ export function DatabaseGeneralScreen() {
 
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {cat?.color ? (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                     {cat.color}
                   </span>
                 ) : null}
                 {cat?.age ? (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                     {cat.age}
                   </span>
                 ) : null}
                 {cat?.sociability && cat.sociability !== "Unknown" ? (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                     {cat.sociability}
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-white/70">
                 Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
                 {formatDate(cat?.last_updated_at)}
               </p>
@@ -442,11 +478,11 @@ export function DatabaseGeneralScreen() {
             <button
               type="button"
               onClick={handleToggleAdoptable}
-              className="ml-4 flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600"
+              className="ml-4 flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white"
             >
               <span>Adoptable</span>
               <span
-                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${isAdoptable ? "bg-slate-800" : "bg-slate-300"}`}
+                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${isAdoptable ? "bg-brand-orange" : "bg-white/30"}`}
               >
                 <span
                   className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${isAdoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
@@ -461,66 +497,70 @@ export function DatabaseGeneralScreen() {
               options={CAT_COLOR_VALUES}
               value={color}
               onChange={setColor}
+              isMobile
             />
             <DropdownField
               label="Size/Age"
               options={CAT_AGE_VALUES}
               value={age}
               onChange={setAge}
+              isMobile
             />
             <DropdownField
               label="Sex"
               options={CAT_SEX_VALUES}
               value={sex}
               onChange={setSex}
+              isMobile
             />
             <DropdownField
               label="Sociability"
               options={CAT_SOCIABILITY_VALUES}
               value={sociability}
               onChange={setSociability}
+              isMobile
             />
             <DropdownField
               label="Status"
               options={CAT_STATUS_VALUES}
               value={catStatus}
               onChange={setCatStatus}
+              isMobile
             />
             <div>
-              <label className="text-xs text-slate-700">Caretaker</label>
+              <label className="text-xs font-semibold text-white/70">Caretaker</label>
               <input
                 value={caretaker}
                 onChange={(e) => setCaretaker(e.target.value)}
-                className="mt-1 h-8 w-full rounded-md border border-lime-300 px-3 text-sm outline-none"
+                className="mt-1.5 h-9 w-full rounded-lg bg-white/15 border border-white/20 px-3 text-sm text-white outline-none placeholder:text-white/50"
               />
             </div>
           </div>
 
           <div className="mt-3">
-            <label className="text-xs font-medium text-slate-600">Notes</label>
+            <label className="text-xs font-semibold text-white/70">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 h-13 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200"
+              className="mt-1.5 h-20 w-full resize-none rounded-lg bg-white/15 border border-white/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/50"
             />
           </div>
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <button
               type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+              onClick={handleCancel}
+              className="rounded-full border-2 border-white px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
             >
-              {saving ? "Saving..." : "Save"}{" "}
-              <span className="ml-1">&#10003;</span>
+              Cancel
             </button>
             <button
               type="button"
-              onClick={handleCancel}
-              className="rounded-full bg-slate-100 px-4 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-200"
+              disabled={saving}
+              onClick={handleSave}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Cancel <span className="ml-1">&#10005;</span>
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
         </section>

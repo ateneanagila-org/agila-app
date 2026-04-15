@@ -108,7 +108,7 @@ export function DatabaseListScreen() {
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
     </div>
   );
 
@@ -124,26 +124,32 @@ export function DatabaseListScreen() {
   return (
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
-        <div className="flex-1 space-y-4 px-4 py-4">
-          <div className="flex gap-2">
+        <div className="flex-1 space-y-3 px-4 py-4">
+          {/* Search bar — orange */}
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             <input
               type="text"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/60"
             />
+          </div>
+
+          {/* Filter + Sort buttons — orange outline */}
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowFilters(true)}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="flex-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
-              Filters
+              Filter
             </button>
             <button
               type="button"
               onClick={() => setShowSort(true)}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="flex-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
               Sort By
             </button>
@@ -154,46 +160,40 @@ export function DatabaseListScreen() {
           ) : searchedCats.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
-              {searchedCats.map((cat, i) => (
+            <div className="space-y-2">
+              {searchedCats.map((cat) => (
                 <Link
                   key={cat.id}
                   href={`/database/general?id=${cat.id}`}
-                  className="block"
+                  className="block overflow-hidden rounded-2xl bg-brand-green"
                 >
-                  <div className="flex items-start gap-3 px-3.5 py-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                      <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                  <div className="flex items-start gap-3 p-3.5">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold tracking-tight text-slate-900">
-                          {cat.name || "Unnamed"}
-                        </span>
-                        {sexSymbol(cat.sex) ? (
-                          <span className={`text-sm ${sexColor(cat.sex)}`}>
-                            {sexSymbol(cat.sex)}
-                          </span>
-                        ) : null}
-                        <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                          Edit
-                        </span>
+                      <div className="flex items-start gap-1.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-heading text-lg font-bold text-white">
+                            {cat.name || "Unnamed"}
+                          </p>
+                          {sexSymbol(cat.sex) && (
+                            <p className="mt-0.5 text-xs font-semibold text-white/70">
+                              {sexSymbol(cat.sex)}{" "}
+                              {cat.sex}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {cat.color || "Unknown color"}
+                      <p className="mt-1 text-xs text-white/60">
+                        {cat.color || "Unknown color"} • {cat.age || "Unknown age"}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {cat.age || "Unknown age"}
-                      </p>
-                      <p className="mt-1.5 text-[11px] font-medium text-slate-600">
+                      <p className="mt-1.5 text-xs font-semibold text-white/70">
                         {cat.spot_last_seen || "Unknown location"} &middot;{" "}
                         {formatDate(cat.last_updated_at)}
                       </p>
                     </div>
                   </div>
-                  {i < searchedCats.length - 1 ? (
-                    <div className="mx-3.5 border-b border-slate-100" />
-                  ) : null}
                 </Link>
               ))}
             </div>
@@ -204,42 +204,42 @@ export function DatabaseListScreen() {
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
           >
             Add Entry
-            <PlusCircleIcon className="h-4 w-4" />
+            <span className="text-lg leading-none">+</span>
           </button>
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-slate-100 p-6 tablet:block tablet:p-7">
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Database</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">Database</h1>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-100">
+        <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-border">
           <div className="relative flex-1">
             <input
               type="text"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-full bg-slate-50 px-4 pr-10 text-sm text-slate-800 outline-none"
+              className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
           <button
             type="button"
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+            className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
           >
             Filter
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -247,7 +247,7 @@ export function DatabaseListScreen() {
           <button
             type="button"
             onClick={() => setShowSort(true)}
-            className="flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+            className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
           >
             Sort by
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -264,19 +264,19 @@ export function DatabaseListScreen() {
               <Link
                 key={`desktop-${cat.id}`}
                 href={`/database/general?id=${cat.id}`}
-                className="flex items-center gap-4 rounded-2xl bg-white px-5 py-4 ring-1 ring-slate-100 transition-shadow hover:shadow-sm"
+                className="flex items-center gap-4 overflow-hidden rounded-2xl bg-brand-green px-5 py-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                  <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                    <h2 className="font-heading text-xl font-bold tracking-tight text-white">
                       {cat.name || "Unnamed"}
                     </h2>
                     {sexSymbol(cat.sex) ? (
-                      <span className={`text-xl ${sexColor(cat.sex)}`}>
+                      <span className={`text-xl font-semibold text-white/70`}>
                         {sexSymbol(cat.sex)}
                       </span>
                     ) : null}
@@ -284,29 +284,29 @@ export function DatabaseListScreen() {
 
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     {cat.color ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.color}
                       </span>
                     ) : null}
                     {cat.age ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.age}
                       </span>
                     ) : null}
                     {cat.sociability && cat.sociability !== "Unknown" ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.sociability}
                       </span>
                     ) : null}
                   </div>
 
                   <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-white/70">
                       Last seen: {cat.spot_last_seen || "Unknown"} &middot;{" "}
                       {formatDate(cat.last_updated_at)}
                     </p>
-                    <span className="rounded-full bg-slate-50 px-3.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-100 transition-colors hover:bg-slate-100">
-                      Edit entry <span className="ml-1">&#9998;</span>
+                    <span className="rounded-full bg-brand-orange px-3.5 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90">
+                      Edit entry <span className="ml-1">✎</span>
                     </span>
                   </div>
                 </div>

@@ -19,7 +19,7 @@ export function DialogShell({ open, onClose, children }: DialogShellProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-5 shadow-xl"
+        className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-green p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {children}

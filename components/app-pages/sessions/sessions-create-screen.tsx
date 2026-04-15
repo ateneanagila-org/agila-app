@@ -238,22 +238,22 @@ export function SessionsCreateScreen() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col tablet:hidden">
-        <div className="flex-1 space-y-4 px-4 py-4">
-          <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
+      <div className="flex flex-1 flex-col px-4 py-4 tablet:hidden">
+        <div className="flex-1 space-y-4">
+          <div className="relative rounded-xl bg-brand-green px-4 py-3">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-bold tracking-tight text-slate-900">
+                <p className="text-sm font-bold tracking-tight text-white">
                   {selectedRegionName || "Select Location"}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-white/70">
                   Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="px-1 text-xs tracking-widest text-slate-400"
+                className="px-1 text-xs tracking-widest text-white/70"
                 aria-label="More options"
               >
                 &bull;&bull;&bull;
@@ -261,7 +261,7 @@ export function SessionsCreateScreen() {
             </div>
 
             {menuOpen ? (
-              <div className="absolute right-4 top-10 z-10 min-w-30 rounded-xl border border-slate-100 bg-white py-1 shadow-lg">
+              <div className="absolute right-4 top-10 z-10 min-w-30 rounded-xl border border-white/20 bg-brand-green py-1 shadow-lg">
                 {["Details", "Finish", "Save"].map((opt) => (
                   <button
                     type="button"
@@ -270,7 +270,7 @@ export function SessionsCreateScreen() {
                       setMenuOpen(false);
                       if (opt === "Finish") handleSubmitSession();
                     }}
-                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    className="block w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10"
                   >
                     {opt}
                   </button>
@@ -279,8 +279,8 @@ export function SessionsCreateScreen() {
             ) : null}
           </div>
 
-          <div className="relative rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200">
-            <label className="text-xs font-semibold tracking-wide text-slate-700">
+          <div className="relative rounded-xl bg-brand-green px-4 py-3">
+            <label className="text-xs font-semibold tracking-wide text-white/70">
               Location
             </label>
             <div className="relative mt-1.5">
@@ -288,7 +288,7 @@ export function SessionsCreateScreen() {
                 value={selectedRegionId}
                 onChange={(e) => handleLocationSelect(e.target.value)}
                 disabled={!!sessionId || loading}
-                className="h-9 w-full appearance-none rounded-full bg-slate-50 px-4 pr-9 text-sm text-slate-700 ring-1 ring-slate-100 disabled:opacity-60"
+                className="h-9 w-full appearance-none rounded-full bg-white/15 px-4 pr-9 text-sm text-white ring-1 ring-white/20 disabled:opacity-60"
               >
                 <option value="">Select...</option>
                 {regionOptions.map((region) => (
@@ -297,7 +297,7 @@ export function SessionsCreateScreen() {
                   </option>
                 ))}
               </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             </div>
           </div>
 
@@ -309,27 +309,27 @@ export function SessionsCreateScreen() {
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
             </div>
           ) : !sessionId ? (
-            <div className="py-8 text-center text-sm text-slate-400">
+            <div className="py-8 text-center text-sm text-white/50">
               Select a location to start a session.
             </div>
           ) : cats.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">
+            <div className="py-8 text-center text-sm text-white/50">
               No cats in this session yet.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+            <div className="overflow-hidden rounded-2xl bg-brand-green">
               {cats.map((cat, i) => (
                 <div key={cat.id}>
                   <div className="flex items-start gap-3 px-3.5 py-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-                      <ImagePlaceholderIcon className="h-5 w-5 text-slate-400" />
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
+                      <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold tracking-tight text-slate-900">
+                        <span className="text-sm font-bold tracking-tight text-white">
                           {cat.name || "Unnamed"}
                         </span>
                         {sexSymbol(cat.sex) ? (
@@ -337,20 +337,20 @@ export function SessionsCreateScreen() {
                             {sexSymbol(cat.sex)}
                           </span>
                         ) : null}
-                        <span className="ml-auto text-xs tracking-widest text-slate-400">
+                        <span className="ml-auto text-xs tracking-widest text-white/70">
                           &bull;&bull;&bull;
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-white/70">
                         {cat.color || "Unknown"}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-white/70">
                         {cat.age || "Unknown"}
                       </p>
                     </div>
                   </div>
                   {i < cats.length - 1 ? (
-                    <div className="mx-3.5 border-b border-slate-100" />
+                    <div className="mx-3.5 border-b border-white/10" />
                   ) : null}
                 </div>
               ))}
@@ -362,7 +362,7 @@ export function SessionsCreateScreen() {
           <button
             type="button"
             onClick={handleOpenAddForm}
-            className="flex items-center gap-2 rounded-full bg-stone-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-stone-700"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
           >
             Add Entry
             <PlusCircleIcon className="h-4 w-4" />
