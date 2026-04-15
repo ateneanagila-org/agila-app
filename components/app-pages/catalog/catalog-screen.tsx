@@ -88,13 +88,13 @@ export function CatalogScreen() {
   return (
     <div className="space-y-4 px-4 py-5">
       {/* Heading */}
-      <div className="flex items-center justify-between">
-        <p className="text-lg font-bold tracking-tight text-slate-900">
-          Adopt / Foster
+      <div className="flex items-center justify-between rounded-2xl bg-brand-green p-4">
+        <p className="font-heading text-lg font-bold tracking-tight text-yellow-200">
+          Adopt/Foster A Cat Now!
         </p>
         <button
           type="button"
-          className="rounded-full bg-lime-300 px-5 py-1.5 text-sm font-medium text-slate-800 transition-colors hover:bg-lime-400"
+          className="rounded-full bg-brand-orange px-5 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
         >
           Apply
         </button>
@@ -102,27 +102,24 @@ export function CatalogScreen() {
 
       {/* Search + Filter + Sort */}
       <div className="flex gap-2">
-        <div className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2.5">
-          <SearchIcon className="h-4 w-4 shrink-0 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-          />
-        </div>
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2.5 text-white transition-opacity hover:opacity-90"
+        >
+          <SearchIcon className="h-4 w-4 shrink-0" />
+          <span className="text-sm text-white/70">Search</span>
+        </button>
         <button
           type="button"
           onClick={() => setShowFilters(true)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
         >
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </button>
         <button
           type="button"
           onClick={() => setShowSort(true)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
         >
           Sort By
         </button>
@@ -131,25 +128,25 @@ export function CatalogScreen() {
       {/* Cat cards */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
         </div>
       ) : searchedCats.length === 0 ? (
-        <div className="py-8 text-center text-sm text-slate-400">
+        <div className="py-8 text-center text-sm text-white/50">
           No adoptable/fosterable cats available right now.
         </div>
       ) : (
         <div className="space-y-3">
           {searchedCats.map((cat) => (
             <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-              <div className="flex items-center gap-3 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200 transition-shadow hover:shadow-sm">
+              <div className="flex items-center gap-3 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
                 {/* Photo */}
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-                  <ImagePlaceholderIcon className="h-9 w-9 text-slate-400" />
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
                 </div>
                 {/* Info */}
-                <div className="py-2">
+                <div className="py-2 pr-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold tracking-tight text-slate-900">
+                    <span className="text-sm font-bold tracking-tight text-white">
                       {cat.name || "Unnamed"}
                     </span>
                     {sexSymbol(cat.sex) ? (
@@ -158,8 +155,8 @@ export function CatalogScreen() {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">{cat.color || "—"}</p>
-                  <p className="text-xs text-slate-500">{cat.age || "—"}</p>
+                  <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
+                  <p className="text-xs text-white/70">{cat.age || "—"}</p>
                 </div>
               </div>
             </Link>
