@@ -24,13 +24,19 @@ A reliable two-way synchronization system between the AGILA app database (Postgr
 ---
 
 ## Phase 2 — Google Sheets Preparation
-*Getting the sheets ready for reverse sync*
+*Getting the sheets ready for reverse sync, plus the freeze/unfreeze control system*
 
-**Add hidden timestamp columns.** Two new columns (W and X) are added to every regional sheet tab: `last_edited_at` and `edited_by`. These are invisible to managers in normal use and are protected so only the Apps Script can write to them.
+**Add hidden timestamp columns.** Two new columns (W and X) are added to every regional sheet tab: `last_edited_at` and `edited_by`. These are protected so only the Apps Script can write to them.
 
 **Deploy a Google Apps Script trigger.** An `onEdit` trigger that fires whenever anyone manually edits a cell in the data range. It records the exact timestamp and the editor's email in columns W and X. Crucially, it ignores edits made by the service account (our sync system) to prevent feedback loops.
 
-**Configure sheet protection.** The data range (columns A-V) is protected so volunteers can't accidentally edit it. Managers have emergency edit access. Columns W and X are always locked — only the Apps Script writes there.
+**Sheet protection managed by the app.** The data range (A-V) is protected via the Sheets API directly from the Next.js app — no manual Apps Script steps required for normal freeze/unfreeze operations. `freezeSheetProtections()` removes protections so all sheet users can edit freely. `unfreezeSheetProtections()` re-adds them, restricting edits to authorized managers/admins only.
+
+**Dynamic authorized editors via `_config` sheet.** A hidden, protected `_config` tab stores the comma-separated list of authorized editors in cell B1. This is read by Apps Script's `unfreezeMode()` and by the app's `unfreezeSheetProtections()`. The list is derived automatically from DB profiles: whenever any Administrator or Manager profile is updated, `syncSheetEditors()` re-derives the emails from `profiles` + Supabase auth and writes them to `_config!B1`. No hardcoded email lists anywhere.
+
+**Freeze/unfreeze via app UI.** A `SyncControls` component with Freeze and Unfreeze buttons handles the full cycle in one click — sets the DB flag, manages sheet protections, and shows live status. No manual Apps Script editor access needed for normal operations.
+
+**Emergency fallback for when the app is down.** `WebApp.gs` deploys as an Apps Script Web App, giving a bookmarkable URL (`?action=freeze&secret=...`) that triggers `freezeMode()` and `unfreezeMode()` from a phone browser. Protected by a secret stored in Script Properties. Only needed if the app is completely unreachable.
 
 ---
 
@@ -58,14 +64,14 @@ Every imported row is validated through strict Zod schemas before touching the d
 ## Phase 4 — Freeze/Unfreeze Flow
 *The failover and recovery system*
 
-**Freeze.** When the maintainer flips the freeze flag, all cron sync jobs halt (both forward and reverse). The maintainer then manually runs the `freezeMode()` script in Google Sheets to unlock the data range for all authorized personnel (managers and volunteers). Everyone can now edit the sheets directly as a temporary database.
+**Freeze.** The maintainer clicks **Freeze** in the app's Sync panel. In one step: the DB freeze flag is set, all cron sync jobs halt, and sheet protections are removed via the Sheets API so managers and volunteers can edit the spreadsheet directly as a temporary database. If the app is completely down, the emergency `WebApp.gs` URL triggers the same protection removal independently.
 
-**Unfreeze (recovery).** When the app is fixed:
-1. Full reverse sync runs across all regions — manager edits made during the freeze are imported into the database
-2. For cats where a GSheet edit wins, the corresponding pending DB tasks are cancelled by the conflict resolution system (the GSheet version is newer, so the stale DB change is superseded)
-3. The freeze flag is cleared — cron resumes
-4. The next cron cycle picks up any remaining pending tasks — these are cats that managers **didn't touch** during the freeze, so their DB changes are still valid and need to push out to the sheet
-5. The maintainer runs `unfreezeMode()` in Apps Script to re-lock the sheets
+**Unfreeze (recovery).** The maintainer clicks **Unfreeze** in the app's Sync panel. In one step:
+1. Sheet protections are restored via the Sheets API — only authorized managers/admins can edit again
+2. *(Phase 3)* Full reverse sync runs across all regions — manager edits made during the freeze are imported into the database
+3. For cats where a GSheet edit wins, the conflict resolution system cancels their pending DB tasks
+4. The freeze flag is cleared — cron resumes
+5. The next cron cycle picks up any remaining pending tasks for cats managers didn't touch during the freeze
 
 **Why we don't discard pending tasks during recovery.** After a crash there are two categories of cats:
 - **Cat A** — manager edited it during the freeze. GSheet has a newer `last_edited_at` than the DB's `last_updated_at`. Reverse sync imports the edit and conflict resolution cancels that cat's PENDING forward sync task. Handled automatically.
@@ -93,16 +99,22 @@ Every 10 minutes:
         -> audit log entry per region
 
 On failure / app down:
-  Maintainer flips freeze flag
-    -> cron skips all sync
-    -> freezeMode() unlocks GSheets for all authorized personnel
+  Maintainer clicks Freeze in app UI (or hits emergency WebApp.gs URL)
+    -> DB freeze flag set, cron skips all sync
+    -> sheet protections removed via Sheets API (or Apps Script fallback)
     -> managers + volunteers edit GSheet directly
 
 On recovery:
-  Maintainer calls unfreezeSync()
-    -> reverse sync imports freeze-period edits
+  Maintainer clicks Unfreeze in app UI
+    -> sheet protections restored via Sheets API
+    -> (Phase 3) reverse sync imports freeze-period edits
     -> conflict resolution cancels PENDING tasks for edited cats
     -> freeze flag cleared, cron resumes
     -> remaining PENDING tasks (untouched cats) run on next cron cycle
-    -> unfreezeMode() re-locks GSheets
+
+Authorized editors always in sync:
+  Any admin/manager role change in the app
+    -> syncSheetEditors() fires in background
+    -> derives emails from profiles table + Supabase auth
+    -> writes to _config!B1 in GSheet
 ```
