@@ -996,15 +996,15 @@ This file can't be deployed via CLI easily (Google Apps Script has a `clasp` too
 2. Go to **Extensions > Apps Script**
 3. Delete any existing `Code.gs` content
 4. Paste the contents of `workers/apps-script/Code.gs`
-5. **Update `SERVICE_ACCOUNT_EMAIL`** to match the email in your `SERVICE_ACCOUNT_CREDENTIALS` env var
-6. Click **Save**
-7. Go to **Triggers** (clock icon in left sidebar)
-8. Click **+ Add Trigger**
+   - `SERVICE_ACCOUNT_EMAIL` is already set to `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — no changes needed
+5. Click **Save**
+6. Go to **Triggers** (clock icon in left sidebar)
+7. Click **+ Add Trigger**
    - Function: `onEditInstallable`
    - Event source: From spreadsheet
    - Event type: On edit
    - Failure notification: Notify daily
-9. Click **Save** and authorize when prompted
+8. Click **Save** and authorize when prompted
 
 - [ ] **Step 3: Test the trigger**
 
@@ -1027,110 +1027,68 @@ Ignores service account edits to prevent sync loops."
 
 ### Task 11: Configure sheet protection for freeze/unfreeze
 
-**Why:** During normal operation, sheets should be read-only for volunteers. During a freeze, all authorized personnel (managers and volunteers) need edit access since the app is down and the sheet is the temporary database. Documenting the exact protection setup ensures consistency.
+**Why:** During normal operation, sheets should be read-only for volunteers. During a freeze, all users with sheet access (students, volunteers) need edit access since the app is down and the sheet is the temporary database. After recovery, only managers/admins should be able to edit again.
 
-**Files:**
-- Create: `workers/apps-script/Protection.gs`
+**Design decisions made during implementation:**
+- Sheet protections are managed by the **app via the Sheets API** (`freezeSheetProtections()` / `unfreezeSheetProtections()` in `helper.service.ts`) — no manual Apps Script runs needed for normal operations
+- Authorized editors (managers/admins) are stored dynamically in a hidden `_config` sheet tab (cell B1) as a comma-separated list, managed automatically by the app
+- `syncSheetEditors()` in `helper.service.ts` re-derives the list from DB profiles whenever any admin/manager role changes via `editProfile`
+- `Protection.gs` and `WebApp.gs` serve only as **emergency fallback** when the app is completely unreachable
 
-- [ ] **Step 1: Create the protection toggle script**
+**Files created:**
+- `workers/apps-script/Protection.gs` — emergency-only: `getAuthorizedEmails()` reads from `_config!B1`; `freezeMode()` removes A3:V protections; `unfreezeMode()` re-adds them with authorized editors
+- `workers/apps-script/WebApp.gs` — emergency endpoint: `doGet()` handler secured by `EMERGENCY_SECRET` Script Property; triggers `freezeMode()`/`unfreezeMode()` via bookmarkable URL
+- `lib/services/helper.service.ts` — added section 5: `setAuthorizedEmails()`, `getAuthorizedEmails()`, `freezeSheetProtections()`, `unfreezeSheetProtections()`, `syncSheetEditors()`
+- `app/actions/system.ts` — server actions: `freezeSync()`, `unfreezeSync()`, `getSyncStatus()`
+- `components/app-pages/users/sync-controls.tsx` — UI: Freeze/Unfreeze buttons with live status indicator
+- `app/actions/users.ts` — modified: `editProfile` fires `syncSheetEditors()` in background when `auth_role` changes
 
-Create `workers/apps-script/Protection.gs`:
+- [ ] **Step 1: Create `_config` sheet tab in the spreadsheet**
 
-```javascript
-/**
- * AGILA CATalog — Sheet Protection Toggle
- *
- * Run these functions manually from the Apps Script editor
- * or call them from a web app endpoint (Task 12).
- *
- * FREEZE: Unlocks data range for all authorized personnel during app failure.
- * UNFREEZE: Re-locks data range, only service account can write.
- */
+In the CATalog spreadsheet:
+1. Add a new sheet tab named exactly `_config`
+2. In cell A1 type: `authorized_emails` (label only)
+3. Leave B1 empty — the app populates it
+4. Right-click the tab → **Hide sheet**
+5. Right-click the tab → **Protect sheet** → Only you
 
-// Add emails of all authorized personnel (managers + volunteers)
-// who should get edit access during freeze
-var AUTHORIZED_EMAILS = [
-  "manager1@example.com",
-  "volunteer1@example.com",
-  // Add all authorized emails here
-];
-
-var DATA_RANGE_NOTATION = "A3:V"; // Data range to protect/unprotect
-
-/**
- * FREEZE MODE: Remove protection from data range so all authorized personnel can edit.
- * Call this when the app goes down.
- */
-function freezeMode() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheets = ss.getSheets();
-
-  sheets.forEach(function(sheet) {
-    var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-    protections.forEach(function(protection) {
-      // Remove data range protections (keep W:X protected)
-      var range = protection.getRange();
-      var notation = range.getA1Notation();
-      if (notation.indexOf("A3") === 0 || notation.indexOf("A:V") !== -1) {
-        protection.remove();
-      }
-    });
-  });
-
-  Logger.log("FREEZE MODE: Data range protections removed. All authorized personnel can edit.");
-}
-
-/**
- * UNFREEZE MODE: Re-protect data range. Only service account writes.
- * Call this after app recovery and reverse sync completion.
- */
-function unfreezeMode() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheets = ss.getSheets();
-
-  sheets.forEach(function(sheet) {
-    var lastRow = Math.max(sheet.getLastRow(), 3);
-    var range = sheet.getRange("A3:V" + lastRow);
-    var protection = range.protect()
-      .setDescription("App-managed data — do not edit directly");
-
-    // Remove all editors except the owner
-    protection.removeEditors(protection.getEditors());
-
-    // Remove all editors — during normal operation, only the service account writes
-    // The protection means everyone else can view but not edit the range
-    if (protection.canDomainEdit()) {
-      protection.setDomainEdit(false);
-    }
-  });
-
-  Logger.log("UNFREEZE MODE: Data range re-protected.");
-}
-```
-
-- [ ] **Step 2: Deploy to the same Apps Script project**
+- [ ] **Step 2: Deploy Protection.gs**
 
 1. Open the CATalog spreadsheet → Extensions > Apps Script
 2. Click **+** next to Files → Script → name it `Protection`
-3. Paste the contents of `Protection.gs`
-4. Update `AUTHORIZED_EMAILS` with actual email addresses of all managers and volunteers
-5. Click **Save**
+3. Paste the contents of `workers/apps-script/Protection.gs`
+4. Click **Save** — no email configuration needed, it reads from `_config!B1`
 
-- [ ] **Step 3: Test both modes**
+- [ ] **Step 3: (Optional) Deploy WebApp.gs emergency endpoint**
 
-1. Run `freezeMode()` from the Apps Script editor
-2. Open the sheet in an incognito window as a volunteer or manager — verify you can edit cells in A3:V
-3. Run `unfreezeMode()` from the Apps Script editor
-4. Verify the volunteer/manager can no longer edit cells in A3:V
+1. In the Apps Script editor, **+** → Script → name it `WebApp`
+2. Paste the contents of `workers/apps-script/WebApp.gs`, click **Save**
+3. Project Settings → Script Properties → add `EMERGENCY_SECRET` with a strong random value
+4. Deploy → New deployment → Web app → Execute as: Me → Save and copy the URL
+5. Bookmark: `<url>?action=freeze&secret=<secret>` and `<url>?action=unfreeze&secret=<secret>`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Seed the `_config` sheet via the app**
+
+1. Open the AGILA app → Users page
+2. Edit any Administrator or Manager profile (re-save their current role)
+3. This fires `syncSheetEditors()` in the background, writing all admin/manager emails to `_config!B1`
+
+- [ ] **Step 5: Test both modes via the app UI**
+
+1. In the app, go to the Users page → find the Sync panel
+2. Click **Freeze** — verify A3:V protections are removed in the spreadsheet (try editing a cell as a non-owner)
+3. Click **Unfreeze** — verify A3:V protections are restored with only manager/admin emails as editors
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add workers/apps-script/Protection.gs
-git commit -m "feat: add freeze/unfreeze protection scripts for CATalog sheets
+git add workers/apps-script/ lib/services/helper.service.ts app/actions/system.ts components/app-pages/users/sync-controls.tsx app/actions/users.ts
+git commit -m "feat: dynamic sheet editor management and freeze/unfreeze via app UI
 
-freezeMode() unlocks data range for all authorized personnel during app failure.
-unfreezeMode() re-protects after recovery."
+Protection.gs reads authorized emails from _config!B1.
+App manages sheet protections directly via Sheets API.
+SyncControls component for one-click freeze/unfreeze.
+WebApp.gs emergency endpoint for when app is unreachable."
 ```
 
 ---
