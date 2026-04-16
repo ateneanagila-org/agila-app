@@ -1,10 +1,13 @@
 import { google } from "googleapis";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
-import { gsheetSyncQueue, regions } from "@/lib/db/schema";
+import { gsheetSyncQueue, regions, syncAuditLog } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
+import { isSyncFrozen } from "./system.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
+
+const MAX_RETRIES = 3;
 
 // ==========================================
 // 1. AUTHENTICATION
@@ -165,76 +168,131 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
 /**
  * Runs the background sync for a specific region.
  * Uses the "Read-Modify-Write" strategy to ensure data integrity.
+ * Includes retry logic, audit logging, and freeze checking.
  */
 export async function syncAndCompactRegion(regionId: string) {
-  const { glAuth, glSheets } = await connectToSheets();
-  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+  // 0. CHECK FREEZE FLAG
+  const frozen = await isSyncFrozen();
+  if (frozen) {
+    console.log(`[Sync] Frozen — skipping region ${regionId}`);
+    return;
+  }
+
+  const startedAt = new Date();
+  let tasksProcessed = 0;
+  let tasksFailed = 0;
+  let errorMessage: string | null = null;
 
   const region = await db.query.regions.findFirst({
     where: eq(regions.id, regionId),
   });
   if (!region) return;
 
+  // Only pick up tasks that haven't exceeded retry limit
   const tasks = await db.query.gsheetSyncQueue.findMany({
-    where: (q, { and, eq }) =>
-      and(eq(q.regionId, regionId), eq(q.status, "PENDING")),
+    where: (q, { and, eq, lt }) =>
+      and(
+        eq(q.regionId, regionId),
+        eq(q.status, "PENDING"),
+        lt(q.retryCount, MAX_RETRIES),
+      ),
     orderBy: (q, { asc }) => [asc(q.createdAt)],
   });
 
   if (tasks.length === 0) return;
 
-  // 1. READ: Get current sheet state (A3 to U)
-  const response = await glSheets.spreadsheets.values.get({
-    auth: glAuth,
-    spreadsheetId,
-    range: `'${region.name}'!A3:V`,
-  });
-  const currentRows = response.data.values || [];
+  try {
+    const { glAuth, glSheets } = await connectToSheets();
+    const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-  // 2. MODIFY: Process pending tasks in local memory
-  for (const task of tasks) {
-    const idx = currentRows.findIndex((r) => r[0] === task.entityId);
-    const taskPayload = (task.payload ?? []) as string[];
-
-    if (task.action === "DELETE") {
-      if (idx !== -1) currentRows.splice(idx, 1);
-    } else {
-      // CREATE or UPDATE: Snapshot overwrite
-      if (idx !== -1) currentRows[idx] = taskPayload;
-      else currentRows.push(taskPayload);
-    }
-  }
-
-  // 3. COMPACT & SORT: Cleanup blank rows and alphabetize by Nickname (Col C)
-  const finalData = currentRows
-    .filter((row) => row[0] && String(row[0]).trim() !== "")
-    .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
-
-  // 4. WRITE: Atomic wipe and re-upload
-  await glSheets.spreadsheets.values.clear({
-    auth: glAuth,
-    spreadsheetId,
-    range: `'${region.name}'!A3:V`,
-  });
-
-  if (finalData.length > 0) {
-    await glSheets.spreadsheets.values.update({
+    // 1. READ: Get current sheet state (A3 to V)
+    const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
-      range: `'${region.name}'!A3`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: finalData },
+      range: `'${region.name}'!A3:V`,
+    });
+    const currentRows = response.data.values || [];
+
+    // 2. MODIFY: Process pending tasks in local memory
+    for (const task of tasks) {
+      const idx = currentRows.findIndex((r) => r[0] === task.entityId);
+      const taskPayload = (task.payload ?? []) as string[];
+
+      if (task.action === "DELETE") {
+        if (idx !== -1) currentRows.splice(idx, 1);
+      } else {
+        // CREATE or UPDATE: Snapshot overwrite
+        if (idx !== -1) currentRows[idx] = taskPayload;
+        else currentRows.push(taskPayload);
+      }
+    }
+
+    // 3. COMPACT & SORT: Cleanup blank rows and alphabetize by Nickname (Col C)
+    const finalData = currentRows
+      .filter((row) => row[0] && String(row[0]).trim() !== "")
+      .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
+
+    // 4. WRITE: Atomic wipe and re-upload
+    // IMPORTANT: Range is A3:V — we intentionally do NOT clear or write
+    // columns W (last_edited_at) and X (edited_by). Those columns are
+    // exclusively managed by the Google Apps Script onEdit trigger.
+    await glSheets.spreadsheets.values.clear({
+      auth: glAuth,
+      spreadsheetId,
+      range: `'${region.name}'!A3:V`,
+    });
+
+    if (finalData.length > 0) {
+      await glSheets.spreadsheets.values.update({
+        auth: glAuth,
+        spreadsheetId,
+        range: `'${region.name}'!A3`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: finalData },
+      });
+    }
+
+    // 5. FINISH: Mark all processed tasks as COMPLETED
+    tasksProcessed = tasks.length;
+    await db
+      .update(gsheetSyncQueue)
+      .set({ status: "COMPLETED" })
+      .where(
+        inArray(
+          gsheetSyncQueue.id,
+          tasks.map((t) => t.id),
+        ),
+      );
+  } catch (error) {
+    const errMsg =
+      error instanceof Error ? error.message : "Unknown sync error";
+    errorMessage = errMsg;
+    tasksFailed = tasks.length;
+
+    // Increment retry_count and store error on each task individually
+    for (const task of tasks) {
+      const newRetryCount = task.retryCount + 1;
+      await db
+        .update(gsheetSyncQueue)
+        .set({
+          retryCount: newRetryCount,
+          lastError: errMsg,
+          ...(newRetryCount >= MAX_RETRIES ? { status: "FAILED" as const } : {}),
+        })
+        .where(eq(gsheetSyncQueue.id, task.id));
+    }
+
+    console.error(`[Sync] Region ${regionId} failed:`, errMsg);
+  } finally {
+    // 6. AUDIT: Log this sync cycle regardless of success/failure
+    await db.insert(syncAuditLog).values({
+      regionId,
+      direction: "FORWARD",
+      tasksProcessed,
+      tasksFailed,
+      errorMessage,
+      startedAt,
+      completedAt: new Date(),
     });
   }
-
-  // 5. FINISH: Mark all processed tasks as COMPLETED
-  await db
-    .update(gsheetSyncQueue)
-    .set({ status: "COMPLETED" })
-    .where(
-      inArray(
-        gsheetSyncQueue.id,
-        tasks.map((t) => t.id),
-      ),
-    );
 }
