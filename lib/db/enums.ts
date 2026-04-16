@@ -188,6 +188,12 @@ export const interventionStatusEnum = pgEnum(
 export const InterventionStatusEnum = z.enum(INTERVENTION_STATUS_VALUES);
 export type InterventionStatus = z.infer<typeof InterventionStatusEnum>;
 
+// Sync Audit Log Direction
+export const SYNC_DIRECTION_VALUES = ["FORWARD", "REVERSE"] as const;
+export const syncDirectionEnum = pgEnum("sync_direction", SYNC_DIRECTION_VALUES);
+export const SyncDirectionEnum = z.enum(SYNC_DIRECTION_VALUES);
+export type SyncDirection = z.infer<typeof SyncDirectionEnum>;
+
 // FOR TESTING
 export const URGENCY_VALUES = [
   "Now",

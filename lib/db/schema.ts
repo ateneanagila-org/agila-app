@@ -24,6 +24,7 @@ import {
   catHealthRecordConditionEnum,
   actionStatusEnum,
   actionEnum,
+  syncDirectionEnum,
 } from "./enums";
 
 const authSchema = pgSchema("auth");
@@ -162,4 +163,21 @@ export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   retryCount: integer("retry_count").default(0).notNull(),
   lastError: text("last_error"),
+});
+
+export const syncAuditLog = pgTable("sync_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  regionId: uuid("region_id"),
+  direction: syncDirectionEnum("direction").notNull(),
+  tasksProcessed: integer("tasks_processed").default(0).notNull(),
+  tasksFailed: integer("tasks_failed").default(0).notNull(),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const systemConfig = pgTable("system_config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
