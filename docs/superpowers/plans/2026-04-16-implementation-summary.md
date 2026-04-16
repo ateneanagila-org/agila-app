@@ -58,7 +58,7 @@ Every imported row is validated through strict Zod schemas before touching the d
 ## Phase 4 — Freeze/Unfreeze Flow
 *The failover and recovery system*
 
-**Freeze.** When the maintainer flips the freeze flag, all cron sync jobs halt (both forward and reverse). The maintainer then manually runs the `freezeMode()` script in Google Sheets to unlock the data range for managers. Managers can now edit the sheets directly as a temporary database.
+**Freeze.** When the maintainer flips the freeze flag, all cron sync jobs halt (both forward and reverse). The maintainer then manually runs the `freezeMode()` script in Google Sheets to unlock the data range for all authorized personnel (managers and volunteers). Everyone can now edit the sheets directly as a temporary database.
 
 **Unfreeze (recovery).** When the app is fixed:
 1. Full reverse sync runs across all regions — manager edits made during the freeze are imported into the database
@@ -95,8 +95,8 @@ Every 10 minutes:
 On failure / app down:
   Maintainer flips freeze flag
     -> cron skips all sync
-    -> freezeMode() unlocks GSheets for managers
-    -> managers edit GSheet directly
+    -> freezeMode() unlocks GSheets for all authorized personnel
+    -> managers + volunteers edit GSheet directly
 
 On recovery:
   Maintainer calls unfreezeSync()

@@ -179,11 +179,11 @@ Do this for **every regional sheet tab** (GATE 3, ARETE, SDC, etc.).
 1. In the Apps Script editor, click **+** next to **Files** in the left sidebar → **Script**
 2. Name it `Protection` (it will become `Protection.gs`)
 3. Copy the contents of `workers/apps-script/Protection.gs` from the repository and paste it in
-4. Find the `MANAGER_EMAILS` array and add the actual email addresses of your managers:
+4. Find the `AUTHORIZED_EMAILS` array and add the email addresses of all authorized personnel (managers and volunteers):
    ```javascript
-   var MANAGER_EMAILS = [
+   var AUTHORIZED_EMAILS = [
      "manager1@ateneo.edu",
-     "manager2@ateneo.edu",
+     "volunteer1@ateneo.edu",
    ];
    ```
 5. Click **Save**
@@ -213,7 +213,7 @@ This is the critical step — a "simple trigger" (`onEdit`) cannot access the us
 
 ### 5f. Protect columns W and X
 
-Prevent managers from accidentally overwriting the auto-timestamps.
+Prevent anyone from accidentally overwriting the auto-timestamps.
 
 1. In the spreadsheet, select column W header, then Shift+click column X header to select both
 2. Right-click → **Protect range**
@@ -248,14 +248,14 @@ Once all of the above is done, do a manual end-to-end test.
    WHERE key = 'sync_frozen';
    ```
 2. Open the CATalog spreadsheet → Extensions → Apps Script → run `freezeMode()` from the editor
-3. Notify managers that they can now edit the spreadsheet directly
+3. Notify all authorized personnel (managers and volunteers) that they can now edit the spreadsheet directly
 
 ### Unfreeze the system (after recovery)
 
 1. Deploy the fixed app to Vercel
 2. In the AGILA app, call the `unfreezeSync()` server action — this runs full reverse sync before re-enabling the cron
 3. Open the CATalog spreadsheet → Extensions → Apps Script → run `unfreezeMode()` to re-lock the sheets
-4. Notify managers to stop editing the spreadsheet directly
+4. Notify all authorized personnel to stop editing the spreadsheet directly
 
 ### Pause the Cloudflare cron (optional during maintenance)
 

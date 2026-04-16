@@ -1027,7 +1027,7 @@ Ignores service account edits to prevent sync loops."
 
 ### Task 11: Configure sheet protection for freeze/unfreeze
 
-**Why:** During normal operation, sheets should be read-only for volunteers. During a freeze, managers need edit access. Documenting the exact protection setup ensures consistency.
+**Why:** During normal operation, sheets should be read-only for volunteers. During a freeze, all authorized personnel (managers and volunteers) need edit access since the app is down and the sheet is the temporary database. Documenting the exact protection setup ensures consistency.
 
 **Files:**
 - Create: `workers/apps-script/Protection.gs`
@@ -1043,21 +1043,22 @@ Create `workers/apps-script/Protection.gs`:
  * Run these functions manually from the Apps Script editor
  * or call them from a web app endpoint (Task 12).
  *
- * FREEZE: Unlocks data range for managers during app failure.
+ * FREEZE: Unlocks data range for all authorized personnel during app failure.
  * UNFREEZE: Re-locks data range, only service account can write.
  */
 
-// Add manager emails who should get edit access during freeze
-var MANAGER_EMAILS = [
+// Add emails of all authorized personnel (managers + volunteers)
+// who should get edit access during freeze
+var AUTHORIZED_EMAILS = [
   "manager1@example.com",
-  "manager2@example.com",
-  // Add actual manager emails here
+  "volunteer1@example.com",
+  // Add all authorized emails here
 ];
 
 var DATA_RANGE_NOTATION = "A3:V"; // Data range to protect/unprotect
 
 /**
- * FREEZE MODE: Remove protection from data range so managers can edit.
+ * FREEZE MODE: Remove protection from data range so all authorized personnel can edit.
  * Call this when the app goes down.
  */
 function freezeMode() {
@@ -1076,7 +1077,7 @@ function freezeMode() {
     });
   });
 
-  Logger.log("FREEZE MODE: Data range protections removed. Managers can edit.");
+  Logger.log("FREEZE MODE: Data range protections removed. All authorized personnel can edit.");
 }
 
 /**
@@ -1096,8 +1097,8 @@ function unfreezeMode() {
     // Remove all editors except the owner
     protection.removeEditors(protection.getEditors());
 
-    // Add managers as viewers (not editors) during normal operation
-    // The protection means they can view but not edit the range
+    // Remove all editors — during normal operation, only the service account writes
+    // The protection means everyone else can view but not edit the range
     if (protection.canDomainEdit()) {
       protection.setDomainEdit(false);
     }
@@ -1112,15 +1113,15 @@ function unfreezeMode() {
 1. Open the CATalog spreadsheet → Extensions > Apps Script
 2. Click **+** next to Files → Script → name it `Protection`
 3. Paste the contents of `Protection.gs`
-4. Update `MANAGER_EMAILS` with actual manager email addresses
+4. Update `AUTHORIZED_EMAILS` with actual email addresses of all managers and volunteers
 5. Click **Save**
 
 - [ ] **Step 3: Test both modes**
 
 1. Run `freezeMode()` from the Apps Script editor
-2. Open the sheet in an incognito window as a manager — verify you can edit cells in A3:V
+2. Open the sheet in an incognito window as a volunteer or manager — verify you can edit cells in A3:V
 3. Run `unfreezeMode()` from the Apps Script editor
-4. Verify the manager can no longer edit cells in A3:V
+4. Verify the volunteer/manager can no longer edit cells in A3:V
 
 - [ ] **Step 4: Commit**
 
@@ -1128,7 +1129,7 @@ function unfreezeMode() {
 git add workers/apps-script/Protection.gs
 git commit -m "feat: add freeze/unfreeze protection scripts for CATalog sheets
 
-freezeMode() unlocks data range for managers during app failure.
+freezeMode() unlocks data range for all authorized personnel during app failure.
 unfreezeMode() re-protects after recovery."
 ```
 
@@ -1948,14 +1949,14 @@ import { fullReverseSync } from "@/lib/services/reverse-sync.service";
  * After calling this:
  * 1. Cron sync jobs will skip (forward + reverse)
  * 2. Maintainer should run freezeMode() in GSheet Apps Script
- *    to unlock sheets for managers
+ *    to unlock sheets for all authorized personnel
  */
 export async function freezeSync() {
   await setSyncFrozen(true);
   return {
     frozen: true,
     message:
-      "Sync frozen. Run freezeMode() in GSheet Apps Script to unlock sheets for managers.",
+      "Sync frozen. Run freezeMode() in GSheet Apps Script to unlock sheets for all authorized personnel.",
   };
 }
 
