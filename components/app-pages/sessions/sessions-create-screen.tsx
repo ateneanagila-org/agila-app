@@ -241,8 +241,8 @@ export function SessionsCreateScreen() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col px-4 py-4 tablet:hidden">
-        <div className="flex-1 space-y-3">
+      <div className="flex flex-1 flex-col tablet:hidden">
+        <div className="flex-1 space-y-3 px-4 py-4">
           {/* Location select */}
           <div>
             <label className="mb-1.5 block text-sm font-bold text-foreground">Location</label>
@@ -258,19 +258,34 @@ export function SessionsCreateScreen() {
             />
           </div>
 
-          {/* Census indicator */}
+          {/* Census No. + action buttons */}
           {sessionId ? (
-            <div className="flex items-center gap-2 rounded-full bg-brand-green px-4 py-2">
-              <span className="text-xs font-bold text-brand-yellow">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-brand-green px-3 py-1.5 text-xs font-bold text-brand-yellow">
                 Census No. {sessionId.slice(0, 8)}
               </span>
-              <button
-                type="button"
-                onClick={() => setShowFinish(true)}
-                className="ml-auto text-xs font-semibold text-white/70 hover:text-white"
-              >
-                Finish ›
-              </button>
+              <div className="ml-auto flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-opacity hover:opacity-80"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 rounded-full border border-brand-green bg-white px-3 py-1.5 text-xs font-semibold text-brand-green transition-opacity hover:opacity-80"
+                >
+                  Save 💾
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFinish(true)}
+                  className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Finish ›
+                </button>
+              </div>
             </div>
           ) : null}
 
@@ -295,27 +310,30 @@ export function SessionsCreateScreen() {
           ) : (
             <div className="space-y-2">
               {cats.map((cat) => (
-                <div key={cat.id} className="overflow-hidden rounded-2xl bg-brand-green">
-                  <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+                <div key={cat.id} className="overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-24 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
-                            {cat.name || "Unnamed"}
-                            {sexSymbol(cat.sex) ? (
-                              <span className="ml-1 text-white/80">{sexSymbol(cat.sex)}</span>
-                            ) : null}
-                          </p>
-                          <p className="mt-0.5 text-xs text-white/70">
-                            {cat.color || "Unknown color"}{cat.age ? ` • ${cat.age}` : ""}
-                          </p>
-                        </div>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
-                          ···
-                        </div>
+                    {/* Info */}
+                    <div className="flex min-w-0 flex-1 items-start justify-between px-3.5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                          {cat.name || "Unnamed"}
+                          {sexSymbol(cat.sex) ? (
+                            <span className="ml-1 text-white/80">{sexSymbol(cat.sex)}</span>
+                          ) : null}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/70">
+                          {cat.color || "Unknown"}{cat.age ? ` Size/${cat.age}` : ""}
+                        </p>
+                        <p className="mt-1 text-xs text-white/60">
+                          {cat.spot_last_seen || "—"} &middot; {formatDate(cat.last_updated_at)}
+                        </p>
+                      </div>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
+                        ···
                       </div>
                     </div>
                   </div>

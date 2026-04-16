@@ -99,9 +99,9 @@ export function CustomSelect({
             }}
             className={panelCls}
           >
-            {options.map((opt) => (
+            {options.map((opt, i) => (
               <button
-                key={opt}
+                key={`${opt}-${i}`}
                 type="button"
                 onMouseDown={() => handleSelect(opt)}
                 className={`w-full px-3 py-2.5 text-left text-sm transition-colors ${

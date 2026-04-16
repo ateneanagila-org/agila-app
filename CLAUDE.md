@@ -47,18 +47,19 @@ Mobile is baseline, stable. Desktop gets variants when:
   - CSS: `font-family: "Aveton", var(--font-gantari), sans-serif`
 - **Body:** `Gantari` (Google Fonts) — `font-sans` Tailwind class (default body font)
 
-### Color Palette (OKLCH)
+### Color Palette
 
 | Token | Tailwind class | Value | Use |
 |-------|---------------|-------|-----|
-| Brand green | `bg-brand-green` | `oklch(0.44 0.15 139)` ≈ `#1F6B0C` | Headers, sidebar, nav bg |
-| Brand green light | `bg-brand-green-light` | `oklch(0.52 0.15 139)` | Hover/active on green |
+| Brand green | `bg-brand-green` | `#529151` | Headers, sidebar, nav bg |
+| Brand green light | `bg-brand-green-light` | `#5fa35e` | Hover/active on green |
 | Green foreground | `text-brand-green-foreground` | `oklch(0.99 0 0)` | Text on green surfaces (white) |
-| Brand orange | `bg-brand-orange` | `oklch(0.60 0.18 42)` ≈ `#CC501A` | CTA buttons, active indicators |
+| Brand yellow | `text-brand-yellow` | `#f3f58e` | Heading text on green backgrounds |
+| Brand orange | `bg-brand-orange` | `#CE6B3B` | CTA buttons, active indicators |
 | Orange foreground | `text-brand-orange-foreground` | `oklch(0.99 0 0)` | Text on orange (white) |
-| Brand cream | `bg-brand-cream` | `oklch(0.97 0.012 82)` ≈ `#F9F5EC` | Main content background |
+| Brand cream | `bg-brand-cream` | `oklch(0.97 0.012 82)` | Main content background |
 | Brand cream dark | `bg-brand-cream-dark` | `oklch(0.92 0.014 82)` | Subtle surfaces, hover |
-| Brand dark | `bg-brand-dark` | `oklch(0.18 0.03 135)` ≈ `#0F1E0B` | Bottom nav, dark shell |
+| Brand dark | `bg-brand-dark` | `#311A19` | Bottom nav, dark shell |
 
 ### Semantic mapping
 - `--primary` → brand green (headers, primary actions)
