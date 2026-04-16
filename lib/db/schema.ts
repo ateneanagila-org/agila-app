@@ -7,6 +7,7 @@ import {
   boolean,
   AnyPgColumn,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 import {
   authRoleEnum,
@@ -159,4 +160,6 @@ export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
   payload: jsonb("payload").$type<string[]>(), // The [A, B, C...] array
   status: actionStatusEnum("status").default("PENDING").notNull(), // PENDING, COMPLETED, FAILED
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  retryCount: integer("retry_count").default(0).notNull(),
+  lastError: text("last_error"),
 });
