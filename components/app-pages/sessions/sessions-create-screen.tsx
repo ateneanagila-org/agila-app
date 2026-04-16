@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  ChevronDownIcon,
   ImagePlaceholderIcon,
   PlusCircleIcon,
-  ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { FinishSessionDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { useAuth } from "@/contexts/auth-context";
@@ -241,67 +242,37 @@ export function SessionsCreateScreen() {
   return (
     <>
       <div className="flex flex-1 flex-col px-4 py-4 tablet:hidden">
-        <div className="flex-1 space-y-4">
-          <div className="relative rounded-xl bg-brand-green px-4 py-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-bold tracking-tight text-white">
-                  {selectedRegionName || "Select Location"}
-                </p>
-                <p className="text-xs text-white/70">
-                  Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
-                </p>
-              </div>
+        <div className="flex-1 space-y-3">
+          {/* Location select */}
+          <div>
+            <label className="mb-1.5 block text-sm font-bold text-foreground">Location</label>
+            <CustomSelect
+              options={regionOptions.map((r) => r.name)}
+              value={regionOptions.find((r) => r.id === selectedRegionId)?.name ?? ""}
+              onChange={(name) => {
+                const found = regionOptions.find((r) => r.name === name);
+                if (found) handleLocationSelect(found.id);
+              }}
+              placeholder="Select location..."
+              variant="cream"
+            />
+          </div>
+
+          {/* Census indicator */}
+          {sessionId ? (
+            <div className="flex items-center gap-2 rounded-full bg-brand-green px-4 py-2">
+              <span className="text-xs font-bold text-brand-yellow">
+                Census No. {sessionId.slice(0, 8)}
+              </span>
               <button
                 type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                className="px-1 text-xs tracking-widest text-white/70"
-                aria-label="More options"
+                onClick={() => setShowFinish(true)}
+                className="ml-auto text-xs font-semibold text-white/70 hover:text-white"
               >
-                &bull;&bull;&bull;
+                Finish ›
               </button>
             </div>
-
-            {menuOpen ? (
-              <div className="absolute right-4 top-10 z-10 min-w-30 rounded-xl border border-white/20 bg-brand-green py-1 shadow-lg">
-                {["Details", "Finish", "Save"].map((opt) => (
-                  <button
-                    type="button"
-                    key={opt}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      if (opt === "Finish") setShowFinish(true);
-                    }}
-                    className="block w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10"
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="relative rounded-xl bg-brand-green px-4 py-3">
-            <label className="text-xs font-semibold tracking-wide text-white/70">
-              Location
-            </label>
-            <div className="relative mt-1.5">
-              <select
-                value={selectedRegionId}
-                onChange={(e) => handleLocationSelect(e.target.value)}
-                disabled={!!sessionId || loading}
-                className="h-9 w-full appearance-none rounded-full bg-white/15 px-4 pr-9 text-sm text-white ring-1 ring-white/20 disabled:opacity-60"
-              >
-                <option value="">Select...</option>
-                {regionOptions.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-          </div>
+          ) : null}
 
           {error ? (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -314,60 +285,54 @@ export function SessionsCreateScreen() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
             </div>
           ) : !sessionId ? (
-            <div className="py-8 text-center text-sm text-white/50">
+            <div className="py-8 text-center text-sm text-slate-400">
               Select a location to start a session.
             </div>
           ) : cats.length === 0 ? (
-            <div className="py-8 text-center text-sm text-white/50">
-              No cats in this session yet.
+            <div className="py-8 text-center text-sm text-slate-400">
+              No cats yet. Tap + to add one.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl bg-brand-green">
-              {cats.map((cat, i) => (
-                <div key={cat.id}>
-                  <div className="flex items-start gap-3 px-3.5 py-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
-                      <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
+            <div className="space-y-2">
+              {cats.map((cat) => (
+                <div key={cat.id} className="overflow-hidden rounded-2xl bg-brand-green">
+                  <div className="flex items-start gap-3 p-3.5">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold tracking-tight text-white">
-                          {cat.name || "Unnamed"}
-                        </span>
-                        {sexSymbol(cat.sex) ? (
-                          <span className={`text-sm ${sexColor(cat.sex)}`}>
-                            {sexSymbol(cat.sex)}
-                          </span>
-                        ) : null}
-                        <span className="ml-auto text-xs tracking-widest text-white/70">
-                          &bull;&bull;&bull;
-                        </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                            {cat.name || "Unnamed"}
+                            {sexSymbol(cat.sex) ? (
+                              <span className="ml-1 text-white/80">{sexSymbol(cat.sex)}</span>
+                            ) : null}
+                          </p>
+                          <p className="mt-0.5 text-xs text-white/70">
+                            {cat.color || "Unknown color"}{cat.age ? ` • ${cat.age}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
+                          ···
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {cat.color || "Unknown"}
-                      </p>
-                      <p className="text-xs text-white/70">
-                        {cat.age || "Unknown"}
-                      </p>
                     </div>
                   </div>
-                  {i < cats.length - 1 ? (
-                    <div className="mx-3.5 border-b border-white/10" />
-                  ) : null}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="flex justify-end px-4 pb-5">
+        {/* FAB */}
+        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
           <button
             type="button"
             onClick={handleOpenAddForm}
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
-            Add Entry
-            <PlusCircleIcon className="h-4 w-4" />
+            <span className="text-2xl font-bold leading-none text-white">+</span>
           </button>
         </div>
       </div>

@@ -74,7 +74,7 @@ export function DetailHeader({
           <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-heading text-2xl font-bold leading-tight text-brand-orange">
+          <p className="font-heading text-2xl font-bold leading-tight text-brand-yellow">
             {name}
           </p>
           {subtitleText ? (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ImagePlaceholderIcon, UploadIcon } from "./icons";
 import { createCat, editCat } from "@/app/actions/cats";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
@@ -52,8 +51,8 @@ function DropdownField({
 }) {
   return (
     <div>
-      <label className="text-sm text-slate-700">{label}</label>
-      <div className="mt-1">
+      <label className="text-sm font-semibold text-brand-orange">{label}</label>
+      <div className="mt-1.5">
         <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
       </div>
     </div>
@@ -71,11 +70,11 @@ function TextField({
 }) {
   return (
     <div>
-      <label className="text-sm text-slate-700">{label}</label>
+      <label className="text-sm font-semibold text-brand-orange">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400"
+        className="mt-1.5 h-11 w-full rounded-2xl border border-brand-orange/30 bg-white px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-brand-orange/40"
       />
     </div>
   );
@@ -220,48 +219,45 @@ export function CatEntryForm({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white shadow-xl"
+        className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header: avatar + name + close */}
-        <div className="flex items-center gap-3 px-5 pb-3 pt-5">
-          <div className="relative h-12 w-12 shrink-0">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-              <ImagePlaceholderIcon className="h-6 w-6 text-slate-400" />
-            </div>
-            <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-500">
-              <UploadIcon className="h-2.5 w-2.5 text-white" />
-            </div>
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 flex-1 pr-3">
+            <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+              Add Entry
+            </h2>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Cat name (optional)"
+              className="mt-1 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
           </div>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Cat Name"
-            className="flex-1 text-base font-bold tracking-tight text-slate-900 outline-none placeholder:text-slate-400"
-          />
           <button
             type="button"
             onClick={onClose}
-            className="text-xl leading-none text-slate-400"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
             aria-label="Close"
           >
-            &#10005;
+            ✕
           </button>
         </div>
 
         {/* Error message */}
         {error ? (
-          <div className="mx-5 mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
             {error}
           </div>
         ) : null}
 
         {/* Scrollable fields */}
-        <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 pb-2">
+        <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
           {!regionId ? (
             <div>
-              <label className="text-sm text-slate-700">Location</label>
-              <div className="mt-1">
+              <label className="text-sm font-semibold text-brand-orange">Location</label>
+              <div className="mt-1.5">
                 <CustomSelect
                   options={regionOptions.map((r) => r.name)}
                   value={regionOptions.find((r) => r.id === selectedRegion)?.name ?? ""}
@@ -322,24 +318,31 @@ export function CatEntryForm({
             onChange={setCaretaker}
           />
           <div>
-            <label className="text-sm text-slate-700">Notes</label>
+            <label className="text-sm font-semibold text-brand-orange">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-slate-400"
+              className="mt-1.5 h-20 w-full resize-none rounded-2xl border border-brand-orange/30 bg-white px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-brand-orange/40"
             />
           </div>
         </div>
 
-        {/* Save */}
-        <div className="px-5 pb-5 pt-3">
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+          >
+            Cancel <span>✕</span>
+          </button>
           <button
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="w-full rounded-full bg-stone-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : "Save"} <span>✓</span>
           </button>
         </div>
       </div>

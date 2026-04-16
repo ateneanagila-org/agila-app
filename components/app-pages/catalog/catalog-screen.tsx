@@ -192,7 +192,7 @@ export function CatalogScreen() {
                       <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
                       <p className="text-xs text-white/60">{cat.age || "—"}</p>
                     </div>
-                    <span className="text-xl font-bold text-brand-orange leading-none">›</span>
+                    <span className="text-xl font-bold text-brand-yellow leading-none">›</span>
                   </div>
                 </div>
               </Link>

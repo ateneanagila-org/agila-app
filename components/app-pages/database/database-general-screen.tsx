@@ -58,7 +58,7 @@ function FormSelect({
 }) {
   return (
     <div>
-      <label className="text-xs font-bold text-brand-orange">{label}</label>
+      <label className="text-xs font-bold text-brand-yellow">{label}</label>
       <div className="mt-1.5">
         <CustomSelect options={options} value={value} onChange={onChange} variant="cream" />
       </div>
@@ -253,7 +253,7 @@ export function DatabaseGeneralScreen() {
 
                 {/* Last seen at */}
                 <div>
-                  <p className="text-xs font-bold text-brand-orange">Last seen at:</p>
+                  <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {formatDate(cat?.last_updated_at)} /{" "}
                     {cat?.spot_last_seen || "—"}
@@ -267,7 +267,7 @@ export function DatabaseGeneralScreen() {
                 <FormSelect label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
 
                 <div>
-                  <label className="text-xs font-bold text-brand-orange">Caretaker</label>
+                  <label className="text-xs font-bold text-brand-yellow">Caretaker</label>
                   <input
                     value={caretaker}
                     onChange={(e) => setCaretaker(e.target.value)}
@@ -276,7 +276,7 @@ export function DatabaseGeneralScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-brand-orange">Notes</label>
+                  <label className="text-xs font-bold text-brand-yellow">Notes</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}

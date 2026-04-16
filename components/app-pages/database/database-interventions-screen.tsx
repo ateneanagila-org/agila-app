@@ -227,7 +227,7 @@ export function DatabaseInterventionsScreen() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-heading text-base font-bold leading-tight text-brand-orange">
+                      <p className="font-heading text-base font-bold leading-tight text-brand-yellow">
                         Intervention No. {String(index + 1).padStart(2, "0")}
                       </p>
                       <p className="mt-0.5 text-xs text-white/80">

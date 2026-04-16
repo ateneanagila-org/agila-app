@@ -37,6 +37,8 @@
   --color-brand-cream-dark: oklch(0.92 0.014 82);
   /* Dark: very dark green-black for bottom nav */
   --color-brand-dark: oklch(0.18 0.03 135);
+  /* Yellow: light yellow for heading text on green backgrounds */
+  --color-brand-yellow: #f3f58e;
 
   /* Semantic color tokens — ref :root vars for theme switching */
   --color-background: var(--background);

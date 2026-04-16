@@ -240,7 +240,7 @@ export function DatabaseMedicalScreen() {
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-brand-orange">Condition</label>
+                  <label className="text-xs font-bold text-brand-yellow">Condition</label>
                   <div className="mt-1.5">
                     <CustomSelect
                       options={CATHEALTHRECORD_CONDITION_VALUES}
@@ -252,7 +252,7 @@ export function DatabaseMedicalScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-brand-orange">Neuter Date</label>
+                  <label className="text-xs font-bold text-brand-yellow">Neuter Date</label>
                   <DateInputRow
                     month={neuterMonth}
                     day={neuterDay}
@@ -264,7 +264,7 @@ export function DatabaseMedicalScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-brand-orange">Vaccination Date</label>
+                  <label className="text-xs font-bold text-brand-yellow">Vaccination Date</label>
                   <DateInputRow
                     month={vaccMonth}
                     day={vaccDay}

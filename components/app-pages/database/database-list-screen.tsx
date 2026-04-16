@@ -183,7 +183,7 @@ export function DatabaseListScreen() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-heading text-xl font-bold leading-tight text-brand-orange">
+                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
                             {cat.name || "Unnamed"}
                             {sexSymbol(cat.sex) ? (
                               <span className="ml-1 text-white/80">
