@@ -6,6 +6,7 @@ import { createCat, editCat } from "@/app/actions/cats";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
+import { CustomSelect } from "@/components/ui/custom-select";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -52,22 +53,8 @@ function DropdownField({
   return (
     <div>
       <label className="text-sm text-slate-700">{label}</label>
-      <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900"
-        >
-          <option value="">&mdash;</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-          &#9660;
-        </span>
+      <div className="mt-1">
+        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
       </div>
     </div>
   );
@@ -274,25 +261,17 @@ export function CatEntryForm({
           {!regionId ? (
             <div>
               <label className="text-sm text-slate-700">Location</label>
-              <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  disabled={regionsLoading}
-                  className="h-10 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
-                >
-                  <option value="">
-                    {regionsLoading ? "Loading..." : "—"}
-                  </option>
-                  {regionOptions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  &#9660;
-                </span>
+              <div className="mt-1">
+                <CustomSelect
+                  options={regionOptions.map((r) => r.name)}
+                  value={regionOptions.find((r) => r.id === selectedRegion)?.name ?? ""}
+                  onChange={(name) => {
+                    const found = regionOptions.find((r) => r.name === name);
+                    if (found) setSelectedRegion(found.id);
+                  }}
+                  placeholder={regionsLoading ? "Loading..." : "—"}
+                  variant="white"
+                />
               </div>
             </div>
           ) : null}

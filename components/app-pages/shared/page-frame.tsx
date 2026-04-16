@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { ImagePlaceholderIcon, UploadIcon } from "./icons";
+import { ImagePlaceholderIcon } from "./icons";
 
 type PageContentProps = {
   children: ReactNode;
@@ -40,7 +40,7 @@ export function TopTabs({
           href={tab.href}
           className={`flex-1 pb-2.5 text-center text-sm tracking-wide transition-colors tablet:flex-none tablet:text-left ${
             tab.label === active
-              ? "-mb-px border-b-2 border-slate-900 font-bold text-slate-900"
+              ? "-mb-px border-b-2 border-brand-orange font-bold text-brand-orange"
               : "font-medium text-slate-400 hover:text-slate-600"
           }`}
         >
@@ -55,33 +55,40 @@ type DetailHeaderProps = {
   name?: string;
   lastUpdated?: string;
   backHref?: string;
+  /** Override the "Last updated:" label, e.g. "Just created!" */
+  subtitle?: string;
 };
 
 export function DetailHeader({
   name = "Cat Name",
-  lastUpdated = "01/01/2026",
+  lastUpdated,
   backHref = "/database",
+  subtitle,
 }: DetailHeaderProps) {
+  const subtitleText = subtitle ?? (lastUpdated ? `Last updated: ${lastUpdated}` : "");
+
   return (
-    <div className="flex items-start gap-3">
-      <div className="relative h-14 w-14 shrink-0">
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200">
-          <ImagePlaceholderIcon className="h-7 w-7 text-slate-400" />
+    <div className="overflow-hidden rounded-2xl bg-brand-green">
+      <div className="flex items-center gap-3 p-3.5">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
         </div>
-        <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-500">
-          <UploadIcon className="h-2.5 w-2.5 text-white" />
+        <div className="min-w-0 flex-1">
+          <p className="font-heading text-2xl font-bold leading-tight text-brand-orange">
+            {name}
+          </p>
+          {subtitleText ? (
+            <p className="mt-0.5 text-xs font-semibold text-white/80">{subtitleText}</p>
+          ) : null}
         </div>
+        <Link
+          href={backHref}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-lg font-bold text-white transition-opacity hover:opacity-80"
+          aria-label="Back"
+        >
+          ‹
+        </Link>
       </div>
-      <div className="min-w-0 flex-1 pt-1">
-        <p className="text-base font-bold tracking-tight text-slate-900">{name}</p>
-        <p className="mt-0.5 text-xs text-slate-500">Last Updated: {lastUpdated}</p>
-      </div>
-      <Link
-        href={backHref}
-        className="flex shrink-0 items-center gap-0.5 pt-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
-      >
-        <span className="text-base leading-none">&lsaquo;</span> Back
-      </Link>
     </div>
   );
 }

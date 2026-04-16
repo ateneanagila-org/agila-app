@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
+import { TrashIcon } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
@@ -56,18 +57,8 @@ function SelectField({
   return (
     <div>
       <label className="text-sm font-semibold text-brand-orange">{label}</label>
-      <div className="relative mt-1.5">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-full appearance-none rounded-full border border-brand-orange/30 bg-white px-4 pr-10 text-sm text-foreground outline-none"
-        >
-          <option value="">Value</option>
-          {options.map((o) => (
-            <option key={o} value={o}>{o}</option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange/70" />
+      <div className="mt-1.5">
+        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
       </div>
     </div>
   );
