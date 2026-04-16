@@ -9,13 +9,10 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
+  ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import {
-  getCats,
-  getCatHealthRecords,
-  editCat,
-} from "@/app/actions/cats";
+import { getCats, getCatHealthRecords, editCat } from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
@@ -61,13 +58,17 @@ function DateInputRow({
 
   return (
     <div className="mt-1.5 grid grid-cols-3 gap-2">
-      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
+      <div
+        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
+      >
         <select
           value={month}
           onChange={(e) => onMonthChange(e.target.value)}
           className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="" className="bg-white text-slate-900">MM</option>
+          <option value="" className="bg-white text-slate-900">
+            MM
+          </option>
           {MONTHS.map((m) => (
             <option key={m} value={m} className="bg-white text-slate-900">
               {m}
@@ -76,13 +77,17 @@ function DateInputRow({
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
       </div>
-      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
+      <div
+        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
+      >
         <select
           value={day}
           onChange={(e) => onDayChange(e.target.value)}
           className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="" className="bg-white text-slate-900">DD</option>
+          <option value="" className="bg-white text-slate-900">
+            DD
+          </option>
           {DAYS.map((d) => (
             <option key={d} value={d} className="bg-white text-slate-900">
               {d}
@@ -91,13 +96,17 @@ function DateInputRow({
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
       </div>
-      <div className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}>
+      <div
+        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
+      >
         <select
           value={year}
           onChange={(e) => onYearChange(e.target.value)}
           className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
         >
-          <option value="" className="bg-white text-slate-900">YYYY</option>
+          <option value="" className="bg-white text-slate-900">
+            YYYY
+          </option>
           {YEARS.map((y) => (
             <option key={y} value={y} className="bg-white text-slate-900">
               {y}
@@ -285,16 +294,24 @@ export function DatabaseMedicalScreen() {
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-white/70">Condition</label>
+                  <label className="text-xs font-semibold text-white/70">
+                    Condition
+                  </label>
                   <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
                     <select
                       value={condition}
                       onChange={(e) => setCondition(e.target.value)}
                       className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
                     >
-                      <option value="" className="bg-white text-slate-900">—</option>
+                      <option value="" className="bg-white text-slate-900">
+                        —
+                      </option>
                       {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                        <option key={v} value={v} className="bg-white text-slate-900">
+                        <option
+                          key={v}
+                          value={v}
+                          className="bg-white text-slate-900"
+                        >
                           {v}
                         </option>
                       ))}
@@ -304,7 +321,9 @@ export function DatabaseMedicalScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">Neuter Date</label>
+                  <label className="text-xs font-semibold text-white/70">
+                    Neuter Date
+                  </label>
                   <DateInputRow
                     month={neuterMonth}
                     day={neuterDay}
@@ -317,7 +336,9 @@ export function DatabaseMedicalScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">Vaccination Date</label>
+                  <label className="text-xs font-semibold text-white/70">
+                    Vaccination Date
+                  </label>
                   <DateInputRow
                     month={vaccMonth}
                     day={vaccDay}
@@ -478,9 +499,15 @@ export function DatabaseMedicalScreen() {
                   onChange={(e) => setCondition(e.target.value)}
                   className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
                 >
-                  <option value="" className="bg-white text-slate-900">—</option>
+                  <option value="" className="bg-white text-slate-900">
+                    —
+                  </option>
                   {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option key={v} value={v} className="bg-white text-slate-900">
+                    <option
+                      key={v}
+                      value={v}
+                      className="bg-white text-slate-900"
+                    >
                       {v}
                     </option>
                   ))}

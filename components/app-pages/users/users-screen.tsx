@@ -133,8 +133,8 @@ export function UsersScreen() {
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editProfile.bind(null, selectedUser.id);
-      const result = await boundEdit({
+      const result = await editProfile.bind(null, selectedUser.id)({
+        id: selectedUser.id,
         auth_role: editRole as AuthRole,
       });
       if (result?.serverError) {

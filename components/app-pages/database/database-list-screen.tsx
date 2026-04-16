@@ -179,14 +179,14 @@ export function DatabaseListScreen() {
                           </p>
                           {sexSymbol(cat.sex) && (
                             <p className="mt-0.5 text-xs font-semibold text-white/70">
-                              {sexSymbol(cat.sex)}{" "}
-                              {cat.sex}
+                              {sexSymbol(cat.sex)} {cat.sex}
                             </p>
                           )}
                         </div>
                       </div>
                       <p className="mt-1 text-xs text-white/60">
-                        {cat.color || "Unknown color"} • {cat.age || "Unknown age"}
+                        {cat.color || "Unknown color"} •{" "}
+                        {cat.age || "Unknown age"}
                       </p>
                       <p className="mt-1.5 text-xs font-semibold text-white/70">
                         {cat.spot_last_seen || "Unknown location"} &middot;{" "}
@@ -214,7 +214,9 @@ export function DatabaseListScreen() {
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">Database</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+            Database
+          </h1>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
@@ -317,10 +319,7 @@ export function DatabaseListScreen() {
       </div>
 
       {showAdd ? (
-        <CatEntryForm
-          onClose={() => setShowAdd(false)}
-          onSave={handleSave}
-        />
+        <CatEntryForm onClose={() => setShowAdd(false)} onSave={handleSave} />
       ) : null}
       <FiltersDialog
         open={showFilters}

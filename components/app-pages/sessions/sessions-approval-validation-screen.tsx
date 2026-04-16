@@ -161,8 +161,8 @@ export function SessionsApprovalValidationScreen() {
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editCat.bind(null, catId);
-      const result = await boundEdit({
+      const result = await editCat({
+        id: catId,
         color: (color || undefined) as CatColor | undefined,
         age: (age || undefined) as CatAge | undefined,
         sex: (sex || undefined) as CatSex | undefined,
@@ -204,8 +204,7 @@ export function SessionsApprovalValidationScreen() {
         const boundRemoveSessionCat = removeSessionCat.bind(null, sessionCatId);
         await boundRemoveSessionCat();
       } else {
-        const boundRemove = removeCat.bind(null, catId);
-        await boundRemove();
+        await removeCat({ id: catId });
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);

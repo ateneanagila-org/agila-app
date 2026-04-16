@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import {
+  SearchIcon,
+  ChevronDownIcon,
+} from "@/components/app-pages/shared/icons";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
@@ -43,8 +46,10 @@ function computeStats(
     if (cat.sociability === "Domesticated") domesticated++;
     else if (cat.sociability === "Tame") tame++;
     else if (cat.sociability === "Feral") feral++;
-    if (hr?.condition === "Sick" || hr?.condition === "Sick and Injured") sick++;
-    if (hr?.condition === "Injured" || hr?.condition === "Sick and Injured") injured++;
+    if (hr?.condition === "Sick" || hr?.condition === "Sick and Injured")
+      sick++;
+    if (hr?.condition === "Injured" || hr?.condition === "Sick and Injured")
+      injured++;
     if (cat.is_adoptable) adoptable++;
     if (!cat.name || cat.name.trim() === "") unnamed++;
     if (cat.cat_status === "Fostered") fostered++;
@@ -59,10 +64,23 @@ function computeStats(
   const overallTotal = total + offCensusTotal;
 
   return {
-    total, neutered, unneutered, tnvrPct,
-    domesticated, tame, feral, sick, injured,
-    adoptable, unnamed, fostered, adopted, mia,
-    deceased, offCensusTotal, overallTotal,
+    total,
+    neutered,
+    unneutered,
+    tnvrPct,
+    domesticated,
+    tame,
+    feral,
+    sick,
+    injured,
+    adoptable,
+    unnamed,
+    fostered,
+    adopted,
+    mia,
+    deceased,
+    offCensusTotal,
+    overallTotal,
   };
 }
 
@@ -71,7 +89,9 @@ export function OverviewScreen() {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [location, setLocation] = useState("Overall");
   const [allCats, setAllCats] = useState<SelectCat[]>([]);
-  const [allHealthRecords, setAllHealthRecords] = useState<SelectCatHealthRecord[]>([]);
+  const [allHealthRecords, setAllHealthRecords] = useState<
+    SelectCatHealthRecord[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("MM/DD/YY");
 
@@ -115,8 +135,8 @@ export function OverviewScreen() {
 
   const filteredCats = useMemo(() => {
     if (location === "Overall") return allCats;
-    return allCats.filter(
-      (c) => c.spot_last_seen?.toUpperCase().includes(location.toUpperCase()),
+    return allCats.filter((c) =>
+      c.spot_last_seen?.toUpperCase().includes(location.toUpperCase()),
     );
   }, [allCats, location]);
 
@@ -127,8 +147,8 @@ export function OverviewScreen() {
 
   const desktopCats = useMemo(() => {
     if (dashboardMode === "Overall") return allCats;
-    return allCats.filter(
-      (c) => c.spot_last_seen?.toUpperCase().includes(dashboardMode.toUpperCase()),
+    return allCats.filter((c) =>
+      c.spot_last_seen?.toUpperCase().includes(dashboardMode.toUpperCase()),
     );
   }, [allCats, dashboardMode]);
 
@@ -172,14 +192,19 @@ export function OverviewScreen() {
       {/* ── MOBILE HI-FI ── */}
       <div className="tablet:hidden">
         <div className="space-y-3 px-4 py-4">
-
           {/* Dates */}
           <div className="space-y-0.5">
             <p className="text-xs text-muted-foreground">
-              Last update: <span className="font-semibold text-foreground">{lastUpdated}</span>
+              Last update:{" "}
+              <span className="font-semibold text-foreground">
+                {lastUpdated}
+              </span>
             </p>
             <p className="text-xs text-muted-foreground">
-              Last PAWS update: <span className="font-semibold text-foreground">{lastUpdated}</span>
+              Last PAWS update:{" "}
+              <span className="font-semibold text-foreground">
+                {lastUpdated}
+              </span>
             </p>
           </div>
 
@@ -193,7 +218,9 @@ export function OverviewScreen() {
             >
               <option value="Overall">Overall (type to search)</option>
               {LOCATIONS.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
               ))}
             </select>
             <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white" />
@@ -203,12 +230,20 @@ export function OverviewScreen() {
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">Total Count</p>
-                <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">{stats.total}</p>
+                <p className="text-[11px] font-medium text-white/70">
+                  Total Count
+                </p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
+                  {stats.total}
+                </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">TNVR Score</p>
-                <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">{stats.tnvrPct}%</p>
+                <p className="text-[11px] font-medium text-white/70">
+                  TNVR Score
+                </p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
+                  {stats.tnvrPct}%
+                </p>
               </div>
             </div>
           </div>
@@ -216,19 +251,29 @@ export function OverviewScreen() {
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">Neutered</p>
-                <p className="mt-0.5 text-xl font-bold tabular-nums text-white">{stats.neutered}</p>
+                <p className="text-[11px] font-medium text-white/70">
+                  Neutered
+                </p>
+                <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                  {stats.neutered}
+                </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">Unneutered</p>
-                <p className="mt-0.5 text-xl font-bold tabular-nums text-white">{stats.unneutered}</p>
+                <p className="text-[11px] font-medium text-white/70">
+                  Unneutered
+                </p>
+                <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                  {stats.unneutered}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Population section */}
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold text-foreground">Population</h2>
+            <h2 className="font-heading text-xl font-bold text-foreground">
+              Population
+            </h2>
             <button
               type="button"
               className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-semibold text-white"
@@ -268,21 +313,41 @@ export function OverviewScreen() {
           <div className="space-y-2">
             {/* Wide single row */}
             <div className="flex items-center justify-between rounded-xl bg-brand-green px-4 py-2.5">
-              <span className="text-sm font-semibold text-white">Domesticated</span>
-              <span className="text-sm font-bold tabular-nums text-white">{stats.domesticated}</span>
+              <span className="text-sm font-semibold text-white">
+                Domesticated
+              </span>
+              <span className="text-sm font-bold tabular-nums text-white">
+                {stats.domesticated}
+              </span>
             </div>
 
             {/* Paired rows */}
             {[
-              [{ label: "Adoptable", value: stats.adoptable }, { label: "Unnamed", value: stats.unnamed }],
-              [{ label: "Tame", value: stats.tame }, { label: "Feral", value: stats.feral }],
-              [{ label: "Sick", value: stats.sick }, { label: "Injured", value: stats.injured }],
+              [
+                { label: "Adoptable", value: stats.adoptable },
+                { label: "Unnamed", value: stats.unnamed },
+              ],
+              [
+                { label: "Tame", value: stats.tame },
+                { label: "Feral", value: stats.feral },
+              ],
+              [
+                { label: "Sick", value: stats.sick },
+                { label: "Injured", value: stats.injured },
+              ],
             ].map((pair, i) => (
               <div key={i} className="grid grid-cols-2 gap-2">
                 {pair.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5">
-                    <span className="text-xs font-medium text-white/80">{item.label}</span>
-                    <span className="text-sm font-bold tabular-nums text-white">{item.value}</span>
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
+                  >
+                    <span className="text-xs font-medium text-white/80">
+                      {item.label}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums text-white">
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -296,25 +361,44 @@ export function OverviewScreen() {
               <div className="grid grid-cols-2 divide-x divide-white/20">
                 <div className="px-4 py-3">
                   <p className="text-sm font-semibold text-white">Untracked</p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-white">{stats.offCensusTotal}</p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                    {stats.offCensusTotal}
+                  </p>
                 </div>
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-white">Overall Total</p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-white">{stats.overallTotal}</p>
+                  <p className="text-sm font-semibold text-white">
+                    Overall Total
+                  </p>
+                  <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                    {stats.overallTotal}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Paired off-census rows */}
             {[
-              [{ label: "Fostered", value: stats.fostered }, { label: "Adopted", value: stats.adopted }],
-              [{ label: "MIA", value: stats.mia }, { label: "Deceased", value: stats.deceased }],
+              [
+                { label: "Fostered", value: stats.fostered },
+                { label: "Adopted", value: stats.adopted },
+              ],
+              [
+                { label: "MIA", value: stats.mia },
+                { label: "Deceased", value: stats.deceased },
+              ],
             ].map((pair, i) => (
               <div key={i} className="grid grid-cols-2 gap-2">
                 {pair.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5">
-                    <span className="text-xs font-medium text-white/80">{item.label}</span>
-                    <span className="text-sm font-bold tabular-nums text-white">{item.value}</span>
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
+                  >
+                    <span className="text-xs font-medium text-white/80">
+                      {item.label}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums text-white">
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -375,7 +459,9 @@ export function OverviewScreen() {
           <section className="relative rounded-2xl bg-white p-5 ring-1 ring-border">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <p className="text-sm font-semibold text-foreground">Graph title</p>
+                <p className="text-sm font-semibold text-foreground">
+                  Graph title
+                </p>
                 <button
                   type="button"
                   className="rounded-full bg-brand-cream-dark px-3 py-1 text-sm text-foreground"
@@ -411,7 +497,9 @@ export function OverviewScreen() {
             )}
 
             <div className="flex h-75 items-center justify-center rounded-xl bg-brand-cream text-sm text-muted-foreground">
-              {isOverall ? "horizontal bar chart" : "line chart (display all months in a year)"}
+              {isOverall
+                ? "horizontal bar chart"
+                : "line chart (display all months in a year)"}
             </div>
           </section>
 
@@ -421,8 +509,12 @@ export function OverviewScreen() {
                 key={stat.label}
                 className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 ring-1 ring-border"
               >
-                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
-                <span className="text-sm font-bold tabular-nums text-foreground">{stat.value}</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {stat.label}
+                </span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {stat.value}
+                </span>
               </div>
             ))}
           </section>

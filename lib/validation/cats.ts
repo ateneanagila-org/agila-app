@@ -32,7 +32,6 @@ export const editCatSchema = createInsertSchema(cats)
   .required({ id: true });
 export const removeCatSchema = z.object({
   id: z.string().uuid({ message: "Invalid Cat ID" }),
-  region_id: z.string().uuid({ message: "Invalid Region ID" }),
 });
 
 // TYPES

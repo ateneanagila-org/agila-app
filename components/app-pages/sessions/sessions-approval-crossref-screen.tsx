@@ -93,8 +93,8 @@ export function SessionsApprovalCrossRefScreen() {
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editCat.bind(null, catId);
-      const result = await boundEdit({
+      const result = await editCat({
+        id: catId,
         merged_into_id: mergeTargetId,
         entry_status: "Merged" as CatEntryStatus,
       });
@@ -118,8 +118,8 @@ export function SessionsApprovalCrossRefScreen() {
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editCat.bind(null, catId);
-      const result = await boundEdit({
+      const result = await editCat({
+        id: catId,
         entry_status: "Original" as CatEntryStatus,
       });
 
@@ -138,14 +138,13 @@ export function SessionsApprovalCrossRefScreen() {
   }, [catId, router]);
 
   const handleDiscard = useCallback(async () => {
-    if (!catId) return;
+    if (!catId || !cat) return;
     try {
       if (sessionCatId) {
         const boundRemoveSessionCat = removeSessionCat.bind(null, sessionCatId);
         await boundRemoveSessionCat();
       } else {
-        const boundRemoveCat = removeCat.bind(null, catId);
-        await boundRemoveCat();
+        await removeCat({ id: catId });
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
@@ -154,7 +153,7 @@ export function SessionsApprovalCrossRefScreen() {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
     }
-  }, [catId, router, sessionCatId]);
+  }, [catId, cat, router, sessionCatId]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
