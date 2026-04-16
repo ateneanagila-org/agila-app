@@ -73,7 +73,8 @@ export function DatabaseInterventionsScreen() {
       return null;
     },
     (item, key) => {
-      if (key === "requested_at") return item.requested_at ? new Date(item.requested_at) : null;
+      if (key === "requested_at")
+        return item.requested_at ? new Date(item.requested_at) : null;
       if (key === "type") return item.type ?? "";
       if (key === "status") return item.status ?? "";
       return null;
@@ -143,8 +144,8 @@ export function DatabaseInterventionsScreen() {
   const handleStatusChange = useCallback(
     async (interventionId: string, newStatus: string) => {
       try {
-        const boundEdit = editIntervention.bind(null, interventionId);
-        await boundEdit({
+        await editIntervention({
+          id: interventionId,
           status: newStatus as InterventionStatus,
         });
         syncAllPendingRegions();
@@ -234,7 +235,11 @@ export function DatabaseInterventionsScreen() {
                       className="flex appearance-none items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 pr-7 text-[11px] font-bold text-white"
                     >
                       {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option key={s} value={s} className="bg-white text-slate-900">
+                        <option
+                          key={s}
+                          value={s}
+                          className="bg-white text-slate-900"
+                        >
                           {s}
                         </option>
                       ))}
@@ -401,7 +406,11 @@ export function DatabaseInterventionsScreen() {
                       className="flex h-9 min-w-36 appearance-none items-center justify-between rounded-lg bg-brand-orange px-3 pr-8 text-sm font-bold text-white"
                     >
                       {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option key={s} value={s} className="bg-white text-slate-900">
+                        <option
+                          key={s}
+                          value={s}
+                          className="bg-white text-slate-900"
+                        >
                           {s}
                         </option>
                       ))}
@@ -467,7 +476,9 @@ export function DatabaseInterventionsScreen() {
                 onChange={(e) => setNewType(e.target.value)}
                 className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
               >
-                <option value="" className="bg-white text-slate-900">&mdash;</option>
+                <option value="" className="bg-white text-slate-900">
+                  &mdash;
+                </option>
                 {INTERVENTION_TYPE_VALUES.map((t) => (
                   <option key={t} value={t} className="bg-white text-slate-900">
                     {t}

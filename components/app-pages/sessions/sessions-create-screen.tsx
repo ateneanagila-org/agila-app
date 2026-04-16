@@ -187,8 +187,7 @@ export function SessionsCreateScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      const boundEdit = editSession.bind(null, sessionId);
-      const result = await boundEdit({ is_finished: true });
+      const result = await editSession.bind(null, sessionId)({ id: sessionId, is_finished: true });
       if (result?.serverError) {
         setError(result.serverError);
         return;

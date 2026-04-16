@@ -1,5 +1,6 @@
 import { db } from "../db";
 import * as catsRepo from "../repo/cats.repo";
+import * as sessionsRepo from "../repo/sessions.repo";
 import { gsheetSyncQueue } from "../db/schema";
 import {
   CreateCatSchema,
@@ -56,14 +57,18 @@ export const editCat = async (data: EditCatSchema) => {
 
 export const removeCat = async (data: RemoveCatSchema) => {
   return await db.transaction(async (tx) => {
+    const region = await sessionsRepo.findCatRegionByLatestSession(data.id, tx);
+
     await catsRepo.deleteCat(data.id, tx);
 
-    await tx.insert(gsheetSyncQueue).values({
-      action: "DELETE",
-      entityId: data.id,
-      regionId: data.region_id,
-      payload: [],
-    });
+    if (region) {
+      await tx.insert(gsheetSyncQueue).values({
+        action: "DELETE",
+        entityId: data.id,
+        regionId: region.id,
+        payload: [],
+      });
+    }
 
     return { success: true };
   });

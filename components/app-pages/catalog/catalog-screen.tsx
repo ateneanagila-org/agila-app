@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { SearchIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
+import {
+  SearchIcon,
+  ImagePlaceholderIcon,
+} from "@/components/app-pages/shared/icons";
 import {
   FiltersDialog,
   SortByDialog,
@@ -38,7 +41,8 @@ export function CatalogScreen() {
       return val != null ? String(val) : null;
     },
     (cat, key) => {
-      if (key === "last_updated_at") return cat.last_updated_at ? new Date(cat.last_updated_at) : null;
+      if (key === "last_updated_at")
+        return cat.last_updated_at ? new Date(cat.last_updated_at) : null;
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },
@@ -155,7 +159,9 @@ export function CatalogScreen() {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
+                  <p className="mt-0.5 text-xs text-white/70">
+                    {cat.color || "—"}
+                  </p>
                   <p className="text-xs text-white/70">{cat.age || "—"}</p>
                 </div>
               </div>

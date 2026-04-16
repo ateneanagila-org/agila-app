@@ -9,6 +9,7 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
+  ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat } from "@/app/actions/cats";
@@ -61,7 +62,9 @@ function DropdownField({
             onChange={(e) => onChange(e.target.value)}
             className="h-10 w-full appearance-none rounded-xl bg-white/15 px-3 pr-10 text-sm text-white font-medium"
           >
-            <option value="" className="bg-white text-slate-900">&mdash;</option>
+            <option value="" className="bg-white text-slate-900">
+              &mdash;
+            </option>
             {options.map((opt) => (
               <option key={opt} value={opt} className="bg-white text-slate-900">
                 {opt}
@@ -85,7 +88,9 @@ function DropdownField({
           onChange={(e) => onChange(e.target.value)}
           className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm text-white font-medium"
         >
-          <option value="" className="bg-white text-slate-900">&mdash;</option>
+          <option value="" className="bg-white text-slate-900">
+            &mdash;
+          </option>
           {options.map((opt) => (
             <option key={opt} value={opt} className="bg-white text-slate-900">
               {opt}
@@ -166,8 +171,8 @@ export function DatabaseGeneralScreen() {
     setSaving(true);
     setError(null);
     try {
-      const boundEdit = editCat.bind(null, catId);
-      const result = await boundEdit({
+      const result = await editCat({
+        id: catId,
         color: (color || undefined) as CatColor | undefined,
         age: (age || undefined) as CatAge | undefined,
         sex: (sex || undefined) as CatSex | undefined,
@@ -211,8 +216,7 @@ export function DatabaseGeneralScreen() {
     const newVal = !isAdoptable;
     setIsAdoptable(newVal);
     try {
-      const boundEdit = editCat.bind(null, catId);
-      await boundEdit({ is_adoptable: newVal });
+      await editCat({ id: catId, is_adoptable: newVal });
       syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
@@ -283,7 +287,9 @@ export function DatabaseGeneralScreen() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-white/70">Last seen at:</p>
+                  <p className="text-xs font-semibold text-white/70">
+                    Last seen at:
+                  </p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {formatDate(cat?.last_updated_at)} /{" "}
                     {cat?.spot_last_seen || "—"}
@@ -327,7 +333,9 @@ export function DatabaseGeneralScreen() {
                 />
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">Caretaker</label>
+                  <label className="text-xs font-semibold text-white/70">
+                    Caretaker
+                  </label>
                   <input
                     value={caretaker}
                     onChange={(e) => setCaretaker(e.target.value)}
@@ -336,7 +344,9 @@ export function DatabaseGeneralScreen() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">Notes</label>
+                  <label className="text-xs font-semibold text-white/70">
+                    Notes
+                  </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -528,7 +538,9 @@ export function DatabaseGeneralScreen() {
               isMobile
             />
             <div>
-              <label className="text-xs font-semibold text-white/70">Caretaker</label>
+              <label className="text-xs font-semibold text-white/70">
+                Caretaker
+              </label>
               <input
                 value={caretaker}
                 onChange={(e) => setCaretaker(e.target.value)}
