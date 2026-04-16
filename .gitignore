@@ -47,4 +47,4 @@ output.txt
 # nextjs-server-action-tester
 /public/server-actions.json
 /app/api/list-actions
-/app/list-actions
+/app/list-actionsworkers/sync-cron/node_modules
