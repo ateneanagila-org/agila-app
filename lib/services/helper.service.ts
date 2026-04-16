@@ -298,12 +298,17 @@ export async function syncAndCompactRegion(regionId: string) {
 }
 
 // ==========================================
-// 5. CONFIG SHEET (_config tab)
+// 5. CONFIG SHEET (_config tab) & SHEET PROTECTIONS
 // ==========================================
 
 const CONFIG_SPREADSHEET_ID = process.env.CATALOG_SPREADSHEET_ID!;
 const CONFIG_SHEET = "_config";
 const AUTHORIZED_EMAILS_CELL = "B1";
+
+// A3:V in 0-indexed GridRange terms
+const DATA_START_ROW = 2; // row 3, 0-indexed inclusive
+const DATA_START_COL = 0; // col A, 0-indexed inclusive
+const DATA_END_COL = 22; // col V, 0-indexed exclusive
 
 /**
  * Writes the authorized editors list to the _config sheet (B1).
@@ -352,4 +357,113 @@ export async function syncSheetEditors(): Promise<void> {
     .map((u) => u.email as string);
 
   await setAuthorizedEmails(emails);
+}
+
+/**
+ * Reads the authorized editors list from the _config sheet (B1).
+ */
+export async function getAuthorizedEmails(): Promise<string[]> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  const response = await glSheets.spreadsheets.values.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `${CONFIG_SHEET}!${AUTHORIZED_EMAILS_CELL}`,
+  });
+
+  const value = response.data.values?.[0]?.[0];
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Removes A3:V protections from all regional sheet tabs.
+ * Called during freeze — lets all users with sheet access edit freely.
+ */
+export async function freezeSheetProtections(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  const spreadsheet = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    fields: "sheets(properties(sheetId,title),protectedRanges)",
+  });
+
+  const requests: object[] = [];
+
+  for (const sheet of spreadsheet.data.sheets ?? []) {
+    if (sheet.properties?.title === CONFIG_SHEET) continue;
+
+    for (const pr of sheet.protectedRanges ?? []) {
+      const range = pr.range;
+      if (
+        range?.startRowIndex === DATA_START_ROW &&
+        range?.startColumnIndex === DATA_START_COL
+      ) {
+        requests.push({
+          deleteProtectedRange: { protectedRangeId: pr.protectedRangeId },
+        });
+      }
+    }
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      requestBody: { requests },
+    });
+  }
+}
+
+/**
+ * Adds A3:V protection to all regional sheet tabs, restricting edits
+ * to the managers/admins listed in _config!B1.
+ * Called during unfreeze — re-locks sheets after app recovery.
+ */
+export async function unfreezeSheetProtections(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  const emails = await getAuthorizedEmails();
+
+  const spreadsheet = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    fields: "sheets(properties(sheetId,title))",
+  });
+
+  const requests: object[] = [];
+
+  for (const sheet of spreadsheet.data.sheets ?? []) {
+    if (sheet.properties?.title === CONFIG_SHEET) continue;
+    const sheetId = sheet.properties?.sheetId;
+    if (sheetId === undefined) continue;
+
+    requests.push({
+      addProtectedRange: {
+        protectedRange: {
+          range: {
+            sheetId,
+            startRowIndex: DATA_START_ROW,
+            startColumnIndex: DATA_START_COL,
+            endColumnIndex: DATA_END_COL,
+            // endRowIndex omitted — protection extends to end of sheet
+          },
+          description: "App-managed data — edit via app only",
+          editors: { users: emails },
+        },
+      },
+    });
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      requestBody: { requests },
+    });
+  }
 }
