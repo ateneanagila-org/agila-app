@@ -2,6 +2,7 @@
 import { actionClient } from "@/lib/error/actions-handler";
 import * as usersRepo from "@/lib/repo/users.repo";
 import { createClient } from "@/lib/supabase/server";
+import { syncSheetEditors } from "@/lib/services/helper.service";
 import {
   getProfilesSchema,
   editProfileSchema,
@@ -35,7 +36,13 @@ export const editProfile = actionClient
       parsedInput: EditProfileSchema;
       bindArgsClientInputs: readonly [string];
     }) => {
-      return await usersRepo.updateProfile(id, parsedInput);
+      const result = await usersRepo.updateProfile(id, parsedInput);
+      if (parsedInput.auth_role !== undefined) {
+        syncSheetEditors().catch((err) =>
+          console.error("[SheetEditors] Sync failed:", err),
+        );
+      }
+      return result;
     },
   );
 

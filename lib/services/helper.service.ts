@@ -296,3 +296,60 @@ export async function syncAndCompactRegion(regionId: string) {
     });
   }
 }
+
+// ==========================================
+// 5. CONFIG SHEET (_config tab)
+// ==========================================
+
+const CONFIG_SPREADSHEET_ID = process.env.CATALOG_SPREADSHEET_ID!;
+const CONFIG_SHEET = "_config";
+const AUTHORIZED_EMAILS_CELL = "B1";
+
+/**
+ * Writes the authorized editors list to the _config sheet (B1).
+ * Read by Apps Script Protection.gs during unfreezeMode() to restore
+ * manager/admin-only edit access after app recovery.
+ */
+export async function setAuthorizedEmails(emails: string[]): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  await glSheets.spreadsheets.values.update({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `${CONFIG_SHEET}!${AUTHORIZED_EMAILS_CELL}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[emails.join(",")]] },
+  });
+}
+
+/**
+ * Derives the authorized editors list from the DB (Administrator + Manager roles),
+ * fetches their emails via the Supabase admin client, then writes to _config!B1.
+ *
+ * Called automatically (fire-and-forget) whenever a profile's auth_role changes.
+ */
+export async function syncSheetEditors(): Promise<void> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+
+  const managerProfiles = await db.query.profiles.findMany({
+    where: (cols, { inArray }) =>
+      inArray(cols.auth_role, ["Administrator", "Manager"]),
+  });
+
+  if (managerProfiles.length === 0) {
+    await setAuthorizedEmails([]);
+    return;
+  }
+
+  const supabase = await createAdminClient();
+  const {
+    data: { users },
+  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+
+  const managerIds = new Set(managerProfiles.map((p) => p.id));
+  const emails = users
+    .filter((u) => managerIds.has(u.id) && !!u.email)
+    .map((u) => u.email as string);
+
+  await setAuthorizedEmails(emails);
+}
