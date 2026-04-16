@@ -1,16 +1,17 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
-// FOR TESTING
-export const URGENCY_VALUES = [
-  "Now",
-  "Within the hour",
-  "Within the day",
-  "Within the week",
-  "Indefinite",
-] as const;
-export const UrgencyEnum = z.enum(URGENCY_VALUES);
-export const urgencyEnum = pgEnum("urgency", URGENCY_VALUES);
+// GSheets Sync Queue Action Status
+export const ACTION_STATUS = ["PENDING", "COMPLETED", "FAILED"] as const;
+export const actionStatusEnum = pgEnum("action_status", ACTION_STATUS);
+export const ActionStatusEnum = z.enum(ACTION_STATUS);
+export type ActionStatus = z.infer<typeof actionStatusEnum>;
+
+// GSheets Sync Queue Action
+export const ACTION = ["CREATE", "UPDATE", "DELETE"] as const;
+export const actionEnum = pgEnum("action", ACTION);
+export const ActionEnum = z.enum(ACTION);
+export type Action = z.infer<typeof actionEnum>;
 
 // User AuthRoles
 export const AUTH_ROLE_VALUES = [
@@ -86,7 +87,6 @@ export const CAT_COLOR_VALUES = [
   "Gray and White Tabby",
   "Brown Tabby",
   "Brown and White Tabby",
-  "Unknown",
 ] as const;
 export const catColorEnum = pgEnum("cat_color", CAT_COLOR_VALUES);
 export const CatColorEnum = z.enum(CAT_COLOR_VALUES);
@@ -98,7 +98,6 @@ export const CAT_AGE_VALUES = [
   "Kitten",
   "Juvenile",
   "Adult",
-  "Unknown",
 ] as const;
 export const catAgeEnum = pgEnum("cat_age", CAT_AGE_VALUES);
 export const CatAgeEnum = z.enum(CAT_AGE_VALUES);
@@ -129,8 +128,8 @@ export const CAT_STATUS_VALUES = [
   "Deceased",
   "Fostered",
   "Adopted",
-  "Stray",
-  "Missing",
+  "MIA",
+  "Unknown",
 ] as const;
 export const catStatusEnum = pgEnum("cat_status", CAT_STATUS_VALUES);
 export const CatStatusEnum = z.enum(CAT_STATUS_VALUES);
@@ -188,3 +187,20 @@ export const interventionStatusEnum = pgEnum(
 );
 export const InterventionStatusEnum = z.enum(INTERVENTION_STATUS_VALUES);
 export type InterventionStatus = z.infer<typeof InterventionStatusEnum>;
+
+// Sync Audit Log Direction
+export const SYNC_DIRECTION_VALUES = ["FORWARD", "REVERSE"] as const;
+export const syncDirectionEnum = pgEnum("sync_direction", SYNC_DIRECTION_VALUES);
+export const SyncDirectionEnum = z.enum(SYNC_DIRECTION_VALUES);
+export type SyncDirection = z.infer<typeof SyncDirectionEnum>;
+
+// FOR TESTING
+export const URGENCY_VALUES = [
+  "Now",
+  "Within the hour",
+  "Within the day",
+  "Within the week",
+  "Indefinite",
+] as const;
+export const UrgencyEnum = z.enum(URGENCY_VALUES);
+export const urgencyEnum = pgEnum("urgency", URGENCY_VALUES);

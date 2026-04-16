@@ -1,5 +1,10 @@
 import { CatalogDetailScreen } from "@/components/app-pages/catalog/catalog-detail-screen";
 
-export default function CatalogDetailPage() {
-  return <CatalogDetailScreen />;
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function CatalogDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  return <CatalogDetailScreen catId={id} />;
 }

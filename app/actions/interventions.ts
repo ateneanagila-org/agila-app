@@ -1,6 +1,7 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as repo from "@/lib/repo/interventions.repo";
+import * as service from "@/lib/services/interventions.service";
 import {
   getInterventionsSchema,
   editInterventionSchema,
@@ -12,7 +13,7 @@ import { z } from "zod";
 export const createIntervention = actionClient
   .schema(createInterventionSchema)
   .action(async ({ parsedInput }) => {
-    return await repo.insertIntervention(parsedInput);
+    return await service.createIntervention(parsedInput);
   });
 
 export const getInterventions = actionClient
@@ -23,13 +24,12 @@ export const getInterventions = actionClient
 
 export const editIntervention = actionClient
   .schema(editInterventionSchema)
-  .bindArgsSchemas([z.string().uuid()])
-  .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
-    return await repo.updateIntervention(id, parsedInput);
+  .action(async ({ parsedInput }) => {
+    return await service.editIntervention(parsedInput);
   });
 
 export const removeIntervention = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
-    return await repo.deleteIntervention(id);
+    return await service.removeIntervention(id);
   });

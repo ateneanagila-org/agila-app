@@ -1,6 +1,6 @@
 import { DB, db } from "../db";
 import { sessions, sessionCats, sessionUsers } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { createEQFilters } from "./helper.repo";
 import {
   InsertSession,
@@ -63,3 +63,29 @@ export const insertSessionUser = (data: InsertSessionUser, client: DB = db) =>
 
 export const deleteSessionUser = (id: string) =>
   db.delete(sessionUsers).where(eq(sessionUsers.id, id));
+
+export async function findCatRegionByLatestSession(
+  catId: string,
+  client: DB = db,
+) {
+  const latestSession = await client.query.sessions.findFirst({
+    where: (sessions, { exists }) =>
+      exists(
+        db
+          .select()
+          .from(sessionCats)
+          .where(
+            and(
+              eq(sessionCats.session_id, sessions.id),
+              eq(sessionCats.cat_id, catId),
+            ),
+          ),
+      ),
+    orderBy: [desc(sessions.created_at)],
+    with: {
+      region: true,
+    },
+  });
+
+  return latestSession?.region;
+}

@@ -14,8 +14,9 @@ export const createSessionSchema = createInsertSchema(sessions)
   });
 export const getSessionsSchema = sessionsSchema.partial();
 export const editSessionSchema = createInsertSchema(sessions)
-  .omit({ id: true, created_at: true, last_updated_at: true })
-  .partial();
+  .omit({ created_at: true, last_updated_at: true })
+  .partial()
+  .required({ id: true });
 
 // SESSION CATS
 export const sessionCatsSchema = createSelectSchema(sessionCats);

@@ -5,9 +5,11 @@ import * as schema from "./schema";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { PgTransaction, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { ExtractTablesWithRelations } from "drizzle-orm";
+import * as relations from "./relations";
 
 // GENERAL DB
 config({ path: ".env" });
+const fullSchema = { ...schema, ...relations };
 
 // Declare a global variable to store the client
 declare global {
@@ -21,10 +23,10 @@ if (process.env.NODE_ENV !== "production") {
   global.pgClient = client;
 }
 
-export const db = drizzle({ client, schema });
+export const db = drizzle(client, { schema: fullSchema });
 
 // SPECIFIC DB FOR DB.TRANSACTION TO WORK ACROSS SERVICE AND REPO LAYERS
-type TSchema = typeof schema;
+type TSchema = typeof fullSchema;
 export type Transaction = PgTransaction<
   PgQueryResultHKT,
   TSchema,

@@ -4,12 +4,13 @@ import { z } from "zod";
 
 export const interventionsSchema = createSelectSchema(interventions);
 export const createInterventionSchema = createInsertSchema(interventions).omit({
-  id: true,
   last_updated_at: true,
   requested_at: true,
 });
 export const getInterventionsSchema = interventionsSchema.partial();
-export const editInterventionSchema = createInterventionSchema.partial();
+export const editInterventionSchema = createInterventionSchema
+  .partial()
+  .required({ id: true });
 
 // TYPES
 export type InsertIntervention = typeof interventions.$inferInsert;

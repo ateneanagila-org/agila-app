@@ -42,3 +42,12 @@ next-env.d.ts
 
 # misc output
 output.txt
+
+
+# nextjs-server-action-tester
+/public/server-actions.json
+/app/api/list-actions
+/app/list-actionsworkers/sync-cron/node_modules
+
+#cron worker node modules
+/workers/sync-cron/node_modules

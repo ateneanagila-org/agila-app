@@ -1,14 +1,12 @@
-import { db } from "../db";
+import { db, DB } from "../db";
 import { interventions } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { createEQFilters } from "./helper.repo";
 import {
   InsertIntervention,
   SelectIntervention,
 } from "../validation/interventions";
+import { createEQFilters } from "./helper.repo";
 
-// INTERVENTIONS
-// These are general CRUD; you can make more specific ones depending on frontend
 export const findInterventions = (filters: Partial<SelectIntervention>) =>
   db.query.interventions.findMany({
     where: (cols, { and }) => {
@@ -17,17 +15,19 @@ export const findInterventions = (filters: Partial<SelectIntervention>) =>
     },
   });
 
-export const insertIntervention = (data: InsertIntervention) =>
-  db.insert(interventions).values(data);
+export const insertIntervention = (data: InsertIntervention, client: DB = db) =>
+  client.insert(interventions).values(data).returning();
 
 export const updateIntervention = (
   id: string,
   data: Partial<InsertIntervention>,
+  client: DB = db,
 ) =>
-  db
+  client
     .update(interventions)
     .set({ ...data, last_updated_at: new Date() })
-    .where(eq(interventions.id, id));
+    .where(eq(interventions.id, id))
+    .returning();
 
-export const deleteIntervention = (id: string) =>
-  db.delete(interventions).where(eq(interventions.id, id));
+export const deleteIntervention = (id: string, client: DB = db) =>
+  client.delete(interventions).where(eq(interventions.id, id)).returning();

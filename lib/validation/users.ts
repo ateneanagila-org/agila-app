@@ -7,8 +7,8 @@ export const profilesSchema = createSelectSchema(profiles);
 export const createProfileSchema = createInsertSchema(profiles);
 export const getProfilesSchema = profilesSchema.partial();
 export const editProfileSchema = createInsertSchema(profiles)
-  .omit({ id: true })
-  .partial();
+  .partial()
+  .required({ id: true });
 
 // ALLOWED EMAILS
 export const allowedEmailsSchema = createSelectSchema(allowedEmails);
@@ -17,8 +17,8 @@ export const createAllowedEmailSchema = createInsertSchema(allowedEmails, {
 }).omit({ id: true, allowed_at: true });
 export const getAllowedEmailsSchema = allowedEmailsSchema.partial();
 export const editAllowedEmailSchema = createInsertSchema(allowedEmails)
-  .omit({ id: true })
-  .partial();
+  .partial()
+  .required({ id: true });
 
 // TYPES
 export type InsertProfile = typeof profiles.$inferInsert;
