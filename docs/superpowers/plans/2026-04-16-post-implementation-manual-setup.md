@@ -151,9 +151,9 @@ If you see a 401 error on the sync call, the `CRON_SECRET` in Cloudflare doesn't
 
 ## 5. Google Sheets — Prepare the CATalog Spreadsheet
 
-Do this for **every regional sheet tab** (GATE 3, ARETE, SDC, etc.).
-
 ### 5a. Add the timestamp columns
+
+Do this for **every regional sheet tab** (GATE 3, ARETE, SDC, etc.).
 
 1. Open the CATalog Google Spreadsheet
 2. In each sheet tab, click on the column header after V (i.e., column W) and insert two new columns
@@ -161,34 +161,38 @@ Do this for **every regional sheet tab** (GATE 3, ARETE, SDC, etc.).
 4. In **row 2** of column X, type: `edited_by`
 5. Leave all data rows (row 3 onwards) in W and X empty — the Apps Script fills these automatically
 
-### 5b. Deploy the Apps Script
+### 5b. Protect columns W and X
+
+Prevent anyone from accidentally overwriting the auto-timestamps.
+
+1. In the spreadsheet, select column W header, then Shift+click column X header to select both
+2. Right-click → **Protect range**
+3. In the sidebar that appears, click **Set permissions**
+4. Select **Restrict who can edit this range** → **Only you**
+5. Click **Done**
+6. Repeat for every sheet tab (range protection doesn't apply across tabs automatically)
+
+### 5c. Create the `_config` sheet tab
+
+This hidden tab stores the list of authorized editors (managers and admins). The app reads and writes it automatically.
+
+1. At the bottom of the spreadsheet, click **+** to add a new sheet tab
+2. Name it exactly `_config` (case-sensitive)
+3. In **cell A1**, type: `authorized_emails`
+4. Leave **cell B1** empty for now — the app will populate it in step 5f
+5. Right-click the `_config` tab → **Hide sheet**
+6. Right-click the `_config` tab → **Protect sheet** → Set permissions to **Only you**
+
+### 5d. Deploy Code.gs (auto-timestamp trigger)
 
 1. In the spreadsheet, go to **Extensions → Apps Script**
 2. You'll see the Apps Script editor with a default `Code.gs` file
 3. Delete all existing content in `Code.gs`
 4. Copy the contents of `workers/apps-script/Code.gs` from the repository and paste it in
-5. Find this line near the top and update it with your actual service account email:
-   ```javascript
-   var SERVICE_ACCOUNT_EMAIL = "your-service-account@your-project.iam.gserviceaccount.com";
-   ```
-   Your service account email is inside the `SERVICE_ACCOUNT_CREDENTIALS` environment variable — it's the value of the `"client_email"` field in that JSON.
-6. Click **Save** (or Ctrl+S)
+   - The service account email (`catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com`) is already filled in — no changes needed
+5. Click **Save** (or Ctrl+S)
 
-### 5c. Add the Protection script
-
-1. In the Apps Script editor, click **+** next to **Files** in the left sidebar → **Script**
-2. Name it `Protection` (it will become `Protection.gs`)
-3. Copy the contents of `workers/apps-script/Protection.gs` from the repository and paste it in
-4. Find the `AUTHORIZED_EMAILS` array and add the email addresses of all authorized personnel (managers and volunteers):
-   ```javascript
-   var AUTHORIZED_EMAILS = [
-     "manager1@ateneo.edu",
-     "volunteer1@ateneo.edu",
-   ];
-   ```
-5. Click **Save**
-
-### 5d. Install the onEdit trigger
+### 5e. Install the onEdit trigger
 
 This is the critical step — a "simple trigger" (`onEdit`) cannot access the user's email, so you must install it as an "installable trigger" instead.
 
@@ -203,7 +207,25 @@ This is the critical step — a "simple trigger" (`onEdit`) cannot access the us
 4. Click **Save**
 5. A permissions dialog will appear — click **Review Permissions** → choose your Google account → click **Allow**
 
-### 5e. Test the trigger
+### 5f. Deploy Protection.gs
+
+1. In the Apps Script editor, click **+** next to **Files** in the left sidebar → **Script**
+2. Name it `Protection` (it will become `Protection.gs`)
+3. Copy the contents of `workers/apps-script/Protection.gs` from the repository and paste it in
+4. Click **Save**
+
+No email configuration needed — Protection.gs reads authorized emails directly from the `_config` sheet (cell B1), which the app manages automatically.
+
+### 5g. Seed the `_config` sheet with authorized emails
+
+The app populates `_config!B1` automatically whenever an Administrator or Manager profile is updated. To trigger the initial seed:
+
+1. Open the AGILA app → go to the **Users** page
+2. Edit any Administrator or Manager profile — change their role to the same value and save
+3. This triggers `syncSheetEditors()` in the background, which writes all current admin/manager emails to `_config!B1`
+4. To verify: unhide the `_config` sheet in Google Sheets and confirm B1 contains a comma-separated list of email addresses, then re-hide it
+
+### 5h. Test the onEdit trigger
 
 1. Go to any regional sheet tab
 2. Edit any cell in the data range (e.g., row 3, column C — a cat's nickname)
@@ -211,16 +233,29 @@ This is the critical step — a "simple trigger" (`onEdit`) cannot access the us
 4. Look at column X — it should contain your Google account email
 5. If columns W and X stay empty, the trigger isn't firing. Go back to the Triggers page in Apps Script and confirm it's listed there.
 
-### 5f. Protect columns W and X
+### 5i. (Optional) Deploy WebApp.gs — Emergency Freeze Endpoint
 
-Prevent anyone from accidentally overwriting the auto-timestamps.
+Only needed if you want a bookmarkable URL to freeze/unfreeze the system from your phone when the app is unreachable.
 
-1. In the spreadsheet, select column W header, then Shift+click column X header to select both
-2. Right-click → **Protect range**
-3. In the sidebar that appears, click **Set permissions**
-4. Select **Restrict who can edit this range** → **Only you**
-5. Click **Done**
-6. Repeat for every sheet tab (unfortunately, range protection doesn't apply across tabs automatically)
+1. In the Apps Script editor, click **+** next to **Files** → **Script**
+2. Name it `WebApp` (it becomes `WebApp.gs`)
+3. Paste the contents of `workers/apps-script/WebApp.gs` from the repository, click **Save**
+4. Set the emergency secret:
+   - Go to **Project Settings** (gear icon) → **Script Properties** → **Add property**
+   - Name: `EMERGENCY_SECRET`, Value: a strong random string (`openssl rand -hex 16`)
+   - Click **Save**
+5. Deploy as a web app:
+   - Click **Deploy** → **New deployment**
+   - Click the gear icon → **Web app**
+   - Execute as: **Me**, Who has access: **Only myself**
+   - Click **Deploy**, authorize if prompted
+   - Copy the web app URL — **bookmark it on your phone**
+
+Bookmark these URLs (replace `YOUR_SECRET` and the base URL):
+```
+Freeze:   https://script.google.com/.../exec?action=freeze&secret=YOUR_SECRET
+Unfreeze: https://script.google.com/.../exec?action=unfreeze&secret=YOUR_SECRET
+```
 
 ---
 
@@ -242,20 +277,34 @@ Once all of the above is done, do a manual end-to-end test.
 
 ### Freeze the system (app is down)
 
-1. In the AGILA app (if still partially accessible), call the `freezeSync()` server action — or run the SQL directly in Supabase:
+Sheet protections and the DB freeze flag are managed automatically by the app — no manual Apps Script steps needed.
+
+**If the app is still partially accessible:**
+1. Go to the **Users** page in the AGILA app → find the **Sync** panel
+2. Click **Freeze** — this sets the DB freeze flag and removes sheet protections via the Sheets API in one step
+3. Notify all managers that they can now edit the spreadsheet directly
+
+**If the app is completely unreachable:**
+1. Set the freeze flag manually in Supabase:
    ```sql
    UPDATE system_config SET value = 'true', updated_at = NOW()
    WHERE key = 'sync_frozen';
    ```
-2. Open the CATalog spreadsheet → Extensions → Apps Script → run `freezeMode()` from the editor
-3. Notify all authorized personnel (managers and volunteers) that they can now edit the spreadsheet directly
+2. Open the bookmarked emergency URL on your phone:
+   ```
+   https://script.google.com/.../exec?action=freeze&secret=YOUR_SECRET
+   ```
+   (Only available if you completed step 5i)
+3. Notify all managers that they can now edit the spreadsheet directly
 
 ### Unfreeze the system (after recovery)
 
 1. Deploy the fixed app to Vercel
-2. In the AGILA app, call the `unfreezeSync()` server action — this runs full reverse sync before re-enabling the cron
-3. Open the CATalog spreadsheet → Extensions → Apps Script → run `unfreezeMode()` to re-lock the sheets
-4. Notify all authorized personnel to stop editing the spreadsheet directly
+2. Go to the **Users** page in the AGILA app → find the **Sync** panel
+3. Click **Unfreeze** — this restores sheet protections and re-enables the cron sync
+4. Notify all managers to stop editing the spreadsheet directly
+
+> **Note:** Once Phase 3 (reverse sync) is implemented, the Unfreeze button will also automatically import any manual GSheet edits made during the freeze before re-enabling the cron.
 
 ### Pause the Cloudflare cron (optional during maintenance)
 
