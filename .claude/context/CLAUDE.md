@@ -92,6 +92,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET
 CATALOG_SPREADSHEET_ID
 SERVICE_ACCOUNT_CREDENTIALS   # JSON string of Google service account
 NEXT_PUBLIC_SITE_URL
+CRON_SECRET                   # Bearer token for /api/cron/sync endpoint
 ```
 
 ## Tech Stack
