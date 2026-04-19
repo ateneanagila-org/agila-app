@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import {
   freezeSync,
   unfreezeSync,
@@ -44,43 +43,46 @@ export function SyncControls() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Sync</span>
+    <div className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-sm font-bold text-white">GSheet Sync</span>
         {frozen !== null && (
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               frozen
-                ? "bg-red-100 text-red-700"
-                : "bg-green-100 text-green-700"
+                ? "bg-red-500/30 text-red-200"
+                : "bg-green-500/30 text-green-200"
             }`}
           >
             {frozen ? "Frozen" : "Active"}
           </span>
         )}
+        {isPending && (
+          <span className="text-xs text-white/50">Working...</span>
+        )}
       </div>
 
       <div className="flex gap-2">
-        <Button
-          variant="destructive"
-          size="sm"
+        <button
+          type="button"
           disabled={isPending || frozen === true}
           onClick={handleFreeze}
+          className="rounded-full bg-red-500/80 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           Freeze
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
+        </button>
+        <button
+          type="button"
           disabled={isPending || frozen === false}
           onClick={handleUnfreeze}
+          className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           Unfreeze
-        </Button>
+        </button>
       </div>
 
       {message && (
-        <p className="text-xs text-muted-foreground">{message}</p>
+        <p className="mt-2 text-xs text-white/60">{message}</p>
       )}
     </div>
   );

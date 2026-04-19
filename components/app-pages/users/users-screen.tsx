@@ -24,6 +24,7 @@ import { AUTH_ROLE_VALUES } from "@/lib/db/enums";
 import type { AuthRole } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { SyncControls } from "./sync-controls";
 
 export function UsersScreen() {
   const [showAddUser, setShowAddUser] = useState(false);
@@ -183,6 +184,9 @@ export function UsersScreen() {
   return (
     <>
       <div className="px-4 py-4 tablet:hidden">
+        <div className="mb-4">
+          <SyncControls />
+        </div>
         <div className="mb-4 flex items-center gap-2">
           <button
             type="button"
@@ -255,6 +259,10 @@ export function UsersScreen() {
             <span>Add entry</span>
             <span className="text-lg leading-none">+</span>
           </button>
+        </div>
+
+        <div className="mt-4">
+          <SyncControls />
         </div>
 
         <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-3 ring-1 ring-brand-green">
