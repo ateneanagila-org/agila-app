@@ -3,6 +3,7 @@ import { isSyncFrozen, setSyncFrozen } from "@/lib/services/system.service";
 import {
   freezeSheetProtections,
   unfreezeSheetProtections,
+  syncSheetEditors,
 } from "@/lib/services/helper.service";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
 
@@ -19,6 +20,7 @@ export async function freezeSync() {
  * 3. Clears freeze flag — cron resumes; remaining PENDING tasks run normally
  */
 export async function unfreezeSync() {
+  await syncSheetEditors();
   await unfreezeSheetProtections();
   const reverseSyncResult = await fullReverseSync();
   await setSyncFrozen(false);

@@ -428,6 +428,10 @@ export async function unfreezeSheetProtections(): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
 
   const emails = await getAuthorizedEmails();
+  if (emails.length === 0) {
+    console.warn("[unfreezeSheetProtections] No authorized emails found — skipping protection restore.");
+    return;
+  }
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
