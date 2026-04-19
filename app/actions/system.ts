@@ -4,6 +4,7 @@ import {
   freezeSheetProtections,
   unfreezeSheetProtections,
 } from "@/lib/services/helper.service";
+import { fullReverseSync } from "@/lib/services/reverse-sync.service";
 
 export async function freezeSync() {
   await setSyncFrozen(true);
@@ -13,15 +14,15 @@ export async function freezeSync() {
 
 /**
  * Unfreezes the sync system after app recovery.
- * Restores sheet protections and resumes the cron sync.
- *
- * NOTE (Phase 3): Add fullReverseSync() call here before setSyncFrozen(false)
- * to import any manual GSheet edits made during the freeze before cron resumes.
+ * 1. Restores sheet protections (managers/admins only)
+ * 2. Runs full reverse sync — imports all manual GSheet edits made during freeze
+ * 3. Clears freeze flag — cron resumes; remaining PENDING tasks run normally
  */
 export async function unfreezeSync() {
   await unfreezeSheetProtections();
+  const reverseSyncResult = await fullReverseSync();
   await setSyncFrozen(false);
-  return { frozen: false };
+  return { frozen: false, reverseSyncResult };
 }
 
 export async function getSyncStatus() {

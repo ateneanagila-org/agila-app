@@ -467,3 +467,101 @@ export async function unfreezeSheetProtections(): Promise<void> {
     });
   }
 }
+
+// ==========================================
+// 6. REVERSE SYNC (Reading GSheet State)
+// ==========================================
+
+export interface SheetRow {
+  /** Raw row array from Sheets API (columns A through X) */
+  raw: string[];
+  /** Cat UUID from column A */
+  entityId: string;
+  /** ISO timestamp from column W (set by Apps Script onEdit) */
+  lastEditedAt: string | null;
+  /** Editor email from column X */
+  editedBy: string | null;
+}
+
+/**
+ * Reads the full sheet state for a region, including timestamp columns W and X.
+ * Returns parsed rows with metadata for comparison against DB state.
+ */
+export async function readSheetState(regionId: string): Promise<SheetRow[]> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const region = await db.query.regions.findFirst({
+    where: eq(regions.id, regionId),
+  });
+  if (!region) return [];
+
+  const response = await glSheets.spreadsheets.values.get({
+    auth: glAuth,
+    spreadsheetId,
+    range: `'${region.name}'!A3:X`,
+  });
+
+  const rows = response.data.values || [];
+
+  return rows
+    .filter((row) => row[0] && String(row[0]).trim() !== "")
+    .map((row) => ({
+      raw: row,
+      entityId: String(row[0]).trim(),
+      lastEditedAt: row[22] ? String(row[22]).trim() : null, // Column W (0-indexed: 22)
+      editedBy: row[23] ? String(row[23]).trim() : null,     // Column X (0-indexed: 23)
+    }));
+}
+
+/**
+ * Clears the last_edited_at (col W) and edited_by (col X) for specific rows
+ * after successful reverse sync import. Prevents re-importing the same edits.
+ */
+export async function clearSheetEditTimestamps(
+  regionId: string,
+  entityIds: string[],
+): Promise<void> {
+  if (entityIds.length === 0) return;
+
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const region = await db.query.regions.findFirst({
+    where: eq(regions.id, regionId),
+  });
+  if (!region) return;
+
+  // Read column A to find row positions of the imported entities
+  const response = await glSheets.spreadsheets.values.get({
+    auth: glAuth,
+    spreadsheetId,
+    range: `'${region.name}'!A3:A`,
+  });
+  const idColumn = response.data.values || [];
+
+  const requests: Array<{ range: string; values: string[][] }> = [];
+
+  for (const entityId of entityIds) {
+    const rowIdx = idColumn.findIndex(
+      (row) => String(row[0]).trim() === entityId,
+    );
+    if (rowIdx === -1) continue;
+    const sheetRow = rowIdx + 3; // +3 because data starts at row 3 (1-indexed)
+    requests.push({
+      range: `'${region.name}'!W${sheetRow}:X${sheetRow}`,
+      values: [["", ""]],
+    });
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.values.batchUpdate({
+      auth: glAuth,
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: "RAW",
+        data: requests,
+      },
+    });
+  }
+}
