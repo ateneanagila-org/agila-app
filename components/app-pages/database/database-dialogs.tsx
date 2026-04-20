@@ -1,0 +1,362 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { TrashIcon } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
+import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
+
+// ─── Shared shell ─────────────────────────────────────────────────────────────
+
+function Shell({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Header({ title, subtitle, onClose }: { title: string; subtitle?: string; onClose: () => void }) {
+  return (
+    <div className="flex items-start justify-between">
+      <div>
+        <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">{title}</h2>
+        {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly string[];
+}) {
+  return (
+    <div>
+      <label className="text-sm font-semibold text-brand-orange">{label}</label>
+      <div className="mt-1.5">
+        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+      </div>
+    </div>
+  );
+}
+
+function getFilterValue(activeFilters: FilterState, key: string): string {
+  const set = activeFilters[key];
+  return set && set.size > 0 ? (set.values().next().value as string) : "";
+}
+
+function applyDropdownFilter(
+  key: string,
+  value: string,
+  activeFilters: FilterState,
+  toggleFilter: (k: string, v: string) => void,
+) {
+  const current = getFilterValue(activeFilters, key);
+  if (current) toggleFilter(key, current);
+  if (value) toggleFilter(key, value);
+}
+
+// ─── Discard Changes Dialog ───────────────────────────────────────────────────
+
+type DiscardChangesDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+};
+
+export function DiscardChangesDialog({ open, onClose, onConfirm, isLoading }: DiscardChangesDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="Discard changes?" onClose={onClose} />
+      <p className="text-sm text-foreground">This action cannot be undone.</p>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
+          Keep Editing <span>✎</span>
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {isLoading ? "Discarding..." : "Discard"} <TrashIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Save Changes Dialog ──────────────────────────────────────────────────────
+
+type SaveChangesDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+};
+
+export function SaveChangesDialog({ open, onClose, onConfirm, isLoading }: SaveChangesDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="Save changes?" onClose={onClose} />
+      <p className="text-sm text-foreground">This action cannot be undone.</p>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
+          Keep Editing <span>✎</span>
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {isLoading ? "Saving..." : "Save"} <span>💾</span>
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Database Filters Dialog ──────────────────────────────────────────────────
+
+type DatabaseFiltersDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  categories: FilterCategory[];
+  activeFilters: FilterState;
+  onToggle: (key: string, value: string) => void;
+  onClear: () => void;
+  activeCount: number;
+};
+
+export function DatabaseFiltersDialog({
+  open,
+  onClose,
+  categories,
+  activeFilters,
+  onToggle,
+  onClear,
+  activeCount,
+}: DatabaseFiltersDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header
+        title="Filters"
+        subtitle={activeCount > 0 ? `${activeCount} selected` : undefined}
+        onClose={onClose}
+      />
+
+      <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+        {categories.map((cat) => (
+          <SelectField
+            key={cat.key}
+            label={cat.label}
+            value={getFilterValue(activeFilters, cat.key)}
+            onChange={(v) => applyDropdownFilter(cat.key, v, activeFilters, onToggle)}
+            options={cat.options}
+          />
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => { onClear(); onClose(); }}
+          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+        >
+          Reset <span>✕</span>
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Apply <span>✓</span>
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Database Sort By Dialog ──────────────────────────────────────────────────
+
+type DatabaseSortByDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  options: SortOption[];
+  activeKey: string | null;
+  order: "asc" | "desc";
+  onSort: (key: string | null) => void;
+  onOrder: (o: "asc" | "desc") => void;
+};
+
+export function DatabaseSortByDialog({
+  open,
+  onClose,
+  options,
+  activeKey,
+  order,
+  onSort,
+  onOrder,
+}: DatabaseSortByDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="Sort By" onClose={onClose} />
+
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => onSort(activeKey === opt.key ? null : opt.key)}
+            className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+              activeKey === opt.key
+                ? "border-brand-green bg-brand-green text-white"
+                : "border-brand-green/30 text-foreground hover:bg-brand-green/5"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-semibold text-foreground">Order</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(["asc", "desc"] as const).map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => onOrder(o)}
+              className={`rounded-full px-3 py-2 text-sm font-semibold transition-opacity ${
+                order === o
+                  ? "bg-brand-orange text-white"
+                  : "border border-brand-orange/40 text-foreground hover:opacity-80"
+              }`}
+            >
+              {o === "asc" ? "Ascending" : "Descending"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Apply <span>✓</span>
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── New Intervention Dialog ──────────────────────────────────────────────────
+
+type NewInterventionDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  type: string;
+  onTypeChange: (v: string) => void;
+  notes: string;
+  onNotesChange: (v: string) => void;
+  typeOptions: readonly string[];
+  onCreate: () => void;
+  creating: boolean;
+  error?: string | null;
+};
+
+export function NewInterventionDialog({
+  open,
+  onClose,
+  type,
+  onTypeChange,
+  notes,
+  onNotesChange,
+  typeOptions,
+  onCreate,
+  creating,
+  error,
+}: NewInterventionDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="New Intervention" onClose={onClose} />
+
+      {error ? (
+        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
+      ) : null}
+
+      <div className="space-y-3">
+        <SelectField
+          label="Type"
+          value={type}
+          onChange={onTypeChange}
+          options={typeOptions}
+        />
+        <div>
+          <label className="text-sm font-semibold text-brand-orange">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            className="mt-1.5 h-20 w-full resize-none rounded-2xl border border-brand-orange/30 bg-white px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-brand-orange/40"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+        >
+          Cancel <TrashIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          disabled={creating}
+          onClick={onCreate}
+          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {creating ? "Creating..." : "Apply"} <span>💾</span>
+        </button>
+      </div>
+    </Shell>
+  );
+}

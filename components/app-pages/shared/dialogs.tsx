@@ -292,3 +292,108 @@ export function ChangeConfirmDialog({
     </div>
   );
 }
+
+type DeleteConfirmDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+};
+
+export function DeleteConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  isLoading = false,
+}: DeleteConfirmDialogProps) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-2xl bg-brand-cream px-5 py-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-brand-dark text-sm text-white"
+        >
+          &#10005;
+        </button>
+
+        <h3 className="font-heading pr-8 text-lg font-bold tracking-tight text-brand-green">Delete User</h3>
+        <p className="mt-4 text-sm leading-relaxed text-foreground">Remove this user? This action cannot be undone.</p>
+
+        <div className="mt-8 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-full border border-brand-orange bg-transparent px-3.5 py-1.5 text-xs font-medium text-brand-orange transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="rounded-full bg-brand-orange px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {isLoading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SearchDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+};
+
+export function SearchDialog({
+  open,
+  onClose,
+  search,
+  onSearchChange,
+}: SearchDialogProps) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-brand-cream backdrop-blur-[2px] tablet:hidden"
+      onClick={onClose}
+    >
+      <div
+        className="flex items-center gap-2 border-b border-brand-cream-dark bg-brand-green px-4 py-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="text"
+          autoFocus
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="flex-1 bg-transparent text-white outline-none placeholder:text-white/50"
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-6 w-6 items-center justify-center text-white"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto" />
+    </div>
+  );
+}

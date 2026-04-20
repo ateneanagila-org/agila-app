@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  DatabaseFiltersDialog,
+  DatabaseSortByDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
@@ -125,6 +125,15 @@ export function DatabaseListScreen() {
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 space-y-3 px-4 py-4">
+          {/* Add Entry button — top */}
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          >
+            Add Entry <span className="text-base leading-none">+</span>
+          </button>
+
           {/* Search bar — orange */}
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
@@ -137,21 +146,21 @@ export function DatabaseListScreen() {
             />
           </div>
 
-          {/* Filter + Sort buttons — orange outline */}
+          {/* Filter + Sort buttons */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowFilters(true)}
-              className="flex-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
-              Filter
+              Filter <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setShowSort(true)}
-              className="flex-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
-              Sort By
+              Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -168,30 +177,32 @@ export function DatabaseListScreen() {
                   className="block overflow-hidden rounded-2xl bg-brand-green"
                 >
                   <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
                       <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-heading text-lg font-bold text-white">
+                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
                             {cat.name || "Unnamed"}
+                            {sexSymbol(cat.sex) ? (
+                              <span className="ml-1 text-white/80">
+                                {sexSymbol(cat.sex)}
+                              </span>
+                            ) : null}
                           </p>
-                          {sexSymbol(cat.sex) && (
-                            <p className="mt-0.5 text-xs font-semibold text-white/70">
-                              {sexSymbol(cat.sex)} {cat.sex}
-                            </p>
-                          )}
+                          <p className="mt-0.5 text-xs text-white/70">
+                            {cat.color || "Unknown color"} {cat.age ? `• ${cat.age}` : ""}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold text-white/60">
+                            {cat.spot_last_seen || "Unknown location"} &middot;{" "}
+                            {formatDate(cat.last_updated_at)}
+                          </p>
+                        </div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
+                          ···
                         </div>
                       </div>
-                      <p className="mt-1 text-xs text-white/60">
-                        {cat.color || "Unknown color"} •{" "}
-                        {cat.age || "Unknown age"}
-                      </p>
-                      <p className="mt-1.5 text-xs font-semibold text-white/70">
-                        {cat.spot_last_seen || "Unknown location"} &middot;{" "}
-                        {formatDate(cat.last_updated_at)}
-                      </p>
                     </div>
                   </div>
                 </Link>
@@ -200,14 +211,14 @@ export function DatabaseListScreen() {
           )}
         </div>
 
-        <div className="flex justify-end px-4 pb-5">
+        {/* FAB */}
+        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
-            Add Entry
-            <span className="text-lg leading-none">+</span>
+            <span className="text-2xl font-bold leading-none text-white">+</span>
           </button>
         </div>
       </div>
@@ -321,7 +332,7 @@ export function DatabaseListScreen() {
       {showAdd ? (
         <CatEntryForm onClose={() => setShowAdd(false)} onSave={handleSave} />
       ) : null}
-      <FiltersDialog
+      <DatabaseFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={DATABASE_LIST_CONFIG.filters}
@@ -330,7 +341,7 @@ export function DatabaseListScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={DATABASE_LIST_CONFIG.sortOptions}

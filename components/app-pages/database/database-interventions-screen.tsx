@@ -2,22 +2,24 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   DetailHeader,
   TopTabs,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
-  DialogShell,
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  DatabaseFiltersDialog,
+  DatabaseSortByDialog,
+  NewInterventionDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
   PlusCircleIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats } from "@/app/actions/cats";
 import {
   getInterventions,
@@ -38,6 +40,7 @@ import { INTERVENTIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 export function DatabaseInterventionsScreen() {
   const searchParams = useSearchParams();
   const catId = searchParams.get("id");
+  const router = useRouter();
 
   const [cat, setCat] = useState<SelectCat | null>(null);
   const [interventionsList, setInterventionsList] = useState<
@@ -194,21 +197,21 @@ export function DatabaseInterventionsScreen() {
           />
           <TopTabs active="Interventions" />
 
+          {/* Sort + Create New */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowSort(true)}
-              className="flex-1 rounded-xl bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-xs font-bold text-brand-orange transition-opacity hover:opacity-90"
             >
-              Sort By
+              Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setShowIntervention(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
-              Create New
-              <span className="text-lg leading-none">+</span>
+              Create New <span className="text-base leading-none">+</span>
             </button>
           </div>
 
@@ -217,46 +220,73 @@ export function DatabaseInterventionsScreen() {
               No interventions yet.
             </div>
           ) : (
-            interventionsList.map((item) => (
-              <div
-                key={item.id}
-                className="overflow-hidden rounded-2xl bg-brand-green p-3.5"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-heading text-sm font-bold tracking-tight text-white">
-                    {item.type || "Intervention"}
-                  </span>
-                  <div className="relative">
-                    <select
-                      value={item.status ?? "Pending"}
-                      onChange={(e) =>
-                        handleStatusChange(item.id, e.target.value)
-                      }
-                      className="flex appearance-none items-center gap-1 rounded-full bg-brand-orange px-2.5 py-1 pr-7 text-[11px] font-bold text-white"
-                    >
-                      {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option
-                          key={s}
-                          value={s}
-                          className="bg-white text-slate-900"
-                        >
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-white/70" />
+            <div className="space-y-2">
+              {interventionsList.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="overflow-hidden rounded-2xl bg-brand-green p-3.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-heading text-base font-bold leading-tight text-brand-yellow">
+                        Intervention No. {String(index + 1).padStart(2, "0")}
+                      </p>
+                      <p className="mt-0.5 text-xs text-white/80">
+                        {item.type || "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-white/70">
+                        Requested at: {formatDate(item.requested_at)}
+                      </p>
+                      <p className="text-xs text-white/70">
+                        Notes: {item.notes || "—"}
+                      </p>
+                    </div>
+                    {/* Status select styled as outlined badge */}
+                    <div className="w-28 shrink-0">
+                      <CustomSelect
+                        options={INTERVENTION_STATUS_VALUES}
+                        value={item.status ?? "Pending"}
+                        onChange={(v) => handleStatusChange(item.id, v)}
+                        variant="dark"
+                        size="sm"
+                        placeholder="Status"
+                      />
+                    </div>
                   </div>
                 </div>
-                <p className="mt-1.5 text-xs text-white/70">
-                  Requested At {formatDate(item.requested_at)}
-                </p>
-                <p className="text-xs text-white/70">
-                  Notes: {item.notes || "—"}
-                </p>
-              </div>
-            ))
+              ))}
+            </div>
           )}
+
+          {/* Cancel / Save */}
+          <div className="flex items-center gap-3 pb-2">
+            <button
+              type="button"
+              onClick={() => router.push("/database")}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+            >
+              Cancel <span>✕</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/database")}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Save <span>✓</span>
+            </button>
+          </div>
         </PageContent>
+
+        {/* FAB */}
+        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
+          <button
+            type="button"
+            onClick={() => setShowIntervention(true)}
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+          >
+            <span className="text-2xl font-bold leading-none text-white">+</span>
+          </button>
+        </div>
       </div>
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
@@ -424,7 +454,7 @@ export function DatabaseInterventionsScreen() {
         </section>
       </div>
 
-      <FiltersDialog
+      <DatabaseFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={INTERVENTIONS_CONFIG.filters}
@@ -433,7 +463,7 @@ export function DatabaseInterventionsScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={INTERVENTIONS_CONFIG.sortOptions}
@@ -442,81 +472,18 @@ export function DatabaseInterventionsScreen() {
         onSort={setSortKey}
         onOrder={setSortOrder}
       />
-
-      <DialogShell
+      <NewInterventionDialog
         open={showIntervention}
-        onClose={() => setShowIntervention(false)}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-base font-bold text-white">
-            Create Intervention
-          </h2>
-          <button
-            type="button"
-            onClick={() => setShowIntervention(false)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm text-white/70 hover:bg-white/30"
-            aria-label="Close"
-          >
-            &#10005;
-          </button>
-        </div>
-
-        {error ? (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-white/70">Type</label>
-            <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
-              <select
-                value={newType}
-                onChange={(e) => setNewType(e.target.value)}
-                className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
-              >
-                <option value="" className="bg-white text-slate-900">
-                  &mdash;
-                </option>
-                {INTERVENTION_TYPE_VALUES.map((t) => (
-                  <option key={t} value={t} className="bg-white text-slate-900">
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50">
-                &#9660;
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-white/70">Notes</label>
-            <textarea
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              className="mt-1.5 h-16 w-full resize-none rounded-lg bg-white/15 border border-white/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/50"
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowIntervention(false)}
-            className="rounded-full border-2 border-white px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={creating}
-            onClick={handleCreate}
-            className="rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {creating ? "Creating..." : "Create"}
-          </button>
-        </div>
-      </DialogShell>
+        onClose={() => { setShowIntervention(false); setError(null); }}
+        type={newType}
+        onTypeChange={setNewType}
+        notes={newNotes}
+        onNotesChange={setNewNotes}
+        typeOptions={INTERVENTION_TYPE_VALUES}
+        onCreate={handleCreate}
+        creating={creating}
+        error={error}
+      />
     </>
   );
 }

@@ -23,20 +23,22 @@
   --font-sans: var(--font-gantari);
   --font-mono: ui-monospace, monospace;
 
-  /* Brand color utilities — direct OKLCH values (no var chain) */
-  /* Green: clearly visible forest green (~#1F6B0C), not near-black */
-  --color-brand-green: oklch(0.44 0.15 139);
+  /* Brand color utilities */
+  /* Green: #529151 medium forest green */
+  --color-brand-green: #529151;
   /* Green light: hover/active on green surfaces */
-  --color-brand-green-light: oklch(0.52 0.15 139);
+  --color-brand-green-light: #5fa35e;
   --color-brand-green-foreground: oklch(0.99 0 0);
-  /* Orange: warm burnt orange CTA */
-  --color-brand-orange: oklch(0.60 0.18 42);
+  /* Orange: #CE6B3B warm terracotta orange */
+  --color-brand-orange: #CE6B3B;
   --color-brand-orange-foreground: oklch(0.99 0 0);
   /* Cream: warm off-white page bg */
   --color-brand-cream: oklch(0.97 0.012 82);
   --color-brand-cream-dark: oklch(0.92 0.014 82);
-  /* Dark: very dark green-black for bottom nav */
-  --color-brand-dark: oklch(0.18 0.03 135);
+  /* Dark: #311A19 deep brown for bottom nav */
+  --color-brand-dark: #311A19;
+  /* Yellow: light yellow for heading text on green backgrounds */
+  --color-brand-yellow: #f3f58e;
 
   /* Semantic color tokens — ref :root vars for theme switching */
   --color-background: var(--background);

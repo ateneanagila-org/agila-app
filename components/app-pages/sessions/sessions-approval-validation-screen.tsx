@@ -14,6 +14,7 @@ import {
   ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { removeSessionCat } from "@/app/actions/sessions";
@@ -256,23 +257,27 @@ export function SessionsApprovalValidationScreen() {
             backHref={backHref}
           />
 
+          {/* Action buttons */}
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDiscardConfirm(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+            >
+              Discard <span>✕</span>
+            </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => setShowSaveConfirm(true)}
-              className="rounded-full bg-brand-orange px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Approve Instantly
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowDiscardConfirm(true)}
-              className="rounded-full border border-brand-orange bg-transparent px-4 py-2 text-xs font-semibold text-brand-orange"
-            >
-              Discard
+              Approve Instantly <span>✓</span>
             </button>
           </div>
+
+          {/* Separator */}
+          <div className="h-px bg-pink-200" />
 
           {error ? (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -280,77 +285,63 @@ export function SessionsApprovalValidationScreen() {
             </div>
           ) : null}
 
+          {/* Section header */}
           <div className="flex items-center justify-between">
-            <p className="text-base font-bold text-slate-900">
-              Validate the info.
+            <p className="font-heading text-base font-bold text-brand-green">
+              Info Validation
             </p>
             <Link
               href={crossRefHref}
-              className="flex items-center gap-1 text-sm text-slate-600"
+              className="flex items-center gap-1 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
             >
-              Next
-              <DoubleChevronIcon className="h-4 w-4" />
+              Next ›
             </Link>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-slate-600">Last seen at:</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {formatDate(cat?.last_updated_at)} /{" "}
-                {cat?.spot_last_seen || "—"}
-              </p>
-            </div>
-            <DropdownField
-              label="Color"
-              options={CAT_COLOR_VALUES}
-              value={color}
-              onChange={setColor}
-              isMobile
-            />
-            <DropdownField
-              label="Size/Age"
-              options={CAT_AGE_VALUES}
-              value={age}
-              onChange={setAge}
-              isMobile
-            />
-            <DropdownField
-              label="Sex"
-              options={CAT_SEX_VALUES}
-              value={sex}
-              onChange={setSex}
-              isMobile
-            />
-            <DropdownField
-              label="Sociability"
-              options={CAT_SOCIABILITY_VALUES}
-              value={sociability}
-              onChange={setSociability}
-              isMobile
-            />
-            <DropdownField
-              label="Status"
-              options={CAT_STATUS_VALUES}
-              value={catStatus}
-              onChange={setCatStatus}
-              isMobile
-            />
-            <div>
-              <label className="text-sm text-slate-700">Caretaker</label>
-              <input
-                value={caretaker}
-                onChange={(e) => setCaretaker(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-700">Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none"
-              />
+          {/* Green form card */}
+          <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
+                </p>
+              </div>
+
+              {(
+                [
+                  { label: "Color", options: CAT_COLOR_VALUES, value: color, onChange: setColor },
+                  { label: "Size/Age", options: CAT_AGE_VALUES, value: age, onChange: setAge },
+                  { label: "Sex", options: CAT_SEX_VALUES, value: sex, onChange: setSex },
+                  { label: "Sociability", options: CAT_SOCIABILITY_VALUES, value: sociability, onChange: setSociability },
+                  { label: "Status", options: CAT_STATUS_VALUES, value: catStatus, onChange: setCatStatus },
+                ] as const
+              ).map(({ label, options, value, onChange }) => (
+                <div key={label}>
+                  <label className="text-xs font-bold text-brand-yellow">{label}</label>
+                  <div className="mt-1.5">
+                    <CustomSelect options={options} value={value} onChange={onChange} variant="cream" />
+                  </div>
+                </div>
+              ))}
+
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">Caretaker</label>
+                <input
+                  value={caretaker}
+                  onChange={(e) => setCaretaker(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="mt-1.5 h-20 w-full resize-none rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none"
+                />
+              </div>
             </div>
           </div>
         </PageContent>

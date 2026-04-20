@@ -6,13 +6,10 @@ import {
   ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import { getSessions, getSessionCats } from "@/app/actions/sessions";
+import { getSessionCats } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
-import type {
-  SelectSession,
-  SelectSessionCat,
-} from "@/lib/validation/sessions";
+import type { SelectSessionCat } from "@/lib/validation/sessions";
 
 type ReviewItem = {
   cat: SelectCat;
@@ -28,46 +25,26 @@ export function SessionsManagerScreen() {
   const fetchPendingCats = useCallback(async () => {
     setLoading(true);
     try {
-      // Get all sessions, then keep entries that are still unreviewed.
-      const sessionsResult = await getSessions({});
-      if (!sessionsResult?.data || sessionsResult.data.length === 0) {
-        setForReview([]);
-        return;
+      // Parallel: get all unreviewed cats + all session-cat links
+      const [catsResult, sessionCatsResult] = await Promise.all([
+        getCats({ entry_status: "Unreviewed" }),
+        getSessionCats({}),
+      ]);
+
+      const unreviewedCats = catsResult?.data ?? [];
+      const allSessionCats = sessionCatsResult?.data ?? [];
+
+      // Build cat_id → sessionCat lookup
+      const scByCatId = new Map<string, SelectSessionCat>();
+      for (const sc of allSessionCats) {
+        scByCatId.set(sc.cat_id, sc);
       }
 
-      // For each unfinished session, get its cats
-      const scPromises = sessionsResult.data.map((s: SelectSession) =>
-        getSessionCats({ session_id: s.id }),
-      );
-      const scResults = await Promise.all(scPromises);
-      const allSessionCats = scResults
-        .filter((r) => r?.data)
-        .flatMap((r) => r!.data!);
-
-      if (allSessionCats.length === 0) {
-        setForReview([]);
-        return;
-      }
-
-      // Resolve each to a full cat object
-      const catPromises = allSessionCats.map((sc: SelectSessionCat) =>
-        getCats({ id: sc.cat_id }),
-      );
-      const catResults = await Promise.all(catPromises);
-
-      const resolved = catResults
-        .map((r, index) => {
-          const cat = r?.data?.[0];
-          const sessionCat = allSessionCats[index];
-          if (!cat || !sessionCat) return null;
-
-          if (cat.entry_status !== "Unreviewed") return null;
-
-          return {
-            cat,
-            sessionId: sessionCat.session_id,
-            sessionCatId: sessionCat.id,
-          } as ReviewItem;
+      const resolved = unreviewedCats
+        .map((cat) => {
+          const sc = scByCatId.get(cat.id);
+          if (!sc) return null;
+          return { cat, sessionId: sc.session_id, sessionCatId: sc.id } as ReviewItem;
         })
         .filter((item): item is ReviewItem => item !== null);
 
@@ -109,85 +86,73 @@ export function SessionsManagerScreen() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col px-4 py-4 tablet:hidden">
-        <div className="flex-1 space-y-4">
-          <Link
-            href="/sessions"
-            className="flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-3 transition-opacity hover:opacity-90"
-          >
-            <span className="text-sm font-semibold tracking-tight text-white">
-              Current Census Reports
-            </span>
-            <span className="text-white/70">&#8599;</span>
-          </Link>
-
-          <div>
-            <p className="mb-2.5 text-sm font-bold tracking-tight text-white">
-              For Review
-            </p>
-            {loading ? (
-              <LoadingIndicator />
-            ) : forReview.length === 0 ? (
-              <div className="py-6 text-center text-sm text-white/50">
-                No cats pending review.
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-2xl bg-brand-green">
-                {forReview.map((item, i) => (
-                  <Link
-                    key={item.sessionCatId}
-                    href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                    className="block"
-                  >
-                    <div className="flex items-start gap-3 px-3.5 py-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15">
-                        <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold tracking-tight text-white">
-                            {item.cat.name || "Unnamed"}
-                          </span>
-                          {sexSymbol(item.cat.sex) ? (
-                            <span
-                              className={`text-sm ${sexColor(item.cat.sex)}`}
-                            >
-                              {sexSymbol(item.cat.sex)}
-                            </span>
-                          ) : null}
-                          <span className="ml-auto text-white/70">
-                            &#8250;
-                          </span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-white/70">
-                          {item.cat.color || "Unknown"}
-                        </p>
-                        <p className="text-xs text-white/70">
-                          {item.cat.age || "Unknown"}
-                        </p>
-                        <p className="mt-1.5 text-[11px] font-medium text-white/60">
-                          {item.cat.spot_last_seen || "—"} &middot;{" "}
-                          {formatDate(item.cat.last_updated_at)}
-                        </p>
-                      </div>
-                    </div>
-                    {i < forReview.length - 1 ? (
-                      <div className="mx-3.5 border-b border-white/10" />
-                    ) : null}
-                  </Link>
-                ))}
-              </div>
-            )}
+      <div className="flex flex-1 flex-col tablet:hidden">
+        <div className="flex-1 space-y-3 px-4 py-4">
+          {/* Top action buttons */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-green py-2.5 text-sm font-bold text-brand-green transition-opacity hover:opacity-80"
+            >
+              Census Report
+            </button>
+            <Link
+              href="/sessions"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Review Sessions ⊙
+            </Link>
           </div>
-        </div>
 
-        <div className="flex justify-end pb-5 pt-4">
-          <Link
-            href="/sessions"
-            className="rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-90"
-          >
-            My Sessions
-          </Link>
+          {/* Heading + pending count */}
+          <div className="flex items-center gap-2">
+            <p className="font-heading text-2xl font-bold text-foreground">For Review</p>
+            {forReview.length > 0 ? (
+              <span className="rounded-full bg-brand-orange px-2.5 py-0.5 text-xs font-bold text-white">
+                {forReview.length} pending
+              </span>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <LoadingIndicator />
+          ) : forReview.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-400">
+              No cats pending review.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {forReview.map((item) => (
+                <Link
+                  key={item.sessionCatId}
+                  href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
+                >
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-24 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
+                    </div>
+                    {/* Info */}
+                    <div className="min-w-0 flex-1 px-3.5 py-3">
+                      <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                        {item.cat.name || "Unnamed"}
+                        {sexSymbol(item.cat.sex) ? (
+                          <span className="ml-1 text-white/80">{sexSymbol(item.cat.sex)}</span>
+                        ) : null}
+                      </p>
+                      <p className="mt-0.5 text-xs text-white/70">
+                        {item.cat.color || "Unknown"}{item.cat.age ? ` Size/${item.cat.age}` : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-white/60">
+                        {item.cat.spot_last_seen || "—"} &middot; {formatDate(item.cat.last_updated_at)}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -12,7 +12,12 @@ import {
   ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import { getCats, getCatHealthRecords, editCat } from "@/app/actions/cats";
+import { CustomSelect } from "@/components/ui/custom-select";
+import {
+  getCats,
+  getCatHealthRecords,
+  editCat,
+} from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
@@ -42,7 +47,6 @@ function DateInputRow({
   onMonthChange,
   onDayChange,
   onYearChange,
-  isMobile = false,
 }: {
   month: string;
   day: string;
@@ -52,69 +56,11 @@ function DateInputRow({
   onYearChange: (val: string) => void;
   isMobile?: boolean;
 }) {
-  const classes = isMobile
-    ? "h-10 bg-white/15 border border-white/20 text-white"
-    : "h-9 bg-white/15 border border-white/20 text-white";
-
   return (
     <div className="mt-1.5 grid grid-cols-3 gap-2">
-      <div
-        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
-      >
-        <select
-          value={month}
-          onChange={(e) => onMonthChange(e.target.value)}
-          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
-        >
-          <option value="" className="bg-white text-slate-900">
-            MM
-          </option>
-          {MONTHS.map((m) => (
-            <option key={m} value={m} className="bg-white text-slate-900">
-              {m}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
-      </div>
-      <div
-        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
-      >
-        <select
-          value={day}
-          onChange={(e) => onDayChange(e.target.value)}
-          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
-        >
-          <option value="" className="bg-white text-slate-900">
-            DD
-          </option>
-          {DAYS.map((d) => (
-            <option key={d} value={d} className="bg-white text-slate-900">
-              {d}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
-      </div>
-      <div
-        className={`relative rounded-lg ${isMobile ? "bg-white/15 border border-white/20" : "bg-white/15 border border-white/20"}`}
-      >
-        <select
-          value={year}
-          onChange={(e) => onYearChange(e.target.value)}
-          className={`w-full appearance-none rounded-lg px-3 pr-8 text-sm font-medium ${classes}`}
-        >
-          <option value="" className="bg-white text-slate-900">
-            YYYY
-          </option>
-          {YEARS.map((y) => (
-            <option key={y} value={y} className="bg-white text-slate-900">
-              {y}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
-      </div>
+      <CustomSelect options={MONTHS} value={month} onChange={onMonthChange} placeholder="MM" variant="cream" size="sm" />
+      <CustomSelect options={DAYS} value={day} onChange={onDayChange} placeholder="DD" variant="cream" size="sm" />
+      <CustomSelect options={YEARS} value={year} onChange={onYearChange} placeholder="YY" variant="cream" size="sm" />
     </div>
   );
 }
@@ -294,36 +240,19 @@ export function DatabaseMedicalScreen() {
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-white/70">
-                    Condition
-                  </label>
-                  <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
-                    <select
+                  <label className="text-xs font-bold text-brand-yellow">Condition</label>
+                  <div className="mt-1.5">
+                    <CustomSelect
+                      options={CATHEALTHRECORD_CONDITION_VALUES}
                       value={condition}
-                      onChange={(e) => setCondition(e.target.value)}
-                      className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
-                    >
-                      <option value="" className="bg-white text-slate-900">
-                        —
-                      </option>
-                      {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                        <option
-                          key={v}
-                          value={v}
-                          className="bg-white text-slate-900"
-                        >
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                      onChange={setCondition}
+                      variant="cream"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">
-                    Neuter Date
-                  </label>
+                  <label className="text-xs font-bold text-brand-yellow">Neuter Date</label>
                   <DateInputRow
                     month={neuterMonth}
                     day={neuterDay}
@@ -331,14 +260,11 @@ export function DatabaseMedicalScreen() {
                     onMonthChange={setNeuterMonth}
                     onDayChange={setNeuterDay}
                     onYearChange={setNeuterYear}
-                    isMobile
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-white/70">
-                    Vaccination Date
-                  </label>
+                  <label className="text-xs font-bold text-brand-yellow">Vaccination Date</label>
                   <DateInputRow
                     month={vaccMonth}
                     day={vaccDay}
@@ -346,27 +272,26 @@ export function DatabaseMedicalScreen() {
                     onMonthChange={setVaccMonth}
                     onDayChange={setVaccDay}
                     onYearChange={setVaccYear}
-                    isMobile
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="rounded-full border-2 border-brand-orange px-4 py-2 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
               >
-                Cancel
+                Cancel <span>✕</span>
               </button>
               <button
                 type="button"
                 disabled={saving}
                 onClick={handleSave}
-                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Saving..." : <><span>Save</span> <span>✓</span></>}
               </button>
             </div>
           </div>
@@ -490,37 +415,20 @@ export function DatabaseMedicalScreen() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-white/70">
-                Condition
-              </label>
-              <div className="relative mt-1.5 rounded-lg bg-white/15 border border-white/20">
-                <select
+              <label className="text-xs font-bold text-brand-orange">Condition</label>
+              <div className="mt-1.5">
+                <CustomSelect
+                  options={CATHEALTHRECORD_CONDITION_VALUES}
                   value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm font-medium text-white"
-                >
-                  <option value="" className="bg-white text-slate-900">
-                    —
-                  </option>
-                  {CATHEALTHRECORD_CONDITION_VALUES.map((v) => (
-                    <option
-                      key={v}
-                      value={v}
-                      className="bg-white text-slate-900"
-                    >
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/50" />
+                  onChange={setCondition}
+                  variant="cream"
+                />
               </div>
             </div>
             <div />
 
             <div>
-              <label className="text-xs font-semibold text-white/70">
-                Neuter Date
-              </label>
+              <label className="text-xs font-bold text-brand-orange">Neuter Date</label>
               <DateInputRow
                 month={neuterMonth}
                 day={neuterDay}
@@ -528,14 +436,11 @@ export function DatabaseMedicalScreen() {
                 onMonthChange={setNeuterMonth}
                 onDayChange={setNeuterDay}
                 onYearChange={setNeuterYear}
-                isMobile={false}
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-white/70">
-                Vaccination Date
-              </label>
+              <label className="text-xs font-bold text-brand-orange">Vaccination Date</label>
               <DateInputRow
                 month={vaccMonth}
                 day={vaccDay}
@@ -543,7 +448,6 @@ export function DatabaseMedicalScreen() {
                 onMonthChange={setVaccMonth}
                 onDayChange={setVaccDay}
                 onYearChange={setVaccYear}
-                isMobile={false}
               />
             </div>
           </div>
