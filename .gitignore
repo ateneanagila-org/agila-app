@@ -51,3 +51,5 @@ output.txt
 
 #cron worker node modules
 /workers/sync-cron/node_modules
+
+.vscode
