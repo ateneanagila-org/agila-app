@@ -6,6 +6,7 @@ const createJestConfig = nextJest({ dir: "./" });
 
 const config: Config = {
   clearMocks: true,
+  passWithNoTests: true,
   testEnvironment: "node",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
