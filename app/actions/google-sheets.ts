@@ -1,7 +1,7 @@
 "use server";
 import { db } from "@/lib/db";
 import { gsheetSyncQueue } from "@/lib/db/schema";
-import { syncAndCompactRegion } from "@/lib/services/helper.service";
+import { syncAndCompactRegion, generateForRiSheet, generateForFaSheet } from "@/lib/services/helper.service";
 import { reverseSyncRegion } from "@/lib/services/reverse-sync.service";
 import { eq } from "drizzle-orm";
 
@@ -36,4 +36,16 @@ export async function syncAllPendingRegions() {
   await Promise.all(
     pendingTasks.map((task) => syncAndCompactRegion(task.regionId)),
   );
+
+  // Phase 3: Regenerate summary sheets
+  try {
+    await generateForRiSheet();
+    await generateForFaSheet();
+    console.log("[SummarySheets] For RI + For FA regenerated");
+  } catch (error) {
+    console.error(
+      "[SummarySheets] Failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }

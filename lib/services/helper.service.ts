@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
-import { gsheetSyncQueue, regions, syncAuditLog, cats } from "@/lib/db/schema";
+import { gsheetSyncQueue, regions, syncAuditLog, cats, sessions, sessionCats } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import { isSyncFrozen } from "./system.service";
 import { statusSuffix, nextCatalogId } from "./catalog.service";
@@ -366,7 +366,183 @@ export async function syncAndCompactRegion(regionId: string) {
 }
 
 // ==========================================
-// 5. CONFIG SHEET (_config tab) & SHEET PROTECTIONS
+// 5. SUMMARY SHEETS (For RI + For FA)
+// ==========================================
+
+/**
+ * Regenerates the "For RI" summary sheet from DB.
+ * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
+ * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
+ */
+export async function generateForRiSheet(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const allRegions = await db.query.regions.findMany();
+  const sheetData: string[][] = [];
+  const DEFAULT_HEIGHT = 20;
+
+  for (const region of allRegions) {
+    const catsInRegion = await db.query.cats.findMany({
+      with: {
+        interventions: {
+          orderBy: (i, { desc }) => [desc(i.requested_at)],
+        },
+      },
+      where: (c, { exists, eq, and }) =>
+        exists(
+          db
+            .select()
+            .from(sessionCats)
+            .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+            .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+        ),
+    });
+
+    const tnvrCats = catsInRegion
+      .filter((cat) =>
+        cat.interventions.some((i) => i.type === "TNVR" && i.status === "Pending"),
+      )
+      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+
+    const vetCats = catsInRegion
+      .filter((cat) =>
+        cat.interventions.some((i) => i.type === "Veterinarian" && i.status === "Pending"),
+      )
+      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+
+    const maxRows = Math.max(tnvrCats.length, vetCats.length);
+    const dataRows = Math.max(maxRows, 1);
+
+    sheetData.push([region.name, "", region.name, ""]);
+
+    for (let i = 0; i < dataRows; i++) {
+      sheetData.push([
+        tnvrCats[i] ?? "",
+        tnvrCats[i] ? "Will have TNVR intervention" : "",
+        vetCats[i] ?? "",
+        vetCats[i] ? "Will have Vet intervention" : "",
+      ]);
+    }
+
+    if (dataRows < DEFAULT_HEIGHT) {
+      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
+        sheetData.push(["", "", "", ""]);
+      }
+    } else {
+      sheetData.push(["", "", "", ""], ["", "", "", ""], ["", "", "", ""]);
+    }
+  }
+
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For RI!A1:D",
+  });
+
+  if (sheetData.length > 0) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId,
+      range: "For RI!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: sheetData },
+    });
+  }
+}
+
+/**
+ * Regenerates the "For FA" summary sheet from DB.
+ * 6 columns: Healthy catalog_id, status, Sick catalog_id, status, Injured catalog_id, status.
+ * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
+ */
+export async function generateForFaSheet(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const allRegions = await db.query.regions.findMany();
+  const sheetData: string[][] = [];
+  const DEFAULT_HEIGHT = 20;
+
+  for (const region of allRegions) {
+    const adoptableCats = await db.query.cats.findMany({
+      with: { catHealthRecords: true },
+      where: (c, { eq, and, exists }) =>
+        and(
+          eq(c.is_adoptable, true),
+          exists(
+            db
+              .select()
+              .from(sessionCats)
+              .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+              .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+          ),
+        ),
+    });
+
+    const healthy = adoptableCats
+      .filter((c) => {
+        const cond = (c.catHealthRecords as { condition: string | null } | null)?.condition ?? "";
+        return !cond.includes("Sick") && !cond.includes("Injured");
+      })
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const sick = adoptableCats
+      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Sick"))
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const injured = adoptableCats
+      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Injured"))
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const maxRows = Math.max(healthy.length, sick.length, injured.length);
+    const dataRows = Math.max(maxRows, 1);
+
+    sheetData.push([region.name, "", region.name, "", region.name, ""]);
+
+    for (let i = 0; i < dataRows; i++) {
+      sheetData.push([
+        healthy[i] ?? "",
+        healthy[i] ? "Healthy & Adoptable" : "",
+        sick[i] ?? "",
+        sick[i] ? "Sick & Adoptable" : "",
+        injured[i] ?? "",
+        injured[i] ? "Injured & Adoptable" : "",
+      ]);
+    }
+
+    if (dataRows < DEFAULT_HEIGHT) {
+      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
+        sheetData.push(["", "", "", "", "", ""]);
+      }
+    } else {
+      sheetData.push(
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""],
+      );
+    }
+  }
+
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For FA!A1:F",
+  });
+
+  if (sheetData.length > 0) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId,
+      range: "For FA!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: sheetData },
+    });
+  }
+}
+
+// ==========================================
+// 6. CONFIG SHEET (_config tab) & SHEET PROTECTIONS
 // ==========================================
 
 const CONFIG_SPREADSHEET_ID = process.env.CATALOG_SPREADSHEET_ID!;
@@ -541,7 +717,7 @@ export async function unfreezeSheetProtections(): Promise<void> {
 }
 
 // ==========================================
-// 6. REVERSE SYNC (Reading GSheet State)
+// 7. REVERSE SYNC (Reading GSheet State)
 // ==========================================
 
 export interface SheetRow {
