@@ -1,9 +1,10 @@
 import { google } from "googleapis";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
-import { gsheetSyncQueue, regions, syncAuditLog } from "@/lib/db/schema";
+import { gsheetSyncQueue, regions, syncAuditLog, cats } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import { isSyncFrozen } from "./system.service";
+import { statusSuffix, nextCatalogId } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -73,7 +74,8 @@ function getInterventionDisplayStatus(
   return "Will not have intervention";
 }
 /**
- * Maps Database records to a 21-column Spreadsheet Array (A-U)
+ * Maps DB records to a 22-element array (cols A–V, indices 0–21).
+ * Col A = catalog_id + status suffix. UUID is written to col Y separately.
  */
 export function mapCatToSheetRow(
   cat: SelectCat,
@@ -83,7 +85,6 @@ export function mapCatToSheetRow(
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
 
-  // Calculate Column U (FOR FA)
   let forFaStatus = "Not Ready for FA";
   if (["Adopted", "Deceased", "MIA"].includes(catStatus)) {
     forFaStatus = "Not Applicable";
@@ -93,32 +94,67 @@ export function mapCatToSheetRow(
     else forFaStatus = "Healthy & Adoptable";
   }
 
-  // Mapping: index - column
+  const catalogDisplay = cat.catalog_id
+    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
+    : "";
+
   return [
-    cat.id, // 0  (A)
-    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "", // 1  (B)
-    cat.name ?? "N/A", // 2  (C)
-    cat.color ?? "N/A", // 3  (D)
-    cat.age ?? "N/A", // 4  (E)
-    cat.sex ?? "Unknown", // 5  (F)
-    health?.neuter_date ? "YES" : "NO", // 6  (G)
-    cat.sociability ?? "Unknown", // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
-    cat.is_adoptable ? "YES" : "NO", // 10 (K)
-    catStatus || "Unknown", // 11 (L)
-    cat.caretaker ?? "N/A", // 12 (M)
-    new Date().toLocaleDateString(), // 13 (N)
-    cat.spot_last_seen ?? "N/A", // 14 (O)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 15 (P)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 16 (Q)
-    cat.notes ?? "N/A", // 17 (R)
+    catalogDisplay,                                                    // 0  (A) Catalog ID
+    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "",                 // 1  (B)
+    cat.name ?? "N/A",                                                 // 2  (C)
+    cat.color ?? "N/A",                                                // 3  (D)
+    cat.age ?? "N/A",                                                  // 4  (E)
+    cat.sex ?? "Unknown",                                              // 5  (F)
+    health?.neuter_date ? "YES" : "NO",                                // 6  (G)
+    cat.sociability ?? "Unknown",                                      // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO",                        // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO",                     // 9  (J)
+    cat.is_adoptable ? "YES" : "NO",                                   // 10 (K)
+    catStatus || "Unknown",                                            // 11 (L)
+    cat.caretaker ?? "N/A",                                            // 12 (M)
+    new Date().toLocaleDateString(),                                   // 13 (N)
+    cat.spot_last_seen ?? "N/A",                                       // 14 (O)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A",               // 15 (P)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A",          // 16 (Q)
+    cat.notes ?? "N/A",                                                // 17 (R)
+    "",                                                                // 18 (S) separator
+    getInterventionDisplayStatus(cat, interventions, "TNVR"),          // 19 (T)
+    getInterventionDisplayStatus(cat, interventions, "Veterinarian"),  // 20 (U)
+    forFaStatus,                                                       // 21 (V)
+  ];
+}
 
-    "", // 18 (S) <-- THE BLACKED OUT SEPARATOR
+/**
+ * Maps DB records to a 22-element array for the UNKNOWN region sheet.
+ * Col layout: A=CatalogID, B=PossibleLoc, C=PawsId, D=Color, E=Age,
+ * F=Sex, G=Neutered, H=Tame, I=Sick, J=Injured, K=Adoptable,
+ * L=DateOfKapon, M=DateOfVaccination, N–V=empty.
+ * UUID is written to col Y separately.
+ */
+export function mapUnknownCatToSheetRow(
+  cat: SelectCat,
+  health: SelectCatHealthRecord | null,
+): string[] {
+  const condition = (health?.condition ?? "") as string;
+  const catalogDisplay = cat.catalog_id
+    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
+    : "";
 
-    getInterventionDisplayStatus(cat, interventions, "TNVR"), // 19 (T)
-    getInterventionDisplayStatus(cat, interventions, "Veterinarian"), // 20 (U)
-    forFaStatus, // 21 (V)
+  return [
+    catalogDisplay,                                            // 0  (A)
+    cat.spot_last_seen ?? "N/A",                               // 1  (B) Possible Loc
+    cat.paws_id ?? "",                                         // 2  (C) PAWS ID#
+    cat.color ?? "N/A",                                        // 3  (D)
+    cat.age ?? "N/A",                                          // 4  (E)
+    cat.sex ?? "Unknown",                                      // 5  (F)
+    health?.neuter_date ? "YES" : "NO",                        // 6  (G)
+    cat.sociability ?? "Unknown",                              // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO",                // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO",             // 9  (J)
+    cat.is_adoptable ? "YES" : "NO",                           // 10 (K)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A",       // 11 (L)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A",  // 12 (M)
+    "", "", "", "", "", "", "", "", "",                         // 13–21 (N–V) empty
   ];
 }
 
