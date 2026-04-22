@@ -29,10 +29,8 @@ export const createCat = async (
 
     if (opts?.systemSession) {
       await linkCatToSystemSession(newCat.id, region_id, tx);
+      await refreshCatInSyncQueue(newCat.id, tx); // only for direct creation — session link exists via system session
     }
-
-    // For a brand new cat, we can refresh the queue immediately
-    await refreshCatInSyncQueue(newCat.id, tx);
 
     return newCat;
   });
