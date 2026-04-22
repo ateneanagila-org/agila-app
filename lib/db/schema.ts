@@ -70,6 +70,7 @@ export const sessions = pgTable("sessions", {
   created_at: timestamp("created_at").defaultNow().notNull(),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   is_finished: boolean("is_finished").default(false),
+  is_system: boolean("is_system").default(false).notNull(),
 });
 
 export const sessionUsers = pgTable("session_users", {
@@ -123,6 +124,8 @@ export const cats = pgTable("cats", {
   caretaker: text("caretaker"),
   notes: text("notes"),
   is_adoptable: boolean("is_adoptable").default(false),
+  catalog_id: text("catalog_id"),
+  paws_id: text("paws_id"),
 });
 
 export const interventions = pgTable("interventions", {
