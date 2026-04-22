@@ -16,9 +16,12 @@ import {
 // Yes, these are verbose. But, in this way we can be specific and clear for future changes
 export const findSessions = (filters: Partial<SelectSession>) =>
   db.query.sessions.findMany({
-    where: (cols, { and }) => {
-      const conditions = createEQFilters(cols, filters);
-      return conditions.length > 0 ? and(...conditions) : undefined;
+    where: (cols, { and, eq }) => {
+      const conditions = [
+        eq(cols.is_system, false),
+        ...createEQFilters(cols, filters),
+      ];
+      return and(...conditions);
     },
   });
 

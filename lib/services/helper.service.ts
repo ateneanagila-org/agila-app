@@ -548,6 +548,7 @@ export async function generateForFaSheet(): Promise<void> {
 const CONFIG_SPREADSHEET_ID = process.env.CATALOG_SPREADSHEET_ID!;
 const CONFIG_SHEET = "_config";
 const AUTHORIZED_EMAILS_CELL = "B1";
+const REGION_SHEET_NAMES_CELL = "B2";
 
 // A3:V in 0-indexed GridRange terms
 const DATA_START_ROW = 2; // row 3, 0-indexed inclusive
@@ -604,6 +605,26 @@ export async function syncSheetEditors(): Promise<void> {
 }
 
 /**
+ * Writes region sheet names to _config!B2 so Apps Script Protection.gs
+ * knows which tabs are region data sheets vs. static summary sheets.
+ * Call whenever a region is created or deleted.
+ */
+export async function syncRegionSheetNames(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const names = regions.map((r) => r.name);
+
+  const { glAuth, glSheets } = await connectToSheets();
+
+  await glSheets.spreadsheets.values.update({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `${CONFIG_SHEET}!${REGION_SHEET_NAMES_CELL}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[names.join(",")]] },
+  });
+}
+
+/**
  * Reads the authorized editors list from the _config sheet (B1).
  */
 export async function getAuthorizedEmails(): Promise<string[]> {
@@ -628,6 +649,9 @@ export async function getAuthorizedEmails(): Promise<string[]> {
  * Called during freeze — lets all users with sheet access edit freely.
  */
 export async function freezeSheetProtections(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
   const { glAuth, glSheets } = await connectToSheets();
 
   const spreadsheet = await glSheets.spreadsheets.get({
@@ -639,7 +663,7 @@ export async function freezeSheetProtections(): Promise<void> {
   const requests: object[] = [];
 
   for (const sheet of spreadsheet.data.sheets ?? []) {
-    if (sheet.properties?.title === CONFIG_SHEET) continue;
+    if (!regionNames.has(sheet.properties?.title ?? "")) continue;
 
     for (const pr of sheet.protectedRanges ?? []) {
       const range = pr.range;
@@ -669,6 +693,9 @@ export async function freezeSheetProtections(): Promise<void> {
  * Called during unfreeze — re-locks sheets after app recovery.
  */
 export async function unfreezeSheetProtections(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
   const { glAuth, glSheets } = await connectToSheets();
 
   const emails = await getAuthorizedEmails();
@@ -686,7 +713,7 @@ export async function unfreezeSheetProtections(): Promise<void> {
   const requests: object[] = [];
 
   for (const sheet of spreadsheet.data.sheets ?? []) {
-    if (sheet.properties?.title === CONFIG_SHEET) continue;
+    if (!regionNames.has(sheet.properties?.title ?? "")) continue;
     const sheetId = sheet.properties?.sheetId;
     if (sheetId === undefined) continue;
 

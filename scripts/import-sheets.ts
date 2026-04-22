@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/enums";
 import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
+import { syncRegionSheetNames } from "@/lib/services/helper.service";
 import { randomUUID } from "crypto";
 
 type ConditionValue = (typeof CATHEALTHRECORD_CONDITION_VALUES)[number];
@@ -241,6 +242,11 @@ async function main() {
   }
 
   console.log(`\nDone. Total created: ${totalCreated}, errors: ${totalErrors}`);
+
+  console.log("\nSyncing region sheet names to _config!B2...");
+  await syncRegionSheetNames();
+  console.log("Done. Run setupUuidProtection() in Apps Script to lock col Y.");
+
   process.exit(0);
 }
 
