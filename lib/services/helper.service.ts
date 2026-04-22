@@ -545,9 +545,8 @@ export async function unfreezeSheetProtections(): Promise<void> {
 // ==========================================
 
 export interface SheetRow {
-  /** Raw row array from Sheets API (columns A through X) */
   raw: string[];
-  /** Cat UUID from column A */
+  /** Cat UUID from column Y */
   entityId: string;
   /** ISO timestamp from column W (set by Apps Script onEdit) */
   lastEditedAt: string | null;
@@ -568,21 +567,22 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   });
   if (!region) return [];
 
+  // Read A3:Y — col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
-    range: `'${region.name}'!A3:X`,
+    range: `'${region.name}'!A3:Y`,
   });
 
   const rows = response.data.values || [];
 
   return rows
-    .filter((row) => row[0] && String(row[0]).trim() !== "")
+    .filter((row) => row[24] && String(row[24]).trim() !== "") // require UUID in col Y
     .map((row) => ({
-      raw: row,
-      entityId: String(row[0]).trim(),
-      lastEditedAt: row[22] ? String(row[22]).trim() : null, // Column W (0-indexed: 22)
-      editedBy: row[23] ? String(row[23]).trim() : null,     // Column X (0-indexed: 23)
+      raw: row as string[],
+      entityId: String(row[24]).trim(),        // col Y UUID
+      lastEditedAt: row[22] ? String(row[22]).trim() : null, // col W
+      editedBy: row[23] ? String(row[23]).trim() : null,     // col X
     }));
 }
 
@@ -604,22 +604,22 @@ export async function clearSheetEditTimestamps(
   });
   if (!region) return;
 
-  // Read column A to find row positions of the imported entities
+  // Read col Y to find row positions of imported entities
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
-    range: `'${region.name}'!A3:A`,
+    range: `'${region.name}'!Y3:Y`,
   });
-  const idColumn = response.data.values || [];
+  const uuidColumn = response.data.values || [];
 
   const requests: Array<{ range: string; values: string[][] }> = [];
 
   for (const entityId of entityIds) {
-    const rowIdx = idColumn.findIndex(
-      (row) => String(row[0]).trim() === entityId,
+    const rowIdx = uuidColumn.findIndex(
+      (row) => String(row[0] ?? "").trim() === entityId,
     );
     if (rowIdx === -1) continue;
-    const sheetRow = rowIdx + 3; // +3 because data starts at row 3 (1-indexed)
+    const sheetRow = rowIdx + 3; // data starts at row 3
     requests.push({
       range: `'${region.name}'!W${sheetRow}:X${sheetRow}`,
       values: [["", ""]],
@@ -630,10 +630,7 @@ export async function clearSheetEditTimestamps(
     await glSheets.spreadsheets.values.batchUpdate({
       auth: glAuth,
       spreadsheetId,
-      requestBody: {
-        valueInputOption: "RAW",
-        data: requests,
-      },
+      requestBody: { valueInputOption: "RAW", data: requests },
     });
   }
 }

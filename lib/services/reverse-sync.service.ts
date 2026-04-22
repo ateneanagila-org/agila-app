@@ -5,7 +5,6 @@ import {
   catHealthRecords,
   syncAuditLog,
   gsheetSyncQueue,
-  regions,
 } from "@/lib/db/schema";
 import {
   readSheetState,
@@ -16,8 +15,11 @@ import { isSyncFrozen } from "./system.service";
 import {
   sheetRowSchema,
   parseSheetRow,
+  parseUnknownSheetRow,
   SheetRowParsed,
 } from "@/lib/validation/reverse-sync";
+import { parseCatalogId } from "@/lib/services/catalog.service";
+import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 
 /**
  * 5-second safety buffer (in milliseconds).
@@ -41,6 +43,11 @@ async function reverseSyncRegionInternal(
   const result: ReverseSyncResult = { imported: 0, skipped: 0, errors: [] };
   const startedAt = new Date();
   const importedIds: string[] = [];
+
+  // Fetch region for UNKNOWN branching
+  const region = await db.query.regions.findFirst({
+    where: (r, { eq }) => eq(r.id, regionId),
+  });
 
   let sheetRows: SheetRow[];
   try {
@@ -80,7 +87,59 @@ async function reverseSyncRegionInternal(
     });
 
     if (!dbCat) {
-      result.skipped++;
+      // CREATE: new cat added manually via sheet (Apps Script generated UUID in col Y)
+      try {
+        const isUnknown = region?.name === "UNKNOWN";
+        const rawParsed = isUnknown
+          ? parseUnknownSheetRow(sheetRow.raw)
+          : parseSheetRow(sheetRow.raw);
+
+        if (!rawParsed) {
+          result.skipped++;
+          continue;
+        }
+
+        const validation = sheetRowSchema.safeParse(rawParsed);
+        if (!validation.success) {
+          result.errors.push({
+            entityId: sheetRow.entityId,
+            error: `Create validation failed: ${validation.error.issues.map((i) => i.message).join(", ")}`,
+          });
+          continue;
+        }
+
+        const catalogIdRaw = String(sheetRow.raw[0] ?? "").trim();
+        const parsed = parseCatalogId(catalogIdRaw);
+        const catalog_id = parsed !== null ? String(parsed) : null;
+
+        await db.transaction(async (tx) => {
+          const { id: _id, condition, neuter_date, vaccination_date, paws_id, ...catFields } = validation.data;
+          const [newCat] = await tx
+            .insert(cats)
+            .values({
+              id: sheetRow.entityId,
+              catalog_id,
+              paws_id: paws_id ?? null,
+              ...catFields,
+            })
+            .returning();
+
+          await tx.insert(catHealthRecords).values({
+            cat_id: newCat.id,
+            condition,
+            neuter_date: neuter_date ? new Date(neuter_date) : null,
+            vaccination_date: vaccination_date ? new Date(vaccination_date) : null,
+          });
+
+          await linkCatToSystemSession(newCat.id, regionId, tx);
+        });
+
+        result.imported++;
+        importedIds.push(sheetRow.entityId);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Create failed";
+        result.errors.push({ entityId: sheetRow.entityId, error: msg });
+      }
       continue;
     }
 
@@ -93,7 +152,10 @@ async function reverseSyncRegionInternal(
       continue;
     }
 
-    const rawParsed = parseSheetRow(sheetRow.raw);
+    const isUnknown = region?.name === "UNKNOWN";
+    const rawParsed = isUnknown
+      ? parseUnknownSheetRow(sheetRow.raw)
+      : parseSheetRow(sheetRow.raw);
     if (!rawParsed) {
       result.errors.push({
         entityId: sheetRow.entityId,
@@ -220,6 +282,7 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
         notes: data.notes,
         is_adoptable: data.is_adoptable,
         photo_url: data.photo_url,
+        ...(data.paws_id !== undefined ? { paws_id: data.paws_id } : {}),
         last_updated_at: new Date(),
       })
       .where(eq(cats.id, data.id));

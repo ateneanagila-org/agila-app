@@ -36,6 +36,7 @@ export const sheetRowSchema = z.object({
   condition: CatHealthRecordConditionEnum.nullable(),
   neuter_date: z.string().nullable(),
   vaccination_date: z.string().nullable(),
+  paws_id: z.string().nullable().optional(),
 });
 
 export type SheetRowParsed = z.infer<typeof sheetRowSchema>;
@@ -45,7 +46,7 @@ export type SheetRowParsed = z.infer<typeof sheetRowSchema>;
  * Returns null if the row can't be parsed (e.g., missing ID).
  */
 export function parseSheetRow(row: string[]): Record<string, unknown> | null {
-  const id = row[0]?.trim();
+  const id = row[24]?.trim(); // UUID from col Y
   if (!id) return null;
 
   const isSick = String(row[8] ?? "").toUpperCase() === "YES";
@@ -107,6 +108,72 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
     notes,
     is_adoptable,
     photo_url,
+    condition,
+    neuter_date,
+    vaccination_date,
+  };
+}
+
+/**
+ * Converts a raw UNKNOWN sheet row to structured data.
+ * UNKNOWN layout: A(0)=CatalogID, B(1)=PossibleLoc, C(2)=PawsId,
+ * D(3)=Color, E(4)=Age, F(5)=Sex, G(6)=Neutered, H(7)=Tame,
+ * I(8)=Sick, J(9)=Injured, K(10)=Adoptable, L(11)=DateOfKapon,
+ * M(12)=DateOfVaccination, Y(24)=UUID.
+ */
+export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | null {
+  const id = row[24]?.trim(); // UUID from col Y
+  if (!id) return null;
+
+  const isSick = String(row[8] ?? "").toUpperCase() === "YES";
+  const isInjured = String(row[9] ?? "").toUpperCase() === "YES";
+  let condition: string | null = null;
+  if (isSick && isInjured) condition = "Sick and Injured";
+  else if (isSick) condition = "Sick";
+  else if (isInjured) condition = "Injured";
+  else condition = "Healthy";
+
+  const rawSex = String(row[5] ?? "").trim();
+  const sex = ["Male", "Female"].includes(rawSex) ? rawSex : "Unknown";
+
+  const rawSociability = String(row[7] ?? "").trim();
+  const sociability = ["Domesticated", "Tame", "Feral"].includes(rawSociability)
+    ? rawSociability
+    : "Unknown";
+
+  const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
+
+  const rawColor = String(row[3] ?? "").trim();
+  const validColors = [
+    "Black", "White", "Black and White", "Calico", "Tortie", "Torbie",
+    "Orange Tabby", "Orange and White Tabby", "Gray Tabby",
+    "Gray and White Tabby", "Brown Tabby", "Brown and White Tabby",
+  ];
+  const color = validColors.includes(rawColor) ? rawColor : null;
+
+  const rawAge = String(row[4] ?? "").trim();
+  const validAges = ["Neonatal", "Kitten", "Juvenile", "Adult"];
+  const age = validAges.includes(rawAge) ? rawAge : null;
+
+  const spot_last_seen = row[1] && row[1] !== "N/A" ? row[1] : null;
+  const paws_id = row[2] && row[2] !== "" ? row[2] : null;
+  const neuter_date = row[11] && row[11] !== "N/A" ? row[11] : null;
+  const vaccination_date = row[12] && row[12] !== "N/A" ? row[12] : null;
+
+  return {
+    id,
+    name: null,
+    color,
+    age,
+    sex,
+    sociability,
+    cat_status: null,
+    spot_last_seen,
+    paws_id,
+    caretaker: null,
+    notes: null,
+    is_adoptable,
+    photo_url: null,
     condition,
     neuter_date,
     vaccination_date,
