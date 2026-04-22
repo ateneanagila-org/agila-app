@@ -205,9 +205,11 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
  * Runs the background sync for a specific region.
  * Uses the "Read-Modify-Write" strategy to ensure data integrity.
  * Includes retry logic, audit logging, and freeze checking.
+ *
+ * Reads A3:Y (col Y = UUID at index 24). Matches rows by UUID (col Y).
+ * Writes data to A3:V, then UUIDs separately to Y3:Y.
  */
 export async function syncAndCompactRegion(regionId: string) {
-  // 0. CHECK FREEZE FLAG
   const frozen = await isSyncFrozen();
   if (frozen) {
     console.log(`[Sync] Frozen — skipping region ${regionId}`);
@@ -224,7 +226,6 @@ export async function syncAndCompactRegion(regionId: string) {
   });
   if (!region) return;
 
-  // Only pick up tasks that haven't exceeded retry limit
   const tasks = await db.query.gsheetSyncQueue.findMany({
     where: (q, { and, eq, lt }) =>
       and(
@@ -241,71 +242,103 @@ export async function syncAndCompactRegion(regionId: string) {
     const { glAuth, glSheets } = await connectToSheets();
     const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-    // 1. READ: Get current sheet state (A3 to V)
+    // 1. READ current sheet state A3:Y (col Y = UUID at index 24)
     const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
-      range: `'${region.name}'!A3:V`,
+      range: `'${region.name}'!A3:Y`,
     });
-    const currentRows = response.data.values || [];
+    const currentRows: string[][] = (response.data.values || []).map(
+      (r) => r as string[],
+    );
 
-    // 2. MODIFY: Process pending tasks in local memory
+    // 2. MODIFY: process tasks, matching rows by col Y (UUID)
     for (const task of tasks) {
-      const idx = currentRows.findIndex((r) => r[0] === task.entityId);
+      const idx = currentRows.findIndex((r) => r[24] === task.entityId);
       const taskPayload = (task.payload ?? []) as string[];
 
       if (task.action === "DELETE") {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
-        // CREATE or UPDATE: Snapshot overwrite
-        if (idx !== -1) currentRows[idx] = taskPayload;
-        else currentRows.push(taskPayload);
+        if (idx === -1) {
+          // New cat — assign catalog_id if not yet set
+          const cat = await db.query.cats.findFirst({
+            where: (c, { eq }) => eq(c.id, task.entityId),
+          });
+          if (cat && !cat.catalog_id) {
+            const colAValues = currentRows.map((r) => r[0] ?? "");
+            const newId = String(nextCatalogId(colAValues));
+            await db.update(cats).set({ catalog_id: newId }).where(eq(cats.id, cat.id));
+            const health = await db.query.catHealthRecords.findFirst({
+              where: (h, { eq }) => eq(h.cat_id, cat.id),
+            });
+            const interventionsList = await db.query.interventions.findMany({
+              where: (i, { eq }) => eq(i.cat_id, cat.id),
+              orderBy: (i, { desc }) => [desc(i.requested_at)],
+            });
+            const updatedCat = { ...cat, catalog_id: newId };
+            const newPayload = region.name === "UNKNOWN"
+              ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
+              : mapCatToSheetRow(updatedCat, health ?? null, interventionsList);
+            currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
+          } else {
+            // catalog_id already assigned — use task payload, pad to col Y
+            currentRows.push([...taskPayload, "", "", task.entityId]);
+          }
+        } else {
+          // Update existing row, preserve col Y UUID
+          const updatedRow = [...taskPayload];
+          updatedRow[24] = task.entityId;
+          currentRows[idx] = updatedRow;
+        }
       }
     }
 
-    // 3. COMPACT & SORT: Cleanup blank rows and alphabetize by Nickname (Col C)
+    // 3. COMPACT & SORT by Nickname (col C, index 2)
     const finalData = currentRows
-      .filter((row) => row[0] && String(row[0]).trim() !== "")
+      .filter((row) => row[24] && String(row[24]).trim() !== "")
       .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
 
-    // 4. WRITE: Atomic wipe and re-upload
-    // IMPORTANT: Range is A3:V — we intentionally do NOT clear or write
-    // columns W (last_edited_at) and X (edited_by). Those columns are
-    // exclusively managed by the Google Apps Script onEdit trigger.
+    // 4. WRITE data cols A3:V (never touch W, X — Apps Script owns those)
+    const dataOnly = finalData.map((r) => r.slice(0, 22));
     await glSheets.spreadsheets.values.clear({
       auth: glAuth,
       spreadsheetId,
       range: `'${region.name}'!A3:V`,
     });
-
-    if (finalData.length > 0) {
+    if (dataOnly.length > 0) {
       await glSheets.spreadsheets.values.update({
         auth: glAuth,
         spreadsheetId,
         range: `'${region.name}'!A3`,
         valueInputOption: "USER_ENTERED",
-        requestBody: { values: finalData },
+        requestBody: { values: dataOnly },
       });
     }
 
-    // 5. FINISH: Mark all processed tasks as COMPLETED
+    // 5. WRITE UUIDs to col Y — separate call, never clears W/X
+    const uuidColumn = finalData.map((r) => [r[24] ?? ""]);
+    if (uuidColumn.length > 0) {
+      await glSheets.spreadsheets.values.update({
+        auth: glAuth,
+        spreadsheetId,
+        range: `'${region.name}'!Y3`,
+        valueInputOption: "RAW",
+        requestBody: { values: uuidColumn },
+      });
+    }
+
+    // 6. FINISH: Mark all processed tasks as COMPLETED
     tasksProcessed = tasks.length;
     await db
       .update(gsheetSyncQueue)
       .set({ status: "COMPLETED" })
-      .where(
-        inArray(
-          gsheetSyncQueue.id,
-          tasks.map((t) => t.id),
-        ),
-      );
+      .where(inArray(gsheetSyncQueue.id, tasks.map((t) => t.id)));
   } catch (error) {
-    const errMsg =
-      error instanceof Error ? error.message : "Unknown sync error";
+    const errMsg = error instanceof Error ? error.message : "Unknown sync error";
     errorMessage = errMsg;
     tasksFailed = tasks.length;
 
-    // Increment retry_count and store error on each task individually
     for (const task of tasks) {
       const newRetryCount = task.retryCount + 1;
       await db
@@ -320,7 +353,6 @@ export async function syncAndCompactRegion(regionId: string) {
 
     console.error(`[Sync] Region ${regionId} failed:`, errMsg);
   } finally {
-    // 6. AUDIT: Log this sync cycle regardless of success/failure
     await db.insert(syncAuditLog).values({
       regionId,
       direction: "FORWARD",
