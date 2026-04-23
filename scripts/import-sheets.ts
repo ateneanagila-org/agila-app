@@ -7,7 +7,7 @@ dotenv.config({ path: ".env.local" });
 
 import { google } from "googleapis";
 import { db } from "@/lib/db";
-import { cats, catHealthRecords } from "@/lib/db/schema";
+import { cats, catHealthRecords, interventions } from "@/lib/db/schema";
 import {
   CATHEALTHRECORD_CONDITION_VALUES,
   CAT_COLOR_VALUES,
@@ -15,7 +15,13 @@ import {
   CAT_SEX_VALUES,
   CAT_SOCIABILITY_VALUES,
   CAT_STATUS_VALUES,
+  INTERVENTION_TYPE_VALUES,
+  INTERVENTION_STATUS_VALUES,
 } from "@/lib/db/enums";
+
+type InterventionType = (typeof INTERVENTION_TYPE_VALUES)[number];
+type InterventionStatus = (typeof INTERVENTION_STATUS_VALUES)[number];
+type ParsedIntervention = { type: InterventionType; status: InterventionStatus } | null;
 import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 import { syncRegionSheetNames, setupUuidProtections } from "@/lib/services/helper.service";
@@ -33,6 +39,8 @@ type ParsedRow = CatInsert & {
   condition: ConditionValue;
   neuter_date: Date | null;
   vaccination_date: Date | null;
+  tnvr_intervention: ParsedIntervention;
+  vet_intervention: ParsedIntervention;
 };
 
 async function connectToSheets() {
@@ -65,6 +73,13 @@ const VALID_AGES = ["Neonatal", "Kitten", "Juvenile", "Adult"];
 const VALID_SEXES = ["Male", "Female"];
 const VALID_SOCIABILITIES = ["Domesticated", "Tame", "Feral"];
 const VALID_STATUSES = ["Deceased", "Fostered", "Adopted", "MIA"];
+
+function resolveIntervention(raw: string, type: InterventionType): ParsedIntervention {
+  const v = raw.trim().toLowerCase();
+  if (v.startsWith("will have")) return { type, status: "Pending" };
+  if (v.startsWith("had")) return { type, status: "Finished" };
+  return null;
+}
 
 function resolveCondition(isSick: boolean, isInjured: boolean): ConditionValue {
   if (isSick && isInjured) return "Sick and Injured";
@@ -128,6 +143,8 @@ function parseStandardRow(row: string[], uuid: string): ParsedRow {
     condition: resolveCondition(isSick, isInjured),
     neuter_date: parseDate(row[15]),
     vaccination_date: parseDate(row[16]),
+    tnvr_intervention: resolveIntervention(String(row[19] ?? ""), "TNVR"),
+    vet_intervention: resolveIntervention(String(row[20] ?? ""), "Veterinarian"),
   };
 }
 
@@ -156,6 +173,8 @@ function parseUnknownRow(row: string[], uuid: string): ParsedRow {
     condition: resolveCondition(isSick, isInjured),
     neuter_date: parseDate(row[11]),
     vaccination_date: parseDate(row[12]),
+    tnvr_intervention: null,
+    vet_intervention: null,
   };
 }
 
@@ -223,7 +242,7 @@ async function importRegion(
         ? parseUnknownRow(row, uuid)
         : parseStandardRow(row, uuid);
 
-      const { condition, neuter_date, vaccination_date, paws_id, ...catFields } =
+      const { condition, neuter_date, vaccination_date, paws_id, tnvr_intervention, vet_intervention, ...catFields } =
         parsed;
 
       await db.transaction(async (tx) => {
@@ -241,6 +260,12 @@ async function importRegion(
           })
           .onConflictDoNothing();
         await linkCatToSystemSession(uuid, regionRecord.id, tx);
+        if (tnvr_intervention) {
+          await tx.insert(interventions).values({ cat_id: uuid, ...tnvr_intervention }).onConflictDoNothing();
+        }
+        if (vet_intervention) {
+          await tx.insert(interventions).values({ cat_id: uuid, ...vet_intervention }).onConflictDoNothing();
+        }
       });
 
       uuidWrites.push({ row: sheetRowNumber, uuid });

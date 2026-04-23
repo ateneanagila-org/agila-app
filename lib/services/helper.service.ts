@@ -487,22 +487,11 @@ export async function generateForRiSheet(): Promise<void> {
     }
   }
 
-  if (riSheetId !== null) {
-    await glSheets.spreadsheets.batchUpdate({
-      auth: glAuth,
-      spreadsheetId,
-      requestBody: {
-        requests: [
-          {
-            updateCells: {
-              range: { sheetId: riSheetId, startColumnIndex: 0, endColumnIndex: 26 },
-              fields: "userEnteredFormat,userEnteredValue",
-            },
-          },
-        ],
-      },
-    });
-  }
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For RI!A:AZ",
+  });
 
   if (sheetData.length > 0) {
     await glSheets.spreadsheets.values.update({
@@ -515,7 +504,14 @@ export async function generateForRiSheet(): Promise<void> {
   }
 
   if (riSheetId !== null) {
-    const requests = [
+    const requests: object[] = [
+      {
+        repeatCell: {
+          range: { sheetId: riSheetId, startColumnIndex: 0, endColumnIndex: 26 },
+          cell: { userEnteredFormat: {} },
+          fields: "userEnteredFormat",
+        },
+      },
       headerFormatRequest(riSheetId, 0, 4),
       ...regionHeaderIndices.map((idx) => headerFormatRequest(riSheetId, idx, 4)),
     ];
@@ -604,22 +600,11 @@ export async function generateForFaSheet(): Promise<void> {
     }
   }
 
-  if (faSheetId2 !== null) {
-    await glSheets.spreadsheets.batchUpdate({
-      auth: glAuth,
-      spreadsheetId,
-      requestBody: {
-        requests: [
-          {
-            updateCells: {
-              range: { sheetId: faSheetId2, startColumnIndex: 0, endColumnIndex: 26 },
-              fields: "userEnteredFormat,userEnteredValue",
-            },
-          },
-        ],
-      },
-    });
-  }
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For FA!A:AZ",
+  });
 
   if (sheetData.length > 0) {
     await glSheets.spreadsheets.values.update({
@@ -632,7 +617,14 @@ export async function generateForFaSheet(): Promise<void> {
   }
 
   if (faSheetId2 !== null) {
-    const requests = [
+    const requests: object[] = [
+      {
+        repeatCell: {
+          range: { sheetId: faSheetId2, startColumnIndex: 0, endColumnIndex: 26 },
+          cell: { userEnteredFormat: {} },
+          fields: "userEnteredFormat",
+        },
+      },
       headerFormatRequest(faSheetId2, 0, 6),
       ...regionHeaderIndices.map((idx) => headerFormatRequest(faSheetId2, idx, 6)),
     ];
