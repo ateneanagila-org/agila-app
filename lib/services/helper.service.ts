@@ -592,6 +592,9 @@ export async function syncSheetEditors(): Promise<void> {
     return;
   }
 
+  console.log("[SheetEditors] url:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("[SheetEditors] key prefix:", process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
+  console.log("[SheetEditors] key length:", process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY?.length);
   const supabase = await createAdminClient();
   const listResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
   console.log("[SheetEditors] listUsers error:", listResult.error);
