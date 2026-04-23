@@ -73,6 +73,35 @@ function resolveCondition(isSick: boolean, isInjured: boolean): ConditionValue {
   return "Healthy";
 }
 
+function parseDate(value: unknown): Date | null {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str || str === "N/A") return null;
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  const delays = [1000, 3000, 8000, 20000, 45000];
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const code = (error as { code?: number }).code;
+      const isQuota =
+        code === 429 ||
+        (error instanceof Error && /quota|rate/i.test(error.message));
+      if (!isQuota || attempt === delays.length) throw error;
+      const wait = delays[attempt];
+      console.warn(`  ${label} hit quota — retrying in ${wait}ms...`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 function parseStandardRow(row: string[], uuid: string): ParsedRow {
   const isSick = String(row[8] ?? "").toUpperCase() === "YES";
   const isInjured = String(row[9] ?? "").toUpperCase() === "YES";
@@ -97,8 +126,8 @@ function parseStandardRow(row: string[], uuid: string): ParsedRow {
     photo_url: null,
     paws_id: null,
     condition: resolveCondition(isSick, isInjured),
-    neuter_date: row[15] && row[15] !== "N/A" ? new Date(row[15]) : null,
-    vaccination_date: row[16] && row[16] !== "N/A" ? new Date(row[16]) : null,
+    neuter_date: parseDate(row[15]),
+    vaccination_date: parseDate(row[16]),
   };
 }
 
@@ -125,46 +154,69 @@ function parseUnknownRow(row: string[], uuid: string): ParsedRow {
     photo_url: null,
     paws_id: row[2] && row[2] !== "" ? row[2] : null,
     condition: resolveCondition(isSick, isInjured),
-    neuter_date: row[11] && row[11] !== "N/A" ? new Date(row[11]) : null,
-    vaccination_date: row[12] && row[12] !== "N/A" ? new Date(row[12]) : null,
+    neuter_date: parseDate(row[11]),
+    vaccination_date: parseDate(row[12]),
   };
 }
 
 async function importRegion(
   regionRecord: { id: string; name: string },
   sheets: ReturnType<typeof google.sheets>,
+  resetY: boolean,
 ) {
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
   const isUnknown = regionRecord.name === "UNKNOWN";
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `'${regionRecord.name}'!A3:X`,
-  });
+  if (resetY) {
+    await withRetry(
+      () =>
+        sheets.spreadsheets.values.clear({
+          spreadsheetId,
+          range: `'${regionRecord.name}'!Y3:Y`,
+        }),
+      `[${regionRecord.name}] clear Y`,
+    );
+  }
+
+  const response = await withRetry(
+    () =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `'${regionRecord.name}'!A3:Y`,
+      }),
+    `[${regionRecord.name}] read`,
+  );
 
   const rows = (response.data.values || []) as string[][];
-  const dataRows = rows.filter((r) => r[0] && String(r[0]).trim() !== "");
+  const rowsWithIdx = rows
+    .map((r, idx) => ({ row: r, sheetRowNumber: idx + 3 }))
+    .filter(({ row }) => row[0] && String(row[0]).trim() !== "");
 
   let maxId = Math.max(
     0,
-    ...dataRows
-      .map((r) => parseCatalogId(String(r[0]).trim()))
+    ...rowsWithIdx
+      .map(({ row }) => parseCatalogId(String(row[0]).trim()))
       .filter((n): n is number => n !== null),
   );
 
   const uuidWrites: Array<{ row: number; uuid: string }> = [];
   let created = 0,
+    skipped = 0,
     errors = 0;
 
-  for (let i = 0; i < dataRows.length; i++) {
-    const row = dataRows[i];
+  for (const { row, sheetRowNumber } of rowsWithIdx) {
+    const existingUuid = String(row[24] ?? "").trim();
+    if (UUID_RE.test(existingUuid)) {
+      skipped++;
+      continue;
+    }
+
     const colA = String(row[0]).trim();
     const catalogBase = parseCatalogId(colA);
     const catalog_id =
       catalogBase !== null ? String(catalogBase) : String(++maxId);
 
     const uuid = randomUUID();
-    const sheetRowNumber = i + 3;
 
     try {
       const parsed = isUnknown
@@ -207,17 +259,24 @@ async function importRegion(
       range: `'${regionRecord.name}'!Y${row}`,
       values: [[uuid]],
     }));
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: { valueInputOption: "RAW", data: batchData },
-    });
+    await withRetry(
+      () =>
+        sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: { valueInputOption: "RAW", data: batchData },
+        }),
+      `[${regionRecord.name}] write`,
+    );
   }
 
-  return { created, errors };
+  return { created, skipped, errors };
 }
 
 async function main() {
-  console.log("Starting GSheets → DB import...\n");
+  const resetY = process.argv.includes("--reset");
+  console.log("Starting GSheets → DB import...");
+  if (resetY) console.log("RESET MODE: clearing Y column UUIDs before import.");
+  console.log("");
 
   console.log("Resetting Y column protections (service account only)...");
   await setupUuidProtections();
@@ -227,14 +286,18 @@ async function main() {
   const allRegions = await db.query.regions.findMany();
 
   let totalCreated = 0,
+    totalSkipped = 0,
     totalErrors = 0;
 
   for (const region of allRegions) {
     console.log(`[${region.name}] Importing...`);
     try {
-      const result = await importRegion(region, sheets);
-      console.log(`  created: ${result.created}, errors: ${result.errors}`);
+      const result = await importRegion(region, sheets, resetY);
+      console.log(
+        `  created: ${result.created}, skipped: ${result.skipped}, errors: ${result.errors}`,
+      );
       totalCreated += result.created;
+      totalSkipped += result.skipped;
       totalErrors += result.errors;
     } catch (error) {
       console.error(
@@ -245,7 +308,9 @@ async function main() {
     }
   }
 
-  console.log(`\nDone. Total created: ${totalCreated}, errors: ${totalErrors}`);
+  console.log(
+    `\nDone. Total created: ${totalCreated}, skipped: ${totalSkipped}, errors: ${totalErrors}`,
+  );
 
   console.log("\nSyncing region sheet names to _config!B2...");
   await syncRegionSheetNames();

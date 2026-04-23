@@ -382,6 +382,8 @@ export async function generateForRiSheet(): Promise<void> {
   const sheetData: string[][] = [];
   const DEFAULT_HEIGHT = 20;
 
+  sheetData.push(["Urgent for TNVR", "", "Urgent for Vet", ""]);
+
   for (const region of allRegions) {
     const catsInRegion = await db.query.cats.findMany({
       with: {
@@ -463,6 +465,15 @@ export async function generateForFaSheet(): Promise<void> {
   const allRegions = await db.query.regions.findMany();
   const sheetData: string[][] = [];
   const DEFAULT_HEIGHT = 20;
+
+  sheetData.push([
+    "Healthy and Adoptable",
+    "",
+    "Sick and Adoptable",
+    "",
+    "Injured and Adoptable",
+    "",
+  ]);
 
   for (const region of allRegions) {
     const adoptableCats = await db.query.cats.findMany({
