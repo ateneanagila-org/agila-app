@@ -585,6 +585,7 @@ export async function syncSheetEditors(): Promise<void> {
     where: (cols, { inArray }) =>
       inArray(cols.auth_role, ["Administrator", "Manager"]),
   });
+  console.log("[SheetEditors] managerProfiles:", managerProfiles.length, managerProfiles.map((p) => p.id));
 
   if (managerProfiles.length === 0) {
     await setAuthorizedEmails([]);
@@ -592,14 +593,16 @@ export async function syncSheetEditors(): Promise<void> {
   }
 
   const supabase = await createAdminClient();
-  const {
-    data: { users },
-  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  const listResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  console.log("[SheetEditors] listUsers error:", listResult.error);
+  console.log("[SheetEditors] listUsers count:", listResult.data?.users?.length);
 
+  const users = listResult.data?.users ?? [];
   const managerIds = new Set(managerProfiles.map((p) => p.id));
   const emails = users
     .filter((u) => managerIds.has(u.id) && !!u.email)
     .map((u) => u.email as string);
+  console.log("[SheetEditors] matched emails:", emails);
 
   await setAuthorizedEmails(emails);
 }
