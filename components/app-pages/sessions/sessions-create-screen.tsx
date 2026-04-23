@@ -196,7 +196,7 @@ export function SessionsCreateScreen() {
         return;
       }
       // Navigate back
-      window.location.href = "/sessions";
+      window.location.href = "/dashboard/sessions";
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to submit session.",
@@ -367,7 +367,7 @@ export function SessionsCreateScreen() {
               Census Report <span className="ml-1">📊</span>
             </button>
             <Link
-              href="/sessions"
+              href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Back <span className="ml-1">&#8249;</span>
@@ -481,7 +481,7 @@ export function SessionsCreateScreen() {
                     </p>
                   </div>
                   <Link
-                    href={`/database/general?id=${cat.id}`}
+                    href={`/dashboard/database/general?id=${cat.id}`}
                     className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Edit <span className="ml-1">&#9998;</span>

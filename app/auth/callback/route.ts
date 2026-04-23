@@ -6,7 +6,7 @@ import * as usersRepo from "@/lib/repo/users.repo";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/dashboard/overview";
 
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
@@ -62,8 +62,9 @@ export async function GET(request: Request) {
       }
 
       // Handle successful login redirect
-      const safeNext = next.startsWith("/") ? next : "/dashboard";
-      const finalUrl = `${baseUrl}${safeNext}`;
+      const safeNext = next.startsWith("/") ? next : "/dashboard/overview";
+      const finalPath = safeNext === "/dashboard" ? "/dashboard/overview" : safeNext;
+      const finalUrl = `${baseUrl}${finalPath}`;
       return NextResponse.redirect(finalUrl);
     }
   }

@@ -1,5 +1,5 @@
-import { CatalogScreen } from "@/components/app-pages/catalog/catalog-screen";
+import { redirect } from "next/navigation";
 
 export default function CatalogPage() {
-  return <CatalogScreen />;
+  redirect("/");
 }

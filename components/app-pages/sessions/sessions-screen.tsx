@@ -160,7 +160,7 @@ export function SessionsScreen() {
                 Census Report
               </button>
               <Link
-                href="/sessions/manager"
+                href="/dashboard/sessions/manager"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Review Sessions ⊙
@@ -171,7 +171,7 @@ export function SessionsScreen() {
             <div className="flex items-center justify-between">
               <p className="font-heading text-2xl font-bold text-foreground">My Sessions</p>
               <Link
-                href="/sessions/create"
+                href="/dashboard/sessions/create"
                 className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Create New <span>+</span>
@@ -236,7 +236,7 @@ export function SessionsScreen() {
                         {/* Status badge */}
                         {!s.is_finished ? (
                           <Link
-                            href={`/sessions/create?sessionId=${s.id}`}
+                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
                             className="rounded-full border border-brand-orange px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
                           >
                             Continue ›
@@ -298,7 +298,7 @@ export function SessionsScreen() {
                 Census Report
               </button>
               <Link
-                href="/sessions/manager"
+                href="/dashboard/sessions/manager"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Review Sessions
@@ -388,7 +388,7 @@ export function SessionsScreen() {
         {/* FAB */}
         <div className="pointer-events-none fixed bottom-20 right-4 z-10">
           <Link
-            href="/sessions/create"
+            href="/dashboard/sessions/create"
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
             <span className="text-2xl font-bold leading-none text-white">+</span>
@@ -409,7 +409,7 @@ export function SessionsScreen() {
               Census Report <span className="ml-1">📊</span>
             </button>
             <Link
-              href="/sessions/manager"
+              href="/dashboard/sessions/manager"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Review Sessions <span className="ml-1">👁</span>
@@ -451,7 +451,7 @@ export function SessionsScreen() {
               </button>
             </div>
             <Link
-              href="/sessions/create"
+              href="/dashboard/sessions/create"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Create New <span className="ml-1">+</span>
@@ -501,7 +501,7 @@ export function SessionsScreen() {
                     <span className="w-20 text-right">
                       {!s.is_finished ? (
                         <Link
-                          href={`/sessions/create?sessionId=${s.id}`}
+                          href={`/dashboard/sessions/create?sessionId=${s.id}`}
                           className="inline-flex items-center rounded-lg border border-lime-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-lime-50"
                         >
                           Continue <span className="ml-1">&#8250;</span>

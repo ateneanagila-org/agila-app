@@ -24,21 +24,24 @@
   --font-mono: ui-monospace, monospace;
 
   /* Brand color utilities */
-  /* Green: #529151 medium forest green */
-  --color-brand-green: #529151;
+  /* Green */
+  --color-brand-green: #239547;
   /* Green light: hover/active on green surfaces */
-  --color-brand-green-light: #5fa35e;
+  --color-brand-green-light: #239547;
   --color-brand-green-foreground: oklch(0.99 0 0);
-  /* Orange: #CE6B3B warm terracotta orange */
-  --color-brand-orange: #CE6B3B;
+  /* Orange */
+  --color-brand-orange: #eb6324;
   --color-brand-orange-foreground: oklch(0.99 0 0);
-  /* Cream: warm off-white page bg */
-  --color-brand-cream: oklch(0.97 0.012 82);
-  --color-brand-cream-dark: oklch(0.92 0.014 82);
-  /* Dark: #311A19 deep brown for bottom nav */
-  --color-brand-dark: #311A19;
-  /* Yellow: light yellow for heading text on green backgrounds */
-  --color-brand-yellow: #f3f58e;
+  /* Offwhite + mint */
+  --color-brand-cream: #fff7ea;
+  --color-brand-cream-dark: #d8fcf2;
+  /* Brown */
+  --color-brand-dark: #341111;
+  /* Yellow */
+  --color-brand-yellow: #fff967;
+  /* Extra palette tokens */
+  --color-brand-pink: #ffc2d6;
+  --color-brand-mint: #d8fcf2;
 
   /* Semantic color tokens — ref :root vars for theme switching */
   --color-background: var(--background);
@@ -87,24 +90,24 @@
   --radius: 0.625rem;
 
   /* Semantic tokens — updated to brand palette */
-  --background: oklch(0.97 0.012 82);
-  --foreground: oklch(0.16 0.02 130);
+  --background: #fff7ea;
+  --foreground: #341111;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.16 0.02 130);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.02 130);
-  --primary: oklch(0.44 0.15 139);
+  --primary: #239547;
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.92 0.014 82);
-  --secondary-foreground: oklch(0.16 0.02 130);
-  --muted: oklch(0.92 0.014 82);
-  --muted-foreground: oklch(0.52 0.015 130);
-  --accent: oklch(0.60 0.18 42);
+  --secondary: #d8fcf2;
+  --secondary-foreground: #341111;
+  --muted: #d8fcf2;
+  --muted-foreground: #341111;
+  --accent: #eb6324;
   --accent-foreground: oklch(0.99 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.86 0.016 82);
-  --input: oklch(0.86 0.016 82);
-  --ring: oklch(0.57 0.16 42);
+  --border: #d8fcf2;
+  --input: #d8fcf2;
+  --ring: #eb6324;
 
   /* Charts */
   --chart-1: oklch(0.646 0.222 41.116);
@@ -114,14 +117,14 @@
   --chart-5: oklch(0.769 0.188 70.08);
 
   /* Sidebar — brand green */
-  --sidebar: oklch(0.44 0.15 139);
+  --sidebar: #239547;
   --sidebar-foreground: oklch(0.99 0 0);
-  --sidebar-primary: oklch(0.60 0.18 42);
+  --sidebar-primary: #eb6324;
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.99 0 0 / 0.12);
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(0.99 0 0 / 0.12);
-  --sidebar-ring: oklch(0.57 0.16 42);
+  --sidebar-ring: #eb6324;
 }
 
 .dark {

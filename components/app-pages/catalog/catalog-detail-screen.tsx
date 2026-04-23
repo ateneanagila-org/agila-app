@@ -102,7 +102,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     return (
       <div className="flex flex-col">
         <div className="bg-brand-green px-5 pt-5 pb-0">
-          <Link href="/catalog" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+          <Link href="/" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
             <span className="text-base leading-none">&lsaquo;</span> Back
           </Link>
           <p className="pb-5 text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
@@ -145,7 +145,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     <div className="flex flex-col">
       {/* Green hero band */}
       <div className="bg-brand-green px-5 pt-5 pb-0">
-        <Link href="/catalog" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+        <Link href="/" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
           <span className="text-base leading-none">&lsaquo;</span> Back
         </Link>
         <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">

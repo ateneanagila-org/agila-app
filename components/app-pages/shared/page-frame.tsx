@@ -27,9 +27,9 @@ export function TopTabs({
   const idParam = catId ? `?id=${catId}` : "";
 
   const tabs = [
-    { label: "General" as const, href: `/database/general${idParam}` },
-    { label: "Medical" as const, href: `/database/medical${idParam}` },
-    { label: "Interventions" as const, href: `/database/interventions${idParam}` },
+    { label: "General" as const, href: `/dashboard/database/general${idParam}` },
+    { label: "Medical" as const, href: `/dashboard/database/medical${idParam}` },
+    { label: "Interventions" as const, href: `/dashboard/database/interventions${idParam}` },
   ];
 
   return (
@@ -62,7 +62,7 @@ type DetailHeaderProps = {
 export function DetailHeader({
   name = "Cat Name",
   lastUpdated,
-  backHref = "/database",
+  backHref = "/dashboard/database",
   subtitle,
 }: DetailHeaderProps) {
   const subtitleText = subtitle ?? (lastUpdated ? `Last updated: ${lastUpdated}` : "");

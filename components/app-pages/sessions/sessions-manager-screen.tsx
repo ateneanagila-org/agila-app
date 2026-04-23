@@ -97,7 +97,7 @@ export function SessionsManagerScreen() {
               Census Report
             </button>
             <Link
-              href="/sessions"
+              href="/dashboard/sessions"
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Review Sessions ⊙
@@ -125,7 +125,7 @@ export function SessionsManagerScreen() {
               {forReview.map((item) => (
                 <Link
                   key={item.sessionCatId}
-                  href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                  href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
                   className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
                 >
                   <div className="flex items-stretch gap-0">
@@ -169,7 +169,7 @@ export function SessionsManagerScreen() {
               Census Report <span className="ml-1">📊</span>
             </button>
             <Link
-              href="/sessions"
+              href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Back <span className="ml-1">&#8249;</span>
@@ -242,7 +242,7 @@ export function SessionsManagerScreen() {
                     </p>
                   </div>
                   <Link
-                    href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                    href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
                     className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Review <span className="ml-1">&#9998;</span>

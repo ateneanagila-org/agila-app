@@ -13,12 +13,12 @@ function PawIcon({ className }: { className?: string }) {
   );
 }
 
-export default function CatalogLayout({ children }: { children: ReactNode }) {
+export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="fixed inset-0 flex h-dvh flex-col overflow-hidden bg-brand-dark">
       <header className="shrink-0 bg-brand-dark">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
-          <Link href="/catalog" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <PawIcon className="h-7 w-7 text-white" />
             <div>
               <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">AGILA</p>

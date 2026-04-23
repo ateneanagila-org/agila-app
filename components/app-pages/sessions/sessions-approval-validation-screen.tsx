@@ -179,7 +179,7 @@ export function SessionsApprovalValidationScreen() {
       }
       syncAllPendingRegions();
       setShowSaveConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve.");
     } finally {
@@ -209,7 +209,7 @@ export function SessionsApprovalValidationScreen() {
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
@@ -243,9 +243,9 @@ export function SessionsApprovalValidationScreen() {
   }
 
   const crossRefHref = catId
-    ? `/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
-    : "/sessions/approval/cross-ref";
-  const backHref = "/sessions/manager";
+    ? `/dashboard/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
+    : "/dashboard/sessions/approval/cross-ref";
+  const backHref = "/dashboard/sessions/manager";
 
   return (
     <>

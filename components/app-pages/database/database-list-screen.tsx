@@ -173,7 +173,7 @@ export function DatabaseListScreen() {
               {searchedCats.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/database/general?id=${cat.id}`}
+                  href={`/dashboard/database/general?id=${cat.id}`}
                   className="block overflow-hidden rounded-2xl bg-brand-green"
                 >
                   <div className="flex items-start gap-3 p-3.5">
@@ -276,7 +276,7 @@ export function DatabaseListScreen() {
             searchedCats.map((cat) => (
               <Link
                 key={`desktop-${cat.id}`}
-                href={`/database/general?id=${cat.id}`}
+                href={`/dashboard/database/general?id=${cat.id}`}
                 className="flex items-center gap-4 overflow-hidden rounded-2xl bg-brand-green px-5 py-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">

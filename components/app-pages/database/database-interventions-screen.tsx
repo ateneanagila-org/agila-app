@@ -193,7 +193,7 @@ export function DatabaseInterventionsScreen() {
           <DetailHeader
             name={cat?.name || "Unnamed"}
             lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref="/database"
+            backHref="/dashboard/database"
           />
           <TopTabs active="Interventions" />
 
@@ -262,14 +262,14 @@ export function DatabaseInterventionsScreen() {
           <div className="flex items-center gap-3 pb-2">
             <button
               type="button"
-              onClick={() => router.push("/database")}
+              onClick={() => router.push("/dashboard/database")}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
             >
               Cancel <span>✕</span>
             </button>
             <button
               type="button"
-              onClick={() => router.push("/database")}
+              onClick={() => router.push("/dashboard/database")}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Save <span>✓</span>

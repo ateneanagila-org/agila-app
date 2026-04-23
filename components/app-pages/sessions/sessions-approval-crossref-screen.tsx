@@ -114,7 +114,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowMergeConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to merge.");
     } finally {
@@ -138,7 +138,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowApproveConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve.");
     } finally {
@@ -157,7 +157,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
@@ -183,8 +183,8 @@ export function SessionsApprovalCrossRefScreen() {
   };
 
   const validationHref = catId
-    ? `/sessions/approval/validation?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
-    : "/sessions/approval/validation";
+    ? `/dashboard/sessions/approval/validation?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
+    : "/dashboard/sessions/approval/validation";
 
   if (loading) {
     return (

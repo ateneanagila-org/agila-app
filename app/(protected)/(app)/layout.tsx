@@ -10,11 +10,11 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", href: "/overview" },
-  { label: "TNVR", href: "/tnvr" },
-  { label: "Database", href: "/database" },
-  { label: "Sessions", href: "/sessions" },
-  { label: "Users", href: "/users" },
+  { label: "Overview", href: "/dashboard/overview" },
+  { label: "TNVR", href: "/dashboard/tnvr" },
+  { label: "Database", href: "/dashboard/database" },
+  { label: "Sessions", href: "/dashboard/sessions" },
+  { label: "Users", href: "/dashboard/users" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -96,12 +96,23 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">CATALOG</p>
               </div>
             </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-              <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/80" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="12" cy="8" r="3.5" />
-                <path strokeLinecap="round" d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            <button
+              type="button"
+              aria-label="Open menu"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 text-white/80"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path strokeLinecap="round" d="M4 7h16" />
+                <path strokeLinecap="round" d="M4 12h16" />
+                <path strokeLinecap="round" d="M4 17h16" />
               </svg>
-            </div>
+            </button>
           </div>
         </header>
 
