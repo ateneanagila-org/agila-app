@@ -369,6 +369,39 @@ export async function syncAndCompactRegion(regionId: string) {
 // 5. SUMMARY SHEETS (For RI + For FA)
 // ==========================================
 
+const SUMMARY_DARK_GREEN = { red: 0.153, green: 0.306, blue: 0.075 }; // #274e13
+const SUMMARY_WHITE = { red: 1, green: 1, blue: 1 };
+
+async function getSheetIdByName(
+  glSheets: ReturnType<typeof google.sheets>,
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+  spreadsheetId: string,
+  sheetName: string,
+): Promise<number | null> {
+  const res = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId,
+    fields: "sheets.properties",
+  });
+  const sheet = res.data.sheets?.find((s) => s.properties?.title === sheetName);
+  return sheet?.properties?.sheetId ?? null;
+}
+
+function headerFormatRequest(sheetId: number, rowIndex: number, colCount: number) {
+  return {
+    repeatCell: {
+      range: { sheetId, startRowIndex: rowIndex, endRowIndex: rowIndex + 1, startColumnIndex: 0, endColumnIndex: colCount },
+      cell: {
+        userEnteredFormat: {
+          backgroundColor: SUMMARY_DARK_GREEN,
+          textFormat: { bold: true, foregroundColor: SUMMARY_WHITE },
+        },
+      },
+      fields: "userEnteredFormat(backgroundColor,textFormat)",
+    },
+  };
+}
+
 /**
  * Regenerates the "For RI" summary sheet from DB.
  * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
@@ -380,6 +413,7 @@ export async function generateForRiSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sheetData: string[][] = [];
+  const regionHeaderIndices: number[] = [];
   const DEFAULT_HEIGHT = 20;
 
   sheetData.push(["Urgent for TNVR", "", "Urgent for Vet", ""]);
@@ -416,6 +450,7 @@ export async function generateForRiSheet(): Promise<void> {
     const maxRows = Math.max(tnvrCats.length, vetCats.length);
     const dataRows = Math.max(maxRows, 1);
 
+    regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, ""]);
 
     for (let i = 0; i < dataRows; i++) {
@@ -451,6 +486,19 @@ export async function generateForRiSheet(): Promise<void> {
       requestBody: { values: sheetData },
     });
   }
+
+  const riSheetId = await getSheetIdByName(glSheets, glAuth, spreadsheetId, "For RI");
+  if (riSheetId !== null) {
+    const requests = [
+      headerFormatRequest(riSheetId, 0, 4),
+      ...regionHeaderIndices.map((idx) => headerFormatRequest(riSheetId, idx, 4)),
+    ];
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId,
+      requestBody: { requests },
+    });
+  }
 }
 
 /**
@@ -464,6 +512,7 @@ export async function generateForFaSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sheetData: string[][] = [];
+  const regionHeaderIndices: number[] = [];
   const DEFAULT_HEIGHT = 20;
 
   sheetData.push([
@@ -509,6 +558,7 @@ export async function generateForFaSheet(): Promise<void> {
     const maxRows = Math.max(healthy.length, sick.length, injured.length);
     const dataRows = Math.max(maxRows, 1);
 
+    regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, "", region.name, ""]);
 
     for (let i = 0; i < dataRows; i++) {
@@ -548,6 +598,19 @@ export async function generateForFaSheet(): Promise<void> {
       range: "For FA!A1",
       valueInputOption: "RAW",
       requestBody: { values: sheetData },
+    });
+  }
+
+  const faSheetId = await getSheetIdByName(glSheets, glAuth, spreadsheetId, "For FA");
+  if (faSheetId !== null) {
+    const requests = [
+      headerFormatRequest(faSheetId, 0, 6),
+      ...regionHeaderIndices.map((idx) => headerFormatRequest(faSheetId, idx, 6)),
+    ];
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId,
+      requestBody: { requests },
     });
   }
 }
