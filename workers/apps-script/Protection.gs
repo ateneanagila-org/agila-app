@@ -39,12 +39,19 @@ function getAuthorizedEmails() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var configSheet = ss.getSheetByName("_config");
   if (!configSheet) {
-    Logger.log("WARNING: _config sheet not found. No authorized emails loaded.");
+    Logger.log(
+      "WARNING: _config sheet not found. No authorized emails loaded.",
+    );
     return [];
   }
   var value = configSheet.getRange("B1").getValue();
   if (!value) return [];
-  return String(value).split(",").map(function(e) { return e.trim(); }).filter(Boolean);
+  return String(value)
+    .split(",")
+    .map(function (e) {
+      return e.trim();
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -61,11 +68,16 @@ function getRegionSheetNames() {
   }
   var value = configSheet.getRange("B2").getValue();
   if (!value) return [];
-  return String(value).split(",").map(function(n) { return n.trim(); }).filter(Boolean);
+  return String(value)
+    .split(",")
+    .map(function (n) {
+      return n.trim();
+    })
+    .filter(Boolean);
 }
 
 var DATA_RANGE_NOTATION = "A3:V"; // Data range to protect/unprotect
-var UUID_COL_NOTATION = "Y3:Y";   // UUID column — permanently protected, never manually editable
+var UUID_COL_NOTATION = "Y3:Y"; // UUID column — permanently protected, never manually editable
 
 /**
  * FREEZE MODE: Remove data range protection so all users with sheet access can edit.
@@ -81,7 +93,7 @@ function freezeMode() {
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  regionNames.forEach(function(name) {
+  regionNames.forEach(function (name) {
     var sheet = ss.getSheetByName(name);
     if (!sheet) {
       Logger.log("WARNING: Sheet '" + name + "' not found — skipping.");
@@ -89,7 +101,7 @@ function freezeMode() {
     }
 
     var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-    protections.forEach(function(protection) {
+    protections.forEach(function (protection) {
       var notation = protection.getRange().getA1Notation();
       if (notation.indexOf("A3") === 0) {
         protection.remove();
@@ -97,7 +109,9 @@ function freezeMode() {
     });
   });
 
-  Logger.log("FREEZE MODE: Data range protections removed on: " + regionNames.join(", "));
+  Logger.log(
+    "FREEZE MODE: Data range protections removed on: " + regionNames.join(", "),
+  );
 }
 
 /**
@@ -109,19 +123,23 @@ function freezeMode() {
 function unfreezeMode() {
   var authorizedEmails = getAuthorizedEmails();
   if (authorizedEmails.length === 0) {
-    Logger.log("WARNING: No authorized emails found in _config!B1. Unfreeze aborted — add manager emails via the app first.");
+    Logger.log(
+      "WARNING: No authorized emails found in _config!B1. Unfreeze aborted — add manager emails via the app first.",
+    );
     return;
   }
 
   var regionNames = getRegionSheetNames();
   if (regionNames.length === 0) {
-    Logger.log("WARNING: No region names found in _config!B2. Unfreeze aborted.");
+    Logger.log(
+      "WARNING: No region names found in _config!B2. Unfreeze aborted.",
+    );
     return;
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  regionNames.forEach(function(name) {
+  regionNames.forEach(function (name) {
     var sheet = ss.getSheetByName(name);
     if (!sheet) {
       Logger.log("WARNING: Sheet '" + name + "' not found — skipping.");
@@ -130,7 +148,8 @@ function unfreezeMode() {
 
     var lastRow = Math.max(sheet.getLastRow(), 3);
     var range = sheet.getRange("A3:V" + lastRow);
-    var protection = range.protect()
+    var protection = range
+      .protect()
       .setDescription("App-managed data — edit via app only");
 
     // Lock down to everyone, then add back only the authorized managers/admins
@@ -142,7 +161,12 @@ function unfreezeMode() {
     }
   });
 
-  Logger.log("UNFREEZE MODE: Data range protected on: " + regionNames.join(", ") + ". Editors: " + authorizedEmails.join(", "));
+  Logger.log(
+    "UNFREEZE MODE: Data range protected on: " +
+      regionNames.join(", ") +
+      ". Editors: " +
+      authorizedEmails.join(", "),
+  );
 }
 
 /**
@@ -156,13 +180,15 @@ function unfreezeMode() {
 function setupUuidProtection() {
   var regionNames = getRegionSheetNames();
   if (regionNames.length === 0) {
-    Logger.log("WARNING: No region names found in _config!B2. UUID protection aborted.");
+    Logger.log(
+      "WARNING: No region names found in _config!B2. UUID protection aborted.",
+    );
     return;
   }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  regionNames.forEach(function(name) {
+  regionNames.forEach(function (name) {
     var sheet = ss.getSheetByName(name);
     if (!sheet) {
       Logger.log("WARNING: Sheet '" + name + "' not found — skipping.");
@@ -171,7 +197,8 @@ function setupUuidProtection() {
 
     var lastRow = Math.max(sheet.getLastRow(), 3);
     var range = sheet.getRange("Y3:Y" + lastRow);
-    var protection = range.protect()
+    var protection = range
+      .protect()
       .setDescription("UUID column — do not edit manually");
 
     // Remove all editors so no human can change UUIDs through the UI.
