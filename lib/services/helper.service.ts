@@ -707,11 +707,12 @@ export async function unfreezeSheetProtections(): Promise<void> {
   const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
   const managerEmails = await getAuthorizedEmails();
   const emails = [serviceAccountEmail, ...managerEmails.filter((e) => e !== serviceAccountEmail)];
+  console.log("[unfreezeSheetProtections] editors:", emails);
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
     spreadsheetId: CONFIG_SPREADSHEET_ID,
-    fields: "sheets(properties(sheetId,title))",
+    fields: "sheets(properties(sheetId,title),protectedRanges)",
   });
 
   const requests: object[] = [];
@@ -721,6 +722,20 @@ export async function unfreezeSheetProtections(): Promise<void> {
     const sheetId = sheet.properties?.sheetId;
     if (sheetId === undefined) continue;
 
+    // Delete ALL existing A3:V protections first to avoid stacking
+    for (const pr of sheet.protectedRanges ?? []) {
+      const range = pr.range;
+      if (
+        range?.startRowIndex === DATA_START_ROW &&
+        range?.startColumnIndex === DATA_START_COL
+      ) {
+        console.log("[unfreezeSheetProtections] deleting stale protection:", pr.protectedRangeId, "on sheet:", sheet.properties?.title);
+        requests.push({
+          deleteProtectedRange: { protectedRangeId: pr.protectedRangeId },
+        });
+      }
+    }
+
     requests.push({
       addProtectedRange: {
         protectedRange: {
@@ -729,7 +744,6 @@ export async function unfreezeSheetProtections(): Promise<void> {
             startRowIndex: DATA_START_ROW,
             startColumnIndex: DATA_START_COL,
             endColumnIndex: DATA_END_COL,
-            // endRowIndex omitted — protection extends to end of sheet
           },
           description: "App-managed data — edit via app only",
           editors: { users: emails },
@@ -745,6 +759,7 @@ export async function unfreezeSheetProtections(): Promise<void> {
       requestBody: { requests },
     });
   }
+  console.log("[unfreezeSheetProtections] done");
 }
 
 // ==========================================
