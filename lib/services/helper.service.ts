@@ -622,9 +622,12 @@ export async function generateForFaSheet(): Promise<void> {
   for (const region of sortedRegions) {
     const adoptableCats = await db.query.cats.findMany({
       with: { catHealthRecords: true },
-      where: (c, { eq, and, exists }) =>
+      where: (c, { eq, and, exists, isNull, or }) =>
         and(
-          and(eq(c.is_adoptable, true), eq(c.cat_status, "Unknown")),
+          and(
+            eq(c.is_adoptable, true),
+            or(eq(c.cat_status, "Unknown"), isNull(c.cat_status)),
+          ),
           exists(
             db
               .select()
