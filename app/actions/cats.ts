@@ -14,7 +14,7 @@ import {
 export const createCat = actionClient
   .schema(createCatSchema)
   .action(async ({ parsedInput }) => {
-    return await service.createCat(parsedInput);
+    return await service.createCat(parsedInput, { systemSession: true });
   });
 
 export const getCats = actionClient

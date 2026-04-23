@@ -33,6 +33,7 @@ export const REGION_COLOR_VALUES = [
   "Purple",
   "Gray",
   "Brown",
+  "Pink",
 ] as const;
 export const regionColorEnum = pgEnum("region_color", REGION_COLOR_VALUES);
 export const RegionColorEnum = z.enum(REGION_COLOR_VALUES);
@@ -46,27 +47,36 @@ export const REGION_NAME_VALUES = [
   "ISO",
   "BEL",
   "LEONG",
+  "NEW RIZAL",
   "FAURA",
+  "OLD RIZAL",
+  "FABER",
   "MVP",
-  "SCHMIITT",
+  "SCHMITT",
   "GONZ",
   "XAVIER",
+  "KOSTKA",
   "SEC",
   "CTC/SOM",
   "JSEC",
   "PIPAC",
   "CERVINI",
+  "ELIAZO",
   "UNI DORM",
   "EBAIS",
   "POLLOCK",
   "COV COURTS",
+  "OLD COMMS",
   "LST",
   "GATE 5",
   "ASHS",
   "AJHS",
+  "MORO",
+  "EAPI",
   "GATE 2",
   "GATE 1",
   "BEG",
+  "AGS",
   "UNKNOWN",
 ] as const;
 export const regionNameEnum = pgEnum("region_name", REGION_NAME_VALUES);
@@ -190,7 +200,10 @@ export type InterventionStatus = z.infer<typeof InterventionStatusEnum>;
 
 // Sync Audit Log Direction
 export const SYNC_DIRECTION_VALUES = ["FORWARD", "REVERSE"] as const;
-export const syncDirectionEnum = pgEnum("sync_direction", SYNC_DIRECTION_VALUES);
+export const syncDirectionEnum = pgEnum(
+  "sync_direction",
+  SYNC_DIRECTION_VALUES,
+);
 export const SyncDirectionEnum = z.enum(SYNC_DIRECTION_VALUES);
 export type SyncDirection = z.infer<typeof SyncDirectionEnum>;
 

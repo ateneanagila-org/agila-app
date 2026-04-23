@@ -1,9 +1,10 @@
 import { google } from "googleapis";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
-import { gsheetSyncQueue, regions, syncAuditLog } from "@/lib/db/schema";
+import { gsheetSyncQueue, regions, syncAuditLog, cats, sessions, sessionCats } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import { isSyncFrozen } from "./system.service";
+import { statusSuffix, nextCatalogId } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -73,7 +74,8 @@ function getInterventionDisplayStatus(
   return "Will not have intervention";
 }
 /**
- * Maps Database records to a 21-column Spreadsheet Array (A-U)
+ * Maps DB records to a 22-element array (cols A–V, indices 0–21).
+ * Col A = catalog_id + status suffix. UUID is written to col Y separately.
  */
 export function mapCatToSheetRow(
   cat: SelectCat,
@@ -83,7 +85,6 @@ export function mapCatToSheetRow(
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
 
-  // Calculate Column U (FOR FA)
   let forFaStatus = "Not Ready for FA";
   if (["Adopted", "Deceased", "MIA"].includes(catStatus)) {
     forFaStatus = "Not Applicable";
@@ -93,32 +94,67 @@ export function mapCatToSheetRow(
     else forFaStatus = "Healthy & Adoptable";
   }
 
-  // Mapping: index - column
+  const catalogDisplay = cat.catalog_id
+    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
+    : "";
+
   return [
-    cat.id, // 0  (A)
-    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "", // 1  (B)
-    cat.name ?? "N/A", // 2  (C)
-    cat.color ?? "N/A", // 3  (D)
-    cat.age ?? "N/A", // 4  (E)
-    cat.sex ?? "Unknown", // 5  (F)
-    health?.neuter_date ? "YES" : "NO", // 6  (G)
-    cat.sociability ?? "Unknown", // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
-    cat.is_adoptable ? "YES" : "NO", // 10 (K)
-    catStatus || "Unknown", // 11 (L)
-    cat.caretaker ?? "N/A", // 12 (M)
-    new Date().toLocaleDateString(), // 13 (N)
-    cat.spot_last_seen ?? "N/A", // 14 (O)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 15 (P)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 16 (Q)
-    cat.notes ?? "N/A", // 17 (R)
+    catalogDisplay,                                                    // 0  (A) Catalog ID
+    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "",                 // 1  (B)
+    cat.name ?? "N/A",                                                 // 2  (C)
+    cat.color ?? "N/A",                                                // 3  (D)
+    cat.age ?? "N/A",                                                  // 4  (E)
+    cat.sex ?? "Unknown",                                              // 5  (F)
+    health?.neuter_date ? "YES" : "NO",                                // 6  (G)
+    cat.sociability ?? "Unknown",                                      // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO",                        // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO",                     // 9  (J)
+    cat.is_adoptable ? "YES" : "NO",                                   // 10 (K)
+    catStatus || "Unknown",                                            // 11 (L)
+    cat.caretaker ?? "N/A",                                            // 12 (M)
+    new Date().toLocaleDateString(),                                   // 13 (N)
+    cat.spot_last_seen ?? "N/A",                                       // 14 (O)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A",               // 15 (P)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A",          // 16 (Q)
+    cat.notes ?? "N/A",                                                // 17 (R)
+    "",                                                                // 18 (S) separator
+    getInterventionDisplayStatus(cat, interventions, "TNVR"),          // 19 (T)
+    getInterventionDisplayStatus(cat, interventions, "Veterinarian"),  // 20 (U)
+    forFaStatus,                                                       // 21 (V)
+  ];
+}
 
-    "", // 18 (S) <-- THE BLACKED OUT SEPARATOR
+/**
+ * Maps DB records to a 22-element array for the UNKNOWN region sheet.
+ * Col layout: A=CatalogID, B=PossibleLoc, C=PawsId, D=Color, E=Age,
+ * F=Sex, G=Neutered, H=Tame, I=Sick, J=Injured, K=Adoptable,
+ * L=DateOfKapon, M=DateOfVaccination, N–V=empty.
+ * UUID is written to col Y separately.
+ */
+export function mapUnknownCatToSheetRow(
+  cat: SelectCat,
+  health: SelectCatHealthRecord | null,
+): string[] {
+  const condition = (health?.condition ?? "") as string;
+  const catalogDisplay = cat.catalog_id
+    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
+    : "";
 
-    getInterventionDisplayStatus(cat, interventions, "TNVR"), // 19 (T)
-    getInterventionDisplayStatus(cat, interventions, "Veterinarian"), // 20 (U)
-    forFaStatus, // 21 (V)
+  return [
+    catalogDisplay,                                            // 0  (A)
+    cat.spot_last_seen ?? "N/A",                               // 1  (B) Possible Loc
+    cat.paws_id ?? "",                                         // 2  (C) PAWS ID#
+    cat.color ?? "N/A",                                        // 3  (D)
+    cat.age ?? "N/A",                                          // 4  (E)
+    cat.sex ?? "Unknown",                                      // 5  (F)
+    health?.neuter_date ? "YES" : "NO",                        // 6  (G)
+    cat.sociability ?? "Unknown",                              // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO",                // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO",             // 9  (J)
+    cat.is_adoptable ? "YES" : "NO",                           // 10 (K)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A",       // 11 (L)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A",  // 12 (M)
+    "", "", "", "", "", "", "", "", "",                         // 13–21 (N–V) empty
   ];
 }
 
@@ -169,9 +205,11 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
  * Runs the background sync for a specific region.
  * Uses the "Read-Modify-Write" strategy to ensure data integrity.
  * Includes retry logic, audit logging, and freeze checking.
+ *
+ * Reads A3:Y (col Y = UUID at index 24). Matches rows by UUID (col Y).
+ * Writes data to A3:V, then UUIDs separately to Y3:Y.
  */
 export async function syncAndCompactRegion(regionId: string) {
-  // 0. CHECK FREEZE FLAG
   const frozen = await isSyncFrozen();
   if (frozen) {
     console.log(`[Sync] Frozen — skipping region ${regionId}`);
@@ -188,7 +226,6 @@ export async function syncAndCompactRegion(regionId: string) {
   });
   if (!region) return;
 
-  // Only pick up tasks that haven't exceeded retry limit
   const tasks = await db.query.gsheetSyncQueue.findMany({
     where: (q, { and, eq, lt }) =>
       and(
@@ -205,71 +242,103 @@ export async function syncAndCompactRegion(regionId: string) {
     const { glAuth, glSheets } = await connectToSheets();
     const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-    // 1. READ: Get current sheet state (A3 to V)
+    // 1. READ current sheet state A3:Y (col Y = UUID at index 24)
     const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
-      range: `'${region.name}'!A3:V`,
+      range: `'${region.name}'!A3:Y`,
     });
-    const currentRows = response.data.values || [];
+    const currentRows: string[][] = (response.data.values || []).map(
+      (r) => r as string[],
+    );
 
-    // 2. MODIFY: Process pending tasks in local memory
+    // 2. MODIFY: process tasks, matching rows by col Y (UUID)
     for (const task of tasks) {
-      const idx = currentRows.findIndex((r) => r[0] === task.entityId);
+      const idx = currentRows.findIndex((r) => r[24] === task.entityId);
       const taskPayload = (task.payload ?? []) as string[];
 
       if (task.action === "DELETE") {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
-        // CREATE or UPDATE: Snapshot overwrite
-        if (idx !== -1) currentRows[idx] = taskPayload;
-        else currentRows.push(taskPayload);
+        if (idx === -1) {
+          // New cat — assign catalog_id if not yet set
+          const cat = await db.query.cats.findFirst({
+            where: (c, { eq }) => eq(c.id, task.entityId),
+          });
+          if (cat && !cat.catalog_id) {
+            const colAValues = currentRows.map((r) => r[0] ?? "");
+            const newId = String(nextCatalogId(colAValues));
+            await db.update(cats).set({ catalog_id: newId }).where(eq(cats.id, cat.id));
+            const health = await db.query.catHealthRecords.findFirst({
+              where: (h, { eq }) => eq(h.cat_id, cat.id),
+            });
+            const interventionsList = await db.query.interventions.findMany({
+              where: (i, { eq }) => eq(i.cat_id, cat.id),
+              orderBy: (i, { desc }) => [desc(i.requested_at)],
+            });
+            const updatedCat = { ...cat, catalog_id: newId };
+            const newPayload = region.name === "UNKNOWN"
+              ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
+              : mapCatToSheetRow(updatedCat, health ?? null, interventionsList);
+            currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
+          } else {
+            // catalog_id already assigned — use task payload, pad to col Y
+            currentRows.push([...taskPayload, "", "", task.entityId]);
+          }
+        } else {
+          // Update existing row, preserve col Y UUID
+          const updatedRow = [...taskPayload];
+          updatedRow[24] = task.entityId;
+          currentRows[idx] = updatedRow;
+        }
       }
     }
 
-    // 3. COMPACT & SORT: Cleanup blank rows and alphabetize by Nickname (Col C)
+    // 3. COMPACT & SORT by Nickname (col C, index 2)
     const finalData = currentRows
-      .filter((row) => row[0] && String(row[0]).trim() !== "")
+      .filter((row) => row[24] && String(row[24]).trim() !== "")
       .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
 
-    // 4. WRITE: Atomic wipe and re-upload
-    // IMPORTANT: Range is A3:V — we intentionally do NOT clear or write
-    // columns W (last_edited_at) and X (edited_by). Those columns are
-    // exclusively managed by the Google Apps Script onEdit trigger.
+    // 4. WRITE data cols A3:V (never touch W, X — Apps Script owns those)
+    const dataOnly = finalData.map((r) => r.slice(0, 22));
     await glSheets.spreadsheets.values.clear({
       auth: glAuth,
       spreadsheetId,
       range: `'${region.name}'!A3:V`,
     });
-
-    if (finalData.length > 0) {
+    if (dataOnly.length > 0) {
       await glSheets.spreadsheets.values.update({
         auth: glAuth,
         spreadsheetId,
         range: `'${region.name}'!A3`,
         valueInputOption: "USER_ENTERED",
-        requestBody: { values: finalData },
+        requestBody: { values: dataOnly },
       });
     }
 
-    // 5. FINISH: Mark all processed tasks as COMPLETED
+    // 5. WRITE UUIDs to col Y — separate call, never clears W/X
+    const uuidColumn = finalData.map((r) => [r[24] ?? ""]);
+    if (uuidColumn.length > 0) {
+      await glSheets.spreadsheets.values.update({
+        auth: glAuth,
+        spreadsheetId,
+        range: `'${region.name}'!Y3`,
+        valueInputOption: "RAW",
+        requestBody: { values: uuidColumn },
+      });
+    }
+
+    // 6. FINISH: Mark all processed tasks as COMPLETED
     tasksProcessed = tasks.length;
     await db
       .update(gsheetSyncQueue)
       .set({ status: "COMPLETED" })
-      .where(
-        inArray(
-          gsheetSyncQueue.id,
-          tasks.map((t) => t.id),
-        ),
-      );
+      .where(inArray(gsheetSyncQueue.id, tasks.map((t) => t.id)));
   } catch (error) {
-    const errMsg =
-      error instanceof Error ? error.message : "Unknown sync error";
+    const errMsg = error instanceof Error ? error.message : "Unknown sync error";
     errorMessage = errMsg;
     tasksFailed = tasks.length;
 
-    // Increment retry_count and store error on each task individually
     for (const task of tasks) {
       const newRetryCount = task.retryCount + 1;
       await db
@@ -284,7 +353,6 @@ export async function syncAndCompactRegion(regionId: string) {
 
     console.error(`[Sync] Region ${regionId} failed:`, errMsg);
   } finally {
-    // 6. AUDIT: Log this sync cycle regardless of success/failure
     await db.insert(syncAuditLog).values({
       regionId,
       direction: "FORWARD",
@@ -298,12 +366,189 @@ export async function syncAndCompactRegion(regionId: string) {
 }
 
 // ==========================================
-// 5. CONFIG SHEET (_config tab) & SHEET PROTECTIONS
+// 5. SUMMARY SHEETS (For RI + For FA)
+// ==========================================
+
+/**
+ * Regenerates the "For RI" summary sheet from DB.
+ * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
+ * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
+ */
+export async function generateForRiSheet(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const allRegions = await db.query.regions.findMany();
+  const sheetData: string[][] = [];
+  const DEFAULT_HEIGHT = 20;
+
+  for (const region of allRegions) {
+    const catsInRegion = await db.query.cats.findMany({
+      with: {
+        interventions: {
+          orderBy: (i, { desc }) => [desc(i.requested_at)],
+        },
+      },
+      where: (c, { exists, eq, and }) =>
+        exists(
+          db
+            .select()
+            .from(sessionCats)
+            .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+            .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+        ),
+    });
+
+    const tnvrCats = catsInRegion
+      .filter((cat) =>
+        cat.interventions.some((i) => i.type === "TNVR" && i.status === "Pending"),
+      )
+      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+
+    const vetCats = catsInRegion
+      .filter((cat) =>
+        cat.interventions.some((i) => i.type === "Veterinarian" && i.status === "Pending"),
+      )
+      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+
+    const maxRows = Math.max(tnvrCats.length, vetCats.length);
+    const dataRows = Math.max(maxRows, 1);
+
+    sheetData.push([region.name, "", region.name, ""]);
+
+    for (let i = 0; i < dataRows; i++) {
+      sheetData.push([
+        tnvrCats[i] ?? "",
+        tnvrCats[i] ? "Will have TNVR intervention" : "",
+        vetCats[i] ?? "",
+        vetCats[i] ? "Will have Vet intervention" : "",
+      ]);
+    }
+
+    if (dataRows < DEFAULT_HEIGHT) {
+      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
+        sheetData.push(["", "", "", ""]);
+      }
+    } else {
+      sheetData.push(["", "", "", ""], ["", "", "", ""], ["", "", "", ""]);
+    }
+  }
+
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For RI!A1:D",
+  });
+
+  if (sheetData.length > 0) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId,
+      range: "For RI!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: sheetData },
+    });
+  }
+}
+
+/**
+ * Regenerates the "For FA" summary sheet from DB.
+ * 6 columns: Healthy catalog_id, status, Sick catalog_id, status, Injured catalog_id, status.
+ * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
+ */
+export async function generateForFaSheet(): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  const allRegions = await db.query.regions.findMany();
+  const sheetData: string[][] = [];
+  const DEFAULT_HEIGHT = 20;
+
+  for (const region of allRegions) {
+    const adoptableCats = await db.query.cats.findMany({
+      with: { catHealthRecords: true },
+      where: (c, { eq, and, exists }) =>
+        and(
+          eq(c.is_adoptable, true),
+          exists(
+            db
+              .select()
+              .from(sessionCats)
+              .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+              .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+          ),
+        ),
+    });
+
+    const healthy = adoptableCats
+      .filter((c) => {
+        const cond = (c.catHealthRecords as { condition: string | null } | null)?.condition ?? "";
+        return !cond.includes("Sick") && !cond.includes("Injured");
+      })
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const sick = adoptableCats
+      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Sick"))
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const injured = adoptableCats
+      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Injured"))
+      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+
+    const maxRows = Math.max(healthy.length, sick.length, injured.length);
+    const dataRows = Math.max(maxRows, 1);
+
+    sheetData.push([region.name, "", region.name, "", region.name, ""]);
+
+    for (let i = 0; i < dataRows; i++) {
+      sheetData.push([
+        healthy[i] ?? "",
+        healthy[i] ? "Healthy & Adoptable" : "",
+        sick[i] ?? "",
+        sick[i] ? "Sick & Adoptable" : "",
+        injured[i] ?? "",
+        injured[i] ? "Injured & Adoptable" : "",
+      ]);
+    }
+
+    if (dataRows < DEFAULT_HEIGHT) {
+      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
+        sheetData.push(["", "", "", "", "", ""]);
+      }
+    } else {
+      sheetData.push(
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""],
+        ["", "", "", "", "", ""],
+      );
+    }
+  }
+
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId,
+    range: "For FA!A1:F",
+  });
+
+  if (sheetData.length > 0) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId,
+      range: "For FA!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: sheetData },
+    });
+  }
+}
+
+// ==========================================
+// 6. CONFIG SHEET (_config tab) & SHEET PROTECTIONS
 // ==========================================
 
 const CONFIG_SPREADSHEET_ID = process.env.CATALOG_SPREADSHEET_ID!;
 const CONFIG_SHEET = "_config";
 const AUTHORIZED_EMAILS_CELL = "B1";
+const REGION_SHEET_NAMES_CELL = "B2";
 
 // A3:V in 0-indexed GridRange terms
 const DATA_START_ROW = 2; // row 3, 0-indexed inclusive
@@ -360,6 +605,26 @@ export async function syncSheetEditors(): Promise<void> {
 }
 
 /**
+ * Writes region sheet names to _config!B2 so Apps Script Protection.gs
+ * knows which tabs are region data sheets vs. static summary sheets.
+ * Call whenever a region is created or deleted.
+ */
+export async function syncRegionSheetNames(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const names = regions.map((r) => r.name);
+
+  const { glAuth, glSheets } = await connectToSheets();
+
+  await glSheets.spreadsheets.values.update({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `${CONFIG_SHEET}!${REGION_SHEET_NAMES_CELL}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[names.join(",")]] },
+  });
+}
+
+/**
  * Reads the authorized editors list from the _config sheet (B1).
  */
 export async function getAuthorizedEmails(): Promise<string[]> {
@@ -384,6 +649,9 @@ export async function getAuthorizedEmails(): Promise<string[]> {
  * Called during freeze — lets all users with sheet access edit freely.
  */
 export async function freezeSheetProtections(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
   const { glAuth, glSheets } = await connectToSheets();
 
   const spreadsheet = await glSheets.spreadsheets.get({
@@ -395,7 +663,7 @@ export async function freezeSheetProtections(): Promise<void> {
   const requests: object[] = [];
 
   for (const sheet of spreadsheet.data.sheets ?? []) {
-    if (sheet.properties?.title === CONFIG_SHEET) continue;
+    if (!regionNames.has(sheet.properties?.title ?? "")) continue;
 
     for (const pr of sheet.protectedRanges ?? []) {
       const range = pr.range;
@@ -425,13 +693,14 @@ export async function freezeSheetProtections(): Promise<void> {
  * Called during unfreeze — re-locks sheets after app recovery.
  */
 export async function unfreezeSheetProtections(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
   const { glAuth, glSheets } = await connectToSheets();
 
-  const emails = await getAuthorizedEmails();
-  if (emails.length === 0) {
-    console.warn("[unfreezeSheetProtections] No authorized emails found — skipping protection restore.");
-    return;
-  }
+  const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
+  const managerEmails = await getAuthorizedEmails();
+  const emails = [serviceAccountEmail, ...managerEmails.filter((e) => e !== serviceAccountEmail)];
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
@@ -442,7 +711,7 @@ export async function unfreezeSheetProtections(): Promise<void> {
   const requests: object[] = [];
 
   for (const sheet of spreadsheet.data.sheets ?? []) {
-    if (sheet.properties?.title === CONFIG_SHEET) continue;
+    if (!regionNames.has(sheet.properties?.title ?? "")) continue;
     const sheetId = sheet.properties?.sheetId;
     if (sheetId === undefined) continue;
 
@@ -473,13 +742,12 @@ export async function unfreezeSheetProtections(): Promise<void> {
 }
 
 // ==========================================
-// 6. REVERSE SYNC (Reading GSheet State)
+// 7. REVERSE SYNC (Reading GSheet State)
 // ==========================================
 
 export interface SheetRow {
-  /** Raw row array from Sheets API (columns A through X) */
   raw: string[];
-  /** Cat UUID from column A */
+  /** Cat UUID from column Y */
   entityId: string;
   /** ISO timestamp from column W (set by Apps Script onEdit) */
   lastEditedAt: string | null;
@@ -500,21 +768,22 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   });
   if (!region) return [];
 
+  // Read A3:Y — col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
-    range: `'${region.name}'!A3:X`,
+    range: `'${region.name}'!A3:Y`,
   });
 
   const rows = response.data.values || [];
 
   return rows
-    .filter((row) => row[0] && String(row[0]).trim() !== "")
+    .filter((row) => row[24] && String(row[24]).trim() !== "") // require UUID in col Y
     .map((row) => ({
-      raw: row,
-      entityId: String(row[0]).trim(),
-      lastEditedAt: row[22] ? String(row[22]).trim() : null, // Column W (0-indexed: 22)
-      editedBy: row[23] ? String(row[23]).trim() : null,     // Column X (0-indexed: 23)
+      raw: row as string[],
+      entityId: String(row[24]).trim(),        // col Y UUID
+      lastEditedAt: row[22] ? String(row[22]).trim() : null, // col W
+      editedBy: row[23] ? String(row[23]).trim() : null,     // col X
     }));
 }
 
@@ -536,22 +805,22 @@ export async function clearSheetEditTimestamps(
   });
   if (!region) return;
 
-  // Read column A to find row positions of the imported entities
+  // Read col Y to find row positions of imported entities
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
-    range: `'${region.name}'!A3:A`,
+    range: `'${region.name}'!Y3:Y`,
   });
-  const idColumn = response.data.values || [];
+  const uuidColumn = response.data.values || [];
 
   const requests: Array<{ range: string; values: string[][] }> = [];
 
   for (const entityId of entityIds) {
-    const rowIdx = idColumn.findIndex(
-      (row) => String(row[0]).trim() === entityId,
+    const rowIdx = uuidColumn.findIndex(
+      (row) => String(row[0] ?? "").trim() === entityId,
     );
     if (rowIdx === -1) continue;
-    const sheetRow = rowIdx + 3; // +3 because data starts at row 3 (1-indexed)
+    const sheetRow = rowIdx + 3; // data starts at row 3
     requests.push({
       range: `'${region.name}'!W${sheetRow}:X${sheetRow}`,
       values: [["", ""]],
@@ -562,10 +831,7 @@ export async function clearSheetEditTimestamps(
     await glSheets.spreadsheets.values.batchUpdate({
       auth: glAuth,
       spreadsheetId,
-      requestBody: {
-        valueInputOption: "RAW",
-        data: requests,
-      },
+      requestBody: { valueInputOption: "RAW", data: requests },
     });
   }
 }

@@ -8,11 +8,15 @@ import {
   RemoveCatSchema,
 } from "../validation/cats";
 import { refreshCatInSyncQueue } from "./helper.service"; // Use the helper
+import { linkCatToSystemSession } from "./system-session.service";
 import { AppError } from "../error/app-error";
 
-export const createCat = async (data: CreateCatSchema) => {
+export const createCat = async (
+  data: CreateCatSchema,
+  opts?: { systemSession?: boolean },
+) => {
   return await db.transaction(async (tx) => {
-    const { condition, ...catTableData } = data;
+    const { condition, region_id, ...catTableData } = data;
 
     const [newCat] = await catsRepo.insertCat(catTableData, tx);
     await catsRepo.insertCatHealthRecord(
@@ -23,8 +27,10 @@ export const createCat = async (data: CreateCatSchema) => {
       tx,
     );
 
-    // For a brand new cat, we can refresh the queue immediately
-    await refreshCatInSyncQueue(newCat.id, tx);
+    if (opts?.systemSession) {
+      await linkCatToSystemSession(newCat.id, region_id, tx);
+      await refreshCatInSyncQueue(newCat.id, tx); // only for direct creation — session link exists via system session
+    }
 
     return newCat;
   });
