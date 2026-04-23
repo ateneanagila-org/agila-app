@@ -472,12 +472,12 @@ export async function generateForRiSheet(): Promise<void> {
       .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
 
     const maxRows = Math.max(tnvrCats.length, vetCats.length);
-    const dataRows = Math.max(maxRows, 1);
+    const sectionRows = maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
 
     regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, ""]);
 
-    for (let i = 0; i < dataRows; i++) {
+    for (let i = 0; i < sectionRows; i++) {
       sheetData.push([
         tnvrCats[i] ?? "",
         tnvrCats[i] ? "Will have TNVR intervention" : "",
@@ -485,21 +485,24 @@ export async function generateForRiSheet(): Promise<void> {
         vetCats[i] ? "Will have Vet intervention" : "",
       ]);
     }
-
-    if (dataRows < DEFAULT_HEIGHT) {
-      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
-        sheetData.push(["", "", "", ""]);
-      }
-    } else {
-      sheetData.push(["", "", "", ""], ["", "", "", ""], ["", "", "", ""]);
-    }
   }
 
-  await glSheets.spreadsheets.values.clear({
-    auth: glAuth,
-    spreadsheetId,
-    range: "For RI!A1:Z",
-  });
+  if (riSheetId !== null) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            updateCells: {
+              range: { sheetId: riSheetId, startColumnIndex: 0, endColumnIndex: 26 },
+              fields: "userEnteredFormat,userEnteredValue",
+            },
+          },
+        ],
+      },
+    });
+  }
 
   if (sheetData.length > 0) {
     await glSheets.spreadsheets.values.update({
@@ -584,12 +587,12 @@ export async function generateForFaSheet(): Promise<void> {
       .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
 
     const maxRows = Math.max(healthy.length, sick.length, injured.length);
-    const dataRows = Math.max(maxRows, 1);
+    const sectionRows = maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
 
     regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, "", region.name, ""]);
 
-    for (let i = 0; i < dataRows; i++) {
+    for (let i = 0; i < sectionRows; i++) {
       sheetData.push([
         healthy[i] ?? "",
         healthy[i] ? "Healthy & Adoptable" : "",
@@ -599,25 +602,24 @@ export async function generateForFaSheet(): Promise<void> {
         injured[i] ? "Injured & Adoptable" : "",
       ]);
     }
-
-    if (dataRows < DEFAULT_HEIGHT) {
-      for (let i = 0; i < DEFAULT_HEIGHT - dataRows; i++) {
-        sheetData.push(["", "", "", "", "", ""]);
-      }
-    } else {
-      sheetData.push(
-        ["", "", "", "", "", ""],
-        ["", "", "", "", "", ""],
-        ["", "", "", "", "", ""],
-      );
-    }
   }
 
-  await glSheets.spreadsheets.values.clear({
-    auth: glAuth,
-    spreadsheetId,
-    range: "For FA!A1:Z",
-  });
+  if (faSheetId2 !== null) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            updateCells: {
+              range: { sheetId: faSheetId2, startColumnIndex: 0, endColumnIndex: 26 },
+              fields: "userEnteredFormat,userEnteredValue",
+            },
+          },
+        ],
+      },
+    });
+  }
 
   if (sheetData.length > 0) {
     await glSheets.spreadsheets.values.update({
