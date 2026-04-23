@@ -7,7 +7,8 @@ dotenv.config({ path: ".env.local" });
 
 import { google } from "googleapis";
 import { db } from "@/lib/db";
-import { cats, catHealthRecords, interventions } from "@/lib/db/schema";
+import { cats, catHealthRecords, interventions, sessions, sessionCats } from "@/lib/db/schema";
+import { eq, and, exists } from "drizzle-orm";
 import {
   CATHEALTHRECORD_CONDITION_VALUES,
   CAT_COLOR_VALUES,
@@ -309,12 +310,25 @@ async function main() {
 
   const { sheets } = await connectToSheets();
   const allRegions = await db.query.regions.findMany();
+  // Guard: regions table has no unique constraint yet — deduplicate by name
+  // so we don't process the same sheet tab multiple times.
+  const seenNames = new Set<string>();
+  const regions = allRegions.filter((r) => {
+    if (seenNames.has(r.name)) return false;
+    seenNames.add(r.name);
+    return true;
+  });
+  if (regions.length < allRegions.length) {
+    console.warn(
+      `WARNING: ${allRegions.length - regions.length} duplicate region(s) found in DB and skipped. Clean up the regions table and add a unique constraint on name.`,
+    );
+  }
 
   let totalCreated = 0,
     totalSkipped = 0,
     totalErrors = 0;
 
-  for (const region of allRegions) {
+  for (const region of regions) {
     console.log(`[${region.name}] Importing...`);
     try {
       const result = await importRegion(region, sheets, resetY);

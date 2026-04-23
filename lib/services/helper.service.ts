@@ -1,7 +1,14 @@
 import { google } from "googleapis";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
-import { gsheetSyncQueue, regions, syncAuditLog, cats, sessions, sessionCats } from "@/lib/db/schema";
+import {
+  gsheetSyncQueue,
+  regions,
+  syncAuditLog,
+  cats,
+  sessions,
+  sessionCats,
+} from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import { isSyncFrozen } from "./system.service";
 import { statusSuffix, nextCatalogId } from "./catalog.service";
@@ -99,28 +106,28 @@ export function mapCatToSheetRow(
     : "";
 
   return [
-    catalogDisplay,                                                    // 0  (A) Catalog ID
-    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "",                 // 1  (B)
-    cat.name ?? "N/A",                                                 // 2  (C)
-    cat.color ?? "N/A",                                                // 3  (D)
-    cat.age ?? "N/A",                                                  // 4  (E)
-    cat.sex ?? "Unknown",                                              // 5  (F)
-    health?.neuter_date ? "YES" : "NO",                                // 6  (G)
-    cat.sociability ?? "Unknown",                                      // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO",                        // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO",                     // 9  (J)
-    cat.is_adoptable ? "YES" : "NO",                                   // 10 (K)
-    catStatus || "Unknown",                                            // 11 (L)
-    cat.caretaker ?? "N/A",                                            // 12 (M)
-    new Date().toLocaleDateString(),                                   // 13 (N)
-    cat.spot_last_seen ?? "N/A",                                       // 14 (O)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A",               // 15 (P)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A",          // 16 (Q)
-    cat.notes ?? "N/A",                                                // 17 (R)
-    "",                                                                // 18 (S) separator
-    getInterventionDisplayStatus(cat, interventions, "TNVR"),          // 19 (T)
-    getInterventionDisplayStatus(cat, interventions, "Veterinarian"),  // 20 (U)
-    forFaStatus,                                                       // 21 (V)
+    catalogDisplay, // 0  (A) Catalog ID
+    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "", // 1  (B)
+    cat.name ?? "N/A", // 2  (C)
+    cat.color ?? "N/A", // 3  (D)
+    cat.age ?? "N/A", // 4  (E)
+    cat.sex ?? "Unknown", // 5  (F)
+    health?.neuter_date ? "YES" : "NO", // 6  (G)
+    cat.sociability ?? "Unknown", // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
+    cat.is_adoptable ? "YES" : "NO", // 10 (K)
+    catStatus || "Unknown", // 11 (L)
+    cat.caretaker ?? "N/A", // 12 (M)
+    new Date().toLocaleDateString(), // 13 (N)
+    cat.spot_last_seen ?? "N/A", // 14 (O)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 15 (P)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 16 (Q)
+    cat.notes ?? "N/A", // 17 (R)
+    "", // 18 (S) separator
+    getInterventionDisplayStatus(cat, interventions, "TNVR"), // 19 (T)
+    getInterventionDisplayStatus(cat, interventions, "Veterinarian"), // 20 (U)
+    forFaStatus, // 21 (V)
   ];
 }
 
@@ -141,20 +148,28 @@ export function mapUnknownCatToSheetRow(
     : "";
 
   return [
-    catalogDisplay,                                            // 0  (A)
-    cat.spot_last_seen ?? "N/A",                               // 1  (B) Possible Loc
-    cat.paws_id ?? "",                                         // 2  (C) PAWS ID#
-    cat.color ?? "N/A",                                        // 3  (D)
-    cat.age ?? "N/A",                                          // 4  (E)
-    cat.sex ?? "Unknown",                                      // 5  (F)
-    health?.neuter_date ? "YES" : "NO",                        // 6  (G)
-    cat.sociability ?? "Unknown",                              // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO",                // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO",             // 9  (J)
-    cat.is_adoptable ? "YES" : "NO",                           // 10 (K)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A",       // 11 (L)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A",  // 12 (M)
-    "", "", "", "", "", "", "", "", "",                         // 13–21 (N–V) empty
+    catalogDisplay, // 0  (A)
+    cat.spot_last_seen ?? "N/A", // 1  (B) Possible Loc
+    cat.paws_id ?? "", // 2  (C) PAWS ID#
+    cat.color ?? "N/A", // 3  (D)
+    cat.age ?? "N/A", // 4  (E)
+    cat.sex ?? "Unknown", // 5  (F)
+    health?.neuter_date ? "YES" : "NO", // 6  (G)
+    cat.sociability ?? "Unknown", // 7  (H)
+    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
+    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
+    cat.is_adoptable ? "YES" : "NO", // 10 (K)
+    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 11 (L)
+    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 12 (M)
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "", // 13–21 (N–V) empty
   ];
 }
 
@@ -268,7 +283,10 @@ export async function syncAndCompactRegion(regionId: string) {
           if (cat && !cat.catalog_id) {
             const colAValues = currentRows.map((r) => r[0] ?? "");
             const newId = String(nextCatalogId(colAValues));
-            await db.update(cats).set({ catalog_id: newId }).where(eq(cats.id, cat.id));
+            await db
+              .update(cats)
+              .set({ catalog_id: newId })
+              .where(eq(cats.id, cat.id));
             const health = await db.query.catHealthRecords.findFirst({
               where: (h, { eq }) => eq(h.cat_id, cat.id),
             });
@@ -277,9 +295,14 @@ export async function syncAndCompactRegion(regionId: string) {
               orderBy: (i, { desc }) => [desc(i.requested_at)],
             });
             const updatedCat = { ...cat, catalog_id: newId };
-            const newPayload = region.name === "UNKNOWN"
-              ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
-              : mapCatToSheetRow(updatedCat, health ?? null, interventionsList);
+            const newPayload =
+              region.name === "UNKNOWN"
+                ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
+                : mapCatToSheetRow(
+                    updatedCat,
+                    health ?? null,
+                    interventionsList,
+                  );
             currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
           } else {
             // catalog_id already assigned — use task payload, pad to col Y
@@ -333,9 +356,15 @@ export async function syncAndCompactRegion(regionId: string) {
     await db
       .update(gsheetSyncQueue)
       .set({ status: "COMPLETED" })
-      .where(inArray(gsheetSyncQueue.id, tasks.map((t) => t.id)));
+      .where(
+        inArray(
+          gsheetSyncQueue.id,
+          tasks.map((t) => t.id),
+        ),
+      );
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : "Unknown sync error";
+    const errMsg =
+      error instanceof Error ? error.message : "Unknown sync error";
     errorMessage = errMsg;
     tasksFailed = tasks.length;
 
@@ -346,7 +375,9 @@ export async function syncAndCompactRegion(regionId: string) {
         .set({
           retryCount: newRetryCount,
           lastError: errMsg,
-          ...(newRetryCount >= MAX_RETRIES ? { status: "FAILED" as const } : {}),
+          ...(newRetryCount >= MAX_RETRIES
+            ? { status: "FAILED" as const }
+            : {}),
         })
         .where(eq(gsheetSyncQueue.id, task.id));
     }
@@ -372,11 +403,20 @@ export async function syncAndCompactRegion(regionId: string) {
 const SUMMARY_DARK_GREEN = { red: 0.153, green: 0.306, blue: 0.075 }; // #274e13
 const SUMMARY_WHITE = { red: 1, green: 1, blue: 1 };
 
-
-function headerFormatRequest(sheetId: number, rowIndex: number, colCount: number) {
+function headerFormatRequest(
+  sheetId: number,
+  rowIndex: number,
+  colCount: number,
+) {
   return {
     repeatCell: {
-      range: { sheetId, startRowIndex: rowIndex, endRowIndex: rowIndex + 1, startColumnIndex: 0, endColumnIndex: colCount },
+      range: {
+        sheetId,
+        startRowIndex: rowIndex,
+        endRowIndex: rowIndex + 1,
+        startColumnIndex: 0,
+        endColumnIndex: colCount,
+      },
       cell: {
         userEnteredFormat: {
           backgroundColor: SUMMARY_DARK_GREEN,
@@ -393,7 +433,12 @@ function headerFormatRequest(sheetId: number, rowIndex: number, colCount: number
  * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
-const SUMMARY_EXCLUDED_TABS = new Set(["_config", "For RI", "For FA", "UNKNOWN"]);
+const SUMMARY_EXCLUDED_TABS = new Set([
+  "_config",
+  "For RI",
+  "For FA",
+  "UNKNOWN",
+]);
 
 async function getSpreadsheetSheets(
   glSheets: ReturnType<typeof google.sheets>,
@@ -410,7 +455,9 @@ async function getSpreadsheetSheets(
 
 function sortRegionsByTabOrder(
   allRegions: { id: string; name: string }[],
-  sheets: { properties?: { title?: string | null; sheetId?: number | null } | null }[],
+  sheets: {
+    properties?: { title?: string | null; sheetId?: number | null } | null;
+  }[],
 ) {
   const orderedTabNames = sheets
     .map((s) => s.properties?.title ?? "")
@@ -421,7 +468,8 @@ function sortRegionsByTabOrder(
     .filter((r): r is NonNullable<typeof r> => r !== undefined);
   const inTabSet = new Set(orderedTabNames);
   for (const r of allRegions) {
-    if (!inTabSet.has(r.name) && !SUMMARY_EXCLUDED_TABS.has(r.name)) sorted.push(r);
+    if (!inTabSet.has(r.name) && !SUMMARY_EXCLUDED_TABS.has(r.name))
+      sorted.push(r);
   }
   return sorted;
 }
@@ -431,7 +479,9 @@ export async function generateForRiSheet(): Promise<void> {
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
   const allSheets = await getSpreadsheetSheets(glSheets, glAuth, spreadsheetId);
-  const riSheetId = allSheets.find((s) => s.properties?.title === "For RI")?.properties?.sheetId ?? null;
+  const riSheetId =
+    allSheets.find((s) => s.properties?.title === "For RI")?.properties
+      ?.sheetId ?? null;
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
@@ -455,24 +505,34 @@ export async function generateForRiSheet(): Promise<void> {
             .select()
             .from(sessionCats)
             .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-            .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+            .where(
+              and(
+                eq(sessions.region_id, region.id),
+                eq(sessionCats.cat_id, c.id),
+              ),
+            ),
         ),
     });
 
     const tnvrCats = catsInRegion
       .filter((cat) =>
-        cat.interventions.some((i) => i.type === "TNVR" && i.status === "Pending"),
+        cat.interventions.some(
+          (i) => i.type === "TNVR" && i.status === "Pending",
+        ),
       )
       .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
 
     const vetCats = catsInRegion
       .filter((cat) =>
-        cat.interventions.some((i) => i.type === "Veterinarian" && i.status === "Pending"),
+        cat.interventions.some(
+          (i) => i.type === "Veterinarian" && i.status === "Pending",
+        ),
       )
       .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
 
     const maxRows = Math.max(tnvrCats.length, vetCats.length);
-    const sectionRows = maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
+    const sectionRows =
+      maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
 
     regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, ""]);
@@ -507,13 +567,19 @@ export async function generateForRiSheet(): Promise<void> {
     const requests: object[] = [
       {
         repeatCell: {
-          range: { sheetId: riSheetId, startColumnIndex: 0, endColumnIndex: 26 },
+          range: {
+            sheetId: riSheetId,
+            startColumnIndex: 0,
+            endColumnIndex: 26,
+          },
           cell: { userEnteredFormat: {} },
           fields: "userEnteredFormat",
         },
       },
       headerFormatRequest(riSheetId, 0, 4),
-      ...regionHeaderIndices.map((idx) => headerFormatRequest(riSheetId, idx, 4)),
+      ...regionHeaderIndices.map((idx) =>
+        headerFormatRequest(riSheetId, idx, 4),
+      ),
     ];
     await glSheets.spreadsheets.batchUpdate({
       auth: glAuth,
@@ -533,7 +599,9 @@ export async function generateForFaSheet(): Promise<void> {
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
   const allSheets = await getSpreadsheetSheets(glSheets, glAuth, spreadsheetId);
-  const faSheetId2 = allSheets.find((s) => s.properties?.title === "For FA")?.properties?.sheetId ?? null;
+  const faSheetId2 =
+    allSheets.find((s) => s.properties?.title === "For FA")?.properties
+      ?.sheetId ?? null;
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
@@ -556,34 +624,52 @@ export async function generateForFaSheet(): Promise<void> {
       with: { catHealthRecords: true },
       where: (c, { eq, and, exists }) =>
         and(
-          eq(c.is_adoptable, true),
+          and(eq(c.is_adoptable, true), eq(c.cat_status, "Unknown")),
           exists(
             db
               .select()
               .from(sessionCats)
               .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-              .where(and(eq(sessions.region_id, region.id), eq(sessionCats.cat_id, c.id)))
+              .where(
+                and(
+                  eq(sessions.region_id, region.id),
+                  eq(sessionCats.cat_id, c.id),
+                ),
+              ),
           ),
         ),
     });
 
     const healthy = adoptableCats
       .filter((c) => {
-        const cond = (c.catHealthRecords as { condition: string | null } | null)?.condition ?? "";
+        const cond =
+          (c.catHealthRecords as { condition: string | null } | null)
+            ?.condition ?? "";
         return !cond.includes("Sick") && !cond.includes("Injured");
       })
       .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
 
     const sick = adoptableCats
-      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Sick"))
+      .filter((c) =>
+        (
+          (c.catHealthRecords as { condition: string | null } | null)
+            ?.condition ?? ""
+        ).includes("Sick"),
+      )
       .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
 
     const injured = adoptableCats
-      .filter((c) => ((c.catHealthRecords as { condition: string | null } | null)?.condition ?? "").includes("Injured"))
+      .filter((c) =>
+        (
+          (c.catHealthRecords as { condition: string | null } | null)
+            ?.condition ?? ""
+        ).includes("Injured"),
+      )
       .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
 
     const maxRows = Math.max(healthy.length, sick.length, injured.length);
-    const sectionRows = maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
+    const sectionRows =
+      maxRows <= DEFAULT_HEIGHT ? DEFAULT_HEIGHT : maxRows + 3;
 
     regionHeaderIndices.push(sheetData.length);
     sheetData.push([region.name, "", region.name, "", region.name, ""]);
@@ -620,13 +706,19 @@ export async function generateForFaSheet(): Promise<void> {
     const requests: object[] = [
       {
         repeatCell: {
-          range: { sheetId: faSheetId2, startColumnIndex: 0, endColumnIndex: 26 },
+          range: {
+            sheetId: faSheetId2,
+            startColumnIndex: 0,
+            endColumnIndex: 26,
+          },
           cell: { userEnteredFormat: {} },
           fields: "userEnteredFormat",
         },
       },
       headerFormatRequest(faSheetId2, 0, 6),
-      ...regionHeaderIndices.map((idx) => headerFormatRequest(faSheetId2, idx, 6)),
+      ...regionHeaderIndices.map((idx) =>
+        headerFormatRequest(faSheetId2, idx, 6),
+      ),
     ];
     await glSheets.spreadsheets.batchUpdate({
       auth: glAuth,
@@ -797,9 +889,14 @@ export async function unfreezeSheetProtections(): Promise<void> {
 
   const { glAuth, glSheets } = await connectToSheets();
 
-  const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
+  const serviceAccountEmail = JSON.parse(
+    process.env.SERVICE_ACCOUNT_CREDENTIALS!,
+  ).client_email as string;
   const managerEmails = await getAuthorizedEmails();
-  const emails = [serviceAccountEmail, ...managerEmails.filter((e) => e !== serviceAccountEmail)];
+  const emails = [
+    serviceAccountEmail,
+    ...managerEmails.filter((e) => e !== serviceAccountEmail),
+  ];
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
@@ -862,7 +959,9 @@ export async function setupUuidProtections(): Promise<void> {
   const regionNames = new Set<string>(regions.map((r) => r.name));
 
   const { glAuth, glSheets } = await connectToSheets();
-  const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
+  const serviceAccountEmail = JSON.parse(
+    process.env.SERVICE_ACCOUNT_CREDENTIALS!,
+  ).client_email as string;
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
@@ -954,9 +1053,9 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
     .filter((row) => row[24] && String(row[24]).trim() !== "") // require UUID in col Y
     .map((row) => ({
       raw: row as string[],
-      entityId: String(row[24]).trim(),        // col Y UUID
+      entityId: String(row[24]).trim(), // col Y UUID
       lastEditedAt: row[22] ? String(row[22]).trim() : null, // col W
-      editedBy: row[23] ? String(row[23]).trim() : null,     // col X
+      editedBy: row[23] ? String(row[23]).trim() : null, // col X
     }));
 }
 

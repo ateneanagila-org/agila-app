@@ -8,6 +8,7 @@ import {
   AnyPgColumn,
   jsonb,
   integer,
+  unique,
 } from "drizzle-orm/pg-core";
 import {
   authRoleEnum,
@@ -54,11 +55,15 @@ export const allowedEmails = pgTable("allowed_emails", {
   allowed_at: timestamp("allowed_at").defaultNow().notNull(),
 });
 
-export const regions = pgTable("regions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: regionNameEnum("name").default("UNKNOWN").notNull(),
-  color: regionColorEnum("color"),
-});
+export const regions = pgTable(
+  "regions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: regionNameEnum("name").default("UNKNOWN").notNull(),
+    color: regionColorEnum("color"),
+  },
+  (t) => [unique().on(t.name)],
+);
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
