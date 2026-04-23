@@ -32,16 +32,18 @@ function ScallopEdge() {
 function GreenField({ label, value }: { label: string; value: string }) {
   return (
     <div className="py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">{label}</p>
-      <p className="mt-0.5 text-xs font-semibold text-white">{value || "—"}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow">
+        {label}
+      </p>
+      <p className="mt-0.5 text-xs font-bold text-white">{value || "—"}</p>
     </div>
   );
 }
 
-
 export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const [cat, setCat] = useState<SelectCat | null>(null);
-  const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(null);
+  const [healthRecord, setHealthRecord] =
+    useState<SelectCatHealthRecord | null>(null);
   const [interventions, setInterventions] = useState<SelectIntervention[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +104,10 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     return (
       <div className="flex flex-col">
         <div className="bg-brand-green px-5 pt-5 pb-0">
-          <Link href="/" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+          <Link
+            href="/"
+            className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70"
+          >
             <span className="text-base leading-none">&lsaquo;</span> Back
           </Link>
           <p className="pb-5 text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
@@ -121,40 +126,55 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
   // 10 fields → 5 rows × 2 cols
   const detailFields = [
-    { label: "Size/Age",    value: cat.age ?? "" },
-    { label: "Injured",     value: healthRecord?.condition?.includes("Injured") ? "Yes" : "No" },
-    { label: "Neutered",    value: healthRecord?.neuter_date ? "Yes" : "No" },
-    { label: "Adoptable",   value: cat.is_adoptable ? "Yes" : "No" },
-    { label: "Tame",        value: cat.sociability ?? "" },
-    { label: "Status",      value: cat.cat_status ?? "" },
-    { label: "Sick",        value: healthRecord?.condition?.includes("Sick") ? "Yes" : "No" },
-    { label: "Caretaker",   value: cat.caretaker ?? "" },
-    { label: "Sex",         value: cat.sex ?? "" },
-    { label: "Intervention",value: latestIntervention ? `${latestIntervention.type ?? "—"}` : "" },
+    { label: "Size/Age", value: cat.age ?? "" },
+    {
+      label: "Injured",
+      value: healthRecord?.condition?.includes("Injured") ? "Yes" : "No",
+    },
+    { label: "Neutered", value: healthRecord?.neuter_date ? "Yes" : "No" },
+    { label: "Adoptable", value: cat.is_adoptable ? "Yes" : "No" },
+    { label: "Tame", value: cat.sociability ?? "" },
+    { label: "Status", value: cat.cat_status ?? "" },
+    {
+      label: "Sick",
+      value: healthRecord?.condition?.includes("Sick") ? "Yes" : "No",
+    },
+    { label: "Caretaker", value: cat.caretaker ?? "" },
+    { label: "Sex", value: cat.sex ?? "" },
+    {
+      label: "Intervention",
+      value: latestIntervention ? `${latestIntervention.type ?? "—"}` : "",
+    },
   ];
 
   // 6 fields → 3 rows × 2 cols (notes spans right col)
   const noteColLeft = [
-    { label: "Date Last Seen",       value: formatDate(cat.last_updated_at) },
-    { label: "Place Last Seen",      value: cat.spot_last_seen ?? "" },
-    { label: "Date of Kapon",        value: formatDate(healthRecord?.neuter_date) },
-    { label: "Date of Vaccination",  value: formatDate(healthRecord?.vaccination_date) },
+    { label: "Date Last Seen", value: formatDate(cat.last_updated_at) },
+    { label: "Place Last Seen", value: cat.spot_last_seen ?? "" },
+    { label: "Date of Kapon", value: formatDate(healthRecord?.neuter_date) },
+    {
+      label: "Date of Vaccination",
+      value: formatDate(healthRecord?.vaccination_date),
+    },
   ];
 
   return (
     <div className="flex flex-col">
       {/* Green hero band */}
       <div className="bg-brand-green px-5 pt-5 pb-0">
-        <Link href="/" className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70">
+        <Link
+          href="/"
+          className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70"
+        >
           <span className="text-base leading-none">&lsaquo;</span> Back
         </Link>
-        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
+        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow">
           ADOPT/FOSTER{cat.name ? ` ${cat.name.toUpperCase()}` : " A CAT"}?
         </p>
         <div className="mt-3 flex justify-center pb-5">
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90 shadow-sm"
           >
             Apply <span className="text-base leading-none">🔗</span>
           </button>
@@ -164,31 +184,43 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
       {/* Content on cream */}
       <div className="flex flex-col gap-5 px-4 pt-3 pb-8">
-
         {/* Cat info — green card matching catalog list style */}
         <div className="flex items-center gap-0 overflow-hidden rounded-2xl bg-brand-green">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/10">
             <ImagePlaceholderIcon className="h-8 w-8 text-white/40" />
           </div>
-          <div className="px-3 py-2">
-            <div className="flex items-center gap-1">
-              <span className="text-base font-bold tracking-tight text-white">
-                {cat.name || "Unnamed"}
-              </span>
-              {sexSymbol(cat.sex) ? (
-                <span className="text-base font-bold text-white/70">
-                  {sexSymbol(cat.sex)}
+          <div className="flex flex-1 items-center justify-between px-3.5 py-3">
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                  {cat.name || "Unnamed"}
                 </span>
-              ) : null}
+                {sexSymbol(cat.sex) ? (
+                  <span className="text-white ml-1">{sexSymbol(cat.sex)}</span>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs font-bold text-white">
+                {cat.color || "—"} {cat.age ? ` · ${cat.age}` : ""}
+              </p>
             </div>
-            <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
-            <p className="text-xs text-white/60">{cat.age || "—"}</p>
+            {/* Arrow indicator */}
+            <div className="flex w-10 shrink-0 items-center justify-center">
+                <div className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                <span className="text-sm font-bold">‹</span>
+                </div>
+            </div>
           </div>
         </div>
 
         {/* Details — green card, 2-col grid */}
         <div>
-          <p className="mb-2 text-base font-bold tracking-tight text-brand-orange">Details</p>
+          <div className="mb-2 flex items-center gap-3">
+            <div className="h-px flex-1 bg-pink-200" />
+            <p className="text-lg font-bold tracking-tight text-brand-orange">
+                Details
+            </p>
+            <div className="h-px flex-1 bg-pink-200" />
+          </div>
           <div className="overflow-hidden rounded-2xl bg-brand-green">
             <div className="grid grid-cols-2">
               {detailFields.map((field, i) => {
@@ -213,7 +245,13 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
         {/* Notes — green card matching Details */}
         <div>
-          <p className="mb-2 text-base font-bold tracking-tight text-brand-orange">Notes</p>
+          <div className="mb-2 flex items-center gap-3">
+            <div className="h-px flex-1 bg-pink-200" />
+            <p className="text-lg font-bold tracking-tight text-brand-orange">
+                Notes
+            </p>
+            <div className="h-px flex-1 bg-pink-200" />
+          </div>
           <div className="overflow-hidden rounded-2xl bg-brand-green">
             <div className="grid grid-cols-2">
               {/* Left col: date fields */}
@@ -226,8 +264,10 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
               </div>
               {/* Right col: notes text */}
               <div className="px-4 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">Notes</p>
-                <p className="mt-0.5 text-xs text-white/80 leading-relaxed">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow">
+                  Notes
+                </p>
+                <p className="mt-0.5 text-xs font-bold text-white leading-relaxed">
                   {cat.notes || "—"}
                 </p>
               </div>

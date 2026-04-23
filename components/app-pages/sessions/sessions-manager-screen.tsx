@@ -106,9 +106,9 @@ export function SessionsManagerScreen() {
 
           {/* Heading + pending count */}
           <div className="flex items-center gap-2">
-            <p className="font-heading text-2xl font-bold text-foreground">For Review</p>
+            <p className="font-heading text-2xl font-bold text-brand-green">For Review</p>
             {forReview.length > 0 ? (
-              <span className="rounded-full bg-brand-orange px-2.5 py-0.5 text-xs font-bold text-white">
+              <span className="rounded-full border border-brand-orange px-2.5 py-0.5 text-xs font-bold text-brand-orange">
                 {forReview.length} pending
               </span>
             ) : null}
@@ -138,15 +138,21 @@ export function SessionsManagerScreen() {
                       <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
                         {item.cat.name || "Unnamed"}
                         {sexSymbol(item.cat.sex) ? (
-                          <span className="ml-1 text-white/80">{sexSymbol(item.cat.sex)}</span>
+                          <span className="ml-1 text-white">{sexSymbol(item.cat.sex)}</span>
                         ) : null}
                       </p>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {item.cat.color || "Unknown"}{item.cat.age ? ` Size/${item.cat.age}` : ""}
+                      <p className="mt-0.5 text-xs font-medium text-white">
+                        {item.cat.color || "Unknown"}{item.cat.age ? ` · ${item.cat.age}` : ""}
                       </p>
-                      <p className="mt-1 text-xs text-white/60">
-                        {item.cat.spot_last_seen || "—"} &middot; {formatDate(item.cat.last_updated_at)}
+                      <p className="mt-2 text-xs font-bold text-white">
+                        {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
                       </p>
+                    </div>
+                    {/* Arrow indicator */}
+                    <div className="flex w-10 shrink-0 items-center justify-center">
+                      <div className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                        <span className="text-sm font-bold">›</span>
+                      </div>
                     </div>
                   </div>
                 </Link>

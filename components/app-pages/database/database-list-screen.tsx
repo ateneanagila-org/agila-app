@@ -114,8 +114,8 @@ export function DatabaseListScreen() {
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12">
-      <p className="text-sm text-slate-500">No cats found.</p>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="text-sm text-brand-dark/80">No cats found.</p>
+      <p className="mt-1 text-xs text-brand-dark/60">
         Add a new entry to get started.
       </p>
     </div>
@@ -186,15 +186,15 @@ export function DatabaseListScreen() {
                           <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
                             {cat.name || "Unnamed"}
                             {sexSymbol(cat.sex) ? (
-                              <span className="ml-1 text-white/80">
+                              <span className="ml-1 text-white">
                                 {sexSymbol(cat.sex)}
                               </span>
                             ) : null}
                           </p>
-                          <p className="mt-0.5 text-xs text-white/70">
+                          <p className="mt-0.5 text-xs text-white">
                             {cat.color || "Unknown color"} {cat.age ? `• ${cat.age}` : ""}
                           </p>
-                          <p className="mt-1 text-xs font-semibold text-white/60">
+                          <p className="mt-1 text-xs font-semibold text-white/90">
                             {cat.spot_last_seen || "Unknown location"} &middot;{" "}
                             {formatDate(cat.last_updated_at)}
                           </p>

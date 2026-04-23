@@ -234,12 +234,12 @@ export function SessionsApprovalCrossRefScreen() {
 
           {/* Section header */}
           <div className="flex items-center justify-between">
-            <p className="font-heading text-base font-bold text-brand-green">
+            <p className="font-heading text-xl font-bold text-brand-green">
               Cross-Reference
             </p>
             <Link
               href={validationHref}
-              className="flex items-center gap-1 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
+              className="flex items-center gap-1 rounded-xl bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
             >
               ‹ Previous
             </Link>
@@ -249,10 +249,18 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          {/* Search bar */}
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2.5">
-            <SearchIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="text-sm text-slate-400">Search</span>
+          {/* Search bar + Filters */}
+          <div className="flex gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-pink-200 bg-brand-cream px-3 py-2">
+              <span className="text-sm font-bold text-brand-orange">Search</span>
+              <SearchIcon className="h-4 w-4 shrink-0 text-brand-orange" />
+            </div>
+            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
+              Filter <span className="text-xs">▼</span>
+            </button>
+            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
+              Sort <span className="text-xs">▼</span>
+            </button>
           </div>
 
           {similarCats.length === 0 ? (
@@ -274,25 +282,30 @@ export function SessionsApprovalCrossRefScreen() {
                       <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
                         {c.name || "Unnamed"}
                         {sexSymbol(c.sex) ? (
-                          <span className="ml-1 text-white/80">{sexSymbol(c.sex)}</span>
+                          <span className="ml-1 text-white">{sexSymbol(c.sex)}</span>
                         ) : null}
                       </p>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {c.color || "—"}{c.age ? ` • ${c.age}` : ""}
+                      <p className="mt-0.5 text-xs font-medium text-white">
+                        {c.color || "—"}{c.age ? ` · ${c.age}` : ""}
                       </p>
-                      <p className="mt-1 text-xs text-white/60">
-                        {c.spot_last_seen || "—"} &middot; {formatDate(c.last_updated_at)}
+                      <p className="mt-1 text-xs font-bold text-white">
+                        {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMergeTargetId(c.id);
-                          setShowMergeConfirm(true);
-                        }}
-                        className="mt-2 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                      >
-                        Merge ›
-                      </button>
+                      <div className="mt-2 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMergeTargetId(c.id);
+                            setShowMergeConfirm(true);
+                          }}
+                          className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                        >
+                          Merge ›
+                        </button>
+                        <div className="flex h-7 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                          <span className="text-base font-bold">•••</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

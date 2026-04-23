@@ -194,15 +194,15 @@ export function OverviewScreen() {
         <div className="space-y-3 px-4 py-4">
           {/* Dates */}
           <div className="space-y-0.5">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-brand-green">
               Last update:{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {lastUpdated}
               </span>
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-brand-green">
               Last PAWS update:{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {lastUpdated}
               </span>
             </p>
@@ -230,7 +230,7 @@ export function OverviewScreen() {
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Total Count
                 </p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
@@ -238,7 +238,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   TNVR Score
                 </p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
@@ -251,7 +251,7 @@ export function OverviewScreen() {
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Neutered
                 </p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -259,7 +259,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Unneutered
                 </p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -269,14 +269,13 @@ export function OverviewScreen() {
             </div>
           </div>
 
-          {/* Population section */}
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold text-foreground">
+            <h2 className="font-heading text-2xl font-bold text-brand-green">
               Population
             </h2>
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-semibold text-white"
+              className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white"
             >
               Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
@@ -284,7 +283,7 @@ export function OverviewScreen() {
 
           {/* Chart placeholder */}
           <div className="relative flex h-48 items-center justify-center rounded-xl bg-brand-green">
-            <p className="text-sm text-white/50">Horizontal Bar Chart</p>
+            <p className="text-sm text-white/70">Horizontal Bar Chart</p>
             <button
               type="button"
               onClick={() => setShowPeriodMenu((v) => !v)}
@@ -313,7 +312,7 @@ export function OverviewScreen() {
           <div className="space-y-2">
             {/* Wide single row */}
             <div className="flex items-center justify-between rounded-xl bg-brand-green px-4 py-2.5">
-              <span className="text-sm font-semibold text-white">
+              <span className="text-sm font-semibold text-brand-yellow">
                 Domesticated
               </span>
               <span className="text-sm font-bold tabular-nums text-white">
@@ -342,7 +341,7 @@ export function OverviewScreen() {
                     key={item.label}
                     className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
                   >
-                    <span className="text-xs font-medium text-white/80">
+                    <span className="text-xs font-medium text-brand-yellow">
                       {item.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums text-white">
@@ -360,13 +359,13 @@ export function OverviewScreen() {
             <div className="overflow-hidden rounded-xl bg-brand-green">
               <div className="grid grid-cols-2 divide-x divide-white/20">
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-white">Untracked</p>
+                  <p className="text-sm font-semibold text-brand-yellow">Untracked</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
                     {stats.offCensusTotal}
                   </p>
                 </div>
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-brand-yellow">
                     Overall Total
                   </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -393,7 +392,7 @@ export function OverviewScreen() {
                     key={item.label}
                     className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
                   >
-                    <span className="text-xs font-medium text-white/80">
+                    <span className="text-xs font-medium text-brand-yellow">
                       {item.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums text-white">

@@ -216,7 +216,7 @@ export function DatabaseInterventionsScreen() {
           </div>
 
           {filteredInterventions.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-sm text-brand-dark/70">
               No interventions yet.
             </div>
           ) : (
@@ -231,13 +231,13 @@ export function DatabaseInterventionsScreen() {
                       <p className="font-heading text-base font-bold leading-tight text-brand-yellow">
                         Intervention No. {String(index + 1).padStart(2, "0")}
                       </p>
-                      <p className="mt-0.5 text-xs text-white/80">
+                      <p className="mt-0.5 text-xs font-semibold text-white">
                         {item.type || "—"}
                       </p>
-                      <p className="mt-1 text-xs text-white/70">
+                      <p className="mt-1 text-xs text-white/90">
                         Requested at: {formatDate(item.requested_at)}
                       </p>
-                      <p className="text-xs text-white/70">
+                      <p className="text-xs text-white/90">
                         Notes: {item.notes || "—"}
                       </p>
                     </div>

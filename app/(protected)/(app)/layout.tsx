@@ -24,7 +24,12 @@ function isActive(pathname: string, href: string) {
 
 function PawIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <ellipse cx="5" cy="9" rx="2" ry="3" />
       <ellipse cx="10" cy="6.5" rx="2" ry="3" />
       <ellipse cx="14" cy="6.5" rx="2" ry="3" />
@@ -34,35 +39,95 @@ function PawIcon({ className }: { className?: string }) {
   );
 }
 
-function NavIcon({ label, active }: { label: NavItem["label"]; active: boolean }) {
+function NavIcon({
+  label,
+  active,
+}: {
+  label: NavItem["label"];
+  active: boolean;
+}) {
   const cls = `h-5 w-5 ${active ? "text-white" : "text-white/50"}`;
-  if (label === "Overview") return (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
-    </svg>
-  );
-  if (label === "TNVR") return (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 18V9M8 18V5M13 18v-7M18 18v-3" />
-    </svg>
-  );
-  if (label === "Database") return (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-      <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
-    </svg>
-  );
-  if (label === "Sessions") return (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4M5 3h14a1 1 0 011 1v16a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6" />
-    </svg>
-  );
+  if (label === "Overview")
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"
+        />
+      </svg>
+    );
+  if (label === "TNVR")
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 18V9M8 18V5M13 18v-7M18 18v-3"
+        />
+      </svg>
+    );
+  if (label === "Database")
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+        <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
+      </svg>
+    );
+  if (label === "Sessions")
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 12h6M9 16h4M5 3h14a1 1 0 011 1v16a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"
+        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6" />
+      </svg>
+    );
   return (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20H7a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v9a2 2 0 01-2 2z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20H7a2 2 0 01-2-2V6M16 3H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7l-4-4z" />
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17 20H7a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v9a2 2 0 01-2 2z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17 20H7a2 2 0 01-2-2V6M16 3H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7l-4-4z"
+      />
       <circle cx="12" cy="14" r="3" />
       <path d="M12 12V8M10 14H8" />
     </svg>
@@ -71,7 +136,13 @@ function NavIcon({ label, active }: { label: NavItem["label"]; active: boolean }
 
 function UsersIcon({ active }: { active: boolean }) {
   return (
-    <svg className={`h-5 w-5 ${active ? "text-white" : "text-white/50"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg
+      className={`h-5 w-5 ${active ? "text-white" : "text-white/50"}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
       <circle cx="9" cy="7" r="3" />
       <path strokeLinecap="round" d="M3 21v-1a6 6 0 016-6h.5" />
       <circle cx="17" cy="9" r="2.5" />
@@ -92,8 +163,12 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2.5">
               <PawIcon className="h-7 w-7 text-white" />
               <div>
-                <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">AGILA</p>
-                <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">CATALOG</p>
+                <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
+                  AGILA
+                </p>
+                <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
+                  CATALOG
+                </p>
               </div>
             </div>
             <button
@@ -137,9 +212,13 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                   ) : (
                     <NavIcon label={item.label} active={active} />
                   )}
-                  <span className={`text-[9px] tracking-wide ${
-                    active ? "font-bold text-white" : "font-medium text-white/50"
-                  }`}>
+                  <span
+                    className={`text-[9px] tracking-wide ${
+                      active
+                        ? "font-bold text-white"
+                        : "font-medium text-white/50"
+                    }`}
+                  >
                     {item.label}
                   </span>
                 </Link>
@@ -155,8 +234,12 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2.5">
             <PawIcon className="h-7 w-7 text-white" />
             <div>
-              <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">AGILA</p>
-              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">CATALOG</p>
+              <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
+                AGILA
+              </p>
+              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
+                CATALOG
+              </p>
             </div>
           </div>
 
@@ -187,7 +270,13 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
 
           <div className="mt-auto rounded-2xl bg-white/10 px-4 py-4">
             <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white/60 ring-1 ring-white/20">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
                 <circle cx="12" cy="8" r="3.5" />
                 <path strokeLinecap="round" d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
               </svg>

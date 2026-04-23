@@ -169,7 +169,7 @@ export function SessionsScreen() {
 
             {/* My Sessions heading + Create New */}
             <div className="flex items-center justify-between">
-              <p className="font-heading text-2xl font-bold text-foreground">My Sessions</p>
+              <p className="font-heading text-2xl font-bold text-brand-green">My Sessions</p>
               <Link
                 href="/dashboard/sessions/create"
                 className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -227,17 +227,17 @@ export function SessionsScreen() {
                         <span className="text-xs font-semibold tabular-nums text-white">
                           {(page - 1) * PAGE_SIZE + i + 1}
                         </span>
-                        <span className="text-xs tabular-nums text-white/70">
+                        <span className="text-xs tabular-nums text-white">
                           {formatDate(s.created_at)}
                         </span>
-                        <span className="truncate text-xs text-white/70">
+                        <span className="truncate text-xs text-white">
                           {regionMap[s.region_id] ?? "—"}
                         </span>
                         {/* Status badge */}
                         {!s.is_finished ? (
                           <Link
                             href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="rounded-full border border-brand-orange px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
+                            className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
                           >
                             Continue ›
                           </Link>
@@ -257,12 +257,12 @@ export function SessionsScreen() {
               <button
                 type="button"
                 onClick={() => setShowAll(false)}
-                className="text-sm font-bold underline underline-offset-2 text-foreground"
+                className="text-sm font-bold text-brand-green underline underline-offset-2"
               >
                 Show less sessions
               </button>
               {filteredSessions.length > PAGE_SIZE ? (
-                <div className="flex items-center gap-1 rounded-full border border-pink-200 bg-white px-4 py-2 text-xs font-semibold text-foreground">
+                <div className="flex items-center gap-1 rounded-full border border-pink-200 bg-brand-pink/20 px-4 py-2 text-xs font-semibold text-brand-orange">
                   <button
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -293,30 +293,37 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Census Report
               </button>
               <Link
                 href="/dashboard/sessions/manager"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Review Sessions
               </Link>
             </div>
 
             {/* Recent Sessions */}
+            <div className="flex items-center justify-between">
+              <p className="font-heading text-xl font-bold text-brand-green">
+                Recent Sessions
+              </p>
+              <Link
+                href="/dashboard/sessions/create"
+                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Create New <span className="text-sm">+</span>
+              </Link>
+            </div>
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-2.5">
-                <p className="font-heading text-lg font-bold text-brand-yellow">
-                  Recent Sessions
-                </p>
-
                 <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">No.</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Location</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Date</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Status</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">No.</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Location</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Date</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Status</span>
                 </div>
 
                 {loading ? (
@@ -330,20 +337,20 @@ export function SessionsScreen() {
                         <span className="text-xs font-semibold tabular-nums text-white">
                           {s.id.slice(0, 5)}
                         </span>
-                        <span className="truncate text-xs text-white/70">
+                        <span className="truncate text-xs text-white">
                           {regionMap[s.region_id] ?? "—"}
                         </span>
-                        <span className="text-xs tabular-nums text-white/60">
+                        <span className="text-xs tabular-nums text-white">
                           {formatDate(s.created_at)}
                         </span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                             s.is_finished
-                              ? "bg-white/10 text-white/80"
-                              : "bg-brand-orange/80 text-white"
+                              ? "bg-white/10 text-white"
+                              : "bg-white text-brand-orange"
                           }`}
                         >
-                          {sessionStatus(s)}
+                          {s.is_finished ? "Reviewed" : "Continue ›"}
                         </span>
                       </div>
                     ))}
@@ -353,7 +360,7 @@ export function SessionsScreen() {
                 <button
                   type="button"
                   onClick={() => { setShowAll(true); setPage(1); }}
-                  className="text-xs font-medium text-white/60 underline-offset-2 hover:text-white/80 underline"
+                  className="text-xs font-bold text-brand-green underline underline-offset-2"
                 >
                   Show all sessions
                 </button>
@@ -361,22 +368,21 @@ export function SessionsScreen() {
             </div>
 
             {/* Priority Locations */}
+            <p className="font-heading text-xl font-bold text-brand-green">
+              Priority Locations
+            </p>
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-2.5">
-                <p className="font-heading text-lg font-bold text-brand-yellow">
-                  Priority Locations
-                </p>
-
                 <div className="flex justify-between border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Name</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Last Tracked</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Name</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Last Tracked</span>
                 </div>
 
                 <div className="divide-y divide-white/10">
                   {priorityLocations.map((loc) => (
                     <div key={loc.name} className="flex items-center justify-between py-2">
                       <span className="text-xs font-semibold text-white">{loc.name}</span>
-                      <span className="text-xs tabular-nums text-white/70">{loc.daysSince} days ago</span>
+                      <span className="text-xs tabular-nums text-white italic">{loc.daysSince} days ago</span>
                     </div>
                   ))}
                 </div>

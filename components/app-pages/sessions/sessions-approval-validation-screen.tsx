@@ -10,7 +10,6 @@ import {
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
-  DoubleChevronIcon,
   ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
@@ -262,17 +261,17 @@ export function SessionsApprovalValidationScreen() {
             <button
               type="button"
               onClick={() => setShowDiscardConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange/5"
             >
-              Discard <span>✕</span>
+              Discard <span className="text-sm">🗑️</span>
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => setShowSaveConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Approve Instantly <span>✓</span>
+              Approve Instantly <span className="text-sm">✓</span>
             </button>
           </div>
 
@@ -287,12 +286,12 @@ export function SessionsApprovalValidationScreen() {
 
           {/* Section header */}
           <div className="flex items-center justify-between">
-            <p className="font-heading text-base font-bold text-brand-green">
+            <p className="font-heading text-xl font-bold text-brand-green">
               Info Validation
             </p>
             <Link
               href={crossRefHref}
-              className="flex items-center gap-1 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
+              className="flex items-center gap-1 rounded-xl bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
             >
               Next ›
             </Link>
@@ -303,7 +302,7 @@ export function SessionsApprovalValidationScreen() {
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
-                <p className="mt-1 text-sm font-semibold text-white">
+                <p className="mt-1 text-[15px] font-semibold text-white">
                   {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
                 </p>
               </div>

@@ -14,7 +14,6 @@ import {
   UserSortByDialog,
 } from "@/components/app-pages/users/user-dialogs";
 import {
-  PlusCircleIcon,
   ChevronDownIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
@@ -205,16 +204,18 @@ export function UsersScreen() {
       <div className="relative flex min-h-screen flex-col tablet:hidden">
         <div className="flex-1 overflow-auto px-4 py-4">
           <div className="mb-4">
+            <p className="font-heading text-2xl font-bold text-brand-green">User Control</p>
+          </div>
+          <div className="mb-4">
             <SyncControls />
           </div>
           {/* Add Entry Button */}
           <button
             type="button"
             onClick={() => setShowAddUser(true)}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-full bg-brand-green px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
           >
-            Add Entry
-            <PlusCircleIcon className="h-4 w-4" />
+            Add Entry <span className="text-xl">+</span>
           </button>
 
           {/* Search, Filter, Sort */}
@@ -222,26 +223,23 @@ export function UsersScreen() {
             <button
               type="button"
               onClick={() => setShowSearch(true)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-orange px-3 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-orange px-3 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              <SearchIcon className="h-4 w-4" />
-              <span>Search</span>
+              <span>Search</span> <SearchIcon className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setShowFilters(true)}
-              className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Filter
-              <ChevronDownIcon className="h-3.5 w-3.5" />
+              Filter <span className="text-xs">▼</span>
             </button>
             <button
               type="button"
               onClick={() => setShowSort(true)}
-              className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Sort By
-              <ChevronDownIcon className="h-3.5 w-3.5" />
+              Sort By <span className="text-xs">▼</span>
             </button>
           </div>
 
@@ -259,30 +257,32 @@ export function UsersScreen() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold tracking-tight text-yellow-200">
+                      <span className="text-lg font-bold tracking-tight text-brand-yellow">
                         {user.name || "Unnamed"}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleSelectUser(user)}
-                        className="flex items-center gap-0.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        className="flex items-center gap-0.5 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90"
                       >
                         {roleLabel(user.auth_role)}
-                        <ChevronDownIcon className="h-2.5 w-2.5" />
+                        <span className="text-[10px] ml-0.5">▼</span>
                       </button>
                     </div>
-                    <p className="text-xs text-white/70">
+                    <p className="text-xs font-medium text-white">
                       {user.user?.email ?? user.id.slice(0, 8) + "..."}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteClick(user.id)}
-                    className="ml-3 mt-0.5 shrink-0 text-white transition-opacity hover:opacity-90"
-                    aria-label="Delete user"
-                  >
-                    🗑️
-                  </button>
+                  <div className="flex w-10 shrink-0 items-center justify-center">
+                    <button
+                        type="button"
+                        onClick={() => handleDeleteClick(user.id)}
+                        className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm transition-opacity hover:opacity-90"
+                        aria-label="Delete user"
+                    >
+                        🗑️
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

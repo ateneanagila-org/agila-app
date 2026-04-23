@@ -83,7 +83,7 @@ function computeTnvrStats(
 function GreenStatRow({
   label,
   value,
-  labelClass = "text-white/70",
+  labelClass = "text-brand-yellow",
   valueClass = "text-white font-semibold",
 }: {
   label: string;
@@ -121,7 +121,7 @@ function SexSection({
       {/* Header */}
       <div className="grid grid-cols-2 divide-x divide-white/20 px-0">
         <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
             {title}
           </p>
           <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
@@ -129,7 +129,7 @@ function SexSection({
           </p>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
             TNVR Score
           </p>
           <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
@@ -264,10 +264,10 @@ export function TnvrScreen() {
           <div className="space-y-3">
             {/* Date + title */}
             <div>
-              <p className="text-[11px] font-medium text-slate-400">
+              <p className="text-[11px] font-medium text-brand-green">
                 Updated {lastUpdated}
               </p>
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-green">
                 TNVR
               </h1>
             </div>
@@ -293,7 +293,7 @@ export function TnvrScreen() {
             {/* Category dropdown — outlined */}
             <div className="relative">
               <select
-                className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 pr-9 text-sm font-medium text-slate-700"
+                className="h-10 w-full appearance-none rounded-xl border border-brand-pink bg-white px-3.5 pr-9 text-sm font-medium text-foreground"
                 aria-label="Category"
                 defaultValue="all"
               >
@@ -301,13 +301,13 @@ export function TnvrScreen() {
                 <option value="neutered">Neutered / Spayed</option>
                 <option value="unneutered">Unneutered</option>
               </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange" />
             </div>
 
             {/* Chart placeholder */}
             <div className="overflow-hidden rounded-2xl bg-brand-green">
               <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-yellow">
                   TNVR Trend
                 </p>
                 <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ export function TnvrScreen() {
                 </div>
               </div>
               <div className="mx-4 mb-4 flex h-36 items-center justify-center rounded-xl bg-white/10">
-                <p className="text-xs font-medium text-white/40">Graph — coming soon</p>
+                <p className="text-xs font-medium text-white/70">Graph — coming soon</p>
               </div>
             </div>
 
@@ -342,7 +342,7 @@ export function TnvrScreen() {
                 <div className="overflow-hidden rounded-2xl bg-brand-green">
                   <div className="grid grid-cols-2 divide-x divide-white/20">
                     <div className="px-4 py-3.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
                         Total Overall
                       </p>
                       <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">
@@ -350,7 +350,7 @@ export function TnvrScreen() {
                       </p>
                     </div>
                     <div className="px-4 py-3.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
                         TNVR Score
                       </p>
                       <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">

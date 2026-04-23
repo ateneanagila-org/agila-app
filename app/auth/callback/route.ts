@@ -25,8 +25,7 @@ export async function GET(request: Request) {
 
       // Domain restriction check
       const isAteneo =
-        email.endsWith("@student.ateneo.edu") ||
-        email.endsWith("@ateneo.edu");
+        email.endsWith("@student.ateneo.edu") || email.endsWith("@ateneo.edu");
 
       if (!isAteneo) {
         try {
@@ -63,7 +62,8 @@ export async function GET(request: Request) {
 
       // Handle successful login redirect
       const safeNext = next.startsWith("/") ? next : "/dashboard/overview";
-      const finalPath = safeNext === "/dashboard" ? "/dashboard/overview" : safeNext;
+      const finalPath =
+        safeNext === "/dashboard" ? "/dashboard/overview" : safeNext;
       const finalUrl = `${baseUrl}${finalPath}`;
       return NextResponse.redirect(finalUrl);
     }

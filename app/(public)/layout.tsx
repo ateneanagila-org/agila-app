@@ -3,7 +3,12 @@ import Link from "next/link";
 
 function PawIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <ellipse cx="5" cy="9" rx="2" ry="3" />
       <ellipse cx="10" cy="6.5" rx="2" ry="3" />
       <ellipse cx="14" cy="6.5" rx="2" ry="3" />
@@ -21,8 +26,12 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2.5">
             <PawIcon className="h-7 w-7 text-white" />
             <div>
-              <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">AGILA</p>
-              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">CATALOG</p>
+              <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
+                AGILA
+              </p>
+              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
+                CATALOG
+              </p>
             </div>
           </Link>
           <button
