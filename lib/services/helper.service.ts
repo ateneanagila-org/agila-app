@@ -372,20 +372,6 @@ export async function syncAndCompactRegion(regionId: string) {
 const SUMMARY_DARK_GREEN = { red: 0.153, green: 0.306, blue: 0.075 }; // #274e13
 const SUMMARY_WHITE = { red: 1, green: 1, blue: 1 };
 
-async function getSheetIdByName(
-  glSheets: ReturnType<typeof google.sheets>,
-  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
-  spreadsheetId: string,
-  sheetName: string,
-): Promise<number | null> {
-  const res = await glSheets.spreadsheets.get({
-    auth: glAuth,
-    spreadsheetId,
-    fields: "sheets.properties",
-  });
-  const sheet = res.data.sheets?.find((s) => s.properties?.title === sheetName);
-  return sheet?.properties?.sheetId ?? null;
-}
 
 function headerFormatRequest(sheetId: number, rowIndex: number, colCount: number) {
   return {
@@ -407,18 +393,56 @@ function headerFormatRequest(sheetId: number, rowIndex: number, colCount: number
  * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
+const SUMMARY_EXCLUDED_TABS = new Set(["_config", "For RI", "For FA", "UNKNOWN"]);
+
+async function getSpreadsheetSheets(
+  glSheets: ReturnType<typeof google.sheets>,
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+  spreadsheetId: string,
+) {
+  const res = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId,
+    fields: "sheets.properties",
+  });
+  return res.data.sheets ?? [];
+}
+
+function sortRegionsByTabOrder(
+  allRegions: { id: string; name: string }[],
+  sheets: { properties?: { title?: string | null; sheetId?: number | null } | null }[],
+) {
+  const orderedTabNames = sheets
+    .map((s) => s.properties?.title ?? "")
+    .filter((name) => !SUMMARY_EXCLUDED_TABS.has(name) && name !== "");
+  const regionByName = new Map(allRegions.map((r) => [r.name, r]));
+  const sorted = orderedTabNames
+    .map((name) => regionByName.get(name))
+    .filter((r): r is NonNullable<typeof r> => r !== undefined);
+  const inTabSet = new Set(orderedTabNames);
+  for (const r of allRegions) {
+    if (!inTabSet.has(r.name) && !SUMMARY_EXCLUDED_TABS.has(r.name)) sorted.push(r);
+  }
+  return sorted;
+}
+
 export async function generateForRiSheet(): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
+  const allSheets = await getSpreadsheetSheets(glSheets, glAuth, spreadsheetId);
+  const riSheetId = allSheets.find((s) => s.properties?.title === "For RI")?.properties?.sheetId ?? null;
+
   const allRegions = await db.query.regions.findMany();
+  const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
   const DEFAULT_HEIGHT = 20;
 
   sheetData.push(["Urgent for TNVR", "", "Urgent for Vet", ""]);
 
-  for (const region of allRegions) {
+  for (const region of sortedRegions) {
     const catsInRegion = await db.query.cats.findMany({
       with: {
         interventions: {
@@ -474,7 +498,7 @@ export async function generateForRiSheet(): Promise<void> {
   await glSheets.spreadsheets.values.clear({
     auth: glAuth,
     spreadsheetId,
-    range: "For RI!A1:D",
+    range: "For RI!A1:Z",
   });
 
   if (sheetData.length > 0) {
@@ -487,7 +511,6 @@ export async function generateForRiSheet(): Promise<void> {
     });
   }
 
-  const riSheetId = await getSheetIdByName(glSheets, glAuth, spreadsheetId, "For RI");
   if (riSheetId !== null) {
     const requests = [
       headerFormatRequest(riSheetId, 0, 4),
@@ -510,7 +533,12 @@ export async function generateForFaSheet(): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
+  const allSheets = await getSpreadsheetSheets(glSheets, glAuth, spreadsheetId);
+  const faSheetId2 = allSheets.find((s) => s.properties?.title === "For FA")?.properties?.sheetId ?? null;
+
   const allRegions = await db.query.regions.findMany();
+  const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
   const DEFAULT_HEIGHT = 20;
@@ -524,7 +552,7 @@ export async function generateForFaSheet(): Promise<void> {
     "",
   ]);
 
-  for (const region of allRegions) {
+  for (const region of sortedRegions) {
     const adoptableCats = await db.query.cats.findMany({
       with: { catHealthRecords: true },
       where: (c, { eq, and, exists }) =>
@@ -588,7 +616,7 @@ export async function generateForFaSheet(): Promise<void> {
   await glSheets.spreadsheets.values.clear({
     auth: glAuth,
     spreadsheetId,
-    range: "For FA!A1:F",
+    range: "For FA!A1:Z",
   });
 
   if (sheetData.length > 0) {
@@ -601,11 +629,10 @@ export async function generateForFaSheet(): Promise<void> {
     });
   }
 
-  const faSheetId = await getSheetIdByName(glSheets, glAuth, spreadsheetId, "For FA");
-  if (faSheetId !== null) {
+  if (faSheetId2 !== null) {
     const requests = [
-      headerFormatRequest(faSheetId, 0, 6),
-      ...regionHeaderIndices.map((idx) => headerFormatRequest(faSheetId, idx, 6)),
+      headerFormatRequest(faSheetId2, 0, 6),
+      ...regionHeaderIndices.map((idx) => headerFormatRequest(faSheetId2, idx, 6)),
     ];
     await glSheets.spreadsheets.batchUpdate({
       auth: glAuth,
