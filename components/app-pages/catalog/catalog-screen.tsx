@@ -170,29 +170,31 @@ export function CatalogScreen() {
           <div className="space-y-3">
             {searchedCats.map((cat) => (
               <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-                <div className="flex items-center gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
-                  {/* Square photo */}
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/10">
-                    <ImagePlaceholderIcon className="h-8 w-8 text-white/40" />
+                <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
+                  {/* Full-height image column */}
+                  <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                    <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                   </div>
                   {/* Info */}
-                  <div className="flex flex-1 items-center justify-between px-3.5 py-3">
+                  <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
                     <div>
                       <div className="flex items-center gap-1">
-                        <span className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                        <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
                           {cat.name || "Unnamed"}
                         </span>
                         {sexSymbol(cat.sex) ? (
-                          <span className="text-white ml-1">{sexSymbol(cat.sex)}</span>
+                          <span className="text-white text-lg leading-none ml-1">
+                            {sexSymbol(cat.sex)}
+                          </span>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-xs font-medium text-white">
-                        {cat.color || "—"} {cat.age ? ` · ${cat.age}` : ""}
+                      <p className="mt-1 text-sm font-bold text-white truncate">
+                        {cat.color || "—"} {cat.age ? ` ${cat.age}` : ""}
                       </p>
                     </div>
                     {/* Arrow indicator */}
-                    <div className="flex w-10 shrink-0 items-center justify-center">
-                      <div className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                    <div className="mt-3 flex items-end justify-end">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
                         <span className="text-sm font-bold">›</span>
                       </div>
                     </div>

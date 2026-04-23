@@ -10,7 +10,6 @@ import {
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
-  PlusCircleIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats } from "@/app/actions/cats";
@@ -96,11 +95,6 @@ export function DatabaseListScreen() {
     return null;
   };
 
-  const sexColor = (sex: string | null | undefined): string => {
-    if (sex === "Male") return "text-blue-500";
-    if (sex === "Female") return "text-pink-500";
-    return "text-slate-400";
-  };
 
   const handleSave = useCallback(() => {
     fetchCats();
@@ -174,33 +168,35 @@ export function DatabaseListScreen() {
                 <Link
                   key={cat.id}
                   href={`/dashboard/database/general?id=${cat.id}`}
-                  className="block overflow-hidden rounded-2xl bg-brand-green"
+                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
                 >
-                  <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
                             {cat.name || "Unnamed"}
-                            {sexSymbol(cat.sex) ? (
-                              <span className="ml-1 text-white">
-                                {sexSymbol(cat.sex)}
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="mt-0.5 text-xs text-white">
-                            {cat.color || "Unknown color"} {cat.age ? `• ${cat.age}` : ""}
-                          </p>
-                          <p className="mt-1 text-xs font-semibold text-white/90">
-                            {cat.spot_last_seen || "Unknown location"} &middot;{" "}
-                            {formatDate(cat.last_updated_at)}
-                          </p>
+                          </span>
+                          {sexSymbol(cat.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">
+                              {sexSymbol(cat.sex)}
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
-                          ···
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {cat.color || "Unknown color"} {cat.age ? ` ${cat.age}` : ""}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2">
+                        <p className="text-sm font-bold text-white truncate">
+                          {cat.spot_last_seen || "Unknown loc."} - {formatDate(cat.last_updated_at)}
+                        </p>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/90 shadow-sm">
+                          <span className="font-bold leading-none -mt-1">...</span>
                         </div>
                       </div>
                     </div>

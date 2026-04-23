@@ -130,28 +130,33 @@ export function SessionsManagerScreen() {
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
-                    <div className="flex w-24 shrink-0 items-center justify-center bg-white/10">
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
                       <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
-                    <div className="min-w-0 flex-1 px-3.5 py-3">
-                      <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
-                        {item.cat.name || "Unnamed"}
-                        {sexSymbol(item.cat.sex) ? (
-                          <span className="ml-1 text-white">{sexSymbol(item.cat.sex)}</span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs font-medium text-white">
-                        {item.cat.color || "Unknown"}{item.cat.age ? ` · ${item.cat.age}` : ""}
-                      </p>
-                      <p className="mt-2 text-xs font-bold text-white">
-                        {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
-                      </p>
-                    </div>
-                    {/* Arrow indicator */}
-                    <div className="flex w-10 shrink-0 items-center justify-center">
-                      <div className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                        <span className="text-sm font-bold">›</span>
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                            {item.cat.name || "Unnamed"}
+                          </span>
+                          {sexSymbol(item.cat.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">
+                              {sexSymbol(item.cat.sex)}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {item.cat.color || "Unknown"}{item.cat.age ? ` ${item.cat.age}` : ""}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2">
+                        <p className="text-sm font-bold text-white truncate">
+                          {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
+                        </p>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                          <span className="text-sm font-bold">›</span>
+                        </div>
                       </div>
                     </div>
                   </div>

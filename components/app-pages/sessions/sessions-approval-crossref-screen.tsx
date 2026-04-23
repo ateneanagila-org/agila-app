@@ -274,36 +274,45 @@ export function SessionsApprovalCrossRefScreen() {
                   key={c.id}
                   className="overflow-hidden rounded-2xl bg-brand-green"
                 >
-                  <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
-                        {c.name || "Unnamed"}
-                        {sexSymbol(c.sex) ? (
-                          <span className="ml-1 text-white">{sexSymbol(c.sex)}</span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs font-medium text-white">
-                        {c.color || "—"}{c.age ? ` · ${c.age}` : ""}
-                      </p>
-                      <p className="mt-1 text-xs font-bold text-white">
-                        {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMergeTargetId(c.id);
-                            setShowMergeConfirm(true);
-                          }}
-                          className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                        >
-                          Merge ›
-                        </button>
-                        <div className="flex h-7 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                          <span className="text-base font-bold">•••</span>
+                    {/* Info */}
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                            {c.name || "Unnamed"}
+                          </span>
+                          {sexSymbol(c.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">{sexSymbol(c.sex)}</span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {c.color || "—"}{c.age ? ` ${c.age}` : ""}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="mt-3 text-sm font-bold text-white truncate">
+                          {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMergeTargetId(c.id);
+                              setShowMergeConfirm(true);
+                            }}
+                            className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                          >
+                            Merge ›
+                          </button>
+                          <div className="flex h-7 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                            <span className="text-base font-bold">•••</span>
+                          </div>
                         </div>
                       </div>
                     </div>
