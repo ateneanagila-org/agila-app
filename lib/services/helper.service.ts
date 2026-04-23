@@ -555,6 +555,10 @@ const DATA_START_ROW = 2; // row 3, 0-indexed inclusive
 const DATA_START_COL = 0; // col A, 0-indexed inclusive
 const DATA_END_COL = 22; // col V, 0-indexed exclusive
 
+// Y3:Y in 0-indexed GridRange terms
+const UUID_START_COL = 24; // col Y, 0-indexed inclusive
+const UUID_END_COL = 25; // col Z, 0-indexed exclusive
+
 /**
  * Writes the authorized editors list to the _config sheet (B1).
  * Read by Apps Script Protection.gs during unfreezeMode() to restore
@@ -585,27 +589,21 @@ export async function syncSheetEditors(): Promise<void> {
     where: (cols, { inArray }) =>
       inArray(cols.auth_role, ["Administrator", "Manager"]),
   });
-  console.log("[SheetEditors] managerProfiles:", managerProfiles.length, managerProfiles.map((p) => p.id));
 
   if (managerProfiles.length === 0) {
     await setAuthorizedEmails([]);
     return;
   }
 
-  console.log("[SheetEditors] url:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log("[SheetEditors] key prefix:", process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
-  console.log("[SheetEditors] key length:", process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY?.length);
   const supabase = await createAdminClient();
-  const listResult = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  console.log("[SheetEditors] listUsers error:", listResult.error);
-  console.log("[SheetEditors] listUsers count:", listResult.data?.users?.length);
+  const {
+    data: { users },
+  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
 
-  const users = listResult.data?.users ?? [];
   const managerIds = new Set(managerProfiles.map((p) => p.id));
   const emails = users
     .filter((u) => managerIds.has(u.id) && !!u.email)
     .map((u) => u.email as string);
-  console.log("[SheetEditors] matched emails:", emails);
 
   await setAuthorizedEmails(emails);
 }
@@ -707,7 +705,6 @@ export async function unfreezeSheetProtections(): Promise<void> {
   const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
   const managerEmails = await getAuthorizedEmails();
   const emails = [serviceAccountEmail, ...managerEmails.filter((e) => e !== serviceAccountEmail)];
-  console.log("[unfreezeSheetProtections] editors:", emails);
 
   const spreadsheet = await glSheets.spreadsheets.get({
     auth: glAuth,
@@ -729,7 +726,6 @@ export async function unfreezeSheetProtections(): Promise<void> {
         range?.startRowIndex === DATA_START_ROW &&
         range?.startColumnIndex === DATA_START_COL
       ) {
-        console.log("[unfreezeSheetProtections] deleting stale protection:", pr.protectedRangeId, "on sheet:", sheet.properties?.title);
         requests.push({
           deleteProtectedRange: { protectedRangeId: pr.protectedRangeId },
         });
@@ -759,7 +755,68 @@ export async function unfreezeSheetProtections(): Promise<void> {
       requestBody: { requests },
     });
   }
-  console.log("[unfreezeSheetProtections] done");
+}
+
+/**
+ * Sets up Y column (UUID) protections on all region sheets, restricted to the
+ * service account only — blocks all human edits but allows forward sync writes.
+ * Replaces the GAS setupUuidProtection() which had no editors (broken for API writes).
+ */
+export async function setupUuidProtections(): Promise<void> {
+  const regions = await db.query.regions.findMany();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
+  const { glAuth, glSheets } = await connectToSheets();
+  const serviceAccountEmail = JSON.parse(process.env.SERVICE_ACCOUNT_CREDENTIALS!).client_email as string;
+
+  const spreadsheet = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    fields: "sheets(properties(sheetId,title),protectedRanges)",
+  });
+
+  const requests: object[] = [];
+
+  for (const sheet of spreadsheet.data.sheets ?? []) {
+    if (!regionNames.has(sheet.properties?.title ?? "")) continue;
+    const sheetId = sheet.properties?.sheetId;
+    if (sheetId === undefined) continue;
+
+    for (const pr of sheet.protectedRanges ?? []) {
+      const range = pr.range;
+      if (
+        range?.startColumnIndex === UUID_START_COL &&
+        range?.endColumnIndex === UUID_END_COL
+      ) {
+        requests.push({
+          deleteProtectedRange: { protectedRangeId: pr.protectedRangeId },
+        });
+      }
+    }
+
+    requests.push({
+      addProtectedRange: {
+        protectedRange: {
+          range: {
+            sheetId,
+            startRowIndex: DATA_START_ROW,
+            startColumnIndex: UUID_START_COL,
+            endColumnIndex: UUID_END_COL,
+          },
+          description: "UUID column — service account only",
+          editors: { users: [serviceAccountEmail] },
+        },
+      },
+    });
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      requestBody: { requests },
+    });
+  }
 }
 
 // ==========================================

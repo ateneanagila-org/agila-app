@@ -18,7 +18,7 @@ import {
 } from "@/lib/db/enums";
 import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
-import { syncRegionSheetNames } from "@/lib/services/helper.service";
+import { syncRegionSheetNames, setupUuidProtections } from "@/lib/services/helper.service";
 import { randomUUID } from "crypto";
 
 type ConditionValue = (typeof CATHEALTHRECORD_CONDITION_VALUES)[number];
@@ -218,6 +218,10 @@ async function importRegion(
 
 async function main() {
   console.log("Starting GSheets → DB import...\n");
+
+  console.log("Resetting Y column protections (service account only)...");
+  await setupUuidProtections();
+  console.log("");
 
   const { sheets } = await connectToSheets();
   const allRegions = await db.query.regions.findMany();

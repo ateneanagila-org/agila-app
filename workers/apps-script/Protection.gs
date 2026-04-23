@@ -170,6 +170,40 @@ function unfreezeMode() {
 }
 
 /**
+ * Removes ALL Y column protections on region sheets.
+ * Must be run from GAS (as the spreadsheet owner) because the service account
+ * cannot delete protections it didn't create.
+ * Run this ONCE, then let the app's setupUuidProtections() recreate them
+ * with the service account in the editors list.
+ */
+function clearUuidProtections() {
+  var regionNames = getRegionSheetNames();
+  if (regionNames.length === 0) {
+    Logger.log("WARNING: No region names found in _config!B2. Clear aborted.");
+    return;
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var cleared = 0;
+
+  regionNames.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+
+    var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+    protections.forEach(function (protection) {
+      var notation = protection.getRange().getA1Notation();
+      if (notation.indexOf("Y") === 0) {
+        protection.remove();
+        cleared++;
+      }
+    });
+  });
+
+  Logger.log("Cleared " + cleared + " Y column protection(s).");
+}
+
+/**
  * SETUP (run once): Permanently protect col Y (UUID column) on all region sheets.
  * No one should manually edit UUIDs — they are assigned by Apps Script (new rows)
  * or by the service account (forward sync). Script-level writes bypass this protection.
