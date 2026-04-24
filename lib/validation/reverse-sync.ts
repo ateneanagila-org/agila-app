@@ -38,7 +38,6 @@ export const sheetRowSchema = z.object({
   caretaker: z.string().nullable(),
   notes: z.string().nullable(),
   is_adoptable: z.boolean(),
-  photo_url: z.string().nullable(),
   condition: CatHealthRecordConditionEnum.nullable(),
   neuter_date: z.string().nullable(),
   vaccination_date: z.string().nullable(),
@@ -78,10 +77,6 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const cat_status = validStatuses.includes(rawStatus) ? rawStatus : null;
 
   const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
-
-  const rawPhoto = String(row[1] ?? "").trim();
-  const photoMatch = rawPhoto.match(/=IMAGE\("(.+?)"\)/i);
-  const photo_url = photoMatch ? photoMatch[1] : rawPhoto || null;
 
   const rawColor = String(row[3] ?? "").trim();
   const validColors = [
@@ -124,7 +119,6 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
     caretaker,
     notes,
     is_adoptable,
-    photo_url,
     condition,
     neuter_date,
     vaccination_date,
@@ -192,7 +186,6 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
     caretaker: null,
     notes: null,
     is_adoptable,
-    photo_url: null,
     condition,
     neuter_date,
     vaccination_date,

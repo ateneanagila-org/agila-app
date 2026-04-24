@@ -283,7 +283,7 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
         caretaker: data.caretaker,
         notes: data.notes,
         is_adoptable: data.is_adoptable,
-        photo_url: data.photo_url,
+        // photo_url intentionally omitted — owned exclusively by photo-import.service.ts
         ...(data.paws_id !== undefined ? { paws_id: data.paws_id } : {}),
         last_updated_at: new Date(),
       })
