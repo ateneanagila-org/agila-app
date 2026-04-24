@@ -1,7 +1,13 @@
 "use client";
 
 import { createContext, useContext, ReactNode, useMemo } from "react";
-import { CurrentUserData } from "@/hooks/use-current-user";
+import type { User } from "@supabase/supabase-js";
+import type { SelectProfile } from "@/lib/validation/users";
+
+export interface CurrentUserData {
+  supabaseUser: User;
+  profile: SelectProfile;
+}
 
 interface AuthContextType {
   userData: CurrentUserData;

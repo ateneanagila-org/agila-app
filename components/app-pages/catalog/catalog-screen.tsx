@@ -97,30 +97,28 @@ export function CatalogScreen() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-col">
       {/* Green hero band */}
-      <div className="bg-brand-green">
-        <div className="mx-auto w-full max-w-5xl px-5 pt-6 pb-0 tablet:px-8 tablet:pt-12 tablet:pb-2">
-          <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
-            ADOPT/FOSTER A CAT NOW!
-          </p>
-          <p className="mx-auto mt-2 hidden max-w-xl text-center text-sm text-white/80 tablet:block">
-            Give a rescued cat a second chance at a loving home.
-          </p>
-          <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
-            >
-              Apply <span className="text-base leading-none">→</span>
-            </button>
-          </div>
+      <div className="bg-brand-green px-5 pt-6 pb-0 tablet:px-8 tablet:pt-12 tablet:pb-2">
+        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
+          ADOPT/FOSTER A CAT NOW!
+        </p>
+        <p className="mx-auto mt-2 hidden max-w-xl text-center text-sm text-white/80 tablet:block">
+          Give a rescued cat a second chance at a loving home.
+        </p>
+        <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
+          >
+            Apply <span className="text-base leading-none">→</span>
+          </button>
         </div>
       </div>
       <ScallopEdge />
 
       {/* Content on cream */}
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 pt-3 pb-6 tablet:gap-4 tablet:px-8 tablet:pt-6 tablet:pb-10">
+      <div className="flex w-full flex-col gap-3 px-4 pt-3 pb-6 tablet:gap-4 tablet:px-8 tablet:pt-6 tablet:pb-10">
         {/* Search + Filter + Sort */}
         <div className="flex gap-2">
           {searchOpen ? (

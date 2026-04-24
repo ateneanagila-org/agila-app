@@ -3,16 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* AVETON — commercial heading font */
-/* Place Aveton.woff2 at public/fonts/Aveton.woff2 to activate */
-@font-face {
-  font-family: "Aveton";
-  src: url("/fonts/Aveton.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme inline {
   /* Breakpoints */
   --breakpoint-xs: 23.4375rem;
@@ -171,8 +161,9 @@
 }
 
 @layer utilities {
-  /* Heading font — Aveton with Gantari fallback */
+  /* Heading font — Gantari bold stack */
   .font-heading {
-    font-family: "Aveton", Gantari, var(--font-gantari), sans-serif;
+    font-family: Gantari, var(--font-gantari), sans-serif;
+    letter-spacing: -0.01em;
   }
 }

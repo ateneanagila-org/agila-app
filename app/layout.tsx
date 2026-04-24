@@ -10,10 +10,6 @@ const gantari = Gantari({
   display: "swap",
 });
 
-// Heading font — AVETON (commercial)
-// Add Aveton.woff2 to public/fonts/ to activate
-// Download from your font source and place at: public/fonts/Aveton.woff2
-
 export const metadata: Metadata = {
   title: {
     template: "%s | AGILA CATalog",

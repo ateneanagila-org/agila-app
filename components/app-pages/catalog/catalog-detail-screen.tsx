@@ -87,7 +87,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
   if (!cat) {
     return (
-      <div className="flex flex-col">
+      <div className="mx-auto flex w-full max-w-5xl flex-col">
         <div className="bg-brand-green px-5 pt-5 pb-0">
           <Link
             href="/"
@@ -137,33 +137,31 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
 
   return (
-    <div className="flex flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-col">
       {/* Green hero band */}
-      <div className="bg-brand-green">
-        <div className="mx-auto w-full max-w-5xl px-5 pt-5 pb-0 tablet:px-8 tablet:pt-8 tablet:pb-2">
-          <Link
-            href="/"
-            className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+      <div className="bg-brand-green px-5 pt-5 pb-0 tablet:px-8 tablet:pt-8 tablet:pb-2">
+        <Link
+          href="/"
+          className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+        >
+          <span className="text-base leading-none">&lsaquo;</span> Back
+        </Link>
+        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
+          ADOPT/FOSTER{cat.name ? ` ${cat.name.toUpperCase()}` : " A CAT"}?
+        </p>
+        <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
           >
-            <span className="text-base leading-none">&lsaquo;</span> Back
-          </Link>
-          <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
-            ADOPT/FOSTER{cat.name ? ` ${cat.name.toUpperCase()}` : " A CAT"}?
-          </p>
-          <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
-            >
-              Apply <span className="text-base leading-none">→</span>
-            </button>
-          </div>
+            Apply <span className="text-base leading-none">→</span>
+          </button>
         </div>
       </div>
       <ScallopEdge />
 
       {/* Content on cream */}
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pt-3 pb-8 tablet:px-8 tablet:pt-6 tablet:pb-12">
+      <div className="flex w-full flex-col gap-5 px-4 pt-3 pb-8 tablet:px-8 tablet:pt-6 tablet:pb-12">
         {/* Cat info — green card matching catalog list style */}
         <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green">
           <div className="flex w-32 shrink-0 items-center justify-center bg-white/10">
