@@ -157,14 +157,14 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-green py-2.5 text-sm font-bold text-brand-green transition-opacity hover:opacity-80"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Census Report
               </button>
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                 >
                   Review Sessions ⊙
                 </Link>
@@ -297,14 +297,14 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Census Report
               </button>
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                 >
                   Review Sessions
                 </Link>
@@ -421,14 +421,14 @@ export function SessionsScreen() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-bold text-brand-green transition-colors hover:bg-brand-mint"
+              className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               Census Report
             </button>
             {canManage ? (
               <Link
                 href="/dashboard/sessions/manager"
-                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Review Sessions
               </Link>

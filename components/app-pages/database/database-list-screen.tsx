@@ -125,7 +125,7 @@ export function DatabaseListScreen() {
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               Add Entry <span className="text-base leading-none">+</span>
             </button>
@@ -239,7 +239,7 @@ export function DatabaseListScreen() {
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               Add entry
               <span className="text-lg leading-none">+</span>
