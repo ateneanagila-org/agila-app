@@ -230,11 +230,13 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
 
       {/* ── Desktop layout ── */}
       <div className="hidden h-dvh w-full tablet:flex">
-        <aside className="flex w-56 flex-col bg-brand-green px-5 py-6">
-          <div className="flex items-center gap-2.5">
-            <PawIcon className="h-7 w-7 text-white" />
+        <aside className="flex w-60 flex-col bg-brand-dark px-5 py-6">
+          <div className="flex items-center gap-3 px-1">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green">
+              <PawIcon className="h-6 w-6 text-white" />
+            </div>
             <div>
-              <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-white/50">
                 AGILA
               </p>
               <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
@@ -243,23 +245,31 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <nav className="mt-8 rounded-2xl bg-white/10 p-5">
-            <ul className="space-y-3.5">
+          <nav className="mt-8 flex-1">
+            <ul className="space-y-1.5">
               {NAV_ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`flex items-center gap-2.5 text-left text-[0.9rem] transition-colors ${
+                      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                         active
-                          ? "font-semibold text-white"
-                          : "text-white/60 hover:text-white"
+                          ? "bg-brand-orange font-semibold text-white shadow-sm"
+                          : "font-medium text-white/60 hover:bg-white/5 hover:text-white"
                       }`}
                     >
-                      {active && (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
-                      )}
+                      <span
+                        className={
+                          active ? "text-white" : "text-white/50 group-hover:text-white"
+                        }
+                      >
+                        {item.label === "Users" ? (
+                          <UsersIcon active={active} />
+                        ) : (
+                          <NavIcon label={item.label} active={active} />
+                        )}
+                      </span>
                       {item.label}
                     </Link>
                   </li>
@@ -268,8 +278,8 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="mt-auto rounded-2xl bg-white/10 px-4 py-4">
-            <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white/60 ring-1 ring-white/20">
+          <div className="mt-auto flex items-center gap-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-green text-white">
               <svg
                 viewBox="0 0 24 24"
                 className="h-5 w-5"
@@ -281,12 +291,14 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 <path strokeLinecap="round" d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
               </svg>
             </div>
-            <p className="text-center text-sm font-medium text-white">
-              Niles Cabrera
-            </p>
-            <p className="text-center text-xs font-semibold tracking-wider text-white/60">
-              ADMIN
-            </p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">
+                Niles Cabrera
+              </p>
+              <p className="truncate text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
+                Admin
+              </p>
+            </div>
           </div>
         </aside>
 

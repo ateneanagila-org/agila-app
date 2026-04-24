@@ -99,23 +99,28 @@ export function CatalogScreen() {
   return (
     <div className="flex flex-col">
       {/* Green hero band */}
-      <div className="bg-brand-green px-5 pt-6 pb-0">
-        <p className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow text-center">
-          ADOPT/FOSTER A CAT NOW!
-        </p>
-        <div className="mt-3 flex justify-center pb-5">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90 shadow-sm"
-          >
-            Apply <span className="text-base leading-none">🔗</span>
-          </button>
+      <div className="bg-brand-green">
+        <div className="mx-auto w-full max-w-5xl px-5 pt-6 pb-0 tablet:px-8 tablet:pt-12 tablet:pb-2">
+          <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
+            ADOPT/FOSTER A CAT NOW!
+          </p>
+          <p className="mx-auto mt-2 hidden max-w-xl text-center text-sm text-white/80 tablet:block">
+            Give a rescued cat a second chance at a loving home.
+          </p>
+          <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
+            >
+              Apply <span className="text-base leading-none">→</span>
+            </button>
+          </div>
         </div>
       </div>
       <ScallopEdge />
 
       {/* Content on cream */}
-      <div className="flex flex-col gap-3 px-4 pt-3 pb-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 pt-3 pb-6 tablet:gap-4 tablet:px-8 tablet:pt-6 tablet:pb-10">
         {/* Search + Filter + Sort */}
         <div className="flex gap-2">
           {searchOpen ? (
@@ -167,10 +172,10 @@ export function CatalogScreen() {
             No adoptable/fosterable cats available right now.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 laptop:grid-cols-3">
             {searchedCats.map((cat) => (
               <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-                <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
+                <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95">
                   {/* Full-height image column */}
                   <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
                     <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />

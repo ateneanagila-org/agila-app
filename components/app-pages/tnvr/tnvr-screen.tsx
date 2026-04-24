@@ -224,28 +224,6 @@ export function TnvrScreen() {
     [desktopCats, allHealthRecords],
   );
 
-  const desktopCards = useMemo(
-    () => [
-      { value: desktopStats.overallTnvr, label: "Overall TNVR %" },
-      { value: desktopStats.maleTnvr, label: "Male TNVR %" },
-      { value: desktopStats.femaleTnvr, label: "Female TNVR %" },
-      { value: desktopStats.unknownTnvr, label: "Unknown TNVR %" },
-      { value: String(desktopStats.total), label: "Total Count" },
-      { value: String(desktopStats.totalMale), label: "Male" },
-      { value: String(desktopStats.totalFemale), label: "Female" },
-      { value: String(desktopStats.totalUnknown), label: "Unknown" },
-      { value: String(desktopStats.totalNeutered), label: "Neutered" },
-      { value: String(desktopStats.neuteredMale), label: "Male" },
-      { value: String(desktopStats.spayedFemale), label: "Female" },
-      { value: String(desktopStats.neuteredUnknown), label: "Unknown" },
-      { value: String(desktopStats.totalUnneutered), label: "Unneutered" },
-      { value: String(desktopStats.unneuteredMale), label: "Male" },
-      { value: String(desktopStats.unneuteredFemale), label: "Female" },
-      { value: String(desktopStats.unneuteredUnknown), label: "Unknown" },
-    ],
-    [desktopStats],
-  );
-
   const isOverall = location === "All Locations";
 
   if (loading) {
@@ -427,76 +405,153 @@ export function TnvrScreen() {
         </PageContent>
       </div>
 
-      {/* ── Desktop ─────────────────────────────────────────────────────── */}
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="mb-4 flex items-center justify-between gap-5">
-          <label className="w-full max-w-52">
-            <span className="mb-1.5 block text-sm font-semibold text-foreground">
-              Location:
+      {/* ── Desktop HI-FI ────────────────────────────────────────────── */}
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="mb-6 flex items-end justify-between gap-5">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+              TNVR
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-brand-green">
+              Updated{" "}
+              <span className="font-medium text-brand-dark/70">{lastUpdated}</span>
+            </p>
+          </div>
+          <label className="w-full max-w-64">
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+              Location
             </span>
-            <div className="relative rounded-full bg-white ring-1 ring-border">
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
               <select
                 value={desktopLocation}
                 onChange={(e) => setDesktopLocation(e.target.value)}
-                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-foreground"
+                className="h-10 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white outline-none"
                 aria-label="TNVR Location"
               >
-                <option value="Overall">Overall</option>
+                <option value="Overall" className="bg-white text-brand-dark">
+                  Overall
+                </option>
                 {LOCATIONS.map((option) => (
-                  <option key={option} value={option}>
+                  <option key={option} value={option} className="bg-white text-brand-dark">
                     {option}
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                &#9662;
-              </span>
+              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" />
             </div>
           </label>
-
-          <p className="whitespace-nowrap pt-5 text-xs font-medium text-muted-foreground">
-            Last updated: {lastUpdated}
-          </p>
         </div>
 
-        <section className="rounded-2xl bg-white p-4 ring-1 ring-border">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-foreground">Graph title</p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-              >
-                Status
-                <span className="ml-1">&#9662;</span>
-              </button>
-              <button
-                type="button"
-                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-              >
-                Gender
-                <span className="ml-1">&#9662;</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex h-48 items-center justify-center rounded-xl bg-brand-cream text-sm text-muted-foreground">
-            pie chart / bar chart
+        {/* Hero TNVR score */}
+        <section className="mb-4 overflow-hidden rounded-2xl bg-brand-green">
+          <div className="grid grid-cols-4 divide-x divide-white/15">
+            {[
+              { label: "Overall TNVR %", value: desktopStats.overallTnvr },
+              { label: "Male TNVR %", value: desktopStats.maleTnvr },
+              { label: "Female TNVR %", value: desktopStats.femaleTnvr },
+              { label: "Unknown TNVR %", value: desktopStats.unknownTnvr },
+            ].map((card) => (
+              <div key={card.label} className="px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
+                  {card.label}
+                </p>
+                <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
+                  {card.value}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
+        {/* Chart */}
+        <section className="rounded-2xl bg-white p-5 ring-1 ring-border">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="font-heading text-lg font-bold text-brand-dark">
+              TNVR Trend
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
+              >
+                Status <ChevronDownIcon className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
+              >
+                Gender <ChevronDownIcon className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <div className="flex h-56 items-center justify-center rounded-xl bg-brand-cream text-sm text-brand-dark/50">
+            Pie chart / bar chart
+          </div>
+        </section>
+
+        {/* Sex breakdown — matches mobile SexSection pattern */}
         <div className="mt-4 grid grid-cols-4 gap-3">
-          {desktopCards.map((card, index) => (
+          {[
+            {
+              title: "Total Overall",
+              total: desktopStats.total,
+              neuteredLabel: "Neutered / Spayed",
+              neuteredCount: desktopStats.totalNeutered,
+              unneuteredCount: desktopStats.totalUnneutered,
+            },
+            {
+              title: "Male",
+              total: desktopStats.totalMale,
+              neuteredLabel: "Neutered",
+              neuteredCount: desktopStats.neuteredMale,
+              unneuteredCount: desktopStats.unneuteredMale,
+            },
+            {
+              title: "Female",
+              total: desktopStats.totalFemale,
+              neuteredLabel: "Spayed",
+              neuteredCount: desktopStats.spayedFemale,
+              unneuteredCount: desktopStats.unneuteredFemale,
+            },
+            {
+              title: "Unknown",
+              total: desktopStats.totalUnknown,
+              neuteredLabel: "Neutered",
+              neuteredCount: desktopStats.neuteredUnknown,
+              unneuteredCount: desktopStats.unneuteredUnknown,
+            },
+          ].map((section) => (
             <article
-              key={`${card.label}-${index}`}
-              className="rounded-2xl bg-white px-4 py-3.5 ring-1 ring-border"
+              key={section.title}
+              className="overflow-hidden rounded-2xl bg-brand-green"
             >
-              <p className="text-center text-2xl font-bold tabular-nums tracking-tight text-foreground">
-                {card.value}
-              </p>
-              <p className="mt-1 text-center text-xs text-muted-foreground">
-                {card.label}
-              </p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
+                  {section.title}
+                </p>
+                <p className="mt-1 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+                  {section.total}
+                </p>
+              </div>
+              <div className="divide-y divide-white/10 border-t border-white/10">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs font-medium text-brand-yellow">
+                    {section.neuteredLabel}
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-white">
+                    {section.neuteredCount}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs font-medium text-brand-yellow">
+                    Unneutered
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-white">
+                    {section.unneuteredCount}
+                  </span>
+                </div>
+              </div>
             </article>
           ))}
         </div>

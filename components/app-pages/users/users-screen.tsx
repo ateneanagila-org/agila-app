@@ -300,93 +300,119 @@ export function UsersScreen() {
         </button>
       </div>
 
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">User Control</h1>
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+              User Control
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-brand-green">
+              {searchedUsers.length} users registered
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setShowAddUser(true)}
-            className="flex items-center gap-2 rounded-full bg-brand-green px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
           >
             <span>Add entry</span>
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5">
           <SyncControls />
         </div>
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-3 ring-1 ring-brand-green">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Filter role{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""} <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSort(true)}
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
+        <section className="mt-4 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
+            <input
+              type="text"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+            />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Filter role{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
+            <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSort(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
         </section>
 
         {loading ? (
           <LoadingIndicator />
         ) : (
-          <section className="mt-4 rounded-2xl bg-brand-green ring-1 ring-brand-green">
-            <div className="divide-y divide-white/10 px-5">
+          <section className="mt-4 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+            <div className="grid grid-cols-[1fr_1fr_10rem_3rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+              <span>Name</span>
+              <span>Email</span>
+              <span>Role</span>
+              <span />
+            </div>
+            <div className="divide-y divide-border">
               {searchedUsers.length === 0 ? (
-                <div className="py-8 text-center text-sm text-white/50">No users found.</div>
+                <div className="py-10 text-center text-sm text-brand-dark/50">
+                  No users found.
+                </div>
               ) : (
                 searchedUsers.map((user) => (
-                  <div key={`desktop-${user.id}`} className="flex items-center justify-between gap-4 py-3.5">
+                  <div
+                    key={`desktop-${user.id}`}
+                    className="grid grid-cols-[1fr_1fr_10rem_3rem] items-center gap-x-3 px-5 py-3"
+                  >
                     <button
                       type="button"
                       onClick={() => handleSelectUser(user)}
                       className="min-w-0 text-left"
                     >
-                      <p className="font-heading text-sm font-bold tracking-tight text-yellow-200">
+                      <p className="truncate font-heading text-sm font-bold text-brand-dark">
                         {user.name || "Unnamed"}
                       </p>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {user.user?.email ?? user.id.slice(0, 12) + "..."}
-                      </p>
                     </button>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSelectUser(user)}
-                        className="flex h-8 min-w-32 items-center justify-between rounded-lg border border-white/20 bg-white/15 px-3 text-sm text-white transition-opacity hover:opacity-90"
+                    <p className="truncate text-sm text-brand-dark/70">
+                      {user.user?.email ?? user.id.slice(0, 12) + "…"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectUser(user)}
+                      className="flex h-8 items-center justify-between rounded-full bg-brand-mint px-3 text-xs font-bold text-brand-green transition-opacity hover:opacity-90"
+                    >
+                      <span>{roleLabel(user.auth_role)}</span>
+                      <ChevronDownIcon className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClick(user.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white transition-opacity hover:opacity-90"
+                      aria-label="Delete user"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        <span>{roleLabel(user.auth_role)}</span>
-                        <ChevronDownIcon className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(user.id)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90"
-                        aria-label="Delete user"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                      </svg>
+                    </button>
                   </div>
                 ))
               )}
