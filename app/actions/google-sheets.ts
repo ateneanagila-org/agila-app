@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { gsheetSyncQueue } from "@/lib/db/schema";
 import { syncAndCompactRegion, generateForRiSheet, generateForFaSheet } from "@/lib/services/helper.service";
 import { reverseSyncRegion } from "@/lib/services/reverse-sync.service";
+import { importPhotosIfNeeded } from "@/lib/services/photo-import.service";
 import { eq } from "drizzle-orm";
 
 export async function syncRegion(regionId: string) {
@@ -20,7 +21,19 @@ export async function syncAllPendingRegions() {
 
   const allRegions = await db.query.regions.findMany();
 
-  // Phase A: Reverse sync ALL regions (manual edits can happen on any region)
+  // Phase 0: Photo import — detect pasted images before reverse/forward sync.
+  // Reads sheet state per region, fires ZIP only when candidates found.
+  // Must run before forward sync so col B gets the correct =IMAGE(url) formula.
+  try {
+    await importPhotosIfNeeded(allRegions);
+  } catch (error) {
+    console.error(
+      "[PhotoImport] Failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  // Phase A: Reverse sync ALL regions (text fields only — photo_url excluded)
   for (const region of allRegions) {
     try {
       await reverseSyncRegion(region.id);
@@ -32,12 +45,12 @@ export async function syncAllPendingRegions() {
     }
   }
 
-  // Phase C: Forward sync only regions with pending tasks
+  // Phase B: Forward sync only regions with pending tasks
   await Promise.all(
     pendingTasks.map((task) => syncAndCompactRegion(task.regionId)),
   );
 
-  // Phase 3: Regenerate summary sheets
+  // Phase C: Regenerate summary sheets
   try {
     await generateForRiSheet();
     await generateForFaSheet();
