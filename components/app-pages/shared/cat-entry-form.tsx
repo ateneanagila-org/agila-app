@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat } from "@/app/actions/cats";
+import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
@@ -101,6 +102,19 @@ export function CatEntryForm({
   const [regionsLoading, setRegionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   useEffect(() => {
     if (regionId) return;
@@ -165,6 +179,8 @@ export function CatEntryForm({
         name: name || undefined,
       };
 
+      let newCatId: string | undefined;
+
       if (sessionId) {
         const result = await createSessionCat({
           ...payload,
@@ -174,20 +190,33 @@ export function CatEntryForm({
           setError(result.serverError);
           return;
         }
-        // Re-trigger sync queue now that the session-cat link exists
         if (result?.data) {
-          await editCat({ id: result.data.id });
+          newCatId = result.data.id;
+          await editCat({ id: newCatId });
         }
-        syncAllPendingRegions();
       } else {
         const result = await createCat(payload);
         if (result?.serverError) {
           setError(result.serverError);
           return;
         }
-        syncAllPendingRegions();
+        const created = Array.isArray(result?.data)
+          ? result.data[0]
+          : result?.data;
+        newCatId = (created as { id?: string } | undefined)?.id;
       }
 
+      if (photoFile && newCatId) {
+        try {
+          const fd = new FormData();
+          fd.append("file", photoFile);
+          await uploadCatPhoto(newCatId, fd);
+        } catch (uploadErr) {
+          console.error("Photo upload failed:", uploadErr);
+        }
+      }
+
+      syncAllPendingRegions();
       onSave?.();
       onClose();
     } catch (err) {
@@ -211,6 +240,7 @@ export function CatEntryForm({
     sessionId,
     onSave,
     onClose,
+    photoFile,
   ]);
 
   return (
@@ -254,6 +284,56 @@ export function CatEntryForm({
 
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+          <div>
+            <label className="text-sm font-semibold text-brand-orange">Photo</label>
+            <div className="mt-1.5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-dashed border-brand-orange/50 bg-white"
+                aria-label="Upload cat photo"
+              >
+                {photoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl leading-none text-brand-orange/60">+</span>
+                )}
+              </button>
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  {photoFile ? "Change" : "Upload"}
+                </button>
+                {photoFile ? (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoFile(null)}
+                    className="text-xs font-semibold text-brand-orange underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPhotoFile(f);
+                }}
+              />
+            </div>
+          </div>
           {!regionId ? (
             <div>
               <label className="text-sm font-semibold text-brand-orange">Location</label>

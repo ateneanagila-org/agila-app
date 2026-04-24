@@ -11,6 +11,7 @@ import {
 } from "@/components/app-pages/sessions/session-dialogs";
 import { getSessions } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
 import type { SelectSession } from "@/lib/validation/sessions";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
@@ -18,6 +19,7 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 const PAGE_SIZE = 10;
 
 export function SessionsScreen() {
+  const { canManage } = useAuth();
   const [sessions, setSessions] = useState<SelectSession[]>([]);
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -159,12 +161,14 @@ export function SessionsScreen() {
               >
                 Census Report
               </button>
-              <Link
-                href="/dashboard/sessions/manager"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Review Sessions ⊙
-              </Link>
+              {canManage ? (
+                <Link
+                  href="/dashboard/sessions/manager"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Review Sessions ⊙
+                </Link>
+              ) : null}
             </div>
 
             {/* My Sessions heading + Create New */}
@@ -297,12 +301,14 @@ export function SessionsScreen() {
               >
                 Census Report
               </button>
-              <Link
-                href="/dashboard/sessions/manager"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-              >
-                Review Sessions
-              </Link>
+              {canManage ? (
+                <Link
+                  href="/dashboard/sessions/manager"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Review Sessions
+                </Link>
+              ) : null}
             </div>
 
             {/* Recent Sessions */}
@@ -419,12 +425,14 @@ export function SessionsScreen() {
             >
               Census Report
             </button>
-            <Link
-              href="/dashboard/sessions/manager"
-              className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              Review Sessions
-            </Link>
+            {canManage ? (
+              <Link
+                href="/dashboard/sessions/manager"
+                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Review Sessions
+              </Link>
+            ) : null}
           </div>
         </div>
 

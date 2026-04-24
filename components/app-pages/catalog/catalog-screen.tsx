@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { SearchIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
+import { SearchIcon } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import {
   FiltersDialog,
   SortByDialog,
@@ -175,9 +176,11 @@ export function CatalogScreen() {
               <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
                 <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95">
                   {/* Full-height image column */}
-                  <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                    <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
-                  </div>
+                  <CatPhoto
+                    photoUrl={cat.photo_url}
+                    name={cat.name}
+                    className="w-28 shrink-0"
+                  />
                   {/* Info */}
                   <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
                     <div>
