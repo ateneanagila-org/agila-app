@@ -45,7 +45,8 @@ export async function connectToSheets() {
 }
 
 /**
- * Exports the spreadsheet as an HTML ZIP via Drive API v3.
+ * Exports the spreadsheet as an HTML ZIP via direct download URL.
+ * More reliable than Drive API files.export for service accounts.
  * ZIP contains one HTML file per sheet tab + an images/ directory.
  * Image bytes in the HTML reference images/imageN.png by filename.
  * Google resamples pasted images to cell display size on export —
@@ -55,12 +56,15 @@ export async function exportSpreadsheetAsZip(
   spreadsheetId: string,
   glAuth: InstanceType<typeof google.auth.GoogleAuth>,
 ): Promise<Buffer> {
-  const drive = google.drive({ version: "v3", auth: glAuth });
-  const response = await drive.files.export(
-    { fileId: spreadsheetId, mimeType: "application/zip" },
-    { responseType: "arraybuffer" },
-  );
-  return Buffer.from(response.data as ArrayBuffer);
+  const token = await glAuth.getAccessToken();
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=zip`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw new Error(`ZIP export failed: ${response.status} ${response.statusText}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
 }
 
 // ==========================================
