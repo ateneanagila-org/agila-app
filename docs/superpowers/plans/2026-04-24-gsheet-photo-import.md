@@ -2,11 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Import pasted/embedded images from Google Sheets into a Supabase storage bucket, and guard the reverse sync from wiping existing `photo_url` values on text-only edits.
+**Goal:** Import pasted/embedded images from Google Sheets into Supabase storage, integrated into the existing sync cycle so photos are never lost and replacements are detected automatically.
 
-**Architecture:** The reverse sync guard is a one-line patch in `importSheetRowToDB`. The photo import is a separate service (`photo-import.service.ts`) that exports the entire spreadsheet as an HTML ZIP via the Drive API, parses all HTML files for UUID→image mappings (matching by UUID regex, not column index), uploads each image buffer to a public Supabase bucket, and updates `cats.photo_url`. A cron route triggers it on demand or on a schedule.
+**Architecture:** Reverse sync is stripped of all `photo_url` responsibility. A new photo phase (Phase 0) runs at the top of every sync cycle before reverse and forward sync. It reads the already-needed sheet state per region, detects rows where `lastEditedAt` is set and col B is `""` (pasted image, invisible to Values API), and fires a single ZIP export only when candidates are found. Extracted images are compressed via `sharp` (server-side, matching app UI constraints) and uploaded to a public Supabase `cat-photos` bucket. After upload, `refreshCatInSyncQueue` queues a forward sync so col B gets replaced with a stable `=IMAGE(supabase_url)` formula. A separate local script handles the one-time bulk backfill of all existing null-photo cats.
 
-**Tech Stack:** `jszip` (ZIP extraction), `node-html-parser` (HTML parsing), `@supabase/supabase-js` storage API, Google Drive API v3 (already authenticated via service account), Drizzle ORM, Next.js App Router API routes.
+**Tech Stack:** `jszip` (ZIP extraction), `node-html-parser` (HTML parsing), `sharp` (server-side image compression), `@supabase/supabase-js` storage API, Google Drive API v3 (via existing `googleapis` package + added `drive.readonly` scope), Drizzle ORM.
+
+**Cron cadence:** Unchanged at 10 minutes — single existing `/api/cron/sync` route, no new cron endpoint. The photo phase adds negligible overhead on quiet cycles (detection is in-memory, no ZIP fired) and finishes well within the 10-minute window even on heavy cycles. See Known Risks for the full analysis.
 
 ---
 
@@ -14,34 +16,78 @@
 
 | File | Change |
 |---|---|
-| `lib/services/reverse-sync.service.ts` | Patch `importSheetRowToDB` — skip `photo_url` update when incoming is null |
+| `lib/validation/reverse-sync.ts` | Remove `photo_url` from schema and both parsers |
+| `lib/services/reverse-sync.service.ts` | Remove `photo_url` from `importSheetRowToDB` |
 | `lib/services/helper.service.ts` | Add `drive.readonly` scope; add `exportSpreadsheetAsZip()` |
-| `lib/services/photo-import.service.ts` | **Create** — core photo import logic |
-| `app/api/cron/photo-import/route.ts` | **Create** — HTTP trigger for photo import |
-| `vercel.json` | **Create** — cron schedule config |
+| `lib/services/photo-import.service.ts` | **Create** — detection, ZIP parsing, compression, upload |
+| `lib/scripts/import-photos.ts` | **Create** — local CLI for one-time bulk backfill |
+| `app/actions/google-sheets.ts` | Add Phase 0 photo import before reverse sync |
 
 ---
 
-## Task 1: Guard — Don't Null Out Existing Photo URLs
+## Task 1: Remove photo_url from Reverse Sync Validation
 
 **Files:**
-- Modify: `lib/services/reverse-sync.service.ts` (line ~286)
+- Modify: `lib/validation/reverse-sync.ts`
 
-When col B is a pasted image, `parseSheetRow` returns `photo_url: null`. The current code unconditionally writes that null to the DB, wiping a previously-imported photo the moment any other field on that cat is edited in the sheet.
+Reverse sync no longer owns `photo_url`. The photo import service exclusively manages it. Removing it from validation prevents it from being passed to `importSheetRowToDB` at all.
 
-- [ ] **Step 1: Apply the guard**
+- [ ] **Step 1: Remove from `sheetRowSchema`**
 
-In `lib/services/reverse-sync.service.ts`, inside `importSheetRowToDB`, find the `cats` update block and change the `photo_url` line:
+In `lib/validation/reverse-sync.ts`, delete the `photo_url` line from the schema:
 
 ```ts
-// BEFORE (line ~286):
-photo_url: data.photo_url,
-
-// AFTER:
-...(data.photo_url !== null ? { photo_url: data.photo_url } : {}),
+// REMOVE this line:
+photo_url: z.string().nullable(),
 ```
 
-The full `.set({...})` block becomes:
+- [ ] **Step 2: Remove from `parseSheetRow`**
+
+In `parseSheetRow`, delete the photo parsing block and its return value entry:
+
+```ts
+// REMOVE these lines:
+const rawPhoto = String(row[1] ?? "").trim();
+const photoMatch = rawPhoto.match(/=IMAGE\("(.+?)"\)/i);
+const photo_url = photoMatch ? photoMatch[1] : rawPhoto || null;
+```
+
+And remove `photo_url` from the returned object:
+
+```ts
+// REMOVE from return:
+photo_url,
+```
+
+- [ ] **Step 3: Remove from `parseUnknownSheetRow`**
+
+In `parseUnknownSheetRow`, remove `photo_url` from the returned object:
+
+```ts
+// REMOVE from return:
+photo_url: null,
+```
+
+- [ ] **Step 4: Type-check**
+
+```bash
+pnpm tsc --noEmit
+```
+
+Expected: errors in `reverse-sync.service.ts` referencing `data.photo_url` — fixed in Task 2.
+
+---
+
+## Task 2: Remove photo_url from Reverse Sync Service
+
+**Files:**
+- Modify: `lib/services/reverse-sync.service.ts`
+
+`importSheetRowToDB` currently writes `photo_url` to the DB on every import. With the schema change from Task 1, `data.photo_url` no longer exists. Remove it from the cats update.
+
+- [ ] **Step 1: Remove from `importSheetRowToDB`**
+
+In `lib/services/reverse-sync.service.ts`, inside `importSheetRowToDB`, find the `.set({...})` block and remove the `photo_url` line entirely:
 
 ```ts
 await tx
@@ -57,7 +103,7 @@ await tx
     caretaker: data.caretaker,
     notes: data.notes,
     is_adoptable: data.is_adoptable,
-    ...(data.photo_url !== null ? { photo_url: data.photo_url } : {}),
+    // photo_url intentionally omitted — owned exclusively by photo-import.service.ts
     ...(data.paws_id !== undefined ? { paws_id: data.paws_id } : {}),
     last_updated_at: new Date(),
   })
@@ -72,52 +118,52 @@ pnpm tsc --noEmit
 
 Expected: no errors.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit Tasks 1 and 2 together**
 
 ```bash
-git add lib/services/reverse-sync.service.ts
-git commit -m "fix: preserve photo_url on reverse sync text-only edits"
+git add lib/validation/reverse-sync.ts lib/services/reverse-sync.service.ts
+git commit -m "refactor: remove photo_url from reverse sync — owned by photo import service"
 ```
 
 ---
 
-## Task 2: Install Dependencies
+## Task 3: Install Dependencies
 
 **Files:** `package.json` (updated by pnpm)
 
 - [ ] **Step 1: Install packages**
 
 ```bash
-pnpm add jszip node-html-parser
+pnpm add jszip node-html-parser sharp
 ```
 
-- [ ] **Step 2: Verify types are available**
+`jszip` and `node-html-parser` ship their own TypeScript types. `sharp` also includes types since v0.31 — no `@types/` packages needed for any of them.
+
+- [ ] **Step 2: Type-check**
 
 ```bash
 pnpm tsc --noEmit
 ```
 
-`jszip` and `node-html-parser` both ship their own types — no `@types/` packages needed.
-
 - [ ] **Step 3: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml
-git commit -m "chore: add jszip and node-html-parser for photo import"
+git commit -m "chore: add jszip, node-html-parser, sharp for photo import"
 ```
 
 ---
 
-## Task 3: Add Drive Scope + ZIP Export to helper.service.ts
+## Task 4: Add Drive Scope + ZIP Export to helper.service.ts
 
 **Files:**
 - Modify: `lib/services/helper.service.ts`
 
-The service account is already shared on the spreadsheet. Adding `drive.readonly` scope lets the same credentials export the file as a ZIP via Drive API.
+The service account already has access to the spreadsheet file (shared for Sheets API). Adding `drive.readonly` to the existing auth scopes allows the same credentials to export the file as a ZIP via Drive API v3. `google.drive` is already available from the existing `googleapis` import — no new package needed.
 
-- [ ] **Step 1: Add `drive.readonly` scope to `connectToSheets`**
+- [ ] **Step 1: Add `drive.readonly` to the scopes array**
 
-Find the `scopes` array in `connectToSheets` (around line 35) and add the Drive scope:
+In `connectToSheets` (around line 35), update the scopes:
 
 ```ts
 scopes: [
@@ -126,15 +172,15 @@ scopes: [
 ],
 ```
 
-- [ ] **Step 2: Add `exportSpreadsheetAsZip` export at end of Section 1**
-
-After the closing brace of `connectToSheets`, add:
+- [ ] **Step 2: Add `exportSpreadsheetAsZip` after `connectToSheets`**
 
 ```ts
 /**
- * Exports the spreadsheet as an HTML ZIP archive via Drive API.
- * The ZIP contains one HTML file per sheet tab and an images/ directory.
- * Used by the photo import service to extract pasted in-cell images.
+ * Exports the spreadsheet as an HTML ZIP via Drive API v3.
+ * ZIP contains one HTML file per sheet tab + an images/ directory.
+ * Image bytes in the HTML reference images/imageN.png by filename.
+ * Google resamples pasted images to cell display size on export —
+ * output images are already reduced from their original resolution.
  */
 export async function exportSpreadsheetAsZip(
   spreadsheetId: string,
@@ -155,202 +201,297 @@ export async function exportSpreadsheetAsZip(
 pnpm tsc --noEmit
 ```
 
-Expected: no errors. (`google.drive` is already available from the existing `googleapis` import.)
-
 - [ ] **Step 4: Commit**
 
 ```bash
 git add lib/services/helper.service.ts
-git commit -m "feat: add Drive export scope and exportSpreadsheetAsZip helper"
+git commit -m "feat: drive.readonly scope and exportSpreadsheetAsZip helper"
 ```
 
 ---
 
-## Task 4: Photo Import Service
+## Task 5: Photo Import Service
 
 **Files:**
 - Create: `lib/services/photo-import.service.ts`
 
-**How the ZIP parsing works:**
+**Detection logic:**
+- For each region, read sheet state (col A:Y via `readSheetState`)
+- A row is a candidate if: `lastEditedAt` is set AND col B (`raw[1]`) is `""`
+- `col B = ""` means either a pasted image (invisible to Values API) or genuinely no photo — both return empty. The ZIP is the definitive check.
+- `col B = "=IMAGE(...)"` means a stable formula — skip, no change needed.
 
-Google Sheets HTML ZIP export contains:
-- One HTML file per visible sheet tab (naming varies by spreadsheet title/tab name)
-- An `images/` directory with PNG files referenced by the HTML (`<img src="images/image1.png">`)
+**ZIP processing:**
+- One ZIP export covers every sheet tab — no per-region export
+- Parse all `.html` files; identify rows by UUID regex (position-independent, not column-index-based)
+- Only process UUIDs that are in the candidate set from detection
+- Compress each image with `sharp` to JPEG 1200px max / quality 80 before upload
+- Upload to Supabase `cat-photos` bucket with `upsert: true` (handles replacements)
+- Wrap DB update + `refreshCatInSyncQueue` in a transaction so forward sync is queued with the new URL
 
-Rather than relying on column position (fragile due to merged cells or hidden cols), we identify rows by UUID: any `<td>` containing a UUID-format string (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) is col Y. Any `<td>` containing an `<img src="images/...">` is col B. Both in the same `<tr>` = a match.
+**For cats with no photo at all:**
+- They may appear as candidates (col B = "") but won't be in the ZIP photo map
+- Correctly skipped — `photo_url` stays null, no error
 
 - [ ] **Step 1: Create the file**
-
-Create `lib/services/photo-import.service.ts`:
 
 ```ts
 import JSZip from "jszip";
 import { parse as parseHtml } from "node-html-parser";
+import sharp from "sharp";
 import { eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { cats } from "@/lib/db/schema";
-import { connectToSheets, exportSpreadsheetAsZip } from "./helper.service";
+import {
+  connectToSheets,
+  exportSpreadsheetAsZip,
+  readSheetState,
+  refreshCatInSyncQueue,
+} from "./helper.service";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "cat-photos";
-
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Parses all <tr> elements in an HTML string for UUID→imageSrc pairs.
- * Identifies col Y by UUID pattern, col B by <img src="images/...">.
- * Position-independent — not brittle to merged cells or col order.
+ * Scans all <tr> elements in an HTML string for UUID→imageSrc pairs.
+ * Matches col Y by UUID pattern and col B by <img src="images/...">.
+ * Position-independent — unaffected by merged cells or col ordering.
  */
 function parsePhotoMappingsFromHtml(
   html: string,
 ): Array<{ uuid: string; imageSrc: string }> {
   const root = parseHtml(html);
-  const rows = root.querySelectorAll("tr");
   const results: Array<{ uuid: string; imageSrc: string }> = [];
 
-  for (const row of rows) {
-    const cells = row.querySelectorAll("td");
+  for (const row of root.querySelectorAll("tr")) {
     let uuid: string | null = null;
     let imageSrc: string | null = null;
 
-    for (const cell of cells) {
+    for (const cell of row.querySelectorAll("td")) {
       const text = cell.text.trim();
-      if (UUID_REGEX.test(text)) {
-        uuid = text;
-      }
+      if (UUID_REGEX.test(text)) uuid = text;
+
       const img = cell.querySelector("img");
       if (img) {
         const src = img.getAttribute("src");
-        if (src?.startsWith("images/")) {
-          imageSrc = src;
-        }
+        if (src?.startsWith("images/")) imageSrc = src;
       }
     }
 
-    if (uuid && imageSrc) {
-      results.push({ uuid, imageSrc });
-    }
+    if (uuid && imageSrc) results.push({ uuid, imageSrc });
   }
 
   return results;
 }
 
 /**
- * Walks all HTML files in the ZIP and builds a uuid → image Buffer map.
- * Processes every sheet tab so we don't need to find the right HTML file.
+ * Parses all HTML files in the ZIP and returns a uuid → raw Buffer map.
+ * Only loads image bytes for UUIDs in the candidate set.
+ * This avoids loading images for rows that were not flagged by detection.
  */
 async function buildPhotoMap(
   zip: JSZip,
-): Promise<Map<string, { buffer: Buffer; ext: string }>> {
-  const map = new Map<string, { buffer: Buffer; ext: string }>();
+  candidateUuids: Set<string>,
+): Promise<Map<string, Buffer>> {
+  const map = new Map<string, Buffer>();
 
-  const htmlFileNames = Object.keys(zip.files).filter((name) =>
-    name.toLowerCase().endsWith(".html"),
+  const htmlFileNames = Object.keys(zip.files).filter((n) =>
+    n.toLowerCase().endsWith(".html"),
   );
 
   for (const htmlFileName of htmlFileNames) {
     const html = await zip.files[htmlFileName].async("text");
-    const pairs = parsePhotoMappingsFromHtml(html);
 
-    for (const { uuid, imageSrc } of pairs) {
-      if (map.has(uuid)) continue; // first match wins
+    for (const { uuid, imageSrc } of parsePhotoMappingsFromHtml(html)) {
+      if (!candidateUuids.has(uuid) || map.has(uuid)) continue;
       const imageFile = zip.files[imageSrc];
       if (!imageFile) continue;
       const buffer = await imageFile.async("nodebuffer");
-      const ext = imageSrc.split(".").pop() ?? "png";
-      map.set(uuid, { buffer, ext });
+      map.set(uuid, buffer);
     }
   }
 
   return map;
 }
 
+/**
+ * Compresses an image buffer to JPEG 1200px max / quality 80.
+ * Matches app UI compression constraints (browser-image-compression).
+ * Always outputs JPEG regardless of input format.
+ */
+async function compress(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .resize({ width: 1200, withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+}
+
+async function uploadAndQueue(
+  uuid: string,
+  buffer: Buffer,
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+): Promise<void> {
+  const compressed = await compress(buffer);
+  const storagePath = `${uuid}/photo.jpg`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, compressed, { contentType: "image/jpeg", upsert: true });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data: { publicUrl } } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(storagePath);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(cats)
+      .set({ photo_url: publicUrl, last_updated_at: new Date() })
+      .where(eq(cats.id, uuid));
+    await refreshCatInSyncQueue(uuid, tx);
+  });
+}
+
+async function processBatch(
+  entries: [string, Buffer][],
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+): Promise<{ imported: number; errors: Array<{ catId: string; error: string }> }> {
+  let imported = 0;
+  const errors: Array<{ catId: string; error: string }> = [];
+
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+    const batch = entries.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(([uuid, buf]) => uploadAndQueue(uuid, buf, supabase)),
+    );
+    for (let j = 0; j < results.length; j++) {
+      const r = results[j];
+      if (r.status === "fulfilled") {
+        imported++;
+      } else {
+        errors.push({
+          catId: batch[j][0],
+          error: r.reason instanceof Error ? r.reason.message : "Upload failed",
+        });
+      }
+    }
+  }
+
+  return { imported, errors };
+}
+
 export interface PhotoImportResult {
+  triggered: boolean;
   imported: number;
-  skipped: number;
   errors: Array<{ catId: string; error: string }>;
 }
 
 /**
- * Runs photo import across all regions (uses single ZIP export shared across all).
- * Call this for initial bulk import and for the daily photo sync cron.
+ * Phase 0 of the sync cycle. Called once per cycle before reverse sync.
+ *
+ * Reads sheet state for each region (same data reverse sync needs) and
+ * identifies candidate rows: lastEditedAt is set AND col B is "".
+ * Fires ZIP export only when candidates exist. Processes only candidate
+ * UUIDs found in the ZIP photo map. Cats with no actual pasted image
+ * are correctly skipped (they won't appear in the photo map).
+ *
+ * Known limitation: new cats added via sheet with a pasted photo and
+ * photo_url still null will be caught here (col B = "", lastEditedAt set).
+ * Cats whose pasted photo predates the lastEditedAt tracking system
+ * require the bulk script (lib/scripts/import-photos.ts).
  */
-export async function importPhotosForAllRegions(): Promise<{
-  totalImported: number;
-  totalSkipped: number;
-  totalErrors: number;
-}> {
-  // Photo map is global (all sheets), so one call covers all regions.
-  // We reuse importPhotosForRegion with a sentinel "all" approach by
-  // calling the internal logic directly once instead of per-region.
+export async function importPhotosIfNeeded(
+  allRegions: { id: string; name: string }[],
+): Promise<PhotoImportResult> {
+  const candidateUuids = new Set<string>();
 
-  const allNullPhotoCats = await db
+  for (const region of allRegions) {
+    const rows = await readSheetState(region.id);
+    for (const row of rows) {
+      if (row.lastEditedAt && (row.raw[1] ?? "").trim() === "") {
+        candidateUuids.add(row.entityId);
+      }
+    }
+  }
+
+  if (candidateUuids.size === 0) {
+    return { triggered: false, imported: 0, errors: [] };
+  }
+
+  const { glAuth } = await connectToSheets();
+  const zipBuffer = await exportSpreadsheetAsZip(
+    process.env.CATALOG_SPREADSHEET_ID!,
+    glAuth,
+  );
+  const zip = await JSZip.loadAsync(zipBuffer);
+  const photoMap = await buildPhotoMap(zip, candidateUuids);
+
+  if (photoMap.size === 0) {
+    // All candidates had no actual image (genuinely no photo cats)
+    return { triggered: true, imported: 0, errors: [] };
+  }
+
+  const supabase = await createAdminClient();
+  const { imported, errors } = await processBatch([...photoMap.entries()], supabase);
+
+  console.log(
+    `[PhotoImport] triggered=true candidates=${candidateUuids.size} found=${photoMap.size} imported=${imported} errors=${errors.length}`,
+    errors.length > 0 ? errors.slice(0, 5) : "",
+  );
+
+  return { triggered: true, imported, errors };
+}
+
+/**
+ * Bulk import for the local script only. Targets all cats with photo_url IS NULL
+ * regardless of sheet edit state — covers cats whose pasted photos predate
+ * the lastEditedAt tracking system.
+ *
+ * Not called by the sync cycle. Run via: pnpm tsx lib/scripts/import-photos.ts
+ */
+export async function bulkImportAllNullPhotos(): Promise<{
+  imported: number;
+  errors: Array<{ catId: string; error: string }>;
+}> {
+  const nullPhotoCats = await db
     .select({ id: cats.id })
     .from(cats)
     .where(isNull(cats.photo_url));
 
-  if (allNullPhotoCats.length === 0) {
-    return { totalImported: 0, totalSkipped: 0, totalErrors: 0 };
+  if (nullPhotoCats.length === 0) {
+    console.log("[BulkImport] No cats with null photo_url — nothing to do.");
+    return { imported: 0, errors: [] };
   }
 
-  const targetIds = new Set(allNullPhotoCats.map((c) => c.id));
+  const targetIds = new Set(nullPhotoCats.map((c) => c.id));
 
   const { glAuth } = await connectToSheets();
-  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
-
-  const zipBuffer = await exportSpreadsheetAsZip(spreadsheetId, glAuth);
+  const zipBuffer = await exportSpreadsheetAsZip(
+    process.env.CATALOG_SPREADSHEET_ID!,
+    glAuth,
+  );
   const zip = await JSZip.loadAsync(zipBuffer);
-  const photoMap = await buildPhotoMap(zip);
+  const photoMap = await buildPhotoMap(zip, targetIds);
 
-  const supabase = await createAdminClient();
-
-  let totalImported = 0;
-  let totalSkipped = 0;
-  const errors: Array<{ catId: string; error: string }> = [];
-
-  for (const [uuid, { buffer, ext }] of photoMap.entries()) {
-    if (!targetIds.has(uuid)) {
-      totalSkipped++;
-      continue;
-    }
-
-    try {
-      const storagePath = `${uuid}/photo.${ext}`;
-      const contentType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, buffer, { contentType, upsert: true });
-
-      if (uploadError) throw new Error(uploadError.message);
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(storagePath);
-
-      await db
-        .update(cats)
-        .set({ photo_url: publicUrl, last_updated_at: new Date() })
-        .where(eq(cats.id, uuid));
-
-      totalImported++;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Upload failed";
-      errors.push({ catId: uuid, error: msg });
-    }
+  if (photoMap.size === 0) {
+    console.log("[BulkImport] ZIP contained no images for null-photo cats.");
+    return { imported: 0, errors: [] };
   }
 
+  const supabase = await createAdminClient();
+  const { imported, errors } = await processBatch([...photoMap.entries()], supabase);
+
   console.log(
-    `[PhotoImport] imported=${totalImported} skipped=${totalSkipped} errors=${errors.length}`,
-    errors.length > 0 ? errors.slice(0, 5) : "",
+    `[BulkImport] targets=${targetIds.size} found=${photoMap.size} imported=${imported} errors=${errors.length}`,
   );
 
-  return { totalImported, totalSkipped, totalErrors: errors.length };
+  return { imported, errors };
 }
 ```
-
-> **Note:** `importPhotosForRegion` is kept for future per-region use but the initial import should call `importPhotosForAllRegions` — one ZIP export covers every tab.
 
 - [ ] **Step 2: Type-check**
 
@@ -358,110 +499,166 @@ export async function importPhotosForAllRegions(): Promise<{
 pnpm tsc --noEmit
 ```
 
-Fix any type errors before continuing. Common issues:
-- `isNull` import from `drizzle-orm` (already imported in the file)
-- `JSZip.loadAsync` — method is on the instance, not the class. `JSZip` is default-exported as a class; `new JSZip()` is not needed for `loadAsync` since it's a static method: `JSZip.loadAsync(zipBuffer)` ✓
+Common issues to fix:
+- `refreshCatInSyncQueue` is imported from `helper.service.ts` — confirm it is exported there
+- `readSheetState` is exported from `helper.service.ts` ✓
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add lib/services/photo-import.service.ts
-git commit -m "feat: photo import service — ZIP export + Supabase upload"
+git commit -m "feat: photo import service — detection, ZIP, compression, upload"
 ```
 
 ---
 
-## Task 5: Cron Route
+## Task 6: Local Script — One-Time Bulk Backfill
 
 **Files:**
-- Create: `app/api/cron/photo-import/route.ts`
+- Create: `lib/scripts/import-photos.ts`
 
-Same auth pattern as the existing `app/api/cron/sync/route.ts`.
+Calls `bulkImportAllNullPhotos` directly via `tsx`. No Vercel timeout ceiling. Run this once to backfill all cats that have pasted photos with no `photo_url` in DB. Re-run any time after a bulk batch of cats is added to the sheet with pasted photos.
 
-- [ ] **Step 1: Create the route**
+- [ ] **Step 1: Create the file**
 
 ```ts
-import { after } from "next/server";
-import { NextRequest, NextResponse } from "next/server";
-import { importPhotosForAllRegions } from "@/lib/services/photo-import.service";
+import "dotenv/config";
+import { bulkImportAllNullPhotos } from "@/lib/services/photo-import.service";
 
-export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  const expectedToken = process.env.CRON_SECRET;
+async function main() {
+  console.log("[ImportPhotos] Starting bulk backfill...");
+  const result = await bulkImportAllNullPhotos();
+  console.log("[ImportPhotos] Done:", result);
+  process.exit(0);
+}
 
-  if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+main().catch((err) => {
+  console.error("[ImportPhotos] Fatal:", err);
+  process.exit(1);
+});
+```
+
+- [ ] **Step 2: Run it**
+
+Ensure `.env.local` has `SERVICE_ACCOUNT_CREDENTIALS`, `CATALOG_SPREADSHEET_ID`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_SUPABASE_SERVICE_ROLE_KEY`.
+
+```bash
+pnpm tsx lib/scripts/import-photos.ts
+```
+
+Expected output:
+```
+[ImportPhotos] Starting bulk backfill...
+[BulkImport] targets=N found=M imported=M errors=0
+[ImportPhotos] Done: { imported: M, errors: [] }
+```
+
+If `found=0` and you expect photos, col Y (UUID) may be hidden in the HTML export — see Known Risks.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/scripts/import-photos.ts
+git commit -m "feat: local script for bulk photo backfill"
+```
+
+---
+
+## Task 7: Integrate Photo Phase into Sync Cycle
+
+**Files:**
+- Modify: `app/actions/google-sheets.ts`
+
+Add Phase 0 at the top of `syncAllPendingRegions`, before reverse sync. The photo phase reads sheet state per region (same data reverse sync needs) and fires the ZIP only when candidates are found. Reverse and forward sync run after, so forward sync always writes the correct `photo_url` to col B.
+
+- [ ] **Step 1: Add import**
+
+At the top of `app/actions/google-sheets.ts`, add:
+
+```ts
+import { importPhotosIfNeeded } from "@/lib/services/photo-import.service";
+```
+
+- [ ] **Step 2: Update `syncAllPendingRegions`**
+
+The full updated function:
+
+```ts
+export async function syncAllPendingRegions() {
+  const pendingTasks = await db
+    .selectDistinct({ regionId: gsheetSyncQueue.regionId })
+    .from(gsheetSyncQueue)
+    .where(eq(gsheetSyncQueue.status, "PENDING"));
+
+  const allRegions = await db.query.regions.findMany();
+
+  // Phase 0: Photo import — detect pasted images before reverse/forward sync.
+  // Reads sheet state per region, fires ZIP only when candidates found.
+  // Must run before forward sync so col B gets the correct =IMAGE(url) formula.
+  try {
+    await importPhotosIfNeeded(allRegions);
+  } catch (error) {
+    console.error(
+      "[PhotoImport] Failed:",
+      error instanceof Error ? error.message : error,
+    );
   }
 
-  after(async () => {
+  // Phase A: Reverse sync ALL regions (text fields only — photo_url excluded)
+  for (const region of allRegions) {
     try {
-      const result = await importPhotosForAllRegions();
-      console.log("[Cron PhotoImport]", result);
+      await reverseSyncRegion(region.id);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Cron PhotoImport] Failed:", message);
+      console.error(
+        `[ReverseSync] Region ${region.id} failed:`,
+        error instanceof Error ? error.message : error,
+      );
     }
-  });
+  }
 
-  return NextResponse.json({ ok: true, timestamp: new Date().toISOString() });
+  // Phase B: Forward sync only regions with pending tasks
+  await Promise.all(
+    pendingTasks.map((task) => syncAndCompactRegion(task.regionId)),
+  );
+
+  // Phase C: Regenerate summary sheets
+  try {
+    await generateForRiSheet();
+    await generateForFaSheet();
+    console.log("[SummarySheets] For RI + For FA regenerated");
+  } catch (error) {
+    console.error(
+      "[SummarySheets] Failed:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 ```
 
-- [ ] **Step 2: Type-check + build**
+- [ ] **Step 3: Type-check**
 
 ```bash
 pnpm tsc --noEmit
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add app/api/cron/photo-import/route.ts
-git commit -m "feat: cron route for photo import"
+git add app/actions/google-sheets.ts
+git commit -m "feat: integrate photo import as Phase 0 of sync cycle"
 ```
 
 ---
 
-## Task 6: vercel.json — Cron Schedule
+## Task 8: Manual Setup — Supabase Bucket
 
-**Files:**
-- Create: `vercel.json`
-
-- [ ] **Step 1: Create vercel.json**
-
-This schedules the photo import daily at 3 AM UTC (low-traffic, after the normal sync crons):
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/photo-import",
-      "schedule": "0 3 * * *"
-    }
-  ]
-}
-```
-
-> If you already manage the sync cron elsewhere (e.g. Vercel dashboard), add the photo-import entry to the same place instead, and skip this file.
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add vercel.json
-git commit -m "chore: add daily photo import cron schedule"
-```
-
----
-
-## Task 7: Manual Setup — Supabase Bucket
-
-This must be done before the first cron run. Do it in Supabase dashboard or via SQL.
+Must be done before running the local script or deploying.
 
 - [ ] **Step 1: Create the bucket**
 
 In Supabase dashboard → Storage → New bucket:
 - Name: `cat-photos`
-- Public: **Yes** (the URL is used in `=IMAGE()` in GSheets and displayed in the app — must be publicly accessible without a signed URL)
+- Public: **Yes** — URL used in `=IMAGE()` in GSheets and displayed in app UI; must be accessible without auth headers.
 
 OR via Supabase SQL editor:
 
@@ -471,58 +668,70 @@ values ('cat-photos', 'cat-photos', true)
 on conflict (id) do nothing;
 ```
 
-- [ ] **Step 2: Confirm public URL format**
+- [ ] **Step 2: Verify public URL format**
 
-After uploading one test image manually, verify the public URL pattern:
+Upload any test image manually, then confirm the URL pattern is accessible in a browser:
 ```
-https://<project-ref>.supabase.co/storage/v1/object/public/cat-photos/<uuid>/photo.png
+https://<project-ref>.supabase.co/storage/v1/object/public/cat-photos/<uuid>/photo.jpg
 ```
-
-This should be directly accessible in a browser tab without any auth headers.
 
 ---
 
-## Task 8: Initial Bulk Import — Manual Trigger
+## Task 9: Initial Bulk Backfill and Verification
 
-After deploying, trigger the import once to backfill all cats that currently have `photo_url IS NULL`.
-
-- [ ] **Step 1: Deploy to production**
-
-Push the branch and confirm deployment completes.
-
-- [ ] **Step 2: Trigger the cron manually**
+- [ ] **Step 1: Run the local script**
 
 ```bash
-curl -X POST https://<your-domain>/api/cron/photo-import \
-  -H "Authorization: Bearer $CRON_SECRET"
+pnpm tsx lib/scripts/import-photos.ts
 ```
 
-- [ ] **Step 3: Verify in DB**
-
-Run in Supabase SQL editor:
+- [ ] **Step 2: Verify photos in DB**
 
 ```sql
 select id, name, photo_url
 from cats
-where photo_url is not null
-  and photo_url like '%supabase%'
+where photo_url like '%supabase%'
 limit 20;
 ```
 
-Expected: rows with `photo_url` pointing to `cat-photos` bucket.
+Expected: rows with `photo_url` pointing to the `cat-photos` bucket.
 
-- [ ] **Step 4: Verify in GSheet (forward sync)**
+- [ ] **Step 3: Verify queue row exists for imported cats**
 
-After the DB update, the next forward sync will write `=IMAGE("supabase_url")` into col B — replacing the invisible pasted image with a stable formula. Confirm one row updates correctly in the sheet.
+`uploadAndQueue` already calls `refreshCatInSyncQueue` inside its transaction, which inserts the correct forward sync task with the full row payload. Do NOT insert manually — an empty `payload` array would cause forward sync to write nothing to col B.
+
+In Supabase SQL editor, confirm the queue rows were created:
+
+```sql
+select entity_id, status, created_at
+from gsheet_sync_queue
+where status = 'PENDING'
+  and entity_id in (
+    select id from cats where photo_url like '%supabase%' limit 5
+  );
+```
+
+Expected: rows present with `status = 'PENDING'`. Then wait up to 10 minutes for the next cron cycle (or hit the sync endpoint manually). Confirm col B in the sheet becomes `=IMAGE("https://...supabase...")` for those rows.
+
+- [ ] **Step 4: Verify ongoing detection**
+
+Edit any text field for one cat in the sheet (a cat that has a pasted image). Wait up to 10 minutes for the next cron cycle. Confirm:
+- `photo_url` in DB updated to new Supabase URL (or unchanged if already imported)
+- Col B in sheet becomes a formula after the forward sync that follows
 
 ---
 
 ## Known Risks / Decisions
 
-| Risk | Mitigation |
+| Risk | Decision |
 |---|---|
-| Google ZIP structure varies by spreadsheet title | `buildPhotoMap` parses ALL `.html` files in the ZIP — no name matching needed |
-| Col Y might be hidden in the HTML export | UUID regex scan is position-independent; if col Y is hidden the row is simply skipped and stays `photo_url = null` |
-| Large spreadsheet → slow ZIP export | One export covers all regions; runs in `after()` so it doesn't block the HTTP response |
-| Forward sync overwrites pasted images with formula | ✓ Intended — after import, col B becomes a stable `=IMAGE(supabase_url)` formula which Values API CAN read going forward |
-| Service account needs Drive API access | `drive.readonly` scope added in Task 3; service account already has file access via Sheets sharing |
+| **Cron cycle overlap from slow uploads** | Per-image cost: ~50–100ms compression + ~200–500ms upload = ~300–600ms. At 10 concurrent, 20 photos takes ~4s, 50 photos ~15s. Worst realistic ongoing cycle finishes well under 60s — the 10-min interval is a large buffer. Cycle overlap can only occur if Supabase is severely throttled; both cycles operate on different candidate sets (col W cleared after processing) so data conflicts are not possible. Initial bulk import (500+ photos) runs via local script only, never via cron. |
+| ZIP structure varies by spreadsheet title | `buildPhotoMap` parses ALL `.html` files — no name matching needed |
+| Col Y hidden in HTML export | UUID regex is position-independent; if hidden, row stays `photo_url = null` and needs local script |
+| No-photo cats trigger false positive ZIP | ZIP finds no entry for that UUID → skipped cleanly; ZIP runs once per edit event (col W cleared after) |
+| New sheet-added cats with photos (photo_url = null, lastEditedAt set) | Caught by detection — `col B = "" AND lastEditedAt set` triggers ZIP regardless of photo_url state |
+| Cats with pasted photos predating lastEditedAt tracking | Not caught by ongoing detection — use `lib/scripts/import-photos.ts` for backfill |
+| Large ZIP on initial bulk run | Local script only — no Vercel timeout ceiling. After initial import, ZIP shrinks (formulas replace embedded images) |
+| Double Sheets API read per region when candidates found | Phase 0 calls `readSheetState` per region; Phase A does too — 2N reads per cycle. At 6 regions = 12 calls. Well within Google quota; no action needed. |
+| Image size inconsistency vs app UI | `sharp` compresses to JPEG 1200px / quality 80 — same constraints as app UI |
+| Photo replacement via sheet (new paste over existing formula) | Col B reverts to `""`, detection catches it next cycle, new image imported and old Supabase path overwritten via `upsert: true` |
