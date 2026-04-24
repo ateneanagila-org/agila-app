@@ -8,7 +8,11 @@ import {
   SearchIcon,
   ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
-import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
+import {
+  HorizontalBarChart,
+  VerticalBarChart,
+} from "@/components/app-pages/shared/charts";
+import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
@@ -239,23 +243,13 @@ export function OverviewScreen() {
             </p>
           </div>
 
-          {/* Location search bar */}
-          <div className="relative">
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl bg-brand-orange px-4 pr-10 text-sm font-semibold text-white"
-              aria-label="Location"
-            >
-              <option value="Overall">Overall (type to search)</option>
-              {LOCATIONS.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-            <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white" />
-          </div>
+          {/* Location picker */}
+          <LocationPicker
+            value={location}
+            options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+            onChange={setLocation}
+            variant="pill"
+          />
 
           {/* Main stats */}
           <div className="overflow-hidden rounded-xl bg-brand-green">
@@ -459,30 +453,17 @@ export function OverviewScreen() {
             </div>
           </div>
 
-          <label className="w-full max-w-80">
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
-              Location
-            </span>
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-              <select
-                value={dashboardMode}
-                onChange={(e) => {
-                  setDashboardMode(e.target.value);
-                  setShowPeriodMenu(false);
-                }}
-                className="h-10 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white outline-none"
-                aria-label="Overview Dashboard Mode"
-              >
-                {DASHBOARD_MODE_OPTIONS.map((option) => (
-                  <option key={option} value={option} className="bg-white text-brand-dark">
-                    {option === "Overall" ? "Overall (type to search)" : option}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" />
-            </div>
-          </label>
+          <div className="w-full max-w-80">
+            <LocationPicker
+              value={dashboardMode}
+              options={DASHBOARD_MODE_OPTIONS}
+              onChange={(v) => {
+                setDashboardMode(v);
+                setShowPeriodMenu(false);
+              }}
+              label="Location"
+            />
+          </div>
         </div>
 
         {/* Primary stats — green hero row */}
@@ -502,71 +483,71 @@ export function OverviewScreen() {
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_13rem] gap-4">
-          <section className="relative rounded-2xl bg-white p-5 ring-1 ring-border">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <p className="font-heading text-lg font-bold text-brand-dark">
-                  Population
-                </p>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                >
-                  Sort by <ChevronDownIcon className="h-3 w-3" />
-                </button>
-              </div>
+        {/* Status stat strip */}
+        <div className="mt-4 grid grid-cols-6 gap-3">
+          {desktopStatusStats.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
+            >
+              <span className="text-xs font-semibold text-brand-dark/70">
+                {stat.label}
+              </span>
+              <span className="font-heading text-base font-bold tabular-nums text-brand-dark">
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Full-width population chart */}
+        <section className="relative mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <p className="font-heading text-lg font-bold text-brand-dark">
+                Population
+              </p>
               <button
                 type="button"
-                onClick={() => setShowPeriodMenu((v) => !v)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white transition-opacity hover:opacity-90"
-                aria-label="Open period menu"
-                aria-expanded={showPeriodMenu}
+                className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
               >
-                <span className="-mt-1 text-base font-bold leading-none">...</span>
+                Sort by <ChevronDownIcon className="h-3 w-3" />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowPeriodMenu((v) => !v)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white transition-opacity hover:opacity-90"
+              aria-label="Open period menu"
+              aria-expanded={showPeriodMenu}
+            >
+              <span className="-mt-1 text-base font-bold leading-none">...</span>
+            </button>
+          </div>
 
-            {showPeriodMenu && (
-              <div className="absolute right-5 top-14 z-10 w-32 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg ring-1 ring-brand-dark/10">
-                {activePeriods.map((period) => (
-                  <button
-                    key={period}
-                    type="button"
-                    onClick={() => setShowPeriodMenu(false)}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
-                  >
-                    <span>{period}</span>
-                    <span className="text-sm leading-none text-white/70">&#8250;</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="h-80 rounded-xl bg-brand-cream p-3">
-              <HorizontalBarChart
-                data={populationByLocation}
-                title="Catenean Population Summary"
-              />
+          {showPeriodMenu && (
+            <div className="absolute right-5 top-14 z-10 w-32 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg ring-1 ring-brand-dark/10">
+              {activePeriods.map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  onClick={() => setShowPeriodMenu(false)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                >
+                  <span>{period}</span>
+                  <span className="text-sm leading-none text-white/70">&#8250;</span>
+                </button>
+              ))}
             </div>
-          </section>
+          )}
 
-          <section className="space-y-2">
-            {desktopStatusStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
-              >
-                <span className="text-xs font-semibold text-brand-dark/70">
-                  {stat.label}
-                </span>
-                <span className="font-heading text-base font-bold tabular-nums text-brand-dark">
-                  {stat.value}
-                </span>
-              </div>
-            ))}
-          </section>
-        </div>
+          <div className="h-96 rounded-xl bg-brand-cream p-4">
+            <VerticalBarChart
+              data={populationByLocation}
+              title="Catenean Population Summary"
+            />
+          </div>
+        </section>
 
         {/* Off-census parity row */}
         <div className="mt-6">

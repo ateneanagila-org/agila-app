@@ -47,9 +47,7 @@ Mobile is baseline, stable. Desktop gets variants when:
 
 ### Fonts
 
-- **Headings:** `Aveton` (commercial, self-hosted) — `font-heading` Tailwind class
-  - File must be placed at `public/fonts/Aveton.woff2`
-  - CSS: `font-family: "Aveton", var(--font-gantari), sans-serif`
+- **Headings:** `Gantari` (Google Fonts, tight tracking) — `font-heading` Tailwind class
 - **Body:** `Gantari` (Google Fonts) — `font-sans` Tailwind class (default body font)
 
 ### Color Palette

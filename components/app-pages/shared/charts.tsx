@@ -108,7 +108,118 @@ export function HorizontalBarChart({
   );
 }
 
+// ── Vertical Bar Chart ───────────────────────────────────────────────────────
+
+type VerticalBarChartProps = {
+  data: BarDatum[];
+  title?: string;
+  color?: string;
+};
+
+export function VerticalBarChart({
+  data,
+  title,
+  color = CHART_COLORS.green,
+}: VerticalBarChartProps) {
+  return (
+    <div className="flex h-full w-full flex-col">
+      {title ? (
+        <p className="mb-2 text-center font-heading text-sm font-bold text-brand-green">
+          {title}
+        </p>
+      ) : null}
+      <div className="min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 12, right: 12, left: 0, bottom: 44 }}
+          >
+            <XAxis
+              type="category"
+              dataKey="label"
+              tick={{ fill: "#341111", fontSize: 10, fontWeight: 600 }}
+              stroke="#341111"
+              strokeOpacity={0.25}
+              tickLine={false}
+              angle={-55}
+              textAnchor="end"
+              interval={0}
+              height={50}
+            />
+            <YAxis
+              type="number"
+              tick={{ fill: "#341111", fontSize: 10, fontWeight: 600 }}
+              stroke="#341111"
+              strokeOpacity={0.25}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <Tooltip
+              cursor={{ fill: "#341111", fillOpacity: 0.05 }}
+              contentStyle={{
+                background: "#341111",
+                border: "none",
+                borderRadius: 10,
+                color: "white",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+              labelStyle={{ color: "#fff967", fontWeight: 700 }}
+              itemStyle={{ color: "white" }}
+              formatter={((value: number) => [value, "Cats"]) as never}
+            />
+            <Bar
+              dataKey="value"
+              fill={color}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={24}
+              name="Cat Count"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 // ── Pie Chart ────────────────────────────────────────────────────────────────
+
+type PieLabelProps = {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+};
+
+function renderPieLabel(props: PieLabelProps) {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+  if (!percent || percent < 0.05) return null;
+  const RAD = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.55;
+  const x = cx + r * Math.cos(-midAngle * RAD);
+  const y = cy + r * Math.sin(-midAngle * RAD);
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#ffffff"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={11}
+      fontWeight={700}
+      style={{
+        paintOrder: "stroke",
+        stroke: "rgba(52,17,17,0.4)",
+        strokeWidth: 2,
+      }}
+    >
+      {Math.round(percent * 100)}%
+    </text>
+  );
+}
+
 
 export type PieSlice = { label: string; value: number; color: string };
 
@@ -160,16 +271,12 @@ export function PieChart({ data, title }: PieChartProps) {
                 data={data}
                 dataKey="value"
                 nameKey="label"
-                innerRadius="45%"
-                outerRadius="80%"
+                innerRadius="55%"
+                outerRadius="85%"
                 paddingAngle={1}
                 stroke="white"
                 strokeWidth={2}
-                label={({ percent }: { percent?: number }) =>
-                  percent && percent > 0.05
-                    ? `${Math.round((percent ?? 0) * 100)}%`
-                    : ""
-                }
+                label={renderPieLabel as never}
                 labelLine={false}
               >
                 {data.map((slice, i) => (

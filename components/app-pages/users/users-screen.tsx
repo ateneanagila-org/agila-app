@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  DialogShell,
-  DialogHeader,
-  SearchDialog,
-} from "@/components/app-pages/shared/dialogs";
+import { SearchDialog } from "@/components/app-pages/shared/dialogs";
 
 import {
   AddUserDialog,
@@ -456,77 +452,87 @@ export function UsersScreen() {
       />
 
       {selectedUser ? (
-        <DialogShell open onClose={() => { setSelectedUser(null); setError(null); }}>
-          <DialogHeader
-            title="User Details"
-            onClose={() => { setSelectedUser(null); setError(null); }}
-          />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
+          onClick={() => { setSelectedUser(null); setError(null); }}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+                User Details
+              </h2>
+              <button
+                type="button"
+                onClick={() => { setSelectedUser(null); setError(null); }}
+                className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
 
-          {error && selectedUser ? (
-            <div className="rounded-lg border border-white/20 bg-brand-dark/40 px-3 py-2 text-xs font-semibold text-brand-yellow">
-              {error}
-            </div>
-          ) : null}
+            {error ? (
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                {error}
+              </div>
+            ) : null}
 
-          <div className="space-y-3">
-            <div className="rounded-xl bg-white/10 px-3.5 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
-                Name
-              </p>
-              <p className="mt-0.5 text-sm font-bold text-white">
-                {selectedUser.name || "Unnamed"}
-              </p>
-            </div>
-            <div className="rounded-xl bg-white/10 px-3.5 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
-                Email
-              </p>
-              <p className="mt-0.5 break-all text-sm font-semibold text-white/90">
-                {selectedUser.user?.email ?? selectedUser.id}
-              </p>
-            </div>
-            <div>
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
-                Role
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {AUTH_ROLE_VALUES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setEditRole(r)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                      editRole === r
-                        ? "border-transparent bg-brand-orange text-white shadow-sm"
-                        : "border-white/30 bg-white/10 text-white/80 hover:bg-white/15"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-brand-orange">Name</p>
+                <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm font-semibold leading-9 text-brand-dark">
+                  {selectedUser.name || "Unnamed"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-orange">Email</p>
+                <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm text-brand-dark/80 leading-9">
+                  {selectedUser.user?.email ?? selectedUser.id}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-orange">Role</p>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {AUTH_ROLE_VALUES.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setEditRole(r)}
+                      className={`rounded-full border px-4 py-1.5 text-xs font-bold transition-colors ${
+                        editRole === r
+                          ? "border-transparent bg-brand-orange text-white shadow-sm"
+                          : "border-brand-orange/40 bg-white text-brand-orange hover:bg-brand-orange/10"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => { setSelectedUser(null); setError(null); }}
-              className="rounded-full border border-white/40 bg-transparent px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSaveRole}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-              <span className="ml-1">&#10003;</span>
-            </button>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setSelectedUser(null); setError(null); }}
+                className="flex items-center gap-1.5 rounded-full border border-brand-orange px-4 py-2 text-sm font-semibold text-brand-orange transition-opacity hover:opacity-80"
+              >
+                Cancel <span>✕</span>
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSaveRole}
+                className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"} <span>✓</span>
+              </button>
+            </div>
           </div>
-        </DialogShell>
+        </div>
       ) : null}
 
       {/* Search Dialog */}

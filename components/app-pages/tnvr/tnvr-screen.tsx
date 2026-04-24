@@ -7,6 +7,7 @@ import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import { PieChart, CHART_COLORS } from "@/components/app-pages/shared/charts";
+import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 
 /** Compute TNVR stats from cats + health records */
 function computeTnvrStats(
@@ -227,13 +228,14 @@ export function TnvrScreen() {
 
   const isOverall = location === "All Locations";
 
+  // Green family = neutered, warm family = unneutered
   const buildPieData = (s: ReturnType<typeof computeTnvrStats>) => [
-    { label: "Neutered Male", value: s.neuteredMale, color: CHART_COLORS.green },
-    { label: "Spayed Female", value: s.spayedFemale, color: CHART_COLORS.blue },
-    { label: "Neutered Unknown", value: s.neuteredUnknown, color: CHART_COLORS.purple },
-    { label: "Unneutered Male", value: s.unneuteredMale, color: CHART_COLORS.red },
-    { label: "Unneutered Female", value: s.unneuteredFemale, color: CHART_COLORS.orange },
-    { label: "Unneutered Unknown", value: s.unneuteredUnknown, color: CHART_COLORS.yellow },
+    { label: "Neutered Male", value: s.neuteredMale, color: "#1f7d3d" },
+    { label: "Spayed Female", value: s.spayedFemale, color: "#4fa86a" },
+    { label: "Neutered Unknown", value: s.neuteredUnknown, color: "#a8d4a5" },
+    { label: "Unneutered Male", value: s.unneuteredMale, color: "#c94f1f" },
+    { label: "Unneutered Female", value: s.unneuteredFemale, color: "#eb8a4e" },
+    { label: "Unneutered Unknown", value: s.unneuteredUnknown, color: "#f5c17e" },
   ];
   const mobilePieData = buildPieData(mobileStats);
   const desktopPieData = buildPieData(desktopStats);
@@ -262,23 +264,13 @@ export function TnvrScreen() {
               </h1>
             </div>
 
-            {/* Location search bar — orange */}
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-              <select
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white"
-                aria-label="Location"
-              >
-                {LOCATIONS.map((opt) => (
-                  <option key={opt} value={opt} className="bg-white text-slate-900">
-                    {opt}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
+            {/* Location picker */}
+            <LocationPicker
+              value={location}
+              options={LOCATIONS}
+              onChange={setLocation}
+              variant="pill"
+            />
 
             {/* Category dropdown — outlined */}
             <div className="relative">
@@ -410,30 +402,14 @@ export function TnvrScreen() {
               <span className="font-medium text-brand-dark/70">{lastUpdated}</span>
             </p>
           </div>
-          <label className="w-full max-w-64">
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
-              Location
-            </span>
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-              <select
-                value={desktopLocation}
-                onChange={(e) => setDesktopLocation(e.target.value)}
-                className="h-10 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white outline-none"
-                aria-label="TNVR Location"
-              >
-                <option value="Overall" className="bg-white text-brand-dark">
-                  Overall
-                </option>
-                {LOCATIONS.map((option) => (
-                  <option key={option} value={option} className="bg-white text-brand-dark">
-                    {option}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" />
-            </div>
-          </label>
+          <div className="w-full max-w-72">
+            <LocationPicker
+              value={desktopLocation}
+              options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+              onChange={setDesktopLocation}
+              label="Location"
+            />
+          </div>
         </div>
 
         {/* Hero TNVR score */}
