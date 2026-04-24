@@ -119,10 +119,10 @@ export function mapCatToSheetRow(
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
     catStatus || "Unknown", // 11 (L)
     cat.caretaker ?? "N/A", // 12 (M)
-    new Date().toLocaleDateString(), // 13 (N)
+    new Date().toLocaleDateString("en-US"), // 13 (N)
     cat.spot_last_seen ?? "N/A", // 14 (O)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 15 (P)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 16 (Q)
+    health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 15 (P)
+    health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 16 (Q)
     cat.notes ?? "N/A", // 17 (R)
     "", // 18 (S) separator
     getInterventionDisplayStatus(cat, interventions, "TNVR"), // 19 (T)
@@ -159,8 +159,8 @@ export function mapUnknownCatToSheetRow(
     condition.includes("Sick") ? "YES" : "NO", // 8  (I)
     condition.includes("Injured") ? "YES" : "NO", // 9  (J)
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
-    health?.neuter_date?.toLocaleDateString() ?? "N/A", // 11 (L)
-    health?.vaccination_date?.toLocaleDateString() ?? "N/A", // 12 (M)
+    health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 11 (L)
+    health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 12 (M)
     "",
     "",
     "",
@@ -198,11 +198,9 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
   if (!region) return;
 
-  const rowData = mapCatToSheetRow(
-    cat,
-    cat.catHealthRecords,
-    cat.interventions,
-  );
+  const rowData = region.name === "UNKNOWN"
+    ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
+    : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
 
   await tx.insert(gsheetSyncQueue).values({
     action: "UPDATE",

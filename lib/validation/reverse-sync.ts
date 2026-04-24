@@ -20,6 +20,12 @@ import {
  * 16: vaccination_date (Q), 17: notes (R), 18: separator (S),
  * 19: tnvr_status (T), 20: vet_status (U), 21: fa_status (V)
  */
+const InterventionSignalEnum = z.enum([
+  "will_have",
+  "will_not_have",
+  "ignore",
+]);
+
 export const sheetRowSchema = z.object({
   id: z.string().uuid(),
   name: z.string().nullable(),
@@ -37,6 +43,8 @@ export const sheetRowSchema = z.object({
   neuter_date: z.string().nullable(),
   vaccination_date: z.string().nullable(),
   paws_id: z.string().nullable().optional(),
+  tnvr_signal: InterventionSignalEnum,
+  vet_signal: InterventionSignalEnum,
 });
 
 export type SheetRowParsed = z.infer<typeof sheetRowSchema>;
@@ -95,6 +103,15 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const caretaker = row[12] && row[12] !== "N/A" ? row[12] : null;
   const notes = row[17] && row[17] !== "N/A" ? row[17] : null;
 
+  const rawTnvr = String(row[19] ?? "").trim();
+  const rawVet = String(row[20] ?? "").trim();
+
+  function parseInterventionSignal(raw: string): "will_have" | "will_not_have" | "ignore" {
+    if (raw === "Will have TNVR intervention" || raw === "Will have Vet intervention") return "will_have";
+    if (raw === "Will not have intervention") return "will_not_have";
+    return "ignore";
+  }
+
   return {
     id,
     name,
@@ -111,6 +128,8 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
     condition,
     neuter_date,
     vaccination_date,
+    tnvr_signal: parseInterventionSignal(rawTnvr),
+    vet_signal: parseInterventionSignal(rawVet),
   };
 }
 
@@ -177,5 +196,7 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
     condition,
     neuter_date,
     vaccination_date,
+    tnvr_signal: "ignore" as const,
+    vet_signal: "ignore" as const,
   };
 }

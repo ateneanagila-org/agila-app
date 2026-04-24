@@ -11,7 +11,10 @@ export async function isSyncFrozen(): Promise<boolean> {
 
 export async function setSyncFrozen(frozen: boolean): Promise<void> {
   await db
-    .update(systemConfig)
-    .set({ value: String(frozen), updatedAt: new Date() })
-    .where(eq(systemConfig.key, "sync_frozen"));
+    .insert(systemConfig)
+    .values({ key: "sync_frozen", value: String(frozen), updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: systemConfig.key,
+      set: { value: String(frozen), updatedAt: new Date() },
+    });
 }

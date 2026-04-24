@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   cats,
   catHealthRecords,
+  interventions,
   syncAuditLog,
   gsheetSyncQueue,
 } from "@/lib/db/schema";
@@ -10,6 +11,7 @@ import {
   readSheetState,
   SheetRow,
   clearSheetEditTimestamps,
+  refreshCatInSyncQueue,
 } from "./helper.service";
 import { isSyncFrozen } from "./system.service";
 import {
@@ -18,7 +20,7 @@ import {
   parseUnknownSheetRow,
   SheetRowParsed,
 } from "@/lib/validation/reverse-sync";
-import { parseCatalogId } from "@/lib/services/catalog.service";
+import { nextCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 
 /**
@@ -108,9 +110,8 @@ async function reverseSyncRegionInternal(
           continue;
         }
 
-        const catalogIdRaw = String(sheetRow.raw[0] ?? "").trim();
-        const parsed = parseCatalogId(catalogIdRaw);
-        const catalog_id = parsed !== null ? String(parsed) : null;
+        const colAValues = sheetRows.map((r) => String(r.raw[0] ?? "").trim());
+        const catalog_id = String(nextCatalogId(colAValues));
 
         await db.transaction(async (tx) => {
           const { id: _id, condition, neuter_date, vaccination_date, paws_id, ...catFields } = validation.data;
@@ -132,6 +133,7 @@ async function reverseSyncRegionInternal(
           });
 
           await linkCatToSystemSession(newCat.id, regionId, tx);
+          await refreshCatInSyncQueue(newCat.id, tx);
         });
 
         result.imported++;
@@ -310,6 +312,33 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
       .update(catHealthRecords)
       .set(healthUpdate)
       .where(eq(catHealthRecords.cat_id, data.id));
+
+    // Handle intervention signals from cols T and U
+    for (const [signal, type] of [
+      [data.tnvr_signal, "TNVR"],
+      [data.vet_signal, "Veterinarian"],
+    ] as const) {
+      if (signal === "will_have") {
+        const existing = await tx.query.interventions.findFirst({
+          where: (i, { eq, and }) =>
+            and(eq(i.cat_id, data.id), eq(i.type, type), eq(i.status, "Pending")),
+        });
+        if (!existing) {
+          await tx.insert(interventions).values({ cat_id: data.id, type, status: "Pending" });
+        }
+      } else if (signal === "will_not_have") {
+        await tx
+          .update(interventions)
+          .set({ status: "Cancelled" })
+          .where(
+            and(
+              eq(interventions.cat_id, data.id),
+              eq(interventions.type, type),
+              eq(interventions.status, "Pending"),
+            ),
+          );
+      }
+    }
 
     // Cancel pending forward sync tasks for this cat — GSheet edit wins.
     // Marked COMPLETED (not FAILED) since this is intentional cancellation.
