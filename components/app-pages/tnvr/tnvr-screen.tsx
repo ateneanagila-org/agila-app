@@ -6,6 +6,7 @@ import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import { PieChart, CHART_COLORS } from "@/components/app-pages/shared/charts";
 
 /** Compute TNVR stats from cats + health records */
 function computeTnvrStats(
@@ -226,6 +227,17 @@ export function TnvrScreen() {
 
   const isOverall = location === "All Locations";
 
+  const buildPieData = (s: ReturnType<typeof computeTnvrStats>) => [
+    { label: "Neutered Male", value: s.neuteredMale, color: CHART_COLORS.green },
+    { label: "Spayed Female", value: s.spayedFemale, color: CHART_COLORS.blue },
+    { label: "Neutered Unknown", value: s.neuteredUnknown, color: CHART_COLORS.purple },
+    { label: "Unneutered Male", value: s.unneuteredMale, color: CHART_COLORS.red },
+    { label: "Unneutered Female", value: s.unneuteredFemale, color: CHART_COLORS.orange },
+    { label: "Unneutered Unknown", value: s.unneuteredUnknown, color: CHART_COLORS.yellow },
+  ];
+  const mobilePieData = buildPieData(mobileStats);
+  const desktopPieData = buildPieData(desktopStats);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -282,34 +294,15 @@ export function TnvrScreen() {
               <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange" />
             </div>
 
-            {/* Chart placeholder */}
-            <div className="overflow-hidden rounded-2xl bg-brand-green">
+            {/* TNVR Pie chart */}
+            <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-border">
               <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-brand-yellow">
-                  TNVR Trend
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-green">
+                  TNVR Statistics
                 </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full bg-brand-orange px-3 py-1 text-[11px] font-bold text-white"
-                  >
-                    •••
-                  </button>
-                  <div className="relative">
-                    <select
-                      className="appearance-none rounded-lg bg-white/15 py-1 pl-2.5 pr-6 text-[11px] font-semibold text-white"
-                      defaultValue="monthly"
-                    >
-                      <option value="monthly" className="bg-white text-slate-900">Monthly</option>
-                      <option value="quarterly" className="bg-white text-slate-900">Quarterly</option>
-                      <option value="yearly" className="bg-white text-slate-900">Yearly</option>
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/70" />
-                  </div>
-                </div>
               </div>
-              <div className="mx-4 mb-4 flex h-36 items-center justify-center rounded-xl bg-white/10">
-                <p className="text-xs font-medium text-white/70">Graph — coming soon</p>
+              <div className="h-72 px-3 pb-4">
+                <PieChart data={mobilePieData} />
               </div>
             </div>
 
@@ -468,25 +461,11 @@ export function TnvrScreen() {
         <section className="rounded-2xl bg-white p-5 ring-1 ring-border">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="font-heading text-lg font-bold text-brand-dark">
-              TNVR Trend
+              TNVR Statistics
             </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
-              >
-                Status <ChevronDownIcon className="h-3 w-3" />
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
-              >
-                Gender <ChevronDownIcon className="h-3 w-3" />
-              </button>
-            </div>
           </div>
-          <div className="flex h-56 items-center justify-center rounded-xl bg-brand-cream text-sm text-brand-dark/50">
-            Pie chart / bar chart
+          <div className="h-80">
+            <PieChart data={desktopPieData} />
           </div>
         </section>
 

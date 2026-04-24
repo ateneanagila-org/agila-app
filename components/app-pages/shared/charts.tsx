@@ -91,7 +91,7 @@ export function HorizontalBarChart({
                 }}
                 labelStyle={{ color: "#fff967", fontWeight: 700 }}
                 itemStyle={{ color: "white" }}
-                formatter={(value: number) => [value, "Cats"]}
+                formatter={((value: number) => [value, "Cats"]) as never}
               />
               <Bar
                 dataKey="value"
@@ -146,10 +146,10 @@ export function PieChart({ data, title }: PieChartProps) {
                 }}
                 labelStyle={{ color: "#fff967", fontWeight: 700 }}
                 itemStyle={{ color: "white" }}
-                formatter={(value: number, name: string) => [
+                formatter={((value: number, name: string) => [
                   `${value} (${Math.round((value / total) * 100)}%)`,
                   name,
-                ]}
+                ]) as never}
               />
               <Legend
                 verticalAlign="bottom"

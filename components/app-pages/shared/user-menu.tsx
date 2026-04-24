@@ -128,16 +128,12 @@ export function UserMenu({ variant }: UserMenuProps) {
 
   if (variant === "sidebar") {
     return (
-      <div ref={rootRef} className="relative">
+      <div ref={rootRef} className="relative border-t border-white/10 pt-4">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition-colors ${
-            open
-              ? "bg-white/10 ring-white/20"
-              : "bg-white/5 ring-white/10 hover:bg-white/10"
-          }`}
+          className="flex w-full items-center gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-white/5"
         >
           <Avatar src={avatarUrl} initials={initials} size="md" />
           <div className="min-w-0 flex-1">
