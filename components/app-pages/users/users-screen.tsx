@@ -463,50 +463,69 @@ export function UsersScreen() {
           />
 
           {error && selectedUser ? (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+            <div className="rounded-lg border border-white/20 bg-brand-dark/40 px-3 py-2 text-xs font-semibold text-brand-yellow">
               {error}
             </div>
           ) : null}
 
           <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-white/70">Name</p>
-              <p className="mt-0.5 text-sm font-semibold text-white">
+            <div className="rounded-xl bg-white/10 px-3.5 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
+                Name
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-white">
                 {selectedUser.name || "Unnamed"}
               </p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-white/70">Email</p>
-              <p className="mt-0.5 text-sm text-white/80">
+            <div className="rounded-xl bg-white/10 px-3.5 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
+                Email
+              </p>
+              <p className="mt-0.5 break-all text-sm font-semibold text-white/90">
                 {selectedUser.user?.email ?? selectedUser.id}
               </p>
             </div>
             <div>
-              <label className="text-sm text-white/70">Role</label>
-              <div className="relative mt-1 rounded-lg border border-white/20 bg-white/15">
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm text-white"
-                >
-                  {AUTH_ROLE_VALUES.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">
-                  &#9660;
-                </span>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
+                Role
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {AUTH_ROLE_VALUES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setEditRole(r)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      editRole === r
+                        ? "border-transparent bg-brand-orange text-white shadow-sm"
+                        : "border-white/30 bg-white/10 text-white/80 hover:bg-white/15"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSaveRole}
-            className="w-full rounded-full bg-brand-orange py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => { setSelectedUser(null); setError(null); }}
+              className="rounded-full border border-white/40 bg-transparent px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveRole}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+              <span className="ml-1">&#10003;</span>
+            </button>
+          </div>
         </DialogShell>
       ) : null}
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { UserMenu } from "@/components/app-pages/shared/user-menu";
 
 type NavItem = {
   label: "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
@@ -171,23 +172,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              aria-label="Open menu"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4 text-white/80"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path strokeLinecap="round" d="M4 7h16" />
-                <path strokeLinecap="round" d="M4 12h16" />
-                <path strokeLinecap="round" d="M4 17h16" />
-              </svg>
-            </button>
+            <UserMenu variant="mobile" />
           </div>
         </header>
 
@@ -278,27 +263,8 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="mt-auto flex items-center gap-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-green text-white">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <circle cx="12" cy="8" r="3.5" />
-                <path strokeLinecap="round" d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">
-                Niles Cabrera
-              </p>
-              <p className="truncate text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
-                Admin
-              </p>
-            </div>
+          <div className="mt-auto">
+            <UserMenu variant="sidebar" />
           </div>
         </aside>
 

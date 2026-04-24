@@ -8,6 +8,7 @@ import {
   SearchIcon,
   ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
+import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
@@ -167,6 +168,36 @@ export function OverviewScreen() {
     [desktopStats],
   );
 
+  const populationByLocation = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const loc of LOCATIONS) {
+      if (loc === "All Locations") continue;
+      counts.set(loc, 0);
+    }
+    const activeCats = allCats.filter(
+      (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
+    );
+    for (const cat of activeCats) {
+      const spot = (cat.spot_last_seen ?? "").toUpperCase();
+      if (!spot) continue;
+      let matched = false;
+      for (const loc of counts.keys()) {
+        if (spot.includes(loc.toUpperCase())) {
+          counts.set(loc, (counts.get(loc) ?? 0) + 1);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        counts.set("UNKNOWN", (counts.get("UNKNOWN") ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries()).map(([label, value]) => ({
+      label,
+      value,
+    }));
+  }, [allCats]);
+
   const desktopStatusStats = useMemo(
     () => [
       { label: "Tame", value: String(desktopStats.tame) },
@@ -281,19 +312,18 @@ export function OverviewScreen() {
             </button>
           </div>
 
-          {/* Chart placeholder */}
-          <div className="relative flex h-48 items-center justify-center rounded-xl bg-brand-green">
-            <p className="text-sm text-white/70">Horizontal Bar Chart</p>
+          {/* Population bar chart */}
+          <div className="relative rounded-xl bg-white p-3 ring-1 ring-border">
             <button
               type="button"
               onClick={() => setShowPeriodMenu((v) => !v)}
-              className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange text-xs font-bold text-white"
+              className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-brand-dark text-xs font-bold text-white"
               aria-label="Chart options"
             >
-              •••
+              <span className="-mt-1 leading-none">...</span>
             </button>
             {showPeriodMenu && (
-              <div className="absolute right-3 top-12 z-10 min-w-24 rounded-xl bg-brand-dark p-2 shadow-lg">
+              <div className="absolute right-3 top-12 z-20 min-w-28 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg">
                 {activePeriods.map((period) => (
                   <button
                     key={period}
@@ -306,6 +336,12 @@ export function OverviewScreen() {
                 ))}
               </div>
             )}
+            <div className="h-80">
+              <HorizontalBarChart
+                data={populationByLocation}
+                title="Catenean Population Summary"
+              />
+            </div>
           </div>
 
           {/* Sociability stats */}
@@ -507,10 +543,11 @@ export function OverviewScreen() {
               </div>
             )}
 
-            <div className="flex h-72 items-center justify-center rounded-xl bg-brand-cream text-sm text-brand-dark/50">
-              {isOverall
-                ? "Horizontal bar chart"
-                : "Line chart (all months in a year)"}
+            <div className="h-80 rounded-xl bg-brand-cream p-3">
+              <HorizontalBarChart
+                data={populationByLocation}
+                title="Catenean Population Summary"
+              />
             </div>
           </section>
 
