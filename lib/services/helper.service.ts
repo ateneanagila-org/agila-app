@@ -32,13 +32,35 @@ export async function connectToSheets() {
 
   const glAuth = new google.auth.GoogleAuth({
     credentials: { ...serviceAccountCredentials, private_key: privateKey },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.readonly",
+    ],
   });
 
   return {
     glAuth,
     glSheets: google.sheets({ version: "v4", auth: glAuth }),
   };
+}
+
+/**
+ * Exports the spreadsheet as an HTML ZIP via Drive API v3.
+ * ZIP contains one HTML file per sheet tab + an images/ directory.
+ * Image bytes in the HTML reference images/imageN.png by filename.
+ * Google resamples pasted images to cell display size on export —
+ * output images are already reduced from their original resolution.
+ */
+export async function exportSpreadsheetAsZip(
+  spreadsheetId: string,
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+): Promise<Buffer> {
+  const drive = google.drive({ version: "v3", auth: glAuth });
+  const response = await drive.files.export(
+    { fileId: spreadsheetId, mimeType: "application/zip" },
+    { responseType: "arraybuffer" },
+  );
+  return Buffer.from(response.data as ArrayBuffer);
 }
 
 // ==========================================
