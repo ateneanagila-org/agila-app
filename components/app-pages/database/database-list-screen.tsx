@@ -10,7 +10,6 @@ import {
 import {
   ChevronDownIcon,
   ImagePlaceholderIcon,
-  PlusCircleIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats } from "@/app/actions/cats";
@@ -96,11 +95,6 @@ export function DatabaseListScreen() {
     return null;
   };
 
-  const sexColor = (sex: string | null | undefined): string => {
-    if (sex === "Male") return "text-blue-500";
-    if (sex === "Female") return "text-pink-500";
-    return "text-slate-400";
-  };
 
   const handleSave = useCallback(() => {
     fetchCats();
@@ -114,8 +108,8 @@ export function DatabaseListScreen() {
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12">
-      <p className="text-sm text-slate-500">No cats found.</p>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="text-sm text-brand-dark/80">No cats found.</p>
+      <p className="mt-1 text-xs text-brand-dark/60">
         Add a new entry to get started.
       </p>
     </div>
@@ -173,34 +167,36 @@ export function DatabaseListScreen() {
               {searchedCats.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/database/general?id=${cat.id}`}
-                  className="block overflow-hidden rounded-2xl bg-brand-green"
+                  href={`/dashboard/database/general?id=${cat.id}`}
+                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
                 >
-                  <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
                             {cat.name || "Unnamed"}
-                            {sexSymbol(cat.sex) ? (
-                              <span className="ml-1 text-white/80">
-                                {sexSymbol(cat.sex)}
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="mt-0.5 text-xs text-white/70">
-                            {cat.color || "Unknown color"} {cat.age ? `• ${cat.age}` : ""}
-                          </p>
-                          <p className="mt-1 text-xs font-semibold text-white/60">
-                            {cat.spot_last_seen || "Unknown location"} &middot;{" "}
-                            {formatDate(cat.last_updated_at)}
-                          </p>
+                          </span>
+                          {sexSymbol(cat.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">
+                              {sexSymbol(cat.sex)}
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/80">
-                          ···
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {cat.color || "Unknown color"} {cat.age ? ` ${cat.age}` : ""}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2">
+                        <p className="text-sm font-bold text-white truncate">
+                          {cat.spot_last_seen || "Unknown loc."} - {formatDate(cat.last_updated_at)}
+                        </p>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/90 shadow-sm">
+                          <span className="font-bold leading-none -mt-1">...</span>
                         </div>
                       </div>
                     </div>
@@ -223,36 +219,41 @@ export function DatabaseListScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Database
-          </h1>
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+              Database
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-brand-green">
+              {searchedCats.length} cats on record
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
           >
             Add entry
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-border">
+        <div className="mt-5 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">
           <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search cats by name, color, or location"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
-            <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
           <button
             type="button"
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Filter
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -260,67 +261,54 @@ export function DatabaseListScreen() {
           <button
             type="button"
             onClick={() => setShowSort(true)}
-            className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Sort by
             <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 laptop:grid-cols-3">
           {loading ? (
-            <LoadingIndicator />
+            <div className="col-span-full"><LoadingIndicator /></div>
           ) : searchedCats.length === 0 ? (
-            <EmptyState />
+            <div className="col-span-full"><EmptyState /></div>
           ) : (
             searchedCats.map((cat) => (
               <Link
                 key={`desktop-${cat.id}`}
-                href={`/database/general?id=${cat.id}`}
-                className="flex items-center gap-4 overflow-hidden rounded-2xl bg-brand-green px-5 py-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
+                href={`/dashboard/database/general?id=${cat.id}`}
+                className="group flex items-stretch overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95"
               >
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                  <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+                <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                  <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-heading text-xl font-bold tracking-tight text-white">
-                      {cat.name || "Unnamed"}
-                    </h2>
-                    {sexSymbol(cat.sex) ? (
-                      <span className={`text-xl font-semibold text-white/70`}>
-                        {sexSymbol(cat.sex)}
-                      </span>
-                    ) : null}
+                <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-3.5">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="font-heading text-xl font-bold leading-tight tracking-tight text-brand-yellow truncate">
+                        {cat.name || "Unnamed"}
+                      </h2>
+                      {sexSymbol(cat.sex) ? (
+                        <span className="text-lg leading-none text-white">
+                          {sexSymbol(cat.sex)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-sm font-semibold text-white truncate">
+                      {cat.color || "Unknown color"}
+                      {cat.age ? ` · ${cat.age}` : ""}
+                    </p>
                   </div>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {cat.color ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
-                        {cat.color}
-                      </span>
-                    ) : null}
-                    {cat.age ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
-                        {cat.age}
-                      </span>
-                    ) : null}
-                    {cat.sociability && cat.sociability !== "Unknown" ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
-                        {cat.sociability}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-white/70">
-                      Last seen: {cat.spot_last_seen || "Unknown"} &middot;{" "}
+                  <div className="mt-3 flex items-end justify-between gap-2">
+                    <p className="text-xs font-medium text-white/70 truncate">
+                      {cat.spot_last_seen || "Unknown loc."} ·{" "}
                       {formatDate(cat.last_updated_at)}
                     </p>
-                    <span className="rounded-full bg-brand-orange px-3.5 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90">
-                      Edit entry <span className="ml-1">✎</span>
-                    </span>
+                    <div className="flex h-7 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                      <span className="-mt-1 font-bold leading-none">...</span>
+                    </div>
                   </div>
                 </div>
               </Link>

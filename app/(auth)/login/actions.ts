@@ -24,5 +24,5 @@ export async function googleLogin() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect("/dashboard/overview");
 }

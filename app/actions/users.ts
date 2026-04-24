@@ -1,7 +1,6 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as usersRepo from "@/lib/repo/users.repo";
-import { createClient } from "@/lib/supabase/server";
 import { syncSheetEditors } from "@/lib/services/helper.service";
 import {
   getProfilesSchema,
@@ -58,7 +57,3 @@ export const removeProfile = actionClient
     },
   );
 
-export const getSupabaseUser = actionClient.action(async () => {
-  const supabase = await createClient();
-  return await supabase.auth.getUser();
-});

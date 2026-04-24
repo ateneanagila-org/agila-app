@@ -6,6 +6,8 @@ import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import { PieChart, CHART_COLORS } from "@/components/app-pages/shared/charts";
+import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 
 /** Compute TNVR stats from cats + health records */
 function computeTnvrStats(
@@ -83,7 +85,7 @@ function computeTnvrStats(
 function GreenStatRow({
   label,
   value,
-  labelClass = "text-white/70",
+  labelClass = "text-brand-yellow",
   valueClass = "text-white font-semibold",
 }: {
   label: string;
@@ -121,7 +123,7 @@ function SexSection({
       {/* Header */}
       <div className="grid grid-cols-2 divide-x divide-white/20 px-0">
         <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
             {title}
           </p>
           <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
@@ -129,7 +131,7 @@ function SexSection({
           </p>
         </div>
         <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
             TNVR Score
           </p>
           <p className="mt-0.5 font-heading text-3xl font-bold leading-none tabular-nums text-white">
@@ -224,29 +226,19 @@ export function TnvrScreen() {
     [desktopCats, allHealthRecords],
   );
 
-  const desktopCards = useMemo(
-    () => [
-      { value: desktopStats.overallTnvr, label: "Overall TNVR %" },
-      { value: desktopStats.maleTnvr, label: "Male TNVR %" },
-      { value: desktopStats.femaleTnvr, label: "Female TNVR %" },
-      { value: desktopStats.unknownTnvr, label: "Unknown TNVR %" },
-      { value: String(desktopStats.total), label: "Total Count" },
-      { value: String(desktopStats.totalMale), label: "Male" },
-      { value: String(desktopStats.totalFemale), label: "Female" },
-      { value: String(desktopStats.totalUnknown), label: "Unknown" },
-      { value: String(desktopStats.totalNeutered), label: "Neutered" },
-      { value: String(desktopStats.neuteredMale), label: "Male" },
-      { value: String(desktopStats.spayedFemale), label: "Female" },
-      { value: String(desktopStats.neuteredUnknown), label: "Unknown" },
-      { value: String(desktopStats.totalUnneutered), label: "Unneutered" },
-      { value: String(desktopStats.unneuteredMale), label: "Male" },
-      { value: String(desktopStats.unneuteredFemale), label: "Female" },
-      { value: String(desktopStats.unneuteredUnknown), label: "Unknown" },
-    ],
-    [desktopStats],
-  );
-
   const isOverall = location === "All Locations";
+
+  // Green family = neutered, warm family = unneutered
+  const buildPieData = (s: ReturnType<typeof computeTnvrStats>) => [
+    { label: "Neutered Male", value: s.neuteredMale, color: "#1f7d3d" },
+    { label: "Spayed Female", value: s.spayedFemale, color: "#4fa86a" },
+    { label: "Neutered Unknown", value: s.neuteredUnknown, color: "#a8d4a5" },
+    { label: "Unneutered Male", value: s.unneuteredMale, color: "#c94f1f" },
+    { label: "Unneutered Female", value: s.unneuteredFemale, color: "#eb8a4e" },
+    { label: "Unneutered Unknown", value: s.unneuteredUnknown, color: "#f5c17e" },
+  ];
+  const mobilePieData = buildPieData(mobileStats);
+  const desktopPieData = buildPieData(desktopStats);
 
   if (loading) {
     return (
@@ -264,36 +256,26 @@ export function TnvrScreen() {
           <div className="space-y-3">
             {/* Date + title */}
             <div>
-              <p className="text-[11px] font-medium text-slate-400">
+              <p className="text-[11px] font-medium text-brand-green">
                 Updated {lastUpdated}
               </p>
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-green">
                 TNVR
               </h1>
             </div>
 
-            {/* Location search bar — orange */}
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-              <select
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-9 text-sm font-semibold text-white"
-                aria-label="Location"
-              >
-                {LOCATIONS.map((opt) => (
-                  <option key={opt} value={opt} className="bg-white text-slate-900">
-                    {opt}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
+            {/* Location picker */}
+            <LocationPicker
+              value={location}
+              options={LOCATIONS}
+              onChange={setLocation}
+              variant="pill"
+            />
 
             {/* Category dropdown — outlined */}
             <div className="relative">
               <select
-                className="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 pr-9 text-sm font-medium text-slate-700"
+                className="h-10 w-full appearance-none rounded-xl border border-brand-pink bg-white px-3.5 pr-9 text-sm font-medium text-foreground"
                 aria-label="Category"
                 defaultValue="all"
               >
@@ -301,37 +283,18 @@ export function TnvrScreen() {
                 <option value="neutered">Neutered / Spayed</option>
                 <option value="unneutered">Unneutered</option>
               </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange" />
             </div>
 
-            {/* Chart placeholder */}
-            <div className="overflow-hidden rounded-2xl bg-brand-green">
+            {/* TNVR Pie chart */}
+            <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-border">
               <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
-                  TNVR Trend
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-green">
+                  TNVR Statistics
                 </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full bg-brand-orange px-3 py-1 text-[11px] font-bold text-white"
-                  >
-                    •••
-                  </button>
-                  <div className="relative">
-                    <select
-                      className="appearance-none rounded-lg bg-white/15 py-1 pl-2.5 pr-6 text-[11px] font-semibold text-white"
-                      defaultValue="monthly"
-                    >
-                      <option value="monthly" className="bg-white text-slate-900">Monthly</option>
-                      <option value="quarterly" className="bg-white text-slate-900">Quarterly</option>
-                      <option value="yearly" className="bg-white text-slate-900">Yearly</option>
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/70" />
-                  </div>
-                </div>
               </div>
-              <div className="mx-4 mb-4 flex h-36 items-center justify-center rounded-xl bg-white/10">
-                <p className="text-xs font-medium text-white/40">Graph — coming soon</p>
+              <div className="h-72 px-3 pb-4">
+                <PieChart data={mobilePieData} />
               </div>
             </div>
 
@@ -342,7 +305,7 @@ export function TnvrScreen() {
                 <div className="overflow-hidden rounded-2xl bg-brand-green">
                   <div className="grid grid-cols-2 divide-x divide-white/20">
                     <div className="px-4 py-3.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
                         Total Overall
                       </p>
                       <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">
@@ -350,7 +313,7 @@ export function TnvrScreen() {
                       </p>
                     </div>
                     <div className="px-4 py-3.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
                         TNVR Score
                       </p>
                       <p className="mt-0.5 font-heading text-4xl font-bold leading-none tabular-nums text-white">
@@ -427,76 +390,123 @@ export function TnvrScreen() {
         </PageContent>
       </div>
 
-      {/* ── Desktop ─────────────────────────────────────────────────────── */}
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="mb-4 flex items-center justify-between gap-5">
-          <label className="w-full max-w-52">
-            <span className="mb-1.5 block text-sm font-semibold text-foreground">
-              Location:
-            </span>
-            <div className="relative rounded-full bg-white ring-1 ring-border">
-              <select
-                value={desktopLocation}
-                onChange={(e) => setDesktopLocation(e.target.value)}
-                className="h-9 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-foreground"
-                aria-label="TNVR Location"
-              >
-                <option value="Overall">Overall</option>
-                {LOCATIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                &#9662;
-              </span>
-            </div>
-          </label>
-
-          <p className="whitespace-nowrap pt-5 text-xs font-medium text-muted-foreground">
-            Last updated: {lastUpdated}
-          </p>
+      {/* ── Desktop HI-FI ────────────────────────────────────────────── */}
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="mb-6 flex items-end justify-between gap-5">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+              TNVR
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-brand-green">
+              Updated{" "}
+              <span className="font-medium text-brand-dark/70">{lastUpdated}</span>
+            </p>
+          </div>
+          <div className="w-full max-w-72">
+            <LocationPicker
+              value={desktopLocation}
+              options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+              onChange={setDesktopLocation}
+              label="Location"
+            />
+          </div>
         </div>
 
-        <section className="rounded-2xl bg-white p-4 ring-1 ring-border">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-foreground">Graph title</p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-              >
-                Status
-                <span className="ml-1">&#9662;</span>
-              </button>
-              <button
-                type="button"
-                className="rounded-full bg-brand-cream-dark px-4 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-              >
-                Gender
-                <span className="ml-1">&#9662;</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex h-48 items-center justify-center rounded-xl bg-brand-cream text-sm text-muted-foreground">
-            pie chart / bar chart
+        {/* Hero TNVR score */}
+        <section className="mb-4 overflow-hidden rounded-2xl bg-brand-green">
+          <div className="grid grid-cols-4 divide-x divide-white/15">
+            {[
+              { label: "Overall TNVR %", value: desktopStats.overallTnvr },
+              { label: "Male TNVR %", value: desktopStats.maleTnvr },
+              { label: "Female TNVR %", value: desktopStats.femaleTnvr },
+              { label: "Unknown TNVR %", value: desktopStats.unknownTnvr },
+            ].map((card) => (
+              <div key={card.label} className="px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
+                  {card.label}
+                </p>
+                <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
+                  {card.value}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
+        {/* Chart */}
+        <section className="rounded-2xl bg-white p-5 ring-1 ring-border">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="font-heading text-lg font-bold text-brand-dark">
+              TNVR Statistics
+            </p>
+          </div>
+          <div className="h-80">
+            <PieChart data={desktopPieData} />
+          </div>
+        </section>
+
+        {/* Sex breakdown — matches mobile SexSection pattern */}
         <div className="mt-4 grid grid-cols-4 gap-3">
-          {desktopCards.map((card, index) => (
+          {[
+            {
+              title: "Total Overall",
+              total: desktopStats.total,
+              neuteredLabel: "Neutered / Spayed",
+              neuteredCount: desktopStats.totalNeutered,
+              unneuteredCount: desktopStats.totalUnneutered,
+            },
+            {
+              title: "Male",
+              total: desktopStats.totalMale,
+              neuteredLabel: "Neutered",
+              neuteredCount: desktopStats.neuteredMale,
+              unneuteredCount: desktopStats.unneuteredMale,
+            },
+            {
+              title: "Female",
+              total: desktopStats.totalFemale,
+              neuteredLabel: "Spayed",
+              neuteredCount: desktopStats.spayedFemale,
+              unneuteredCount: desktopStats.unneuteredFemale,
+            },
+            {
+              title: "Unknown",
+              total: desktopStats.totalUnknown,
+              neuteredLabel: "Neutered",
+              neuteredCount: desktopStats.neuteredUnknown,
+              unneuteredCount: desktopStats.unneuteredUnknown,
+            },
+          ].map((section) => (
             <article
-              key={`${card.label}-${index}`}
-              className="rounded-2xl bg-white px-4 py-3.5 ring-1 ring-border"
+              key={section.title}
+              className="overflow-hidden rounded-2xl bg-brand-green"
             >
-              <p className="text-center text-2xl font-bold tabular-nums tracking-tight text-foreground">
-                {card.value}
-              </p>
-              <p className="mt-1 text-center text-xs text-muted-foreground">
-                {card.label}
-              </p>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-yellow">
+                  {section.title}
+                </p>
+                <p className="mt-1 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+                  {section.total}
+                </p>
+              </div>
+              <div className="divide-y divide-white/10 border-t border-white/10">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs font-medium text-brand-yellow">
+                    {section.neuteredLabel}
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-white">
+                    {section.neuteredCount}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs font-medium text-brand-yellow">
+                    Unneutered
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-white">
+                    {section.unneuteredCount}
+                  </span>
+                </div>
+              </div>
             </article>
           ))}
         </div>

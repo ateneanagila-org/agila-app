@@ -114,7 +114,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowMergeConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to merge.");
     } finally {
@@ -138,7 +138,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowApproveConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve.");
     } finally {
@@ -157,7 +157,7 @@ export function SessionsApprovalCrossRefScreen() {
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
-      router.push("/sessions/manager");
+      router.push("/dashboard/sessions/manager");
     } catch (err) {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
@@ -183,8 +183,8 @@ export function SessionsApprovalCrossRefScreen() {
   };
 
   const validationHref = catId
-    ? `/sessions/approval/validation?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
-    : "/sessions/approval/validation";
+    ? `/dashboard/sessions/approval/validation?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
+    : "/dashboard/sessions/approval/validation";
 
   if (loading) {
     return (
@@ -234,12 +234,12 @@ export function SessionsApprovalCrossRefScreen() {
 
           {/* Section header */}
           <div className="flex items-center justify-between">
-            <p className="font-heading text-base font-bold text-brand-green">
+            <p className="font-heading text-xl font-bold text-brand-green">
               Cross-Reference
             </p>
             <Link
               href={validationHref}
-              className="flex items-center gap-1 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
+              className="flex items-center gap-1 rounded-xl bg-brand-dark px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
             >
               ‹ Previous
             </Link>
@@ -249,10 +249,18 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          {/* Search bar */}
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2.5">
-            <SearchIcon className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="text-sm text-slate-400">Search</span>
+          {/* Search bar + Filters */}
+          <div className="flex gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-pink-200 bg-brand-cream px-3 py-2">
+              <span className="text-sm font-bold text-brand-orange">Search</span>
+              <SearchIcon className="h-4 w-4 shrink-0 text-brand-orange" />
+            </div>
+            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
+              Filter <span className="text-xs">▼</span>
+            </button>
+            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
+              Sort <span className="text-xs">▼</span>
+            </button>
           </div>
 
           {similarCats.length === 0 ? (
@@ -266,33 +274,47 @@ export function SessionsApprovalCrossRefScreen() {
                   key={c.id}
                   className="overflow-hidden rounded-2xl bg-brand-green"
                 >
-                  <div className="flex items-start gap-3 p-3.5">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+                  <div className="flex items-stretch gap-0">
+                    {/* Full-height image column */}
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
-                        {c.name || "Unnamed"}
-                        {sexSymbol(c.sex) ? (
-                          <span className="ml-1 text-white/80">{sexSymbol(c.sex)}</span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {c.color || "—"}{c.age ? ` • ${c.age}` : ""}
-                      </p>
-                      <p className="mt-1 text-xs text-white/60">
-                        {c.spot_last_seen || "—"} &middot; {formatDate(c.last_updated_at)}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMergeTargetId(c.id);
-                          setShowMergeConfirm(true);
-                        }}
-                        className="mt-2 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                      >
-                        Merge ›
-                      </button>
+                    {/* Info */}
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                            {c.name || "Unnamed"}
+                          </span>
+                          {sexSymbol(c.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">{sexSymbol(c.sex)}</span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {c.color || "—"}{c.age ? ` ${c.age}` : ""}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="mt-3 text-sm font-bold text-white truncate">
+                          {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMergeTargetId(c.id);
+                              setShowMergeConfirm(true);
+                            }}
+                            className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                          >
+                            Merge ›
+                          </button>
+                          <div className="flex h-7 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                            <span className="text-base font-bold">•••</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

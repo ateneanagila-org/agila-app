@@ -27,13 +27,13 @@ export function TopTabs({
   const idParam = catId ? `?id=${catId}` : "";
 
   const tabs = [
-    { label: "General" as const, href: `/database/general${idParam}` },
-    { label: "Medical" as const, href: `/database/medical${idParam}` },
-    { label: "Interventions" as const, href: `/database/interventions${idParam}` },
+    { label: "General" as const, href: `/dashboard/database/general${idParam}` },
+    { label: "Medical" as const, href: `/dashboard/database/medical${idParam}` },
+    { label: "Interventions" as const, href: `/dashboard/database/interventions${idParam}` },
   ];
 
   return (
-    <div className="flex w-full border-b border-slate-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-5">
+    <div className="flex w-full border-b border-pink-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-5">
       {tabs.map((tab) => (
         <Link
           key={tab.label}
@@ -41,7 +41,7 @@ export function TopTabs({
           className={`flex-1 pb-2.5 text-center text-sm tracking-wide transition-colors tablet:flex-none tablet:text-left ${
             tab.label === active
               ? "-mb-px border-b-2 border-brand-orange font-bold text-brand-orange"
-              : "font-medium text-slate-400 hover:text-slate-600"
+              : "font-medium text-brand-dark/70 hover:text-brand-dark"
           }`}
         >
           {tab.label}
@@ -62,7 +62,7 @@ type DetailHeaderProps = {
 export function DetailHeader({
   name = "Cat Name",
   lastUpdated,
-  backHref = "/database",
+  backHref = "/dashboard/database",
   subtitle,
 }: DetailHeaderProps) {
   const subtitleText = subtitle ?? (lastUpdated ? `Last updated: ${lastUpdated}` : "");

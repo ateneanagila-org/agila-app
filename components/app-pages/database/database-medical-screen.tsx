@@ -225,7 +225,7 @@ export function DatabaseMedicalScreen() {
           <DetailHeader
             name={cat?.name || "Unnamed"}
             lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref="/database"
+            backHref="/dashboard/database"
           />
           <TopTabs active="Medical" />
 

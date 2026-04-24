@@ -193,7 +193,7 @@ export function DatabaseInterventionsScreen() {
           <DetailHeader
             name={cat?.name || "Unnamed"}
             lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref="/database"
+            backHref="/dashboard/database"
           />
           <TopTabs active="Interventions" />
 
@@ -216,7 +216,7 @@ export function DatabaseInterventionsScreen() {
           </div>
 
           {filteredInterventions.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-sm text-brand-dark/70">
               No interventions yet.
             </div>
           ) : (
@@ -231,13 +231,13 @@ export function DatabaseInterventionsScreen() {
                       <p className="font-heading text-base font-bold leading-tight text-brand-yellow">
                         Intervention No. {String(index + 1).padStart(2, "0")}
                       </p>
-                      <p className="mt-0.5 text-xs text-white/80">
+                      <p className="mt-0.5 text-xs font-semibold text-white">
                         {item.type || "—"}
                       </p>
-                      <p className="mt-1 text-xs text-white/70">
+                      <p className="mt-1 text-xs text-white/90">
                         Requested at: {formatDate(item.requested_at)}
                       </p>
-                      <p className="text-xs text-white/70">
+                      <p className="text-xs text-white/90">
                         Notes: {item.notes || "—"}
                       </p>
                     </div>
@@ -262,14 +262,14 @@ export function DatabaseInterventionsScreen() {
           <div className="flex items-center gap-3 pb-2">
             <button
               type="button"
-              onClick={() => router.push("/database")}
+              onClick={() => router.push("/dashboard/database")}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
             >
               Cancel <span>✕</span>
             </button>
             <button
               type="button"
-              onClick={() => router.push("/database")}
+              onClick={() => router.push("/dashboard/database")}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Save <span>✓</span>

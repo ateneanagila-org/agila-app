@@ -97,7 +97,7 @@ export function SessionsManagerScreen() {
               Census Report
             </button>
             <Link
-              href="/sessions"
+              href="/dashboard/sessions"
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Review Sessions ⊙
@@ -106,9 +106,9 @@ export function SessionsManagerScreen() {
 
           {/* Heading + pending count */}
           <div className="flex items-center gap-2">
-            <p className="font-heading text-2xl font-bold text-foreground">For Review</p>
+            <p className="font-heading text-2xl font-bold text-brand-green">For Review</p>
             {forReview.length > 0 ? (
-              <span className="rounded-full bg-brand-orange px-2.5 py-0.5 text-xs font-bold text-white">
+              <span className="rounded-full border border-brand-orange px-2.5 py-0.5 text-xs font-bold text-brand-orange">
                 {forReview.length} pending
               </span>
             ) : null}
@@ -125,28 +125,39 @@ export function SessionsManagerScreen() {
               {forReview.map((item) => (
                 <Link
                   key={item.sessionCatId}
-                  href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                  href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
                   className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
-                    <div className="flex w-24 shrink-0 items-center justify-center bg-white/10">
+                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
                       <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
-                    <div className="min-w-0 flex-1 px-3.5 py-3">
-                      <p className="font-heading text-xl font-bold leading-tight text-brand-yellow">
-                        {item.cat.name || "Unnamed"}
-                        {sexSymbol(item.cat.sex) ? (
-                          <span className="ml-1 text-white/80">{sexSymbol(item.cat.sex)}</span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/70">
-                        {item.cat.color || "Unknown"}{item.cat.age ? ` Size/${item.cat.age}` : ""}
-                      </p>
-                      <p className="mt-1 text-xs text-white/60">
-                        {item.cat.spot_last_seen || "—"} &middot; {formatDate(item.cat.last_updated_at)}
-                      </p>
+                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                            {item.cat.name || "Unnamed"}
+                          </span>
+                          {sexSymbol(item.cat.sex) ? (
+                            <span className="text-white text-lg leading-none ml-1">
+                              {sexSymbol(item.cat.sex)}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-white truncate">
+                          {item.cat.color || "Unknown"}{item.cat.age ? ` ${item.cat.age}` : ""}
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2">
+                        <p className="text-sm font-bold text-white truncate">
+                          {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
+                        </p>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                          <span className="text-sm font-bold">›</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -169,7 +180,7 @@ export function SessionsManagerScreen() {
               Census Report <span className="ml-1">📊</span>
             </button>
             <Link
-              href="/sessions"
+              href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Back <span className="ml-1">&#8249;</span>
@@ -242,7 +253,7 @@ export function SessionsManagerScreen() {
                     </p>
                   </div>
                   <Link
-                    href={`/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                    href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
                     className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Review <span className="ml-1">&#9998;</span>

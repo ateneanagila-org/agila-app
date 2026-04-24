@@ -160,7 +160,7 @@ export function SessionsScreen() {
                 Census Report
               </button>
               <Link
-                href="/sessions/manager"
+                href="/dashboard/sessions/manager"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Review Sessions ⊙
@@ -169,9 +169,9 @@ export function SessionsScreen() {
 
             {/* My Sessions heading + Create New */}
             <div className="flex items-center justify-between">
-              <p className="font-heading text-2xl font-bold text-foreground">My Sessions</p>
+              <p className="font-heading text-2xl font-bold text-brand-green">My Sessions</p>
               <Link
-                href="/sessions/create"
+                href="/dashboard/sessions/create"
                 className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Create New <span>+</span>
@@ -227,17 +227,17 @@ export function SessionsScreen() {
                         <span className="text-xs font-semibold tabular-nums text-white">
                           {(page - 1) * PAGE_SIZE + i + 1}
                         </span>
-                        <span className="text-xs tabular-nums text-white/70">
+                        <span className="text-xs tabular-nums text-white">
                           {formatDate(s.created_at)}
                         </span>
-                        <span className="truncate text-xs text-white/70">
+                        <span className="truncate text-xs text-white">
                           {regionMap[s.region_id] ?? "—"}
                         </span>
                         {/* Status badge */}
                         {!s.is_finished ? (
                           <Link
-                            href={`/sessions/create?sessionId=${s.id}`}
-                            className="rounded-full border border-brand-orange px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
+                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                            className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
                           >
                             Continue ›
                           </Link>
@@ -257,12 +257,12 @@ export function SessionsScreen() {
               <button
                 type="button"
                 onClick={() => setShowAll(false)}
-                className="text-sm font-bold underline underline-offset-2 text-foreground"
+                className="text-sm font-bold text-brand-green underline underline-offset-2"
               >
                 Show less sessions
               </button>
               {filteredSessions.length > PAGE_SIZE ? (
-                <div className="flex items-center gap-1 rounded-full border border-pink-200 bg-white px-4 py-2 text-xs font-semibold text-foreground">
+                <div className="flex items-center gap-1 rounded-full border border-pink-200 bg-brand-pink/20 px-4 py-2 text-xs font-semibold text-brand-orange">
                   <button
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -293,30 +293,37 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Census Report
               </button>
               <Link
-                href="/sessions/manager"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-green py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                href="/dashboard/sessions/manager"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 Review Sessions
               </Link>
             </div>
 
             {/* Recent Sessions */}
+            <div className="flex items-center justify-between">
+              <p className="font-heading text-xl font-bold text-brand-green">
+                Recent Sessions
+              </p>
+              <Link
+                href="/dashboard/sessions/create"
+                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Create New <span className="text-sm">+</span>
+              </Link>
+            </div>
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-2.5">
-                <p className="font-heading text-lg font-bold text-brand-yellow">
-                  Recent Sessions
-                </p>
-
                 <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">No.</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Location</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Date</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Status</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">No.</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Location</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Date</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Status</span>
                 </div>
 
                 {loading ? (
@@ -330,20 +337,20 @@ export function SessionsScreen() {
                         <span className="text-xs font-semibold tabular-nums text-white">
                           {s.id.slice(0, 5)}
                         </span>
-                        <span className="truncate text-xs text-white/70">
+                        <span className="truncate text-xs text-white">
                           {regionMap[s.region_id] ?? "—"}
                         </span>
-                        <span className="text-xs tabular-nums text-white/60">
+                        <span className="text-xs tabular-nums text-white">
                           {formatDate(s.created_at)}
                         </span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                             s.is_finished
-                              ? "bg-white/10 text-white/80"
-                              : "bg-brand-orange/80 text-white"
+                              ? "bg-white/10 text-white"
+                              : "bg-white text-brand-orange"
                           }`}
                         >
-                          {sessionStatus(s)}
+                          {s.is_finished ? "Reviewed" : "Continue ›"}
                         </span>
                       </div>
                     ))}
@@ -353,7 +360,7 @@ export function SessionsScreen() {
                 <button
                   type="button"
                   onClick={() => { setShowAll(true); setPage(1); }}
-                  className="text-xs font-medium text-white/60 underline-offset-2 hover:text-white/80 underline"
+                  className="text-xs font-bold text-brand-green underline underline-offset-2"
                 >
                   Show all sessions
                 </button>
@@ -361,22 +368,21 @@ export function SessionsScreen() {
             </div>
 
             {/* Priority Locations */}
+            <p className="font-heading text-xl font-bold text-brand-green">
+              Priority Locations
+            </p>
             <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
               <div className="space-y-2.5">
-                <p className="font-heading text-lg font-bold text-brand-yellow">
-                  Priority Locations
-                </p>
-
                 <div className="flex justify-between border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Name</span>
-                  <span className="text-[11px] font-semibold tracking-wide text-white/60">Last Tracked</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Name</span>
+                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Last Tracked</span>
                 </div>
 
                 <div className="divide-y divide-white/10">
                   {priorityLocations.map((loc) => (
                     <div key={loc.name} className="flex items-center justify-between py-2">
                       <span className="text-xs font-semibold text-white">{loc.name}</span>
-                      <span className="text-xs tabular-nums text-white/70">{loc.daysSince} days ago</span>
+                      <span className="text-xs tabular-nums text-white italic">{loc.daysSince} days ago</span>
                     </div>
                   ))}
                 </div>
@@ -388,7 +394,7 @@ export function SessionsScreen() {
         {/* FAB */}
         <div className="pointer-events-none fixed bottom-20 right-4 z-10">
           <Link
-            href="/sessions/create"
+            href="/dashboard/sessions/create"
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
             <span className="text-2xl font-bold leading-none text-white">+</span>
@@ -396,144 +402,163 @@ export function SessionsScreen() {
         </div>
       </div>
 
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Sessions
-          </h1>
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+              Sessions
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-brand-green">
+              {sessions.length} total &middot; {summary[2].value} unfinished
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="rounded-full border border-brand-green bg-white px-4 py-2 text-sm font-bold text-brand-green transition-colors hover:bg-brand-mint"
             >
-              Census Report <span className="ml-1">📊</span>
+              Census Report
             </button>
             <Link
-              href="/sessions/manager"
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              href="/dashboard/sessions/manager"
+              className="rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Review Sessions <span className="ml-1">👁</span>
+              Review Sessions
             </Link>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-4 gap-3">
+        <div className="mt-5 grid grid-cols-4 gap-3">
           {summary.map((item) => (
             <article
               key={item.label}
-              className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-border"
+              className="rounded-2xl bg-brand-green px-5 py-4"
             >
-              <p className="font-heading text-3xl font-bold tabular-nums tracking-tight text-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
+                {item.label}
+              </p>
+              <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
                 {item.value}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
             </article>
           ))}
         </div>
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="mb-3 flex items-center justify-between">
+        <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <h2 className="font-heading text-lg font-bold text-brand-dark">
+              My Sessions
+            </h2>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowFilters(true)}
-                className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
               >
                 Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
-                <ChevronDownIcon className="h-3.5 w-3.5" />
+                <ChevronDownIcon className="h-3 w-3" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowSort(true)}
-                className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
               >
-                Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
+                Sort by <ChevronDownIcon className="h-3 w-3" />
               </button>
+              <Link
+                href="/dashboard/sessions/create"
+                className="flex items-center gap-1 rounded-full bg-brand-orange px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Create New <span>+</span>
+              </Link>
             </div>
-            <Link
-              href="/sessions/create"
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Create New <span className="ml-1">+</span>
-            </Link>
           </div>
 
-          <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-x-2 border-b border-slate-100 px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500">
+          <div className="grid grid-cols-[1fr_1fr_1fr_auto_7rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
             <span>Census No.</span>
             <span>Date</span>
             <span>Location</span>
             <span>Status</span>
-            <span className="w-20" />
+            <span />
           </div>
 
           {loading ? (
             <LoadingIndicator />
+          ) : filteredSessions.length === 0 ? (
+            <div className="py-10 text-center text-sm text-brand-dark/50">
+              No sessions yet.
+            </div>
           ) : (
-            <div className="divide-y divide-slate-50 px-3">
-              {filteredSessions.length === 0 ? (
-                <div className="py-6 text-center text-sm text-slate-400">
-                  No sessions yet.
-                </div>
-              ) : (
-                filteredSessions.map((s) => (
-                  <div
-                    key={s.id}
-                    className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-center gap-x-2 py-2.5 text-sm text-slate-700"
+            <div className="divide-y divide-border">
+              {filteredSessions.map((s) => (
+                <div
+                  key={s.id}
+                  className="grid grid-cols-[1fr_1fr_1fr_auto_7rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
+                >
+                  <span className="font-semibold tabular-nums">
+                    {s.id.slice(0, 8)}
+                  </span>
+                  <span className="tabular-nums text-brand-dark/70">
+                    {formatDate(s.created_at)}
+                  </span>
+                  <span className="truncate text-brand-dark/70">
+                    {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
+                  </span>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      s.is_finished
+                        ? "bg-brand-mint text-brand-green"
+                        : "bg-brand-pink text-brand-orange"
+                    }`}
                   >
-                    <span className="font-medium tabular-nums">
-                      {s.id.slice(0, 8)}
-                    </span>
-                    <span className="tabular-nums">
-                      {formatDate(s.created_at)}
-                    </span>
-                    <span className="truncate">
-                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        s.is_finished
-                          ? "bg-green-50 text-green-700"
-                          : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {sessionStatus(s)}
-                    </span>
-                    <span className="w-20 text-right">
-                      {!s.is_finished ? (
-                        <Link
-                          href={`/sessions/create?sessionId=${s.id}`}
-                          className="inline-flex items-center rounded-lg border border-lime-300 px-3 py-1 text-xs font-medium transition-colors hover:bg-lime-50"
-                        >
-                          Continue <span className="ml-1">&#8250;</span>
-                        </Link>
-                      ) : null}
-                    </span>
-                  </div>
-                ))
-              )}
+                    {sessionStatus(s)}
+                  </span>
+                  <span className="text-right">
+                    {!s.is_finished ? (
+                      <Link
+                        href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                        className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                      >
+                        Continue <span className="ml-0.5">&#8250;</span>
+                      </Link>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </section>
 
-        <h2 className="mt-6 text-xl font-bold tracking-tight text-slate-900">
-          Priority List
+        <h2 className="mt-7 font-heading text-lg font-bold text-brand-dark">
+          Priority Locations
         </h2>
+        <p className="mt-0.5 text-xs text-brand-dark/60">
+          Regions ranked by days since last census
+        </p>
 
-        <section className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
-          <div className="grid grid-cols-2 border-b border-slate-100 px-3 pb-2 text-xs font-semibold tracking-wide text-slate-500">
-            <span>Tracked Locations</span>
+        <section className="mt-3 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+          <div className="grid grid-cols-2 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+            <span>Location</span>
             <span>Days Since Last Census</span>
           </div>
-          <div className="divide-y divide-slate-50 px-3">
-            {priorityLocations.map((loc) => (
-              <div
-                key={`priority-${loc.name}`}
-                className="grid grid-cols-2 py-2.5 text-sm text-slate-700"
-              >
-                <span className="font-medium">{loc.name}</span>
-                <span className="tabular-nums">{loc.daysSince}</span>
+          <div className="divide-y divide-border">
+            {priorityLocations.length === 0 ? (
+              <div className="py-8 text-center text-sm text-brand-dark/50">
+                No data yet.
               </div>
-            ))}
+            ) : (
+              priorityLocations.map((loc) => (
+                <div
+                  key={`priority-${loc.name}`}
+                  className="grid grid-cols-2 px-5 py-3 text-sm text-brand-dark"
+                >
+                  <span className="font-semibold">{loc.name}</span>
+                  <span className="tabular-nums text-brand-dark/70">
+                    {loc.daysSince} days
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>

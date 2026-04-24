@@ -8,6 +8,11 @@ import {
   SearchIcon,
   ChevronDownIcon,
 } from "@/components/app-pages/shared/icons";
+import {
+  HorizontalBarChart,
+  VerticalBarChart,
+} from "@/components/app-pages/shared/charts";
+import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
@@ -167,6 +172,36 @@ export function OverviewScreen() {
     [desktopStats],
   );
 
+  const populationByLocation = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const loc of LOCATIONS) {
+      if (loc === "All Locations") continue;
+      counts.set(loc, 0);
+    }
+    const activeCats = allCats.filter(
+      (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
+    );
+    for (const cat of activeCats) {
+      const spot = (cat.spot_last_seen ?? "").toUpperCase();
+      if (!spot) continue;
+      let matched = false;
+      for (const loc of counts.keys()) {
+        if (spot.includes(loc.toUpperCase())) {
+          counts.set(loc, (counts.get(loc) ?? 0) + 1);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        counts.set("UNKNOWN", (counts.get("UNKNOWN") ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries()).map(([label, value]) => ({
+      label,
+      value,
+    }));
+  }, [allCats]);
+
   const desktopStatusStats = useMemo(
     () => [
       { label: "Tame", value: String(desktopStats.tame) },
@@ -194,43 +229,33 @@ export function OverviewScreen() {
         <div className="space-y-3 px-4 py-4">
           {/* Dates */}
           <div className="space-y-0.5">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-brand-green">
               Last update:{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {lastUpdated}
               </span>
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-brand-green">
               Last PAWS update:{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {lastUpdated}
               </span>
             </p>
           </div>
 
-          {/* Location search bar */}
-          <div className="relative">
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl bg-brand-orange px-4 pr-10 text-sm font-semibold text-white"
-              aria-label="Location"
-            >
-              <option value="Overall">Overall (type to search)</option>
-              {LOCATIONS.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-            <SearchIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white" />
-          </div>
+          {/* Location picker */}
+          <LocationPicker
+            value={location}
+            options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+            onChange={setLocation}
+            variant="pill"
+          />
 
           {/* Main stats */}
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Total Count
                 </p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
@@ -238,7 +263,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   TNVR Score
                 </p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
@@ -251,7 +276,7 @@ export function OverviewScreen() {
           <div className="overflow-hidden rounded-xl bg-brand-green">
             <div className="grid grid-cols-2 divide-x divide-white/20">
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Neutered
                 </p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -259,7 +284,7 @@ export function OverviewScreen() {
                 </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-[11px] font-medium text-white/70">
+                <p className="text-[11px] font-medium text-brand-yellow">
                   Unneutered
                 </p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -269,32 +294,30 @@ export function OverviewScreen() {
             </div>
           </div>
 
-          {/* Population section */}
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold text-foreground">
+            <h2 className="font-heading text-2xl font-bold text-brand-green">
               Population
             </h2>
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-semibold text-white"
+              className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white"
             >
               Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          {/* Chart placeholder */}
-          <div className="relative flex h-48 items-center justify-center rounded-xl bg-brand-green">
-            <p className="text-sm text-white/50">Horizontal Bar Chart</p>
+          {/* Population bar chart */}
+          <div className="relative rounded-xl bg-white p-3 ring-1 ring-border">
             <button
               type="button"
               onClick={() => setShowPeriodMenu((v) => !v)}
-              className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange text-xs font-bold text-white"
+              className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-brand-dark text-xs font-bold text-white"
               aria-label="Chart options"
             >
-              •••
+              <span className="-mt-1 leading-none">...</span>
             </button>
             {showPeriodMenu && (
-              <div className="absolute right-3 top-12 z-10 min-w-24 rounded-xl bg-brand-dark p-2 shadow-lg">
+              <div className="absolute right-3 top-12 z-20 min-w-28 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg">
                 {activePeriods.map((period) => (
                   <button
                     key={period}
@@ -307,13 +330,19 @@ export function OverviewScreen() {
                 ))}
               </div>
             )}
+            <div className="h-80">
+              <HorizontalBarChart
+                data={populationByLocation}
+                title="Catenean Population Summary"
+              />
+            </div>
           </div>
 
           {/* Sociability stats */}
           <div className="space-y-2">
             {/* Wide single row */}
             <div className="flex items-center justify-between rounded-xl bg-brand-green px-4 py-2.5">
-              <span className="text-sm font-semibold text-white">
+              <span className="text-sm font-semibold text-brand-yellow">
                 Domesticated
               </span>
               <span className="text-sm font-bold tabular-nums text-white">
@@ -342,7 +371,7 @@ export function OverviewScreen() {
                     key={item.label}
                     className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
                   >
-                    <span className="text-xs font-medium text-white/80">
+                    <span className="text-xs font-medium text-brand-yellow">
                       {item.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums text-white">
@@ -360,13 +389,13 @@ export function OverviewScreen() {
             <div className="overflow-hidden rounded-xl bg-brand-green">
               <div className="grid grid-cols-2 divide-x divide-white/20">
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-white">Untracked</p>
+                  <p className="text-sm font-semibold text-brand-yellow">Untracked</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
                     {stats.offCensusTotal}
                   </p>
                 </div>
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-brand-yellow">
                     Overall Total
                   </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
@@ -393,7 +422,7 @@ export function OverviewScreen() {
                     key={item.label}
                     className="flex items-center justify-between rounded-xl bg-brand-green px-3 py-2.5"
                   >
-                    <span className="text-xs font-medium text-white/80">
+                    <span className="text-xs font-medium text-brand-yellow">
                       {item.label}
                     </span>
                     <span className="text-sm font-bold tabular-nums text-white">
@@ -407,117 +436,155 @@ export function OverviewScreen() {
         </div>
       </div>
 
-      {/* ── DESKTOP: colors updated, structure unchanged ── */}
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="mb-5 flex items-start justify-between gap-6">
-          <label className="w-full max-w-92">
-            <span className="mb-1.5 block text-sm font-semibold text-foreground">
-              Location:
-            </span>
-            <div className="relative rounded-full bg-white ring-1 ring-border">
-              <select
-                value={dashboardMode}
-                onChange={(e) => {
-                  setDashboardMode(e.target.value);
-                  setShowPeriodMenu(false);
-                }}
-                className="h-10 w-full appearance-none rounded-full bg-white px-4 pr-10 text-sm text-foreground"
-                aria-label="Overview Dashboard Mode"
-              >
-                {DASHBOARD_MODE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option === "Overall" ? "Overall (type to search)" : option}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                &#9662;
-              </span>
+      {/* ── DESKTOP HI-FI ── */}
+      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
+        <div className="mb-6 flex items-end justify-between gap-6">
+          <div className="flex items-end gap-4">
+            <div>
+              <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+                Overview
+              </h1>
+              <p className="mt-1 text-xs font-semibold text-brand-green">
+                Last update:{" "}
+                <span className="font-medium text-brand-dark/70">
+                  {lastUpdated}
+                </span>
+              </p>
             </div>
-          </label>
+          </div>
 
-          <p className="mt-1 whitespace-nowrap text-sm font-semibold text-foreground">
-            Last updated: {lastUpdated}
-          </p>
+          <div className="w-full max-w-80">
+            <LocationPicker
+              value={dashboardMode}
+              options={DASHBOARD_MODE_OPTIONS}
+              onChange={(v) => {
+                setDashboardMode(v);
+                setShowPeriodMenu(false);
+              }}
+              label="Location"
+            />
+          </div>
         </div>
 
+        {/* Primary stats — green hero row */}
         <div className="grid grid-cols-4 gap-3">
           {desktopPrimaryStats.map((stat) => (
             <article
               key={stat.label}
-              className="rounded-2xl bg-white px-4 py-4 text-center ring-1 ring-border"
+              className="rounded-2xl bg-brand-green px-5 py-4"
             >
-              <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
+                {stat.label}
+              </p>
+              <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
                 {stat.value}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
             </article>
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_8rem] gap-3">
-          <section className="relative rounded-2xl bg-white p-5 ring-1 ring-border">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <p className="text-sm font-semibold text-foreground">
-                  Graph title
-                </p>
-                <button
-                  type="button"
-                  className="rounded-full bg-brand-cream-dark px-3 py-1 text-sm text-foreground"
-                >
-                  Sort by <span className="ml-1">&#9662;</span>
-                </button>
-              </div>
+        {/* Status stat strip */}
+        <div className="mt-4 grid grid-cols-6 gap-3">
+          {desktopStatusStats.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
+            >
+              <span className="text-xs font-semibold text-brand-dark/70">
+                {stat.label}
+              </span>
+              <span className="font-heading text-base font-bold tabular-nums text-brand-dark">
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Full-width population chart */}
+        <section className="relative mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <p className="font-heading text-lg font-bold text-brand-dark">
+                Population
+              </p>
               <button
                 type="button"
-                onClick={() => setShowPeriodMenu((v) => !v)}
-                className="text-xl leading-none text-muted-foreground"
-                aria-label="Open period menu"
-                aria-expanded={showPeriodMenu}
+                className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
               >
-                ...
+                Sort by <ChevronDownIcon className="h-3 w-3" />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowPeriodMenu((v) => !v)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white transition-opacity hover:opacity-90"
+              aria-label="Open period menu"
+              aria-expanded={showPeriodMenu}
+            >
+              <span className="-mt-1 text-base font-bold leading-none">...</span>
+            </button>
+          </div>
 
-            {showPeriodMenu && (
-              <div className="absolute right-4 top-12 z-10 w-24 rounded-2xl bg-brand-cream-dark p-2 shadow-sm">
-                {activePeriods.map((period) => (
-                  <button
-                    key={period}
-                    type="button"
-                    onClick={() => setShowPeriodMenu(false)}
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-brand-cream"
-                  >
-                    <span>{period}</span>
-                    <span className="text-base leading-none">&#8250;</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex h-75 items-center justify-center rounded-xl bg-brand-cream text-sm text-muted-foreground">
-              {isOverall
-                ? "horizontal bar chart"
-                : "line chart (display all months in a year)"}
+          {showPeriodMenu && (
+            <div className="absolute right-5 top-14 z-10 w-32 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg ring-1 ring-brand-dark/10">
+              {activePeriods.map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  onClick={() => setShowPeriodMenu(false)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                >
+                  <span>{period}</span>
+                  <span className="text-sm leading-none text-white/70">&#8250;</span>
+                </button>
+              ))}
             </div>
-          </section>
+          )}
 
-          <section className="space-y-2">
-            {desktopStatusStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 ring-1 ring-border"
+          <div className="h-96 rounded-xl bg-brand-cream p-4">
+            <VerticalBarChart
+              data={populationByLocation}
+              title="Catenean Population Summary"
+            />
+          </div>
+        </section>
+
+        {/* Off-census parity row */}
+        <div className="mt-6">
+          <h2 className="mb-3 font-heading text-lg font-bold text-brand-dark">
+            Off-Census
+          </h2>
+          <div className="grid grid-cols-6 gap-3">
+            <article className="col-span-2 rounded-2xl bg-brand-dark px-5 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
+                Untracked / Overall Total
+              </p>
+              <p className="mt-1 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+                {desktopStats.offCensusTotal}
+                <span className="ml-2 text-xl font-semibold text-white/60">
+                  / {desktopStats.overallTotal}
+                </span>
+              </p>
+            </article>
+            {[
+              { label: "Fostered", value: desktopStats.fostered },
+              { label: "Adopted", value: desktopStats.adopted },
+              { label: "MIA", value: desktopStats.mia },
+              { label: "Deceased", value: desktopStats.deceased },
+            ].map((item) => (
+              <article
+                key={item.label}
+                className="rounded-2xl bg-white px-4 py-3.5 ring-1 ring-border"
               >
-                <span className="text-xs font-medium text-muted-foreground">
-                  {stat.label}
-                </span>
-                <span className="text-sm font-bold tabular-nums text-foreground">
-                  {stat.value}
-                </span>
-              </div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-dark/60">
+                  {item.label}
+                </p>
+                <p className="mt-1 font-heading text-2xl font-bold tabular-nums text-brand-dark">
+                  {item.value}
+                </p>
+              </article>
             ))}
-          </section>
+          </div>
         </div>
       </div>
     </>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { SearchIcon, ChevronDownIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
+import { SearchIcon, ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
 import {
   FiltersDialog,
   SortByDialog,
@@ -97,25 +97,28 @@ export function CatalogScreen() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-col">
       {/* Green hero band */}
-      <div className="bg-brand-green px-5 pt-6 pb-0">
-        <p className="font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200 text-center">
+      <div className="bg-brand-green px-5 pt-6 pb-0 tablet:px-8 tablet:pt-12 tablet:pb-2">
+        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
           ADOPT/FOSTER A CAT NOW!
         </p>
-        <div className="mt-3 flex justify-center pb-5">
+        <p className="mx-auto mt-2 hidden max-w-xl text-center text-sm text-white/80 tablet:block">
+          Give a rescued cat a second chance at a loving home.
+        </p>
+        <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
           >
-            Apply <span className="text-base leading-none">🔗</span>
+            Apply <span className="text-base leading-none">→</span>
           </button>
         </div>
       </div>
       <ScallopEdge />
 
       {/* Content on cream */}
-      <div className="flex flex-col gap-3 px-4 pt-3 pb-6">
+      <div className="flex w-full flex-col gap-3 px-4 pt-3 pb-6 tablet:gap-4 tablet:px-8 tablet:pt-6 tablet:pb-10">
         {/* Search + Filter + Sort */}
         <div className="flex gap-2">
           {searchOpen ? (
@@ -135,27 +138,25 @@ export function CatalogScreen() {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2 transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center gap-2 rounded-xl bg-brand-orange px-3 py-2 transition-opacity hover:opacity-90"
             >
               <SearchIcon className="h-4 w-4 shrink-0 text-white" />
-              <span className="text-sm text-white/80">Search</span>
+              <span className="text-sm font-bold text-white">Search</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            <ChevronDownIcon className="h-3 w-3" />
+            Filter <span className="text-[10px]">▼</span>
           </button>
           <button
             type="button"
             onClick={() => setShowSort(true)}
-            className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            Sort By
-            <ChevronDownIcon className="h-3 w-3" />
+            Sort By <span className="text-[10px]">▼</span>
           </button>
         </div>
 
@@ -169,31 +170,37 @@ export function CatalogScreen() {
             No adoptable/fosterable cats available right now.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 laptop:grid-cols-3">
             {searchedCats.map((cat) => (
               <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-                <div className="flex items-center gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90">
-                  {/* Square photo */}
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/10">
-                    <ImagePlaceholderIcon className="h-8 w-8 text-white/40" />
+                <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95">
+                  {/* Full-height image column */}
+                  <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                    <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
                   </div>
                   {/* Info */}
-                  <div className="flex flex-1 items-center justify-between px-3 py-2">
+                  <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
                     <div>
                       <div className="flex items-center gap-1">
-                        <span className="text-sm font-bold tracking-tight text-white">
+                        <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
                           {cat.name || "Unnamed"}
                         </span>
                         {sexSymbol(cat.sex) ? (
-                          <span className="text-sm font-bold text-white/80">
+                          <span className="text-white text-lg leading-none ml-1">
                             {sexSymbol(cat.sex)}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-xs text-white/70">{cat.color || "—"}</p>
-                      <p className="text-xs text-white/60">{cat.age || "—"}</p>
+                      <p className="mt-1 text-sm font-bold text-white truncate">
+                        {cat.color || "—"} {cat.age ? ` ${cat.age}` : ""}
+                      </p>
                     </div>
-                    <span className="text-xl font-bold text-brand-yellow leading-none">›</span>
+                    {/* Arrow indicator */}
+                    <div className="mt-3 flex items-end justify-end">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
+                        <span className="text-sm font-bold">›</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </Link>

@@ -1,36 +1,35 @@
-"use client";
-
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { findProfiles } from "@/lib/repo/users.repo";
 import { AuthProvider } from "@/contexts/auth-context";
 
-// Layout level auth requirement for accessing protected pages
-export default function ProtectedLayout({
+// Server component: auth state resolved on the server so clients never see a
+// loading flash. Middleware already guards unauthenticated access; this layout
+// fetches the profile and hands it to the client AuthProvider.
+export default async function ProtectedLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const router = useRouter();
-  const { userData, currentUserDataLoading } = useCurrentUser();
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    if (!currentUserDataLoading && !userData) {
-      router.push("/login");
-    }
-  }, [userData, currentUserDataLoading, router]);
-
-
-  // Show loading state while checking auth
-  if (currentUserDataLoading) {
-    return <div>Authentication Loading...</div>;
+  if (!user) {
+    redirect("/login");
   }
 
-  // Redirect handled by useEffect, show nothing while redirecting
-  if (!userData) {
-    return null;
+  const profiles = await findProfiles({ id: user.id });
+  const profile = profiles[0];
+
+  if (!profile) {
+    redirect("/login");
   }
 
-  // Wrap children with AuthProvider, passing the guaranteed non-null userData
-  return <AuthProvider userData={userData}>{children}</AuthProvider>;
+  return (
+    <AuthProvider userData={{ supabaseUser: user, profile }}>
+      {children}
+    </AuthProvider>
+  );
 }
