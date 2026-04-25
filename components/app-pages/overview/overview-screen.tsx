@@ -27,9 +27,7 @@ function computeStats(
     hrByCatId.set(hr.cat_id, hr);
   }
 
-  const activeCats = cats.filter(
-    (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
-  );
+  const activeCats = cats.filter((c) => c.entry_status !== "Merged");
 
   const total = activeCats.length;
   let neutered = 0;
@@ -178,9 +176,7 @@ export function OverviewScreen() {
       if (loc === "All Locations") continue;
       counts.set(loc, 0);
     }
-    const activeCats = allCats.filter(
-      (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
-    );
+    const activeCats = allCats.filter((c) => c.entry_status !== "Merged");
     for (const cat of activeCats) {
       const spot = (cat.spot_last_seen ?? "").toUpperCase();
       if (!spot) continue;
