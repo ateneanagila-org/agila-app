@@ -9,11 +9,13 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat } from "@/app/actions/cats";
+import { uploadCatPhoto } from "@/app/actions/cat-photo";
+import { useAuth } from "@/contexts/auth-context";
 import {
   DiscardChangesDialog,
   SaveChangesDialog,
@@ -69,8 +71,10 @@ function FormSelect({
 export function DatabaseGeneralScreen() {
   const searchParams = useSearchParams();
   const catId = searchParams.get("id");
+  const { canManage } = useAuth();
 
   const [cat, setCat] = useState<SelectCat | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,16 +178,41 @@ export function DatabaseGeneralScreen() {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
 
+  const handlePhotoChange = useCallback(
+    async (file: File | null) => {
+      if (!file || !catId) return;
+      setPhotoUploading(true);
+      setError(null);
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        await uploadCatPhoto(catId, fd);
+        await fetchCat();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Photo upload failed.");
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [catId, fetchCat],
+  );
+
   const handleToggleAdoptable = useCallback(async () => {
     if (!catId) return;
     const newVal = !isAdoptable;
-    setIsAdoptable(newVal);
+    setIsAdoptable(newVal); // optimistic
     try {
-      await editCat({ id: catId, is_adoptable: newVal });
+      const result = await editCat({ id: catId, is_adoptable: newVal });
+      if (result?.serverError) {
+        setIsAdoptable(!newVal); // revert
+        setError(result.serverError);
+        return;
+      }
       syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal); // revert
+      setError(err instanceof Error ? err.message : "Failed to toggle adoptable.");
     }
   }, [catId, isAdoptable]);
 
@@ -285,23 +314,25 @@ export function DatabaseGeneralScreen() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDiscardDialog(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
-              >
-                Cancel <span>✕</span>
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setShowSaveDialog(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : <><span>Save</span> <span>✓</span></>}
-              </button>
-            </div>
+            {canManage ? (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardDialog(true)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+                >
+                  Cancel <span>✕</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setShowSaveDialog(true)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : <><span>Save</span> <span>✓</span></>}
+                </button>
+              </div>
+            ) : null}
           </div>
         </PageContent>
       </div>
@@ -371,8 +402,32 @@ export function DatabaseGeneralScreen() {
 
         <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+            <div className="relative h-20 w-20 shrink-0">
+              <CatPhoto
+                photoUrl={cat?.photo_url}
+                name={cat?.name}
+                className="h-20 w-20 rounded-2xl"
+                iconClassName="h-9 w-9 text-white/50"
+                sizes="80px"
+              />
+              {canManage ? (
+                <label
+                  className={`absolute inset-0 flex cursor-pointer items-end justify-center rounded-2xl bg-black/0 hover:bg-black/30 ${
+                    photoUploading ? "bg-black/40" : ""
+                  }`}
+                  aria-label="Upload photo"
+                >
+                  <span className="mb-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-semibold text-white opacity-90">
+                    {photoUploading ? "..." : "Change"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              ) : null}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -455,23 +510,25 @@ export function DatabaseGeneralScreen() {
             />
           </div>
 
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-full border-2 border-white px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
+          {canManage ? (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="rounded-full border-2 border-white px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSave}
+                className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          ) : null}
         </section>
       </div>
 

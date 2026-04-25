@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { createCat, editCat } from "@/app/actions/cats";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { createCat } from "@/app/actions/cats";
+import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
@@ -101,6 +102,22 @@ export function CatEntryForm({
   const [regionsLoading, setRegionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoWarning, setPhotoWarning] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Cat already created in DB; subsequent Save clicks only retry the photo upload.
+  const [savedCatId, setSavedCatId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   useEffect(() => {
     if (regionId) return;
@@ -150,44 +167,74 @@ export function CatEntryForm({
 
     setSaving(true);
     setError(null);
+    setPhotoWarning(null);
     try {
-      const payload = {
-        region_id: effectiveRegionId,
-        condition: condition as CatHealthRecordCondition,
-        color: (color || undefined) as CatColor | undefined,
-        age: (age || undefined) as CatAge | undefined,
-        sex: (sex || undefined) as CatSex | undefined,
-        sociability: (sociability || undefined) as CatSociability | undefined,
-        cat_status: (catStatus || undefined) as CatStatus | undefined,
-        spot_last_seen: spotLastSeen || undefined,
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
-        name: name || undefined,
-      };
+      let newCatId: string | undefined = savedCatId ?? undefined;
 
-      if (sessionId) {
-        const result = await createSessionCat({
-          ...payload,
-          session_id: sessionId,
-        });
-        if (result?.serverError) {
-          setError(result.serverError);
-          return;
+      // Skip cat-create when retrying after a photo-upload failure.
+      if (!newCatId) {
+        const payload = {
+          region_id: effectiveRegionId,
+          condition: condition as CatHealthRecordCondition,
+          color: (color || undefined) as CatColor | undefined,
+          age: (age || undefined) as CatAge | undefined,
+          sex: (sex || undefined) as CatSex | undefined,
+          sociability: (sociability || undefined) as
+            | CatSociability
+            | undefined,
+          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          spot_last_seen: spotLastSeen || undefined,
+          caretaker: caretaker || undefined,
+          notes: notes || undefined,
+          name: name || undefined,
+        };
+
+        if (sessionId) {
+          const result = await createSessionCat({
+            ...payload,
+            session_id: sessionId,
+          });
+          if (result?.serverError) {
+            setError(result.serverError);
+            return;
+          }
+          if (result?.data) {
+            newCatId = result.data.id;
+          }
+        } else {
+          const result = await createCat(payload);
+          if (result?.serverError) {
+            setError(result.serverError);
+            return;
+          }
+          const created = Array.isArray(result?.data)
+            ? result.data[0]
+            : result?.data;
+          newCatId = (created as { id?: string } | undefined)?.id;
         }
-        // Re-trigger sync queue now that the session-cat link exists
-        if (result?.data) {
-          await editCat({ id: result.data.id });
-        }
-        syncAllPendingRegions();
-      } else {
-        const result = await createCat(payload);
-        if (result?.serverError) {
-          setError(result.serverError);
-          return;
-        }
-        syncAllPendingRegions();
+
+        if (newCatId) setSavedCatId(newCatId);
+        // Refresh parent list so the cat appears even if photo retry fails.
+        onSave?.();
       }
 
+      if (photoFile && newCatId) {
+        try {
+          const fd = new FormData();
+          fd.append("file", photoFile);
+          await uploadCatPhoto(newCatId, fd);
+        } catch (uploadErr) {
+          console.error("Photo upload failed:", uploadErr);
+          setPhotoWarning(
+            uploadErr instanceof Error
+              ? `Cat saved, but photo upload failed: ${uploadErr.message}. Click Save to retry the photo, or Skip to dismiss.`
+              : "Cat saved, but photo upload failed. Click Save to retry, or Skip to dismiss.",
+          );
+          return;
+        }
+      }
+
+      syncAllPendingRegions();
       onSave?.();
       onClose();
     } catch (err) {
@@ -211,7 +258,16 @@ export function CatEntryForm({
     sessionId,
     onSave,
     onClose,
+    photoFile,
+    savedCatId,
   ]);
+
+  /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
+  const handleSkipPhoto = useCallback(() => {
+    syncAllPendingRegions();
+    onSave?.();
+    onClose();
+  }, [onSave, onClose]);
 
   return (
     <div
@@ -252,8 +308,65 @@ export function CatEntryForm({
           </div>
         ) : null}
 
+        {/* Photo upload partial-failure warning */}
+        {photoWarning ? (
+          <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {photoWarning}
+          </div>
+        ) : null}
+
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+          <div>
+            <label className="text-sm font-semibold text-brand-orange">Photo</label>
+            <div className="mt-1.5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-dashed border-brand-orange/50 bg-white"
+                aria-label="Upload cat photo"
+              >
+                {photoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl leading-none text-brand-orange/60">+</span>
+                )}
+              </button>
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  {photoFile ? "Change" : "Upload"}
+                </button>
+                {photoFile ? (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoFile(null)}
+                    className="text-xs font-semibold text-brand-orange underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPhotoFile(f);
+                }}
+              />
+            </div>
+          </div>
           {!regionId ? (
             <div>
               <label className="text-sm font-semibold text-brand-orange">Location</label>
@@ -329,20 +442,37 @@ export function CatEntryForm({
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
-          >
-            Cancel <span>✕</span>
-          </button>
+          {photoWarning ? (
+            <button
+              type="button"
+              onClick={handleSkipPhoto}
+              className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+            >
+              Skip Photo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+            >
+              Cancel <span>✕</span>
+            </button>
+          )}
           <button
             type="button"
             disabled={saving}
             onClick={handleSave}
             className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"} <span>✓</span>
+            {saving
+              ? photoWarning
+                ? "Retrying..."
+                : "Saving..."
+              : photoWarning
+                ? "Retry Photo"
+                : "Save"}{" "}
+            <span>✓</span>
           </button>
         </div>
       </div>

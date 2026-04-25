@@ -9,15 +9,17 @@ import {
 } from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { useAuth } from "@/contexts/auth-context";
 
 export function DatabaseListScreen() {
+  const { canManage } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
@@ -119,14 +121,15 @@ export function DatabaseListScreen() {
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 space-y-3 px-4 py-4">
-          {/* Add Entry button — top */}
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-orange py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-          >
-            Add Entry <span className="text-base leading-none">+</span>
-          </button>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Add Entry <span className="text-base leading-none">+</span>
+            </button>
+          ) : null}
 
           {/* Search bar — orange */}
           <div className="relative">
@@ -172,9 +175,11 @@ export function DatabaseListScreen() {
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
-                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
-                    </div>
+                    <CatPhoto
+                      photoUrl={cat.photo_url}
+                      name={cat.name}
+                      className="w-28 shrink-0"
+                    />
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
                       <div>
                         <div className="flex items-center gap-1">
@@ -207,16 +212,17 @@ export function DatabaseListScreen() {
           )}
         </div>
 
-        {/* FAB */}
-        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
-          >
-            <span className="text-2xl font-bold leading-none text-white">+</span>
-          </button>
-        </div>
+        {canManage ? (
+          <div className="pointer-events-none fixed bottom-20 right-4 z-10">
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+            >
+              <span className="text-2xl font-bold leading-none text-white">+</span>
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
@@ -229,14 +235,16 @@ export function DatabaseListScreen() {
               {searchedCats.length} cats on record
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-          >
-            Add entry
-            <span className="text-lg leading-none">+</span>
-          </button>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Add entry
+              <span className="text-lg leading-none">+</span>
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-5 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">
@@ -280,9 +288,11 @@ export function DatabaseListScreen() {
                 href={`/dashboard/database/general?id=${cat.id}`}
                 className="group flex items-stretch overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95"
               >
-                <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                  <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
-                </div>
+                <CatPhoto
+                  photoUrl={cat.photo_url}
+                  name={cat.name}
+                  className="w-28 shrink-0"
+                />
 
                 <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-3.5">
                   <div>

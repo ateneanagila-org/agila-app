@@ -2,6 +2,7 @@
 import { actionClient } from "@/lib/error/actions-handler";
 import * as usersRepo from "@/lib/repo/users.repo";
 import { syncSheetEditors } from "@/lib/services/helper.service";
+import { requireRole, ADMIN_ONLY, MANAGER_OR_ADMIN } from "@/lib/auth/rbac";
 import {
   getProfilesSchema,
   editProfileSchema,
@@ -15,12 +16,14 @@ import { z } from "zod";
 export const createProfile = actionClient
   .schema(createProfileSchema)
   .action(async ({ parsedInput }: { parsedInput: CreateProfileSchema }) => {
+    await requireRole(...ADMIN_ONLY);
     return await usersRepo.insertProfile(parsedInput);
   });
 
 export const getProfiles = actionClient
   .schema(getProfilesSchema)
   .action(async ({ parsedInput }: { parsedInput: GetProfilesSchema }) => {
+    await requireRole(...MANAGER_OR_ADMIN);
     return await usersRepo.findProfiles(parsedInput);
   });
 
@@ -35,6 +38,7 @@ export const editProfile = actionClient
       parsedInput: EditProfileSchema;
       bindArgsClientInputs: readonly [string];
     }) => {
+      await requireRole(...ADMIN_ONLY);
       const result = await usersRepo.updateProfile(id, parsedInput);
       if (parsedInput.auth_role !== undefined) {
         syncSheetEditors().catch((err) =>
@@ -53,7 +57,7 @@ export const removeProfile = actionClient
     }: {
       bindArgsClientInputs: readonly [string];
     }) => {
+      await requireRole(...ADMIN_ONLY);
       return await usersRepo.deleteProfile(id);
     },
   );
-

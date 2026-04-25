@@ -35,7 +35,7 @@ export const SESSIONS_CONFIG: FilterSortConfig = {
     {
       label: "Status",
       key: "status",
-      options: ["Unfinished", "Reviewed"],
+      options: ["Unfinished", "Submitted", "Reviewed"],
     },
   ],
   sortOptions: [

@@ -16,7 +16,6 @@ import {
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
-import { removeSessionCat } from "@/app/actions/sessions";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
   CAT_COLOR_VALUES,
@@ -114,6 +113,7 @@ export function SessionsApprovalValidationScreen() {
   const [catStatus, setCatStatus] = useState("");
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
+  const [spotLastSeen, setSpotLastSeen] = useState("");
 
   const populateForm = useCallback((catData: SelectCat) => {
     setColor(catData.color ?? "");
@@ -123,6 +123,7 @@ export function SessionsApprovalValidationScreen() {
     setCatStatus(catData.cat_status ?? "");
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
+    setSpotLastSeen(catData.spot_last_seen ?? "");
   }, []);
 
   const fetchCat = useCallback(async () => {
@@ -170,6 +171,7 @@ export function SessionsApprovalValidationScreen() {
         cat_status: (catStatus || undefined) as CatStatus | undefined,
         caretaker: caretaker || undefined,
         notes: notes || undefined,
+        spot_last_seen: spotLastSeen || undefined,
         entry_status: "Original" as CatEntryStatus,
       });
       if (result?.serverError) {
@@ -193,18 +195,18 @@ export function SessionsApprovalValidationScreen() {
     catStatus,
     caretaker,
     notes,
+    spotLastSeen,
     router,
   ]);
 
-  /** Discard: delete the cat entry entirely */
+  /** Discard: delete the cat entry entirely (cascade removes session_cats link) */
   const handleDiscard = useCallback(async () => {
     if (!catId) return;
     try {
-      if (sessionCatId) {
-        const boundRemoveSessionCat = removeSessionCat.bind(null, sessionCatId);
-        await boundRemoveSessionCat();
-      } else {
-        await removeCat({ id: catId });
+      const result = await removeCat({ id: catId });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
@@ -213,7 +215,7 @@ export function SessionsApprovalValidationScreen() {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
     }
-  }, [catId, router, sessionCatId]);
+  }, [catId, router]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
@@ -508,7 +510,8 @@ export function SessionsApprovalValidationScreen() {
                   Specific Location
                 </label>
                 <input
-                  defaultValue={cat?.spot_last_seen ?? ""}
+                  value={spotLastSeen}
+                  onChange={(e) => setSpotLastSeen(e.target.value)}
                   className="mt-1 h-9 w-full rounded-lg border border-white/20 bg-white/15 px-3 text-sm text-white outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
                 />
               </div>

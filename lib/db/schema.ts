@@ -116,7 +116,7 @@ export const cats = pgTable("cats", {
   ),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   entry_status: catEntryStatusEnum("entry_status")
-    .default("Unreviewed")
+    .default("Unsubmitted")
     .notNull(),
   photo_url: text("photo_url"),
   color: catColorEnum("color"),

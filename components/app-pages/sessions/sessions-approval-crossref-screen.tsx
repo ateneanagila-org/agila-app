@@ -18,7 +18,6 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
-import { removeSessionCat } from "@/app/actions/sessions";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatEntryStatus } from "@/lib/db/enums";
 
@@ -49,9 +48,11 @@ export function SessionsApprovalCrossRefScreen() {
     setLoading(true);
     setError(null);
     try {
+      // Only reviewed-original cats are valid merge targets; this also
+      // keeps payload small as the catalog grows.
       const [catResult, allCatsResult] = await Promise.all([
         getCats({ id: catId }),
-        getCats({}),
+        getCats({ entry_status: "Original" }),
       ]);
 
       if (catResult?.data && catResult.data.length > 0) {
@@ -84,6 +85,8 @@ export function SessionsApprovalCrossRefScreen() {
     if (!cat) return [];
     return allCats.filter((c) => {
       if (c.id === cat.id) return false;
+      // Only merge into already-reviewed entries
+      if (c.entry_status !== "Original") return false;
 
       const colorMatch = !!cat.color && c.color === cat.color;
       const ageMatch = !!cat.age && c.age === cat.age;
@@ -149,11 +152,10 @@ export function SessionsApprovalCrossRefScreen() {
   const handleDiscard = useCallback(async () => {
     if (!catId || !cat) return;
     try {
-      if (sessionCatId) {
-        const boundRemoveSessionCat = removeSessionCat.bind(null, sessionCatId);
-        await boundRemoveSessionCat();
-      } else {
-        await removeCat({ id: catId });
+      const result = await removeCat({ id: catId });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
       }
       syncAllPendingRegions();
       setShowDiscardConfirm(false);
@@ -162,7 +164,7 @@ export function SessionsApprovalCrossRefScreen() {
       console.error("Failed to discard:", err);
       setError("Failed to discard this entry.");
     }
-  }, [catId, cat, router, sessionCatId]);
+  }, [catId, cat, router]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";

@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { UserMenu } from "@/components/app-pages/shared/user-menu";
+import { useAuth } from "@/contexts/auth-context";
 
 type NavItem = {
   label: "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
   href: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const BASE_NAV_ITEMS: NavItem[] = [
   { label: "Overview", href: "/dashboard/overview" },
   { label: "TNVR", href: "/dashboard/tnvr" },
   { label: "Database", href: "/dashboard/database" },
@@ -154,6 +155,14 @@ function UsersIcon({ active }: { active: boolean }) {
 
 export default function AppRoutesLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
+  const NAV_ITEMS = useMemo<NavItem[]>(
+    () =>
+      isAdmin
+        ? BASE_NAV_ITEMS
+        : BASE_NAV_ITEMS.filter((item) => item.label !== "Users"),
+    [isAdmin],
+  );
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-brand-dark text-foreground">
@@ -181,7 +190,10 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
         </main>
 
         <footer className="sticky bottom-0 z-20 border-t border-white/10 bg-brand-dark">
-          <div className="mx-auto grid h-16 w-full max-w-7xl grid-cols-5">
+          <div
+            className="mx-auto grid h-16 w-full max-w-7xl"
+            style={{ gridTemplateColumns: `repeat(${NAV_ITEMS.length}, minmax(0, 1fr))` }}
+          >
             {NAV_ITEMS.map((item) => {
               const active = isActive(pathname, item.href);
               return (

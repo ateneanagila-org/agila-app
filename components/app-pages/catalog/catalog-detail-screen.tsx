@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
-import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import {
+  getAdoptableCats,
+  getAdoptableCatHealthRecord,
+} from "@/app/actions/cats";
 
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 
@@ -49,8 +52,8 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     setLoading(true);
     try {
       const [catResult, hrResult] = await Promise.all([
-        getCats({ id: catId }),
-        getCatHealthRecords({ cat_id: catId }),
+        getAdoptableCats({ id: catId }),
+        getAdoptableCatHealthRecord({ cat_id: catId }),
       ]);
       if (catResult?.data && catResult.data.length > 0) {
         setCat(catResult.data[0]);
@@ -164,9 +167,12 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
       <div className="flex w-full flex-col gap-5 px-4 pt-3 pb-8 tablet:px-8 tablet:pt-6 tablet:pb-12">
         {/* Cat info — green card matching catalog list style */}
         <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green">
-          <div className="flex w-32 shrink-0 items-center justify-center bg-white/10">
-            <ImagePlaceholderIcon className="h-12 w-12 text-white/40" />
-          </div>
+          <CatPhoto
+            photoUrl={cat.photo_url}
+            name={cat.name}
+            className="w-32 shrink-0"
+            iconClassName="h-12 w-12 text-white/40"
+          />
           <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-4 min-h-30">
             <div>
               <div className="flex items-center gap-1">

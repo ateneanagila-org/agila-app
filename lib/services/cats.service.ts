@@ -18,7 +18,14 @@ export const createCat = async (
   return await db.transaction(async (tx) => {
     const { condition, region_id, ...catTableData } = data;
 
-    const [newCat] = await catsRepo.insertCat(catTableData, tx);
+    // Direct (system-session) creations come from trusted Manager/Admin flows
+    // and skip the review queue; session-scoped creations stay "Unsubmitted"
+    // until the volunteer finishes the session.
+    const insertData = opts?.systemSession
+      ? { ...catTableData, entry_status: "Original" as const }
+      : catTableData;
+
+    const [newCat] = await catsRepo.insertCat(insertData, tx);
     await catsRepo.insertCatHealthRecord(
       {
         cat_id: newCat.id,

@@ -167,7 +167,11 @@ export function UsersScreen() {
     setDeleting(true);
     try {
       const boundRemove = removeProfile.bind(null, userToDelete);
-      await boundRemove();
+      const result = await boundRemove();
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
       await fetchUsers();
       setShowDeleteConfirm(false);
       setUserToDelete(null);
@@ -209,7 +213,7 @@ export function UsersScreen() {
           <button
             type="button"
             onClick={() => setShowAddUser(true)}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
           >
             Add Entry <span className="text-xl">+</span>
           </button>
@@ -309,7 +313,7 @@ export function UsersScreen() {
           <button
             type="button"
             onClick={() => setShowAddUser(true)}
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
           >
             <span>Add entry</span>
             <span className="text-lg leading-none">+</span>

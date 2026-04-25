@@ -10,13 +10,17 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
-import { FinishSessionDialog } from "@/components/app-pages/sessions/session-dialogs";
+import {
+  DiscardSessionDialog,
+  FinishSessionDialog,
+} from "@/components/app-pages/sessions/session-dialogs";
 import { useAuth } from "@/contexts/auth-context";
 import {
   createSession,
   getSessionCats,
   getSessions,
   editSession,
+  removeSession,
 } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
 import { createClient } from "@/lib/supabase/client";
@@ -42,9 +46,10 @@ export function SessionsCreateScreen() {
   const [cats, setCats] = useState<SelectCat[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadRegions = useCallback(async () => {
@@ -185,6 +190,34 @@ export function SessionsCreateScreen() {
     [sessionId, userId, fetchSessionCats],
   );
 
+  const handleSave = useCallback(() => {
+    // Session row + cats already persisted incrementally; "Save" just exits.
+    window.location.href = "/dashboard/sessions";
+  }, []);
+
+  const handleDiscard = useCallback(async () => {
+    if (!sessionId) {
+      window.location.href = "/dashboard/sessions";
+      return;
+    }
+    setDiscarding(true);
+    setError(null);
+    try {
+      const result = await removeSession.bind(null, sessionId)();
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
+      window.location.href = "/dashboard/sessions";
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to discard session.",
+      );
+    } finally {
+      setDiscarding(false);
+    }
+  }, [sessionId]);
+
   const handleSubmitSession = useCallback(async () => {
     if (!sessionId) return;
     setSubmitting(true);
@@ -266,13 +299,14 @@ export function SessionsCreateScreen() {
               <div className="ml-auto flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => setShowDiscard(true)}
                   className="flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-opacity hover:opacity-80"
                 >
                   Discard
                 </button>
                 <button
                   type="button"
+                  onClick={handleSave}
                   className="flex items-center gap-1 rounded-full border border-brand-green bg-white px-3 py-1.5 text-xs font-semibold text-brand-green transition-opacity hover:opacity-80"
                 >
                   Save 💾
@@ -498,6 +532,13 @@ export function SessionsCreateScreen() {
         onClose={() => setShowFinish(false)}
         onConfirm={handleSubmitSession}
         isLoading={submitting}
+      />
+
+      <DiscardSessionDialog
+        open={showDiscard}
+        onClose={() => setShowDiscard(false)}
+        onConfirm={handleDiscard}
+        isLoading={discarding}
       />
 
       {showAddForm ? (

@@ -6,8 +6,14 @@ import {
   syncSheetEditors,
 } from "@/lib/services/helper.service";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
+import {
+  requireAuth,
+  requireRole,
+  ADMIN_ONLY,
+} from "@/lib/auth/rbac";
 
 export async function freezeSync() {
+  await requireRole(...ADMIN_ONLY);
   await setSyncFrozen(true);
   await freezeSheetProtections();
   return { frozen: true };
@@ -20,6 +26,7 @@ export async function freezeSync() {
  * 3. Clears freeze flag — cron resumes; remaining PENDING tasks run normally
  */
 export async function unfreezeSync() {
+  await requireRole(...ADMIN_ONLY);
   await syncSheetEditors();
   await unfreezeSheetProtections();
   const reverseSyncResult = await fullReverseSync();
@@ -28,6 +35,7 @@ export async function unfreezeSync() {
 }
 
 export async function getSyncStatus() {
+  await requireAuth();
   const frozen = await isSyncFrozen();
   return { frozen };
 }

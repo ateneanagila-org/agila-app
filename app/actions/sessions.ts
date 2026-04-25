@@ -3,6 +3,14 @@ import { actionClient } from "@/lib/error/actions-handler";
 import * as repo from "@/lib/repo/sessions.repo";
 import * as service from "@/lib/services/sessions.service";
 import {
+  requireAuth,
+  requireRole,
+  hasRole,
+  MANAGER_OR_ADMIN,
+} from "@/lib/auth/rbac";
+import { AppError } from "@/lib/error/app-error";
+import type { AuthRole } from "@/lib/db/enums";
+import {
   createSessionCatSchema,
   createSessionSchema,
   editSessionSchema,
@@ -13,16 +21,17 @@ import {
 import { z } from "zod";
 
 // SESSIONS
-// This uses service logic for multi-table interaction
 export const createSession = actionClient
   .schema(createSessionSchema)
   .action(async ({ parsedInput }) => {
+    await requireAuth();
     return await service.createSession(parsedInput);
   });
 
 export const getSessions = actionClient
   .schema(getSessionsSchema)
   .action(async ({ parsedInput }) => {
+    await requireAuth();
     return await repo.findSessions(parsedInput);
   });
 
@@ -30,32 +39,51 @@ export const editSession = actionClient
   .schema(editSessionSchema)
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
+    await requireAuth();
+    // Finishing a session promotes its still-Unsubmitted cats to Unreviewed
+    // so the manager review queue surfaces them.
+    if (parsedInput.is_finished === true) {
+      return await service.finishSession(id);
+    }
     return await repo.updateSession(id, parsedInput);
   });
 
 export const removeSession = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
+    const current = await requireAuth();
+    // Managers/Admins can discard any session; volunteers only their own.
+    if (!hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
+      const links = await repo.findSessionUsers({
+        session_id: id,
+        user_id: current.user.id,
+      });
+      if (links.length === 0) {
+        throw new AppError("Forbidden: not your session", 403);
+      }
+    }
     return await repo.deleteSession(id);
   });
 
 // SESSION CAT
-// This uses service logic for multi-table interaction
 export const createSessionCat = actionClient
   .schema(createSessionCatSchema)
   .action(async ({ parsedInput }) => {
+    await requireAuth();
     return await service.createSessionCat(parsedInput);
   });
 
 export const getSessionCats = actionClient
   .schema(getSessionCatsSchema)
   .action(async ({ parsedInput }) => {
+    await requireAuth();
     return await repo.findSessionCats(parsedInput);
   });
 
 export const removeSessionCat = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
+    await requireAuth();
     return await repo.deleteSessionCat(id);
   });
 
@@ -63,11 +91,13 @@ export const removeSessionCat = actionClient
 export const getSessionUsers = actionClient
   .schema(getSessionUsersSchema)
   .action(async ({ parsedInput }) => {
+    await requireAuth();
     return await repo.findSessionUsers(parsedInput);
   });
 
 export const removeSessionUser = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
+    await requireRole(...MANAGER_OR_ADMIN);
     return await repo.deleteSessionUser(id);
   });
