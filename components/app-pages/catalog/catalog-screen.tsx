@@ -8,7 +8,7 @@ import {
   FiltersDialog,
   SortByDialog,
 } from "@/components/app-pages/shared/dialogs";
-import { getCats } from "@/app/actions/cats";
+import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
@@ -76,7 +76,7 @@ export function CatalogScreen() {
   const fetchCats = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getCats({ is_adoptable: true });
+      const result = await getAdoptableCats({});
       if (result?.data) {
         setCats(result.data);
       }

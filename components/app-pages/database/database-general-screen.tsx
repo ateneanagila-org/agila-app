@@ -200,13 +200,19 @@ export function DatabaseGeneralScreen() {
   const handleToggleAdoptable = useCallback(async () => {
     if (!catId) return;
     const newVal = !isAdoptable;
-    setIsAdoptable(newVal);
+    setIsAdoptable(newVal); // optimistic
     try {
-      await editCat({ id: catId, is_adoptable: newVal });
+      const result = await editCat({ id: catId, is_adoptable: newVal });
+      if (result?.serverError) {
+        setIsAdoptable(!newVal); // revert
+        setError(result.serverError);
+        return;
+      }
       syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal); // revert
+      setError(err instanceof Error ? err.message : "Failed to toggle adoptable.");
     }
   }, [catId, isAdoptable]);
 

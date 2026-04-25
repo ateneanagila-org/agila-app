@@ -5,8 +5,11 @@ import * as service from "@/lib/services/sessions.service";
 import {
   requireAuth,
   requireRole,
+  hasRole,
   MANAGER_OR_ADMIN,
 } from "@/lib/auth/rbac";
+import { AppError } from "@/lib/error/app-error";
+import type { AuthRole } from "@/lib/db/enums";
 import {
   createSessionCatSchema,
   createSessionSchema,
@@ -37,13 +40,28 @@ export const editSession = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ parsedInput, bindArgsClientInputs: [id] }) => {
     await requireAuth();
+    // Finishing a session promotes its still-Unsubmitted cats to Unreviewed
+    // so the manager review queue surfaces them.
+    if (parsedInput.is_finished === true) {
+      return await service.finishSession(id);
+    }
     return await repo.updateSession(id, parsedInput);
   });
 
 export const removeSession = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
-    await requireRole(...MANAGER_OR_ADMIN);
+    const current = await requireAuth();
+    // Managers/Admins can discard any session; volunteers only their own.
+    if (!hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
+      const links = await repo.findSessionUsers({
+        session_id: id,
+        user_id: current.user.id,
+      });
+      if (links.length === 0) {
+        throw new AppError("Forbidden: not your session", 403);
+      }
+    }
     return await repo.deleteSession(id);
   });
 

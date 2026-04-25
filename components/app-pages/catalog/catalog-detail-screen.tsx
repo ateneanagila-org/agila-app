@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
-import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import {
+  getAdoptableCats,
+  getAdoptableCatHealthRecord,
+} from "@/app/actions/cats";
 
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 
@@ -49,8 +52,8 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     setLoading(true);
     try {
       const [catResult, hrResult] = await Promise.all([
-        getCats({ id: catId }),
-        getCatHealthRecords({ cat_id: catId }),
+        getAdoptableCats({ id: catId }),
+        getAdoptableCatHealthRecord({ cat_id: catId }),
       ]);
       if (catResult?.data && catResult.data.length > 0) {
         setCat(catResult.data[0]);

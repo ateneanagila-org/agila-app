@@ -102,8 +102,11 @@ export function CatEntryForm({
   const [regionsLoading, setRegionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoWarning, setPhotoWarning] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Cat already created in DB; subsequent Save clicks only retry the photo upload.
+  const [savedCatId, setSavedCatId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -164,45 +167,55 @@ export function CatEntryForm({
 
     setSaving(true);
     setError(null);
+    setPhotoWarning(null);
     try {
-      const payload = {
-        region_id: effectiveRegionId,
-        condition: condition as CatHealthRecordCondition,
-        color: (color || undefined) as CatColor | undefined,
-        age: (age || undefined) as CatAge | undefined,
-        sex: (sex || undefined) as CatSex | undefined,
-        sociability: (sociability || undefined) as CatSociability | undefined,
-        cat_status: (catStatus || undefined) as CatStatus | undefined,
-        spot_last_seen: spotLastSeen || undefined,
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
-        name: name || undefined,
-      };
+      let newCatId: string | undefined = savedCatId ?? undefined;
 
-      let newCatId: string | undefined;
+      // Skip cat-create when retrying after a photo-upload failure.
+      if (!newCatId) {
+        const payload = {
+          region_id: effectiveRegionId,
+          condition: condition as CatHealthRecordCondition,
+          color: (color || undefined) as CatColor | undefined,
+          age: (age || undefined) as CatAge | undefined,
+          sex: (sex || undefined) as CatSex | undefined,
+          sociability: (sociability || undefined) as
+            | CatSociability
+            | undefined,
+          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          spot_last_seen: spotLastSeen || undefined,
+          caretaker: caretaker || undefined,
+          notes: notes || undefined,
+          name: name || undefined,
+        };
 
-      if (sessionId) {
-        const result = await createSessionCat({
-          ...payload,
-          session_id: sessionId,
-        });
-        if (result?.serverError) {
-          setError(result.serverError);
-          return;
+        if (sessionId) {
+          const result = await createSessionCat({
+            ...payload,
+            session_id: sessionId,
+          });
+          if (result?.serverError) {
+            setError(result.serverError);
+            return;
+          }
+          if (result?.data) {
+            newCatId = result.data.id;
+          }
+        } else {
+          const result = await createCat(payload);
+          if (result?.serverError) {
+            setError(result.serverError);
+            return;
+          }
+          const created = Array.isArray(result?.data)
+            ? result.data[0]
+            : result?.data;
+          newCatId = (created as { id?: string } | undefined)?.id;
         }
-        if (result?.data) {
-          newCatId = result.data.id;
-        }
-      } else {
-        const result = await createCat(payload);
-        if (result?.serverError) {
-          setError(result.serverError);
-          return;
-        }
-        const created = Array.isArray(result?.data)
-          ? result.data[0]
-          : result?.data;
-        newCatId = (created as { id?: string } | undefined)?.id;
+
+        if (newCatId) setSavedCatId(newCatId);
+        // Refresh parent list so the cat appears even if photo retry fails.
+        onSave?.();
       }
 
       if (photoFile && newCatId) {
@@ -212,6 +225,12 @@ export function CatEntryForm({
           await uploadCatPhoto(newCatId, fd);
         } catch (uploadErr) {
           console.error("Photo upload failed:", uploadErr);
+          setPhotoWarning(
+            uploadErr instanceof Error
+              ? `Cat saved, but photo upload failed: ${uploadErr.message}. Click Save to retry the photo, or Skip to dismiss.`
+              : "Cat saved, but photo upload failed. Click Save to retry, or Skip to dismiss.",
+          );
+          return;
         }
       }
 
@@ -240,7 +259,15 @@ export function CatEntryForm({
     onSave,
     onClose,
     photoFile,
+    savedCatId,
   ]);
+
+  /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
+  const handleSkipPhoto = useCallback(() => {
+    syncAllPendingRegions();
+    onSave?.();
+    onClose();
+  }, [onSave, onClose]);
 
   return (
     <div
@@ -278,6 +305,13 @@ export function CatEntryForm({
         {error ? (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
             {error}
+          </div>
+        ) : null}
+
+        {/* Photo upload partial-failure warning */}
+        {photoWarning ? (
+          <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {photoWarning}
           </div>
         ) : null}
 
@@ -408,20 +442,37 @@ export function CatEntryForm({
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
-          >
-            Cancel <span>✕</span>
-          </button>
+          {photoWarning ? (
+            <button
+              type="button"
+              onClick={handleSkipPhoto}
+              className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+            >
+              Skip Photo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+            >
+              Cancel <span>✕</span>
+            </button>
+          )}
           <button
             type="button"
             disabled={saving}
             onClick={handleSave}
             className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"} <span>✓</span>
+            {saving
+              ? photoWarning
+                ? "Retrying..."
+                : "Saving..."
+              : photoWarning
+                ? "Retry Photo"
+                : "Save"}{" "}
+            <span>✓</span>
           </button>
         </div>
       </div>

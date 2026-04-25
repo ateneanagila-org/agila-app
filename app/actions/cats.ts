@@ -14,6 +14,7 @@ import {
   getCatHealthRecordsSchema,
   removeCatSchema,
 } from "@/lib/validation/cats";
+import { z } from "zod";
 
 // CATS
 export const createCat = actionClient
@@ -50,4 +51,21 @@ export const getCatHealthRecords = actionClient
   .action(async ({ parsedInput }) => {
     await requireAuth();
     return await repo.findCatHealthRecords(parsedInput);
+  });
+
+// PUBLIC (no auth) — catalog of adoptable cats only.
+// Server-side forces is_adoptable=true so callers can't read the full DB.
+export const getAdoptableCats = actionClient
+  .schema(getCatsSchema)
+  .action(async ({ parsedInput }) => {
+    return await repo.findCats({ ...parsedInput, is_adoptable: true });
+  });
+
+export const getAdoptableCatHealthRecord = actionClient
+  .schema(z.object({ cat_id: z.string().uuid() }))
+  .action(async ({ parsedInput }) => {
+    // Confirm the parent cat is actually adoptable before exposing health data.
+    const parent = await repo.findCats({ id: parsedInput.cat_id, is_adoptable: true });
+    if (parent.length === 0) return [];
+    return await repo.findCatHealthRecords({ cat_id: parsedInput.cat_id });
   });

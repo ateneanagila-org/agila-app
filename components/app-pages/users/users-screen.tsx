@@ -167,7 +167,11 @@ export function UsersScreen() {
     setDeleting(true);
     try {
       const boundRemove = removeProfile.bind(null, userToDelete);
-      await boundRemove();
+      const result = await boundRemove();
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
       await fetchUsers();
       setShowDeleteConfirm(false);
       setUserToDelete(null);

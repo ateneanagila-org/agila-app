@@ -48,9 +48,11 @@ export function SessionsApprovalCrossRefScreen() {
     setLoading(true);
     setError(null);
     try {
+      // Only reviewed-original cats are valid merge targets; this also
+      // keeps payload small as the catalog grows.
       const [catResult, allCatsResult] = await Promise.all([
         getCats({ id: catId }),
-        getCats({}),
+        getCats({ entry_status: "Original" }),
       ]);
 
       if (catResult?.data && catResult.data.length > 0) {
