@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { createCat, editCat } from "@/app/actions/cats";
+import { createCat } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
@@ -192,7 +192,6 @@ export function CatEntryForm({
         }
         if (result?.data) {
           newCatId = result.data.id;
-          await editCat({ id: newCatId });
         }
       } else {
         const result = await createCat(payload);
