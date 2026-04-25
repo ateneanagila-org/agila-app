@@ -9,7 +9,12 @@ import {
   SessionFiltersDialog,
   SessionSortByDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
-import { getSessions } from "@/app/actions/sessions";
+import {
+  getSessions,
+  getSessionCats,
+  getSessionUsers,
+} from "@/app/actions/sessions";
+import { getCats } from "@/app/actions/cats";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import type { SelectSession } from "@/lib/validation/sessions";
@@ -18,9 +23,19 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 const PAGE_SIZE = 10;
 
+type SessionStatus = "Unfinished" | "Submitted" | "Reviewed";
+
 export function SessionsScreen() {
-  const { canManage } = useAuth();
+  const { canManage, userData } = useAuth();
+  const userId = userData?.supabaseUser?.id;
   const [sessions, setSessions] = useState<SelectSession[]>([]);
+  const [statusBySession, setStatusBySession] = useState<
+    Record<string, SessionStatus>
+  >({});
+  const [catCountBySession, setCatCountBySession] = useState<
+    Record<string, number>
+  >({});
+  const [unreviewedCatCount, setUnreviewedCatCount] = useState(0);
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -47,18 +62,63 @@ export function SessionsScreen() {
   }, []);
 
   const fetchSessions = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
-      const result = await getSessions({});
-      if (result?.data) {
-        setSessions(result.data);
+      // 1. Sessions linked to current user via session_users
+      const linkRes = await getSessionUsers({ user_id: userId });
+      const myIds = new Set(
+        (linkRes?.data ?? []).map((su) => su.session_id),
+      );
+      if (myIds.size === 0) {
+        setSessions([]);
+        setStatusBySession({});
+        setUnreviewedCatCount(0);
+        return;
       }
+
+      // 2. All non-system sessions, filter to mine
+      const sessionsRes = await getSessions({});
+      const mine = (sessionsRes?.data ?? []).filter((s) => myIds.has(s.id));
+      setSessions(mine);
+
+      // 3. Derive status per session via session_cats + cats.entry_status
+      const [scRes, unreviewedRes] = await Promise.all([
+        getSessionCats({}),
+        getCats({ entry_status: "Unreviewed" }),
+      ]);
+      const unreviewedIds = new Set(
+        (unreviewedRes?.data ?? []).map((c) => c.id),
+      );
+      setUnreviewedCatCount(unreviewedIds.size);
+
+      const catIdsBySession = new Map<string, string[]>();
+      for (const sc of scRes?.data ?? []) {
+        const list = catIdsBySession.get(sc.session_id) ?? [];
+        list.push(sc.cat_id);
+        catIdsBySession.set(sc.session_id, list);
+      }
+
+      const statusMap: Record<string, SessionStatus> = {};
+      const countMap: Record<string, number> = {};
+      for (const s of mine) {
+        const catIds = catIdsBySession.get(s.id) ?? [];
+        countMap[s.id] = catIds.length;
+        if (!s.is_finished) {
+          statusMap[s.id] = "Unfinished";
+          continue;
+        }
+        const hasUnreviewed = catIds.some((id) => unreviewedIds.has(id));
+        statusMap[s.id] = hasUnreviewed ? "Submitted" : "Reviewed";
+      }
+      setStatusBySession(statusMap);
+      setCatCountBySession(countMap);
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchRegions();
@@ -74,10 +134,8 @@ export function SessionsScreen() {
     return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
   };
 
-  const sessionStatus = (s: SelectSession): string => {
-    if (s.is_finished) return "Reviewed";
-    return "Unfinished";
-  };
+  const sessionStatus = (s: SelectSession): SessionStatus =>
+    statusBySession[s.id] ?? (s.is_finished ? "Submitted" : "Unfinished");
 
   const {
     filtered: filteredSessions,
@@ -105,15 +163,22 @@ export function SessionsScreen() {
 
   /** Compute summary stats from sessions */
   const summary = useMemo(() => {
-    const reviewed = sessions.filter((s) => s.is_finished).length;
-    const unfinished = sessions.filter((s) => !s.is_finished).length;
+    let reviewed = 0;
+    let submitted = 0;
+    let unfinished = 0;
+    for (const s of sessions) {
+      const st = statusBySession[s.id] ?? (s.is_finished ? "Submitted" : "Unfinished");
+      if (st === "Reviewed") reviewed += 1;
+      else if (st === "Submitted") submitted += 1;
+      else unfinished += 1;
+    }
     return [
       { label: "Reviewed", value: String(reviewed) },
-      { label: "Submitted", value: String(reviewed) },
+      { label: "Submitted", value: String(submitted) },
       { label: "Unfinished", value: String(unfinished) },
-      { label: "For Review", value: String(unfinished) },
+      { label: "For Review", value: String(unreviewedCatCount) },
     ];
-  }, [sessions]);
+  }, [sessions, statusBySession, unreviewedCatCount]);
 
   /** Compute priority locations — regions sorted by days since last session */
   const priorityLocations = useMemo(() => {
@@ -141,6 +206,31 @@ export function SessionsScreen() {
       }));
   }, [sessions, regionMap]);
 
+  const handleCensusReport = useCallback(() => {
+    if (sessions.length === 0) return;
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const header = ["Census No.", "Date", "Location", "Status", "Cats"];
+    const rows = sessions.map((s) => [
+      s.id,
+      formatDate(s.created_at),
+      regionMap[s.region_id] ?? s.region_id,
+      statusBySession[s.id] ?? (s.is_finished ? "Submitted" : "Unfinished"),
+      String(catCountBySession[s.id] ?? 0),
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => escape(String(c))).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `census-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [sessions, regionMap, statusBySession, catCountBySession]);
+
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
@@ -157,7 +247,9 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                onClick={handleCensusReport}
+                disabled={sessions.length === 0}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 Census Report
               </button>
@@ -238,18 +330,24 @@ export function SessionsScreen() {
                           {regionMap[s.region_id] ?? "—"}
                         </span>
                         {/* Status badge */}
-                        {!s.is_finished ? (
-                          <Link
-                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
-                          >
-                            Continue ›
-                          </Link>
-                        ) : (
-                          <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">
-                            Reviewed
-                          </span>
-                        )}
+                        {(() => {
+                          const st = sessionStatus(s);
+                          if (st === "Unfinished") {
+                            return (
+                              <Link
+                                href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                                className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
+                              >
+                                Continue ›
+                              </Link>
+                            );
+                          }
+                          return (
+                            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">
+                              {st}
+                            </span>
+                          );
+                        })()}
                       </div>
                     ))}
                 </div>
@@ -297,7 +395,9 @@ export function SessionsScreen() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                onClick={handleCensusReport}
+                disabled={sessions.length === 0}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 Census Report
               </button>
@@ -338,28 +438,34 @@ export function SessionsScreen() {
                   <div className="py-4 text-center text-xs text-white/50">No sessions yet.</div>
                 ) : (
                   <div className="divide-y divide-white/10">
-                    {sessions.slice(0, 5).map((s) => (
-                      <div key={s.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2">
-                        <span className="text-xs font-semibold tabular-nums text-white">
-                          {s.id.slice(0, 5)}
-                        </span>
-                        <span className="truncate text-xs text-white">
-                          {regionMap[s.region_id] ?? "—"}
-                        </span>
-                        <span className="text-xs tabular-nums text-white">
-                          {formatDate(s.created_at)}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            s.is_finished
-                              ? "bg-white/10 text-white"
-                              : "bg-white text-brand-orange"
-                          }`}
-                        >
-                          {s.is_finished ? "Reviewed" : "Continue ›"}
-                        </span>
-                      </div>
-                    ))}
+                    {sessions.slice(0, 5).map((s) => {
+                      const st = sessionStatus(s);
+                      return (
+                        <div key={s.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2">
+                          <span className="text-xs font-semibold tabular-nums text-white">
+                            {s.id.slice(0, 5)}
+                          </span>
+                          <span className="truncate text-xs text-white">
+                            {regionMap[s.region_id] ?? "—"}
+                          </span>
+                          <span className="text-xs tabular-nums text-white">
+                            {formatDate(s.created_at)}
+                          </span>
+                          {st === "Unfinished" ? (
+                            <Link
+                              href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                              className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-brand-orange"
+                            >
+                              Continue ›
+                            </Link>
+                          ) : (
+                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white">
+                              {st}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -421,7 +527,9 @@ export function SessionsScreen() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              onClick={handleCensusReport}
+              disabled={sessions.length === 0}
+              className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               Census Report
             </button>
@@ -498,41 +606,46 @@ export function SessionsScreen() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {filteredSessions.map((s) => (
-                <div
-                  key={s.id}
-                  className="grid grid-cols-[1fr_1fr_1fr_auto_7rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
-                >
-                  <span className="font-semibold tabular-nums">
-                    {s.id.slice(0, 8)}
-                  </span>
-                  <span className="tabular-nums text-brand-dark/70">
-                    {formatDate(s.created_at)}
-                  </span>
-                  <span className="truncate text-brand-dark/70">
-                    {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                      s.is_finished
-                        ? "bg-brand-mint text-brand-green"
-                        : "bg-brand-pink text-brand-orange"
-                    }`}
+              {filteredSessions.map((s) => {
+                const st = sessionStatus(s);
+                const badgeClass =
+                  st === "Reviewed"
+                    ? "bg-brand-mint text-brand-green"
+                    : st === "Submitted"
+                      ? "bg-brand-cream-dark text-brand-dark"
+                      : "bg-brand-pink text-brand-orange";
+                return (
+                  <div
+                    key={s.id}
+                    className="grid grid-cols-[1fr_1fr_1fr_auto_7rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                   >
-                    {sessionStatus(s)}
-                  </span>
-                  <span className="text-right">
-                    {!s.is_finished ? (
-                      <Link
-                        href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                        className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                      >
-                        Continue <span className="ml-0.5">&#8250;</span>
-                      </Link>
-                    ) : null}
-                  </span>
-                </div>
-              ))}
+                    <span className="font-semibold tabular-nums">
+                      {s.id.slice(0, 8)}
+                    </span>
+                    <span className="tabular-nums text-brand-dark/70">
+                      {formatDate(s.created_at)}
+                    </span>
+                    <span className="truncate text-brand-dark/70">
+                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
+                    >
+                      {st}
+                    </span>
+                    <span className="text-right">
+                      {st === "Unfinished" ? (
+                        <Link
+                          href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                          className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                        >
+                          Continue <span className="ml-0.5">&#8250;</span>
+                        </Link>
+                      ) : null}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
