@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { CatCard } from "@/components/app-pages/shared/cat-card";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import {
+  ArrowLeftIcon,
+  ChevronRightIcon,
+} from "@/components/app-pages/shared/icons";
 import {
   getAdoptableCats,
   getAdoptableCatHealthRecord,
@@ -14,30 +18,41 @@ type CatalogDetailScreenProps = {
   catId: string;
 };
 
-/** Scalloped bottom edge — green bumps into cream below */
-function ScallopEdge() {
+function sexGlyph(s: string | null | undefined): string | null {
+  if (s === "Male") return "♂";
+  if (s === "Female") return "♀";
+  return null;
+}
+
+function YesNoBadge({ value }: { value: boolean }) {
   return (
-    <svg
-      viewBox="0 0 400 28"
-      preserveAspectRatio="none"
-      className="block h-7 w-full"
-      aria-hidden="true"
+    <span
+      className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold tracking-wide ${
+        value
+          ? "bg-brand-green/12 text-brand-green"
+          : "bg-brand-dark/8 text-brand-dark/50"
+      }`}
     >
-      <path
-        d="M0 0 H400 V6 Q380 28 360 6 Q340 28 320 6 Q300 28 280 6 Q260 28 240 6 Q220 28 200 6 Q180 28 160 6 Q140 28 120 6 Q100 28 80 6 Q60 28 40 6 Q20 28 0 6 Z"
-        className="fill-brand-green"
-      />
-    </svg>
+      {value ? "Yes" : "No"}
+    </span>
   );
 }
 
-function GreenField({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
-    <div className="py-2.5">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-brand-yellow">
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark/50">
         {label}
-      </p>
-      <div className="mt-0.5 text-xs font-bold text-white">{value || "—"}</div>
+      </span>
+      <span className="text-right text-sm font-semibold text-brand-dark">
+        {value || "—"}
+      </span>
     </div>
   );
 }
@@ -72,17 +87,9 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
     fetchData();
   }, [fetchData]);
 
-
-
-  const sexSymbol = (s: string | null | undefined): string | null => {
-    if (s === "Male") return "♂";
-    if (s === "Female") return "♀";
-    return null;
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center py-24">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
       </div>
     );
@@ -90,115 +97,167 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
   if (!cat) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col">
-        <div className="bg-brand-green px-5 pt-5 pb-0">
-          <Link
-            href="/"
-            className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70"
-          >
-            <span className="text-base leading-none">&lsaquo;</span> Back
-          </Link>
-          <p className="pb-5 text-center font-heading text-2xl font-bold leading-tight tracking-tight text-yellow-200">
-            Cat Not Found
+      <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pt-6 pb-12 tablet:px-8 tablet:pt-10">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-dark/60 transition-colors hover:text-brand-dark"
+        >
+          <ArrowLeftIcon className="h-4 w-4" /> Back to catalog
+        </Link>
+        <div className="mt-12 rounded-3xl bg-white px-6 py-16 text-center ring-1 ring-brand-dark/10">
+          <p className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
+            Cat not found
           </p>
-        </div>
-        <ScallopEdge />
-        <div className="px-4 py-8 text-center text-sm text-foreground/50">
-          This cat could not be found in our catalog.
+          <p className="mt-2 text-sm text-brand-dark/60">
+            This cat could not be found in our catalog.
+          </p>
         </div>
       </div>
     );
   }
 
+  const sex = sexGlyph(cat.sex);
+  const isNeutered = !!healthRecord?.neuter_date;
+  const isVaccinated = !!healthRecord?.vaccination_date;
+  const isSick = !!healthRecord?.condition?.includes("Sick");
+  const isInjured = !!healthRecord?.condition?.includes("Injured");
 
-
-  const detailFields = [
-    { label: "Size/Age", value: cat.age ?? "—" },
-    { label: "Neutered", value: healthRecord?.neuter_date ? "Yes" : "No" },
-    {
-      label: "Sex",
-      value: (
-        <span className="flex items-center gap-1">
-          {cat.sex || "—"}
-          {sexSymbol(cat.sex) && <span>{sexSymbol(cat.sex)}</span>}
-        </span>
-      ),
-    },
-    { label: "Vaccinated", value: healthRecord?.vaccination_date ? "Yes" : "No" },
-    { label: "Color", value: cat.color || "—" },
-    {
-      label: "Sick",
-      value: healthRecord?.condition?.includes("Sick") ? "Yes" : "No",
-    },
-    { label: "Sociability", value: cat.sociability || "—" },
-    {
-      label: "Injured",
-      value: healthRecord?.condition?.includes("Injured") ? "Yes" : "No",
-    },
+  const profileFields: { label: string; value: React.ReactNode }[] = [
+    { label: "Sex", value: cat.sex ? (sex ? `${cat.sex} ${sex}` : cat.sex) : "—" },
+    { label: "Size / Age", value: cat.age ?? "—" },
+    { label: "Color", value: cat.color ?? "—" },
+    { label: "Sociability", value: cat.sociability ?? "—" },
   ];
 
-
+  const healthFields: { label: string; value: React.ReactNode }[] = [
+    { label: "Neutered", value: <YesNoBadge value={isNeutered} /> },
+    { label: "Vaccinated", value: <YesNoBadge value={isVaccinated} /> },
+    { label: "Sick", value: <YesNoBadge value={isSick} /> },
+    { label: "Injured", value: <YesNoBadge value={isInjured} /> },
+  ];
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col">
-      {/* Green hero band */}
-      <div className="bg-brand-green px-5 pt-5 pb-0 tablet:px-8 tablet:pt-8 tablet:pb-2">
+    <div className="mx-auto w-full max-w-5xl px-4 pt-5 pb-14 tablet:px-8 tablet:pt-8 tablet:pb-20">
+      {/* Top bar */}
+      <div className="mb-6 flex items-center justify-between">
         <Link
           href="/"
-          className="mb-3 flex items-center gap-0.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-dark/60 transition-colors hover:text-brand-dark"
         >
-          <span className="text-base leading-none">&lsaquo;</span> Back
+          <ArrowLeftIcon className="h-4 w-4" /> Back
         </Link>
-        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
-          ADOPT/FOSTER{cat.name ? ` ${cat.name.toUpperCase()}` : " A CAT"}?
-        </p>
-        <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
+          Adopt &middot; Foster
+        </span>
+      </div>
+
+      {/* Hero — photo + meta + apply CTA */}
+      <div className="grid gap-6 tablet:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] tablet:items-start tablet:gap-10">
+        <div className="relative">
+          <CatPhoto
+            photoUrl={cat.photo_url}
+            name={cat.name}
+            className="aspect-square w-full overflow-hidden rounded-3xl ring-1 ring-brand-dark/10"
+            iconClassName="h-16 w-16 text-brand-green/30"
+            sizes="(min-width: 768px) 50vw, 100vw"
+          />
+          {cat.is_adoptable ? (
+            <span className="absolute left-4 top-4 inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
+              Adoptable
+            </span>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-orange">
+            Meet
+          </p>
+          <h1 className="mt-1 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-5xl">
+            {cat.name || "Unnamed"}
+            {sex ? (
+              <span className="ml-2 align-middle text-2xl font-bold text-brand-green tablet:text-3xl">
+                {sex}
+              </span>
+            ) : null}
+          </h1>
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {cat.color ? (
+              <span className="inline-flex h-7 items-center rounded-full bg-brand-cream-dark/60 px-3 text-xs font-semibold text-brand-dark/80">
+                {cat.color}
+              </span>
+            ) : null}
+            {cat.age ? (
+              <span className="inline-flex h-7 items-center rounded-full bg-brand-cream-dark/60 px-3 text-xs font-semibold text-brand-dark/80">
+                {cat.age}
+              </span>
+            ) : null}
+            {cat.sociability && cat.sociability !== "Unknown" ? (
+              <span className="inline-flex h-7 items-center rounded-full bg-brand-cream-dark/60 px-3 text-xs font-semibold text-brand-dark/80">
+                {cat.sociability}
+              </span>
+            ) : null}
+          </div>
+
+          {cat.spot_last_seen || cat.last_updated_at ? (
+            <p className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-brand-dark/65">
+              {cat.spot_last_seen ? (
+                <>
+                  <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[11px]">
+                    Last seen
+                  </span>
+                  <span className="font-semibold text-brand-dark/80">
+                    {cat.spot_last_seen}
+                  </span>
+                </>
+              ) : null}
+              {cat.last_updated_at ? (
+                <span className="text-xs tabular-nums text-brand-dark/50">
+                  · updated{" "}
+                  {new Date(cat.last_updated_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
+            className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full bg-brand-orange px-7 py-3 text-sm font-bold tracking-wide text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
-            Apply <span className="text-base leading-none">→</span>
+            Apply to adopt
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
-      <ScallopEdge />
 
-      {/* Content on cream */}
-      <div className="flex w-full flex-col gap-5 px-4 pt-3 pb-8 tablet:px-8 tablet:pt-6 tablet:pb-12">
-        <CatCard cat={cat} variant="wide" action="none" />
+      {/* Detail sections */}
+      <div className="mt-12 grid gap-5 tablet:grid-cols-2 tablet:gap-6">
+        <section className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
+          <h2 className="font-heading text-xs font-bold uppercase tracking-[0.18em] text-brand-orange">
+            Profile
+          </h2>
+          <div className="mt-3 divide-y divide-brand-dark/8">
+            {profileFields.map((f) => (
+              <DetailRow key={f.label} label={f.label} value={f.value} />
+            ))}
+          </div>
+        </section>
 
-        {/* Details — green card, 2-col grid */}
-        <div>
-          <div className="mb-2 flex items-center gap-3">
-            <div className="h-px flex-1 bg-pink-200" />
-            <p className="text-lg font-bold tracking-tight text-brand-orange">
-              Details
-            </p>
-            <div className="h-px flex-1 bg-pink-200" />
+        <section className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
+          <h2 className="font-heading text-xs font-bold uppercase tracking-[0.18em] text-brand-orange">
+            Health
+          </h2>
+          <div className="mt-3 divide-y divide-brand-dark/8">
+            {healthFields.map((f) => (
+              <DetailRow key={f.label} label={f.label} value={f.value} />
+            ))}
           </div>
-          <div className="overflow-hidden rounded-2xl bg-brand-green">
-            <div className="grid grid-cols-2">
-              {detailFields.map((field, i) => {
-                const isLastRow = i >= detailFields.length - 2;
-                const isLeftCol = i % 2 === 0;
-                return (
-                  <div
-                    key={field.label}
-                    className={[
-                      "px-4",
-                      !isLastRow ? "border-b border-white/10" : "",
-                      isLeftCol ? "border-r border-white/10" : "",
-                    ].join(" ")}
-                  >
-                    <GreenField label={field.label} value={field.value} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
-

@@ -1,22 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   DetailHeader,
   TopTabs,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
-import {
-  ChevronDownIcon,
-  PlusIcon,
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
-import { getCats, editCat } from "@/app/actions/cats";
+import { editCat } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { useAuth } from "@/contexts/auth-context";
+import { useCatDetail } from "@/contexts/cat-detail-context";
 import {
   DiscardChangesDialog,
   SaveChangesDialog,
@@ -38,16 +33,20 @@ import type {
   CatStatus,
 } from "@/lib/db/enums";
 
-const FILTER_CHIPS = [
-  "Include +",
-  "Filter 1 Sample",
-  "Filter 2 Sample",
-  "Exclude -",
-  "Filter 1 Sample",
-  "Filter 2 Sample",
-];
+function sexGlyph(s: string | null | undefined): string | null {
+  if (s === "Male") return "♂";
+  if (s === "Female") return "♀";
+  return null;
+}
 
-/** Form field label + CustomSelect used inside green card */
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-orange">
+      {children}
+    </label>
+  );
+}
+
 function FormSelect({
   label,
   options,
@@ -61,27 +60,23 @@ function FormSelect({
 }) {
   return (
     <div>
-      <label className="text-xs font-bold text-brand-yellow">{label}</label>
+      <FieldLabel>{label}</FieldLabel>
       <div className="mt-1.5">
-        <CustomSelect options={options} value={value} onChange={onChange} variant="cream" />
+        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
       </div>
     </div>
   );
 }
 
 export function DatabaseGeneralScreen() {
-  const searchParams = useSearchParams();
-  const catId = searchParams.get("id");
   const { canManage } = useAuth();
+  const { catId, cat, loading, error: ctxError, refresh } = useCatDetail();
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showDesktopFilters, setShowDesktopFilters] = useState(false);
 
   // Form state
   const [color, setColor] = useState("");
@@ -104,35 +99,12 @@ export function DatabaseGeneralScreen() {
     setIsAdoptable(catData.is_adoptable ?? false);
   }, []);
 
-  const fetchCat = useCallback(async () => {
-    if (!catId) {
-      setError("Missing cat ID.");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getCats({ id: catId });
-      if (result?.data && result.data.length > 0) {
-        const catData = result.data[0];
-        setCat(catData);
-        populateForm(catData);
-      } else {
-        setError("Cat not found.");
-      }
-    } catch (err) {
-      console.error("Failed to fetch cat:", err);
-      setError("Failed to load cat data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [catId, populateForm]);
-
+  // Hydrate form when cat from context resolves/changes
   useEffect(() => {
-    fetchCat();
-  }, [fetchCat]);
+    if (cat) populateForm(cat);
+  }, [cat, populateForm]);
+
+  const displayError = error ?? ctxError;
 
   const handleSave = useCallback(async () => {
     if (!catId) return;
@@ -155,8 +127,7 @@ export function DatabaseGeneralScreen() {
         return;
       }
       syncAllPendingRegions();
-      // Re-fetch to get updated data
-      await fetchCat();
+      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     } finally {
@@ -172,7 +143,7 @@ export function DatabaseGeneralScreen() {
     caretaker,
     notes,
     isAdoptable,
-    fetchCat,
+    refresh,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -188,31 +159,31 @@ export function DatabaseGeneralScreen() {
         const fd = new FormData();
         fd.append("file", file);
         await uploadCatPhoto(catId, fd);
-        await fetchCat();
+        await refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Photo upload failed.");
       } finally {
         setPhotoUploading(false);
       }
     },
-    [catId, fetchCat],
+    [catId, refresh],
   );
 
   const handleToggleAdoptable = useCallback(async () => {
     if (!catId) return;
     const newVal = !isAdoptable;
-    setIsAdoptable(newVal); // optimistic
+    setIsAdoptable(newVal);
     try {
       const result = await editCat({ id: catId, is_adoptable: newVal });
       if (result?.serverError) {
-        setIsAdoptable(!newVal); // revert
+        setIsAdoptable(!newVal);
         setError(result.serverError);
         return;
       }
       syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
-      setIsAdoptable(!newVal); // revert
+      setIsAdoptable(!newVal);
       setError(err instanceof Error ? err.message : "Failed to toggle adoptable.");
     }
   }, [catId, isAdoptable]);
@@ -223,18 +194,6 @@ export function DatabaseGeneralScreen() {
     return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
   };
 
-  const sexSymbol = (s: string | null | undefined): string | null => {
-    if (s === "Male") return "♂";
-    if (s === "Female") return "♀";
-    return null;
-  };
-
-  const sexColor = (s: string | null | undefined): string => {
-    if (s === "Male") return "text-blue-500";
-    if (s === "Female") return "text-pink-500";
-    return "text-slate-400";
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -243,182 +202,42 @@ export function DatabaseGeneralScreen() {
     );
   }
 
+  const sex_glyph = sexGlyph(cat?.sex);
+
   return (
     <>
-      <div className="tablet:hidden">
-        <PageContent>
-          <DetailHeader
-            name={cat?.name || "Unnamed"}
-            lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref="/dashboard/database"
-          />
-          <TopTabs active="General" />
+      <PageContent>
+        <DetailHeader
+          name={cat?.name || "Unnamed"}
+          lastUpdated={formatDate(cat?.last_updated_at)}
+          backHref="/dashboard/database"
+        />
 
-          {error ? (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="space-y-4">
-            {/* Green form section */}
-            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
-              <div className="space-y-4">
-                {/* Adoptable toggle */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">
-                    Adoptable/Fosterable?
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleToggleAdoptable}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${isAdoptable ? "bg-brand-orange" : "bg-white/30"}`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${isAdoptable ? "translate-x-6" : "translate-x-1"}`}
-                    />
-                  </button>
-                </div>
-
-                {/* Last seen at */}
-                <div>
-                  <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    {formatDate(cat?.last_updated_at)} /{" "}
-                    {cat?.spot_last_seen || "—"}
-                  </p>
-                </div>
-
-                <FormSelect label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-                <FormSelect label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-                <FormSelect label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-                <FormSelect label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-                <FormSelect label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
-
-                <div>
-                  <label className="text-xs font-bold text-brand-yellow">Caretaker</label>
-                  <input
-                    value={caretaker}
-                    onChange={(e) => setCaretaker(e.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-brand-yellow">Notes</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="mt-1.5 h-20 w-full resize-none rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {canManage ? (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDiscardDialog(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
-                >
-                  Cancel <span>✕</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setShowSaveDialog(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : <><span>Save</span> <span>✓</span></>}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </PageContent>
-      </div>
-
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Database
-          </h1>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Add entry
-            <PlusIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-border">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowDesktopFilters((v) => !v)}
-              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-            >
-              Filter
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-            >
-              Sort by
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {showDesktopFilters ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {FILTER_CHIPS.map((chip, index) => (
-                <span
-                  key={`${chip}-${index}`}
-                  className="rounded-full bg-brand-cream px-3 py-1 text-xs text-foreground"
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        {error ? (
-          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-            {error}
+        {displayError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            {displayError}
           </div>
         ) : null}
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
-          <div className="flex gap-4">
-            <div className="relative h-20 w-20 shrink-0">
+        {/* Identity card */}
+        <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
+          <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
+            <div className="relative h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
               <CatPhoto
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
-                className="h-20 w-20 rounded-2xl"
-                iconClassName="h-9 w-9 text-white/50"
-                sizes="80px"
+                className="h-full w-full overflow-hidden rounded-2xl ring-1 ring-brand-dark/10"
+                iconClassName="h-12 w-12 text-brand-green/30"
+                sizes="128px"
               />
               {canManage ? (
                 <label
-                  className={`absolute inset-0 flex cursor-pointer items-end justify-center rounded-2xl bg-black/0 hover:bg-black/30 ${
-                    photoUploading ? "bg-black/40" : ""
+                  className={`absolute inset-0 flex cursor-pointer items-end justify-center rounded-2xl transition-colors ${
+                    photoUploading ? "bg-brand-dark/40" : "bg-transparent hover:bg-brand-dark/30"
                   }`}
                   aria-label="Upload photo"
                 >
-                  <span className="mb-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-semibold text-white opacity-90">
+                  <span className="mb-2 rounded-full bg-brand-orange px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100 [label:hover_&]:opacity-100">
                     {photoUploading ? "..." : "Change"}
                   </span>
                   <input
@@ -433,105 +252,122 @@ export function DatabaseGeneralScreen() {
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="font-heading text-xl font-bold tracking-tight text-white">
+                <h2 className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-dark truncate tablet:text-3xl">
                   {cat?.name || "Unnamed"}
                 </h2>
-                {sexSymbol(cat?.sex) ? (
-                  <span className="text-xl font-semibold text-white/70">
-                    {sexSymbol(cat?.sex)}
+                {sex_glyph ? (
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-green/12 px-1.5 text-sm font-bold text-brand-green">
+                    {sex_glyph}
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {cat?.color ? (
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.color}
                   </span>
                 ) : null}
                 {cat?.age ? (
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.age}
                   </span>
                 ) : null}
                 {cat?.sociability && cat.sociability !== "Unknown" ? (
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.sociability}
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm text-white/70">
-                Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
-                {formatDate(cat?.last_updated_at)}
+              <p className="mt-3 flex items-baseline gap-1.5 text-xs text-brand-dark/60">
+                <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[10px]">
+                  Last seen
+                </span>
+                <span className="font-semibold text-brand-dark/80">
+                  {cat?.spot_last_seen || "Unknown"}
+                </span>
+                <span className="text-brand-dark/30">·</span>
+                <span className="tabular-nums">
+                  {formatDate(cat?.last_updated_at)}
+                </span>
               </p>
+            </div>
+
+            <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl bg-brand-cream-dark/40 px-4 py-2.5 tablet:flex-col tablet:items-end tablet:px-3 tablet:py-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark/60">
+                Adoptable
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleAdoptable}
+                aria-pressed={isAdoptable}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  isAdoptable ? "bg-brand-orange" : "bg-brand-dark/15"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    isAdoptable ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="border-t border-brand-dark/8 px-5 tablet:px-6">
             <TopTabs active="General" />
-            <button
-              type="button"
-              onClick={handleToggleAdoptable}
-              className="ml-4 flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white"
-            >
-              <span>Adoptable</span>
-              <span
-                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${isAdoptable ? "bg-brand-orange" : "bg-white/30"}`}
-              >
-                <span
-                  className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${isAdoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
-                />
-              </span>
-            </button>
           </div>
+        </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
+        {/* Form card */}
+        <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
+          <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6">
             <FormSelect label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <FormSelect label="Size/Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
+            <FormSelect label="Size / Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
             <FormSelect label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
             <FormSelect label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
             <FormSelect label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
             <div>
-              <label className="text-xs font-bold text-brand-orange">Caretaker</label>
+              <FieldLabel>Caretaker</FieldLabel>
               <input
                 value={caretaker}
                 onChange={(e) => setCaretaker(e.target.value)}
-                className="mt-1.5 h-11 w-full rounded-xl border border-pink-200 bg-brand-cream px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                className="mt-1.5 h-11 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
+              />
+            </div>
+            <div className="tablet:col-span-2">
+              <FieldLabel>Notes</FieldLabel>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={4}
+                className="mt-1.5 w-full resize-none rounded-2xl border border-brand-dark/15 bg-white px-4 py-3 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
               />
             </div>
           </div>
 
-          <div className="mt-3">
-            <label className="text-xs font-bold text-brand-orange">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="mt-1.5 h-20 w-full resize-none rounded-xl border border-pink-200 bg-brand-cream px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-            />
-          </div>
-
           {canManage ? (
-            <div className="mt-4 flex items-center justify-end gap-2">
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-dark/8 pt-4">
               <button
                 type="button"
-                onClick={handleCancel}
-                className="rounded-full border-2 border-white px-4 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white hover:text-brand-green"
+                onClick={() => setShowDiscardDialog(true)}
+                className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 disabled={saving}
-                onClick={handleSave}
-                className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                onClick={() => setShowSaveDialog(true)}
+                className="rounded-full bg-brand-orange px-6 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Saving..." : "Save changes"}
               </button>
             </div>
           ) : null}
-        </section>
-      </div>
+        </div>
+      </PageContent>
 
       <DiscardChangesDialog
         open={showDiscardDialog}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { CatIcon } from "./icons";
+import { ArrowLeftIcon } from "./icons";
 
 type PageContentProps = {
   children: ReactNode;
@@ -33,15 +33,15 @@ export function TopTabs({
   ];
 
   return (
-    <div className="flex w-full border-b border-pink-200 tablet:inline-flex tablet:w-auto tablet:items-center tablet:gap-5">
+    <div className="flex w-full border-b border-brand-dark/10 tablet:inline-flex tablet:w-auto tablet:gap-8">
       {tabs.map((tab) => (
         <Link
           key={tab.label}
           href={tab.href}
-          className={`flex-1 pb-2.5 text-center text-sm tracking-wide transition-colors tablet:flex-none tablet:text-left ${
+          className={`flex-1 pb-3 text-center text-sm tracking-wide transition-colors tablet:flex-none tablet:px-0 tablet:text-left ${
             tab.label === active
               ? "-mb-px border-b-2 border-brand-orange font-bold text-brand-orange"
-              : "font-medium text-brand-dark/70 hover:text-brand-dark"
+              : "font-medium text-brand-dark/55 hover:text-brand-dark"
           }`}
         >
           {tab.label}
@@ -65,29 +65,26 @@ export function DetailHeader({
   backHref = "/dashboard/database",
   subtitle,
 }: DetailHeaderProps) {
-  const subtitleText = subtitle ?? (lastUpdated ? `Last updated: ${lastUpdated}` : "");
+  const subtitleText = subtitle ?? (lastUpdated ? `Last updated ${lastUpdated}` : "");
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-brand-green">
-      <div className="flex items-center gap-3 p-3.5">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-          <CatIcon className="h-8 w-8 text-white/50" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-heading text-2xl font-bold leading-tight text-brand-yellow">
-            {name}
+    <div className="flex items-center gap-3">
+      <Link
+        href={backHref}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-dark/15 bg-white text-brand-dark transition-colors hover:border-brand-dark/40 hover:bg-brand-cream-dark/40"
+        aria-label="Back"
+      >
+        <ArrowLeftIcon className="h-4 w-4" />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <p className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-dark truncate">
+          {name}
+        </p>
+        {subtitleText ? (
+          <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-brand-dark/50">
+            {subtitleText}
           </p>
-          {subtitleText ? (
-            <p className="mt-0.5 text-xs font-semibold text-white/80">{subtitleText}</p>
-          ) : null}
-        </div>
-        <Link
-          href={backHref}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-lg font-bold text-white transition-opacity hover:opacity-80"
-          aria-label="Back"
-        >
-          ‹
-        </Link>
+        ) : null}
       </div>
     </div>
   );

@@ -1,39 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SearchIcon } from "@/components/app-pages/shared/icons";
+import {
+  ChevronDownIcon,
+  SearchIcon,
+} from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
 import {
-  FiltersDialog,
-  SortByDialog,
-} from "@/components/app-pages/shared/dialogs";
+  DatabaseFiltersDialog,
+  DatabaseSortByDialog,
+} from "@/components/app-pages/database/database-dialogs";
 import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
-
-function ScallopEdge() {
-  return (
-    <svg
-      viewBox="0 0 400 28"
-      preserveAspectRatio="none"
-      className="block h-7 w-full"
-      aria-hidden="true"
-    >
-      <path
-        d="M0 0 H400 V6 Q380 28 360 6 Q340 28 320 6 Q300 28 280 6 Q260 28 240 6 Q220 28 200 6 Q180 28 160 6 Q140 28 120 6 Q100 28 80 6 Q60 28 40 6 Q20 28 0 6 Z"
-        className="fill-brand-green"
-      />
-    </svg>
-  );
-}
 
 export function CatalogScreen() {
   const [cats, setCats] = useState<SelectCat[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   const {
     filtered: filteredCats,
@@ -91,76 +77,94 @@ export function CatalogScreen() {
   }, [fetchCats]);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col">
-      {/* Green hero band */}
-      <div className="bg-brand-green px-5 pt-6 pb-0 tablet:px-8 tablet:pt-12 tablet:pb-2">
-        <p className="text-center font-heading text-2xl font-bold leading-tight tracking-tight text-brand-yellow tablet:text-4xl">
-          ADOPT/FOSTER A CAT NOW!
+    <div className="mx-auto flex w-full max-w-6xl flex-col px-4 pt-5 pb-12 tablet:px-8 tablet:pt-10">
+      {/* Hero */}
+      <div className="mb-6 text-center tablet:mb-10">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-orange">
+          Adopt &middot; Foster
         </p>
-        <p className="mx-auto mt-2 hidden max-w-xl text-center text-sm text-white/80 tablet:block">
-          Give a rescued cat a second chance at a loving home.
+        <h1 className="mt-2 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-6xl">
+          Find a friend
+          <br />
+          for life.
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-brand-dark/65 tablet:text-base">
+          Every cat below is available for adoption or fostering. Give a rescued cat a second chance at a loving home.
         </p>
-        <div className="mt-3 flex justify-center pb-5 tablet:mt-5 tablet:pb-8">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-brand-orange bg-brand-cream px-5 py-2 text-sm font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90 tablet:px-6 tablet:py-2.5"
-          >
-            Apply <span className="text-base leading-none">→</span>
-          </button>
-        </div>
       </div>
-      <ScallopEdge />
 
-      {/* Content on cream */}
-      <div className="flex w-full flex-col gap-3 px-4 pt-3 pb-6 tablet:gap-4 tablet:px-8 tablet:pt-6 tablet:pb-10">
-        {/* Search + Filter + Sort */}
+      {/* Mobile: search bar + filter/sort buttons */}
+      <div className="space-y-2 tablet:hidden">
+        <div className="relative">
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
+          <input
+            type="text"
+            placeholder="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/60"
+          />
+        </div>
+
         <div className="flex gap-2">
-          {searchOpen ? (
-            <div className="flex flex-1 items-center gap-2 rounded-full bg-brand-orange px-3 py-2">
-              <SearchIcon className="h-4 w-4 shrink-0 text-white" />
-              <input
-                autoFocus
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={() => { if (!search) setSearchOpen(false); }}
-                placeholder="Search..."
-                className="flex-1 bg-transparent text-sm text-white placeholder-white/60 outline-none"
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="flex flex-1 items-center gap-2 rounded-xl bg-brand-orange px-3 py-2 transition-opacity hover:opacity-90"
-            >
-              <SearchIcon className="h-4 w-4 shrink-0 text-white" />
-              <span className="text-sm font-bold text-white">Search</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            Filter <span className="text-[10px]">▼</span>
+            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={() => setShowSort(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            Sort By <span className="text-[10px]">▼</span>
+            Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
         </div>
+      </div>
 
-        {/* Cat cards */}
+      {/* Desktop: combined search + filter + sort row */}
+      <div className="hidden tablet:block">
+        <div className="flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
+            <input
+              type="text"
+              placeholder="Search cats by name or color"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSort(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Sort by
+            <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Cat cards */}
+      <div className="mt-5 tablet:mt-6">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
           </div>
         ) : searchedCats.length === 0 ? (
-          <div className="py-8 text-center text-sm text-foreground/50">
+          <div className="py-12 text-center text-sm text-brand-dark/55">
             No adoptable/fosterable cats available right now.
           </div>
         ) : (
@@ -178,7 +182,7 @@ export function CatalogScreen() {
         )}
       </div>
 
-      <FiltersDialog
+      <DatabaseFiltersDialog
         open={showFilters}
         onClose={() => setShowFilters(false)}
         categories={DATABASE_LIST_CONFIG.filters}
@@ -187,7 +191,7 @@ export function CatalogScreen() {
         onClear={clearFilters}
         activeCount={activeFilterCount}
       />
-      <SortByDialog
+      <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
         options={DATABASE_LIST_CONFIG.sortOptions}

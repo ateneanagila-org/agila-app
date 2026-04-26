@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   DetailHeader,
@@ -9,26 +8,21 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
-  DatabaseFiltersDialog,
   DatabaseSortByDialog,
   NewInterventionDialog,
 } from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
-  CatIcon,
-  PlusCircleIcon,
   PlusIcon,
-  SearchIcon,
 } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
-import { getCats } from "@/app/actions/cats";
 import {
-  getInterventions,
   createIntervention,
   editIntervention,
 } from "@/app/actions/interventions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
-import type { SelectCat } from "@/lib/validation/cats";
+import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import {
   INTERVENTION_TYPE_VALUES,
@@ -38,18 +32,40 @@ import type { InterventionType, InterventionStatus } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { INTERVENTIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
-export function DatabaseInterventionsScreen() {
-  const searchParams = useSearchParams();
-  const catId = searchParams.get("id");
-  const router = useRouter();
+function sexGlyph(s: string | null | undefined): string | null {
+  if (s === "Male") return "♂";
+  if (s === "Female") return "♀";
+  return null;
+}
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
-  const [interventionsList, setInterventionsList] = useState<
-    SelectIntervention[]
-  >([]);
-  const [loading, setLoading] = useState(true);
+function StatusPill({ status }: { status: string | null | undefined }) {
+  const cls =
+    status === "Completed"
+      ? "bg-brand-green/12 text-brand-green"
+      : status === "Cancelled"
+        ? "bg-brand-dark/8 text-brand-dark/60"
+        : "bg-brand-orange/12 text-brand-orange";
+  return (
+    <span
+      className={`inline-flex h-5 items-center rounded-full px-2 text-[10px] font-bold uppercase tracking-wider ${cls}`}
+    >
+      {status || "Pending"}
+    </span>
+  );
+}
+
+export function DatabaseInterventionsScreen() {
+  const router = useRouter();
+  const {
+    catId,
+    cat,
+    interventions: interventionsList,
+    loading,
+    error: ctxError,
+    refresh,
+  } = useCatDetail();
+
   const [showSort, setShowSort] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
 
   // Create form state
@@ -58,12 +74,10 @@ export function DatabaseInterventionsScreen() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const displayError = error ?? ctxError;
+
   const {
     filtered: filteredInterventions,
-    activeFilters,
-    toggleFilter,
-    clearFilters,
-    activeFilterCount,
     sortKey,
     setSortKey,
     sortOrder,
@@ -85,40 +99,6 @@ export function DatabaseInterventionsScreen() {
     },
   );
 
-  const fetchData = useCallback(async () => {
-    if (!catId) {
-      setError("Missing cat ID.");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const [catResult, intResult] = await Promise.all([
-        getCats({ id: catId }),
-        getInterventions({ cat_id: catId }),
-      ]);
-      if (catResult?.data && catResult.data.length > 0) {
-        setCat(catResult.data[0]);
-      } else {
-        setError("Cat not found.");
-      }
-      if (intResult?.data) {
-        setInterventionsList(intResult.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch interventions:", err);
-      setError("Failed to load interventions.");
-    } finally {
-      setLoading(false);
-    }
-  }, [catId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const handleCreate = useCallback(async () => {
     if (!catId) return;
     setCreating(true);
@@ -137,13 +117,13 @@ export function DatabaseInterventionsScreen() {
       setNewType("");
       setNewNotes("");
       setShowIntervention(false);
-      await fetchData();
+      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create.");
     } finally {
       setCreating(false);
     }
-  }, [catId, newType, newNotes, fetchData]);
+  }, [catId, newType, newNotes, refresh]);
 
   const handleStatusChange = useCallback(
     async (interventionId: string, newStatus: string) => {
@@ -153,30 +133,18 @@ export function DatabaseInterventionsScreen() {
           status: newStatus as InterventionStatus,
         });
         syncAllPendingRegions();
-        await fetchData();
+        await refresh();
       } catch (err) {
         console.error("Failed to update status:", err);
       }
     },
-    [fetchData],
+    [refresh],
   );
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
     const d = new Date(date);
     return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-  };
-
-  const sexSymbol = (s: string | null | undefined): string | null => {
-    if (s === "Male") return "♂";
-    if (s === "Female") return "♀";
-    return null;
-  };
-
-  const sexColor = (s: string | null | undefined): string => {
-    if (s === "Male") return "text-blue-500";
-    if (s === "Female") return "text-pink-500";
-    return "text-slate-400";
   };
 
   if (loading) {
@@ -187,283 +155,171 @@ export function DatabaseInterventionsScreen() {
     );
   }
 
+  const sex_glyph = sexGlyph(cat?.sex);
+
   return (
     <>
-      <div className="tablet:hidden">
-        <PageContent>
-          <DetailHeader
-            name={cat?.name || "Unnamed"}
-            lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref="/dashboard/database"
-          />
-          <TopTabs active="Interventions" />
+      <PageContent>
+        <DetailHeader
+          name={cat?.name || "Unnamed"}
+          lastUpdated={formatDate(cat?.last_updated_at)}
+          backHref="/dashboard/database"
+        />
 
-          {/* Sort + Create New */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSort(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-xs font-bold text-brand-orange transition-opacity hover:opacity-90"
-            >
-              Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowIntervention(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Create New <PlusIcon className="h-4 w-4" />
-            </button>
+        {displayError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            {displayError}
           </div>
+        ) : null}
 
-          {filteredInterventions.length === 0 ? (
-            <div className="py-8 text-center text-sm text-brand-dark/70">
-              No interventions yet.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {interventionsList.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="overflow-hidden rounded-2xl bg-brand-green p-3.5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-heading text-base font-bold leading-tight text-brand-yellow">
-                        Intervention No. {String(index + 1).padStart(2, "0")}
-                      </p>
-                      <p className="mt-0.5 text-xs font-semibold text-white">
-                        {item.type || "—"}
-                      </p>
-                      <p className="mt-1 text-xs text-white/90">
-                        Requested at: {formatDate(item.requested_at)}
-                      </p>
-                      <p className="text-xs text-white/90">
-                        Notes: {item.notes || "—"}
-                      </p>
-                    </div>
-                    {/* Status select styled as outlined badge */}
-                    <div className="w-28 shrink-0">
-                      <CustomSelect
-                        options={INTERVENTION_STATUS_VALUES}
-                        value={item.status ?? "Pending"}
-                        onChange={(v) => handleStatusChange(item.id, v)}
-                        variant="dark"
-                        size="sm"
-                        placeholder="Status"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Cancel / Save */}
-          <div className="flex items-center gap-3 pb-2">
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/database")}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
-            >
-              Cancel <span>✕</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard/database")}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Save <span>✓</span>
-            </button>
-          </div>
-        </PageContent>
-
-        {/* FAB */}
-        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
-          <button
-            type="button"
-            onClick={() => setShowIntervention(true)}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
-          >
-            <PlusIcon className="h-6 w-6 text-white" />
-          </button>
-        </div>
-      </div>
-
-      <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Database
-          </h1>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Add entry
-            <PlusIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-border">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-brand-cream px-4 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+        {/* Identity card */}
+        <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
+          <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
+            <div className="h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
+              <CatPhoto
+                photoUrl={cat?.photo_url}
+                name={cat?.name}
+                className="h-full w-full overflow-hidden rounded-2xl ring-1 ring-brand-dark/10"
+                iconClassName="h-12 w-12 text-brand-green/30"
+                sizes="128px"
               />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-            >
-              Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowSort(true)}
-              className="flex items-center gap-1 rounded-full bg-brand-cream px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-border"
-            >
-              Sort by
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
-          <div className="flex gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <CatIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="font-heading text-xl font-bold tracking-tight text-white">
+                <h2 className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-dark truncate tablet:text-3xl">
                   {cat?.name || "Unnamed"}
                 </h2>
-                {sexSymbol(cat?.sex) ? (
-                  <span className="text-xl font-semibold text-white/70">
-                    {sexSymbol(cat?.sex)}
+                {sex_glyph ? (
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-green/12 px-1.5 text-sm font-bold text-brand-green">
+                    {sex_glyph}
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {cat?.color ? (
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.color}
                   </span>
                 ) : null}
                 {cat?.age ? (
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.age}
                   </span>
                 ) : null}
               </div>
 
-              <p className="mt-3 text-sm text-white/70">
-                Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
-                {formatDate(cat?.last_updated_at)}
+              <p className="mt-3 flex items-baseline gap-1.5 text-xs text-brand-dark/60">
+                <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[10px]">
+                  Last seen
+                </span>
+                <span className="font-semibold text-brand-dark/80">
+                  {cat?.spot_last_seen || "Unknown"}
+                </span>
+                <span className="text-brand-dark/30">·</span>
+                <span className="tabular-nums">
+                  {formatDate(cat?.last_updated_at)}
+                </span>
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="border-t border-brand-dark/8 px-5 tablet:px-6">
             <TopTabs active="Interventions" />
-            <div className="ml-4 flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white">
-              <span>Adoptable</span>
-              <span
-                className={`relative inline-flex h-4 w-7 items-center rounded-full ${cat?.is_adoptable ? "bg-brand-orange" : "bg-white/30"}`}
-              >
-                <span
-                  className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${cat?.is_adoptable ? "translate-x-3.5" : "translate-x-0.5"}`}
-                />
-              </span>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowSort(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+          >
+            Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+          <div className="ml-auto" />
+          <button
+            type="button"
+            onClick={() => setShowIntervention(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          >
+            New Intervention <PlusIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* List */}
+        <div className="rounded-3xl bg-white p-2 ring-1 ring-brand-dark/8 tablet:p-3">
+          {filteredInterventions.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-brand-dark/55">
+              No interventions yet.
             </div>
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSort(true)}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <span className="ml-1">&#9662;</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowIntervention(true)}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Create New <span className="ml-1">+</span>
-            </button>
-          </div>
-
-          <div className="mt-3 divide-y divide-white/10 border-t border-white/10">
-            {filteredInterventions.length === 0 ? (
-              <div className="py-8 text-center text-sm text-white/50">
-                No interventions yet.
-              </div>
-            ) : (
-              filteredInterventions.map((item) => (
-                <div
-                  key={`desktop-${item.id}`}
-                  className="flex items-center justify-between py-3"
+          ) : (
+            <ul className="divide-y divide-brand-dark/8">
+              {filteredInterventions.map((item, index) => (
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-3 p-4 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-6"
                 >
-                  <div>
-                    <p className="font-heading text-base font-bold tracking-tight text-white">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-orange">
+                        No. {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <StatusPill status={item.status} />
+                    </div>
+                    <p className="mt-1 font-heading text-base font-bold leading-tight tracking-tight text-brand-dark">
                       {item.type || "Intervention"}
                     </p>
-                    <p className="mt-0.5 text-sm text-white/70">
-                      Requested at {formatDate(item.requested_at)}
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-brand-dark/45">
+                      Requested {formatDate(item.requested_at)}
                     </p>
                     {item.notes ? (
-                      <p className="mt-0.5 text-xs text-white/60">
+                      <p className="mt-2 text-sm text-brand-dark/70">
                         {item.notes}
                       </p>
                     ) : null}
                   </div>
-                  <div className="relative">
-                    <select
+
+                  <div className="w-full tablet:w-40">
+                    <CustomSelect
+                      options={INTERVENTION_STATUS_VALUES}
                       value={item.status ?? "Pending"}
-                      onChange={(e) =>
-                        handleStatusChange(item.id, e.target.value)
-                      }
-                      className="flex h-9 min-w-36 appearance-none items-center justify-between rounded-lg bg-brand-orange px-3 pr-8 text-sm font-bold text-white"
-                    >
-                      {INTERVENTION_STATUS_VALUES.map((s) => (
-                        <option
-                          key={s}
-                          value={s}
-                          className="bg-white text-slate-900"
-                        >
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
+                      onChange={(v) => handleStatusChange(item.id, v)}
+                      variant="white"
+                      size="sm"
+                      placeholder="Status"
+                    />
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/database")}
+            className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+          >
+            Done
+          </button>
+        </div>
+      </PageContent>
+
+      {/* FAB (mobile) */}
+      <div className="pointer-events-none fixed bottom-20 right-4 z-10 tablet:hidden">
+        <button
+          type="button"
+          onClick={() => setShowIntervention(true)}
+          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+        >
+          <PlusIcon className="h-6 w-6 text-white" />
+        </button>
       </div>
 
-      <DatabaseFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
-        categories={INTERVENTIONS_CONFIG.filters}
-        activeFilters={activeFilters}
-        onToggle={toggleFilter}
-        onClear={clearFilters}
-        activeCount={activeFilterCount}
-      />
       <DatabaseSortByDialog
         open={showSort}
         onClose={() => setShowSort(false)}
