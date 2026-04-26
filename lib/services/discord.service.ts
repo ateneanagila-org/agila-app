@@ -6,13 +6,16 @@ export async function sendSyncAlert(message: string): Promise<void> {
   }
 
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         content: `**[AGILA Sync Alert]** ${message}`,
       }),
     });
+    if (!res.ok) {
+      console.error(`[DiscordAlert] Webhook returned ${res.status}:`, await res.text());
+    }
   } catch (error) {
     console.error("[DiscordAlert] Failed to send:", error);
   }
