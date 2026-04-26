@@ -1,18 +1,26 @@
 /**
  * AGILA CATalog — Sheet Protection Toggle
  *
- * Run these functions manually from the Apps Script editor
- * when switching between normal operation and freeze mode.
+ * Standalone manual utilities for sheet access management.
+ * These are NOT part of the automated sync failover system.
  *
- * FREEZE: Adds authorized personnel as editors so they can edit during app failure.
- * UNFREEZE: Re-locks data range; only service account writes during normal ops.
+ * The automated failover (auto-freeze) only pauses the sync flag in the DB —
+ * it does NOT touch sheet protections. These functions are for a separate
+ * scenario: the app is completely unreachable and you want users to edit
+ * sheets directly until the app recovers.
  *
- * Authorized emails are stored dynamically in the _config sheet (B1),
- * managed by the app via the Sheets API. No need to hardcode them here.
+ * FREEZE: Removes A3:V protection so all users with sheet access can edit freely.
+ * UNFREEZE: Re-locks A3:V; only authorized managers/admins can edit during normal ops.
+ *
+ * Authorized emails are stored in the _config sheet (B1) as a comma-separated list.
+ * IMPORTANT: The app no longer auto-updates _config!B1. Before running unfreezeMode(),
+ * verify that B1 contains the current list of manager/admin emails. Update it manually
+ * in the _config sheet if any managers/admins have been added or removed since last run.
  *
  * Region sheet names are stored in the _config sheet (B2) as a comma-separated
- * list, also managed by the app. Only sheets matching a known region name receive
- * data range and UUID protections — static sheets (For RI, For FA, etc.) are skipped.
+ * list, managed by the app via the Sheets API. Only sheets matching a known region
+ * name receive data range and UUID protections — static sheets (For RI, For FA, etc.)
+ * are skipped.
  *
  * HOW TO DEPLOY:
  * 1. Open the CATalog spreadsheet -> Extensions > Apps Script
@@ -22,13 +30,13 @@
  *
  * SETUP:
  * - Create a hidden, protected sheet tab named "_config" in the spreadsheet
- * - The app will write authorized emails as a comma-separated list to cell B1
+ * - Manually enter authorized manager/admin emails as a comma-separated list in B1
  * - The app will write region sheet names as a comma-separated list to cell B2
  * - Run setupUuidProtection() once after initial spreadsheet setup
  *
- * USAGE:
- * - When app goes down: run freezeMode() from the Apps Script editor
- * - After app recovery and reverse sync: run unfreezeMode()
+ * USAGE (manual, run from Apps Script editor only):
+ * - When app is completely unreachable: run freezeMode() to open sheets for direct editing
+ * - After app recovery (sync resumed via app UI): run unfreezeMode() to re-lock sheets
  */
 
 /**
