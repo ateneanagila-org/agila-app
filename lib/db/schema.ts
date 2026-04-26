@@ -46,7 +46,7 @@ export const profiles = pgTable("profiles", {
 
 export const allowedEmails = pgTable("allowed_emails", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
   allower_id: uuid("allower_id")
     .notNull()
     .references(() => supabaseUsers.id, {

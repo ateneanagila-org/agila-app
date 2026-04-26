@@ -39,6 +39,26 @@ export const findAllowedEmails = (filters: Partial<SelectAllowedEmail>) =>
     },
   });
 
+export const findAllowedEmailsWithProfile = () =>
+  db
+    .select({
+      id: allowedEmails.id,
+      email: allowedEmails.email,
+      auth_role: allowedEmails.auth_role,
+      allowed_at: allowedEmails.allowed_at,
+      profile_id: profiles.id,
+      profile_name: profiles.name,
+    })
+    .from(allowedEmails)
+    .leftJoin(supabaseUsers, eq(supabaseUsers.email, allowedEmails.email))
+    .leftJoin(profiles, eq(profiles.id, supabaseUsers.id));
+
+export const findAllowedEmailById = (id: string) =>
+  db.query.allowedEmails.findFirst({ where: eq(allowedEmails.id, id) });
+
+export const findAllowedEmailByEmail = (email: string) =>
+  db.query.allowedEmails.findFirst({ where: eq(allowedEmails.email, email) });
+
 export const insertAllowedEmail = (data: InsertAllowedEmail) =>
   db.insert(allowedEmails).values(data);
 
