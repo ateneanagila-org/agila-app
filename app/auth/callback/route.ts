@@ -65,7 +65,7 @@ export async function GET(request: Request) {
               data.user.user_metadata.full_name ||
               data.user.email?.split("@")[0] ||
               "User",
-            auth_role: "Volunteer",
+            auth_role: allowed[0].auth_role ?? "Volunteer",
           });
         }
       } catch (repoError) {

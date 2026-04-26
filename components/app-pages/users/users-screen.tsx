@@ -15,7 +15,7 @@ import {
 } from "@/components/app-pages/shared/icons";
 import {
   getProfiles,
-  createProfile,
+  addUser,
   editProfile,
   removeProfile,
 } from "@/app/actions/users";
@@ -41,9 +41,9 @@ export function UsersScreen() {
   const [deleting, setDeleting] = useState(false);
 
   // Add user form
-  const [newUserId, setNewUserId] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState<string>("");
+  const [newRole, setNewRole] = useState<string>("Volunteer");
   const [creating, setCreating] = useState(false);
 
   // Edit user form
@@ -107,15 +107,15 @@ export function UsersScreen() {
   }, [fetchUsers]);
 
   const handleCreate = useCallback(async () => {
-    if (!newUserId.trim()) {
-      setError("User ID (Supabase UUID) is required.");
+    if (!newEmail.trim()) {
+      setError("Email is required.");
       return;
     }
     setCreating(true);
     setError(null);
     try {
-      const result = await createProfile({
-        id: newUserId,
+      const result = await addUser({
+        email: newEmail.trim(),
         name: newName || undefined,
         auth_role: (newRole || "Volunteer") as AuthRole,
       });
@@ -123,9 +123,9 @@ export function UsersScreen() {
         setError(result.serverError);
         return;
       }
-      setNewUserId("");
+      setNewEmail("");
       setNewName("");
-      setNewRole("");
+      setNewRole("Volunteer");
       setShowAddUser(false);
       await fetchUsers();
     } catch (err) {
@@ -133,7 +133,7 @@ export function UsersScreen() {
     } finally {
       setCreating(false);
     }
-  }, [newUserId, newName, newRole, fetchUsers]);
+  }, [newEmail, newName, newRole, fetchUsers]);
 
   const handleSaveRole = useCallback(async () => {
     if (!selectedUser) return;
@@ -426,8 +426,8 @@ export function UsersScreen() {
         onClose={() => { setShowAddUser(false); setError(null); }}
         name={newName}
         onNameChange={setNewName}
-        userId={newUserId}
-        onUserIdChange={setNewUserId}
+        email={newEmail}
+        onEmailChange={setNewEmail}
         role={newRole}
         onRoleChange={setNewRole}
         roleOptions={AUTH_ROLE_VALUES}

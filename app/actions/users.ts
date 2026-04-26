@@ -1,23 +1,37 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as usersRepo from "@/lib/repo/users.repo";
-import { syncSheetEditors } from "@/lib/services/helper.service";
 import { requireRole, ADMIN_ONLY, MANAGER_OR_ADMIN } from "@/lib/auth/rbac";
 import {
   getProfilesSchema,
   editProfileSchema,
-  createProfileSchema,
-  CreateProfileSchema,
+  addUserSchema,
+  AddUserSchema,
   GetProfilesSchema,
   EditProfileSchema,
 } from "@/lib/validation/users";
 import { z } from "zod";
 
-export const createProfile = actionClient
-  .schema(createProfileSchema)
-  .action(async ({ parsedInput }: { parsedInput: CreateProfileSchema }) => {
-    await requireRole(...ADMIN_ONLY);
-    return await usersRepo.insertProfile(parsedInput);
+export const addUser = actionClient
+  .schema(addUserSchema)
+  .action(async ({ parsedInput }: { parsedInput: AddUserSchema }) => {
+    const current = await requireRole(...ADMIN_ONLY);
+    const email = parsedInput.email.toLowerCase();
+
+    await usersRepo.insertAllowedEmail({
+      email,
+      allower_id: current.user.id,
+      auth_role: parsedInput.auth_role,
+    });
+
+    const authUsers = await usersRepo.findAuthUserByEmail(email);
+    if (authUsers.length > 0) {
+      await usersRepo.upsertProfile({
+        id: authUsers[0].id,
+        name: parsedInput.name,
+        auth_role: parsedInput.auth_role,
+      });
+    }
   });
 
 export const getProfiles = actionClient
@@ -39,13 +53,7 @@ export const editProfile = actionClient
       bindArgsClientInputs: readonly [string];
     }) => {
       await requireRole(...ADMIN_ONLY);
-      const result = await usersRepo.updateProfile(id, parsedInput);
-      if (parsedInput.auth_role !== undefined) {
-        syncSheetEditors().catch((err) =>
-          console.error("[SheetEditors] Sync failed:", err),
-        );
-      }
-      return result;
+      return await usersRepo.updateProfile(id, parsedInput);
     },
   );
 
@@ -58,6 +66,10 @@ export const removeProfile = actionClient
       bindArgsClientInputs: readonly [string];
     }) => {
       await requireRole(...ADMIN_ONLY);
+      const authUsers = await usersRepo.findAuthUserById(id);
+      if (authUsers.length > 0) {
+        await usersRepo.deleteAllowedEmailByEmail(authUsers[0].email);
+      }
       return await usersRepo.deleteProfile(id);
     },
   );

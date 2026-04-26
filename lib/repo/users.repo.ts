@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { profiles, allowedEmails } from "../db/schema";
+import { profiles, allowedEmails, supabaseUsers } from "../db/schema";
 import { eq } from "drizzle-orm";
 import {
   InsertAllowedEmail,
@@ -49,3 +49,22 @@ export const updateAllowedEmail = (
 
 export const deleteAllowedEmail = (id: string) =>
   db.delete(allowedEmails).where(eq(allowedEmails.id, id));
+
+export const deleteAllowedEmailByEmail = (email: string) =>
+  db.delete(allowedEmails).where(eq(allowedEmails.email, email));
+
+// AUTH USERS (read-only lookups)
+export const findAuthUserByEmail = (email: string) =>
+  db.select().from(supabaseUsers).where(eq(supabaseUsers.email, email)).limit(1);
+
+export const findAuthUserById = (id: string) =>
+  db.select().from(supabaseUsers).where(eq(supabaseUsers.id, id)).limit(1);
+
+export const upsertProfile = (data: InsertProfile) =>
+  db
+    .insert(profiles)
+    .values(data)
+    .onConflictDoUpdate({
+      target: profiles.id,
+      set: { name: data.name, auth_role: data.auth_role },
+    });

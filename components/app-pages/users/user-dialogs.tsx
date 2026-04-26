@@ -110,8 +110,8 @@ type AddUserDialogProps = {
   onClose: () => void;
   name: string;
   onNameChange: (v: string) => void;
-  userId: string;
-  onUserIdChange: (v: string) => void;
+  email: string;
+  onEmailChange: (v: string) => void;
   role: string;
   onRoleChange: (v: string) => void;
   roleOptions: readonly string[];
@@ -125,8 +125,8 @@ export function AddUserDialog({
   onClose,
   name,
   onNameChange,
-  userId,
-  onUserIdChange,
+  email,
+  onEmailChange,
   role,
   onRoleChange,
   roleOptions,
@@ -145,11 +145,11 @@ export function AddUserDialog({
       <div className="space-y-3">
         <InputField label="Name" value={name} onChange={onNameChange} placeholder="Full name" />
         <InputField
-          label="Ateneo Student Email Address"
-          value={userId}
-          onChange={onUserIdChange}
-          placeholder="Supabase UUID"
-          type="text"
+          label="Ateneo Email Address"
+          value={email}
+          onChange={onEmailChange}
+          placeholder="user@student.ateneo.edu"
+          type="email"
         />
         <SelectField label="Role" value={role} onChange={onRoleChange} options={roleOptions} />
       </div>

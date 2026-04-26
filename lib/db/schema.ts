@@ -53,6 +53,7 @@ export const allowedEmails = pgTable("allowed_emails", {
       onDelete: "set null",
     }),
   allowed_at: timestamp("allowed_at").defaultNow().notNull(),
+  auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
 });
 
 export const regions = pgTable(
