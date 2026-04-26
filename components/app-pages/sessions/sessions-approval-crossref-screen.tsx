@@ -13,7 +13,7 @@ import {
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import {
-  ImagePlaceholderIcon,
+  CatIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
@@ -279,7 +279,7 @@ export function SessionsApprovalCrossRefScreen() {
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
                     <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
+                      <CatIcon className="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
@@ -369,7 +369,7 @@ export function SessionsApprovalCrossRefScreen() {
         <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex items-start gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+              <CatIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="flex-1">
@@ -444,7 +444,7 @@ export function SessionsApprovalCrossRefScreen() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
-                          <ImagePlaceholderIcon className="h-5 w-5 text-white/50" />
+                          <CatIcon className="h-5 w-5 text-white/50" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">

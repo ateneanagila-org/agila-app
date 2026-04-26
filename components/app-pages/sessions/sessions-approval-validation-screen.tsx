@@ -10,7 +10,7 @@ import {
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
+  CatIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -397,7 +397,7 @@ export function SessionsApprovalValidationScreen() {
         <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex items-start gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+              <CatIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="flex-1">

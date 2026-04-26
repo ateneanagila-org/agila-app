@@ -15,8 +15,9 @@ import {
 } from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
+  CatIcon,
   PlusCircleIcon,
+  PlusIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -211,7 +212,7 @@ export function DatabaseInterventionsScreen() {
               onClick={() => setShowIntervention(true)}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
             >
-              Create New <span className="text-base leading-none">+</span>
+              Create New <PlusIcon className="h-4 w-4" />
             </button>
           </div>
 
@@ -284,7 +285,7 @@ export function DatabaseInterventionsScreen() {
             onClick={() => setShowIntervention(true)}
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
-            <span className="text-2xl font-bold leading-none text-white">+</span>
+            <PlusIcon className="h-6 w-6 text-white" />
           </button>
         </div>
       </div>
@@ -299,7 +300,7 @@ export function DatabaseInterventionsScreen() {
             className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
-            <span className="text-lg leading-none">+</span>
+            <PlusIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -337,7 +338,7 @@ export function DatabaseInterventionsScreen() {
         <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+              <CatIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="min-w-0 flex-1">

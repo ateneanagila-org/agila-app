@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
+  CatIcon,
   PlusCircleIcon,
+  PlusIcon,
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
@@ -347,7 +348,7 @@ export function SessionsCreateScreen() {
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
                     <div className="flex w-24 shrink-0 items-center justify-center bg-white/10">
-                      <ImagePlaceholderIcon className="h-10 w-10 text-white/40" />
+                      <CatIcon className="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 items-start justify-between px-3.5 py-3">
@@ -383,7 +384,7 @@ export function SessionsCreateScreen() {
             onClick={handleOpenAddForm}
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
-            <span className="text-2xl font-bold leading-none text-white">+</span>
+            <PlusIcon className="h-6 w-6 text-white" />
           </button>
         </div>
       </div>
@@ -484,7 +485,7 @@ export function SessionsCreateScreen() {
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                    <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+                    <CatIcon className="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

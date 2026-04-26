@@ -9,6 +9,7 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
+  PlusIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
@@ -347,7 +348,7 @@ export function DatabaseGeneralScreen() {
             className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
-            <span className="text-lg leading-none">+</span>
+            <PlusIcon className="h-4 w-4" />
           </button>
         </div>
 

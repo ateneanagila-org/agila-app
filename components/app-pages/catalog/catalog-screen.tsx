@@ -164,7 +164,7 @@ export function CatalogScreen() {
             No adoptable/fosterable cats available right now.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3 laptop:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 tablet:grid-cols-4">
             {searchedCats.map((cat) => (
               <CatCard
                 key={cat.id}

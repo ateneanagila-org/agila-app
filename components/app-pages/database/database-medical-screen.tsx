@@ -9,7 +9,8 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ChevronDownIcon,
-  ImagePlaceholderIcon,
+  CatIcon,
+  PlusIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -308,7 +309,7 @@ export function DatabaseMedicalScreen() {
             className="flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Add entry
-            <span className="text-lg leading-none">+</span>
+            <PlusIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -364,7 +365,7 @@ export function DatabaseMedicalScreen() {
         <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <ImagePlaceholderIcon className="h-9 w-9 text-white/50" />
+              <CatIcon className="h-9 w-9 text-white/50" />
             </div>
 
             <div className="min-w-0 flex-1">

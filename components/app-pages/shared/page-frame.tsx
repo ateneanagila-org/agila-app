@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { ImagePlaceholderIcon } from "./icons";
+import { CatIcon } from "./icons";
 
 type PageContentProps = {
   children: ReactNode;
@@ -71,7 +71,7 @@ export function DetailHeader({
     <div className="overflow-hidden rounded-2xl bg-brand-green">
       <div className="flex items-center gap-3 p-3.5">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/15">
-          <ImagePlaceholderIcon className="h-8 w-8 text-white/50" />
+          <CatIcon className="h-8 w-8 text-white/50" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-heading text-2xl font-bold leading-tight text-brand-yellow">

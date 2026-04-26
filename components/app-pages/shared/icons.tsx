@@ -10,11 +10,39 @@ export function ImagePlaceholderIcon({ className }: IconProps) {
   );
 }
 
+export function CatIcon({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+    >
+      <path d="M5 4l2.5 4.5M19 4l-2.5 4.5" />
+      <path d="M4 11c0-3.5 3.5-6 8-6s8 2.5 8 6v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5z" />
+      <path d="M9 13h.01M15 13h.01" strokeWidth="2" />
+      <path d="M11 17c.5.5 1.5.5 2 0" />
+      <path d="M10 15.5l2 .8 2-.8" />
+    </svg>
+  );
+}
+
 export function PlusCircleIcon({ className }: IconProps) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <circle cx="12" cy="12" r="9" strokeWidth="2" />
       <path strokeLinecap="round" strokeWidth="2" d="M12 8v8M8 12h8" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 5v14M5 12h14" />
     </svg>
   );
 }
@@ -98,6 +126,37 @@ export function TrashIcon({ className }: IconProps) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6l-12 12" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+export function SaveIcon({ className }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M5 5a2 2 0 0 1 2-2h9l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 3v5h7V3" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 13h8v8H8z" />
     </svg>
   );
 }

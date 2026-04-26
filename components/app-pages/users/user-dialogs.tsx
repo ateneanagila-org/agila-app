@@ -1,7 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ChevronDownIcon, TrashIcon, ExternalLinkIcon } from "@/components/app-pages/shared/icons";
+import {
+  ChevronDownIcon,
+  TrashIcon,
+  ExternalLinkIcon,
+  CloseIcon,
+  CheckIcon,
+  SaveIcon,
+} from "@/components/app-pages/shared/icons";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
 // ─── Shared shell ────────────────────────────────────────────────────────────
@@ -27,16 +34,16 @@ function Header({ title, subtitle, onClose }: { title: string; subtitle?: string
   return (
     <div className="flex items-start justify-between">
       <div>
-        <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">{title}</h2>
-        {subtitle ? <p className="mt-0.5 text-xs text-brand-orange">{subtitle}</p> : null}
+        <h2 className="font-heading text-2xl font-bold tracking-tight text-brand-green">{title}</h2>
+        {subtitle ? <p className="mt-0.5 text-xs italic text-brand-dark/70">{subtitle}</p> : null}
       </div>
       <button
         type="button"
         onClick={onClose}
-        className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
+        className="ml-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-dark text-white transition-opacity hover:opacity-80"
         aria-label="Close"
       >
-        ✕
+        <CloseIcon className="h-4 w-4" />
       </button>
     </div>
   );
@@ -59,14 +66,14 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="text-sm font-semibold text-brand-orange">{label}</label>
+      <label className="text-sm font-bold text-brand-orange">{label}</label>
       <input
         type={type}
         value={value ?? ""}
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         placeholder={placeholder}
         readOnly={readOnly}
-        className="mt-1.5 h-10 w-full rounded-full border border-brand-orange/30 bg-white px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-brand-orange/40 read-only:opacity-70"
+        className="mt-1.5 h-10 w-full rounded-full border-2 border-brand-pink bg-white px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-brand-orange read-only:opacity-70"
       />
     </div>
   );
@@ -85,19 +92,19 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="text-sm font-semibold text-brand-orange">{label}</label>
+      <label className="text-sm font-bold text-brand-orange">{label}</label>
       <div className="relative mt-1.5">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-full appearance-none rounded-full border border-brand-orange/30 bg-white px-4 pr-10 text-sm text-foreground outline-none"
+          className="h-10 w-full appearance-none rounded-full border-2 border-brand-pink bg-white px-4 pr-10 text-sm text-foreground outline-none focus:border-brand-orange"
         >
           <option value="">Value</option>
           {options.map((o) => (
             <option key={o} value={o}>{o}</option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange/70" />
+        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/60" />
       </div>
     </div>
   );
@@ -158,9 +165,9 @@ export function AddUserDialog({
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center gap-1.5 rounded-full border border-brand-orange px-4 py-2 text-sm font-semibold text-brand-orange transition-opacity hover:opacity-80"
+          className="flex items-center gap-1.5 rounded-full border-2 border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
-          Cancel <span>✕</span>
+          Cancel <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
@@ -168,7 +175,7 @@ export function AddUserDialog({
           onClick={onCreate}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {creating ? "Creating..." : "Apply"} <span>💾</span>
+          {creating ? "Creating..." : "Apply"} <SaveIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>
@@ -194,9 +201,9 @@ export function DeleteUserDialog({ open, onClose, onConfirm, isLoading }: Delete
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-full border-2 border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Keep <ChevronDownIcon className="h-3.5 w-3.5" />
+          Keep <CheckIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
@@ -272,16 +279,16 @@ export function UserFiltersDialog({
         <button
           type="button"
           onClick={() => { onClear(); onClose(); }}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+          className="flex items-center gap-1.5 rounded-full border-2 border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
-          Reset <span>✕</span>
+          Reset <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={onClose}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Apply <span>✓</span>
+          Apply <CheckIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>
@@ -319,10 +326,10 @@ export function UserSortByDialog({
             key={opt.key}
             type="button"
             onClick={() => onSort(activeKey === opt.key ? null : opt.key)}
-            className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+            className={`rounded-full border-2 px-3 py-2 text-sm font-semibold transition-colors ${
               activeKey === opt.key
                 ? "border-brand-green bg-brand-green text-white"
-                : "border-brand-green/30 text-foreground hover:bg-brand-green/5"
+                : "border-brand-pink text-foreground hover:bg-brand-cream-dark/40"
             }`}
           >
             {opt.label}
@@ -331,7 +338,7 @@ export function UserSortByDialog({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-semibold text-foreground">Order</p>
+        <p className="mb-2 text-sm font-bold text-brand-green">Order</p>
         <div className="grid grid-cols-2 gap-2">
           {(["asc", "desc"] as const).map((o) => (
             <button
@@ -341,7 +348,7 @@ export function UserSortByDialog({
               className={`rounded-full px-3 py-2 text-sm font-semibold transition-opacity ${
                 order === o
                   ? "bg-brand-orange text-white"
-                  : "border border-brand-orange/40 text-foreground hover:opacity-80"
+                  : "border-2 border-brand-orange/40 text-brand-orange hover:opacity-80"
               }`}
             >
               {o === "asc" ? "Ascending" : "Descending"}
@@ -356,7 +363,7 @@ export function UserSortByDialog({
           onClick={onClose}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Apply <span>✓</span>
+          Apply <CheckIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>

@@ -5,21 +5,23 @@ import {
   CAT_SEX_VALUES,
   CAT_SOCIABILITY_VALUES,
   CAT_STATUS_VALUES,
-  CAT_ENTRY_STATUS_VALUES,
   CATHEALTHRECORD_CONDITION_VALUES,
   INTERVENTION_TYPE_VALUES,
   INTERVENTION_STATUS_VALUES,
   AUTH_ROLE_VALUES,
 } from "@/lib/db/enums";
+import { LOCATIONS } from "@/components/app-pages/shared/constants";
+
+const LOCATION_FILTER_OPTIONS = LOCATIONS.filter((l) => l !== "All Locations");
 
 export const DATABASE_LIST_CONFIG: FilterSortConfig = {
   filters: [
+    { label: "Location", key: "spot_last_seen", options: LOCATION_FILTER_OPTIONS },
     { label: "Color", key: "color", options: CAT_COLOR_VALUES },
     { label: "Age", key: "age", options: CAT_AGE_VALUES },
     { label: "Sex", key: "sex", options: CAT_SEX_VALUES },
     { label: "Sociability", key: "sociability", options: CAT_SOCIABILITY_VALUES },
     { label: "Status", key: "cat_status", options: CAT_STATUS_VALUES },
-    { label: "Entry Status", key: "entry_status", options: CAT_ENTRY_STATUS_VALUES },
   ],
   sortOptions: [
     { label: "Name", key: "name" },

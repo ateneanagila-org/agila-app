@@ -8,6 +8,7 @@ import {
 } from "@/components/app-pages/database/database-dialogs";
 import {
   ChevronDownIcon,
+  PlusIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
@@ -111,7 +112,7 @@ export function DatabaseListScreen() {
               onClick={() => setShowAdd(true)}
               className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Add Entry <span className="text-base leading-none">+</span>
+              Add Entry <PlusIcon className="h-4 w-4" />
             </button>
           ) : null}
 
@@ -150,13 +151,13 @@ export function DatabaseListScreen() {
           ) : searchedCats.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
               {searchedCats.map((cat) => (
                 <CatCard
                   key={cat.id}
                   cat={cat}
                   href={`/dashboard/database/general?id=${cat.id}`}
-                  variant="compact"
+                  variant="default"
                   action="kebab"
                 />
               ))}
@@ -171,7 +172,7 @@ export function DatabaseListScreen() {
               onClick={() => setShowAdd(true)}
               className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
             >
-              <span className="text-2xl font-bold leading-none text-white">+</span>
+              <PlusIcon className="h-6 w-6 text-white" />
             </button>
           </div>
         ) : null}
@@ -194,7 +195,7 @@ export function DatabaseListScreen() {
               className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               Add entry
-              <span className="text-lg leading-none">+</span>
+              <PlusIcon className="h-4 w-4" />
             </button>
           ) : null}
         </div>
@@ -228,7 +229,7 @@ export function DatabaseListScreen() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3 laptop:grid-cols-4">
+        <div className="mt-4 grid grid-cols-5 gap-3">
           {loading ? (
             <div className="col-span-full"><LoadingIndicator /></div>
           ) : searchedCats.length === 0 ? (

@@ -7,6 +7,7 @@ import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { PlusIcon } from "@/components/app-pages/shared/icons";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -342,7 +343,7 @@ export function CatEntryForm({
                   className="flex h-32 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-brand-orange/40 bg-white transition-colors hover:border-brand-orange hover:bg-brand-orange/5"
                   aria-label="Upload cat photo"
                 >
-                  <span className="text-3xl leading-none text-brand-orange/70">+</span>
+                  <PlusIcon className="h-7 w-7 text-brand-orange/70" />
                   <span className="text-xs font-semibold text-brand-orange">Tap to upload photo</span>
                 </button>
               )}

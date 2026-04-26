@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   ChevronDownIcon,
+  PlusIcon,
 } from "@/components/app-pages/shared/icons";
 import {
   SessionFiltersDialog,
@@ -180,7 +181,8 @@ export function SessionsScreen() {
     ];
   }, [sessions, statusBySession, unreviewedCatCount]);
 
-  /** Compute priority locations — regions sorted by days since last session */
+  /** Compute priority locations — every region, sorted by days since last session.
+   *  Regions with no session show "Unknown" days. */
   const priorityLocations = useMemo(() => {
     const regionLastSession = new Map<string, number>();
     for (const s of sessions) {
@@ -193,16 +195,27 @@ export function SessionsScreen() {
     }
 
     const now = Date.now();
-    return Array.from(regionLastSession.entries())
-      .map(([regionId, lastSeen]) => ({
-        name: regionMap[regionId] ?? regionId.slice(0, 8),
-        daysSince: Math.max(0, Math.floor((now - lastSeen) / 86400000)),
-      }))
-      .sort((a, b) => b.daysSince - a.daysSince)
+    const entries = Object.entries(regionMap).map(([regionId, name]) => {
+      const lastSeen = regionLastSession.get(regionId);
+      const daysSince =
+        lastSeen != null
+          ? Math.max(0, Math.floor((now - lastSeen) / 86400000))
+          : null;
+      return { name, daysSince };
+    });
+
+    return entries
+      .sort((a, b) => {
+        // Unknown (null) → highest priority (sort first)
+        if (a.daysSince == null && b.daysSince == null) return 0;
+        if (a.daysSince == null) return -1;
+        if (b.daysSince == null) return 1;
+        return b.daysSince - a.daysSince;
+      })
       .slice(0, 5)
       .map((entry) => ({
-        ...entry,
-        daysSince: String(entry.daysSince),
+        name: entry.name,
+        daysSince: entry.daysSince == null ? "Unknown" : String(entry.daysSince),
       }));
   }, [sessions, regionMap]);
 
@@ -509,7 +522,7 @@ export function SessionsScreen() {
             href="/dashboard/sessions/create"
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
           >
-            <span className="text-2xl font-bold leading-none text-white">+</span>
+            <PlusIcon className="h-6 w-6 text-white" />
           </Link>
         </div>
       </div>

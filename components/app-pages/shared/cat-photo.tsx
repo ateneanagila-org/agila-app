@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ImagePlaceholderIcon } from "@/components/app-pages/shared/icons";
+import { CatIcon } from "@/components/app-pages/shared/icons";
 
 type CatPhotoProps = {
   photoUrl?: string | null;
@@ -15,15 +15,15 @@ export function CatPhoto({
   photoUrl,
   name,
   className = "",
-  iconClassName = "h-10 w-10 text-white/40",
+  iconClassName = "h-10 w-10 text-brand-green/40",
   sizes = "160px",
 }: CatPhotoProps) {
   if (!photoUrl) {
     return (
       <div
-        className={`flex items-center justify-center bg-white/10 ${className}`}
+        className={`flex items-center justify-center bg-brand-cream-dark/40 ${className}`}
       >
-        <ImagePlaceholderIcon className={iconClassName} />
+        <CatIcon className={iconClassName} />
       </div>
     );
   }
