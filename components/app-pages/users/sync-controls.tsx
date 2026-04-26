@@ -1,33 +1,20 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import {
-  freezeSync,
-  unfreezeSync,
-  getSyncStatus,
-} from "@/app/actions/system";
+import { unfreezeSync, getSyncStatus } from "@/app/actions/system";
 
 export function SyncControls() {
   const [frozen, setFrozen] = useState<boolean | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    getSyncStatus().then((res) => setFrozen(res.frozen));
-  }, []);
-
-  function handleFreeze() {
-    startTransition(async () => {
-      setMessage(null);
-      try {
-        await freezeSync();
-        setFrozen(true);
-        setMessage("System frozen. Sheet protections removed.");
-      } catch {
-        setMessage("Freeze failed — check server logs.");
-      }
+    getSyncStatus().then((res) => {
+      setFrozen(res.frozen);
+      setReason(res.reason);
     });
-  }
+  }, []);
 
   function handleUnfreeze() {
     startTransition(async () => {
@@ -35,7 +22,8 @@ export function SyncControls() {
       try {
         await unfreezeSync();
         setFrozen(false);
-        setMessage("System unfrozen. Sheet protections restored.");
+        setReason(null);
+        setMessage("System unfrozen. Sync resumed.");
       } catch {
         setMessage("Unfreeze failed — check server logs.");
       }
@@ -62,24 +50,18 @@ export function SyncControls() {
         )}
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={isPending || frozen === true}
-          onClick={handleFreeze}
-          className="rounded-full bg-red-500/80 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          Freeze
-        </button>
-        <button
-          type="button"
-          disabled={isPending || frozen === false}
-          onClick={handleUnfreeze}
-          className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          Unfreeze
-        </button>
-      </div>
+      {frozen && reason && (
+        <p className="mb-3 text-xs text-red-200/80">Reason: {reason}</p>
+      )}
+
+      <button
+        type="button"
+        disabled={isPending || frozen === false}
+        onClick={handleUnfreeze}
+        className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+      >
+        Unfreeze
+      </button>
 
       {message && (
         <p className="mt-2 text-xs text-white/60">{message}</p>
