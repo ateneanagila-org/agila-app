@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
   DatabaseFiltersDialog,
@@ -11,7 +10,7 @@ import {
   ChevronDownIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatCard } from "@/components/app-pages/shared/cat-card";
 import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
@@ -83,21 +82,6 @@ export function DatabaseListScreen() {
     fetchCats();
   }, [fetchCats]);
 
-  /** Format date for display */
-  const formatDate = (date: Date | string | null | undefined): string => {
-    if (!date) return "—";
-    const d = new Date(date);
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-  };
-
-  /** Get sex symbol */
-  const sexSymbol = (sex: string | null | undefined): string | null => {
-    if (sex === "Male") return "♂";
-    if (sex === "Female") return "♀";
-    return null;
-  };
-
-
   const handleSave = useCallback(() => {
     fetchCats();
   }, [fetchCats]);
@@ -168,45 +152,13 @@ export function DatabaseListScreen() {
           ) : (
             <div className="space-y-2">
               {searchedCats.map((cat) => (
-                <Link
+                <CatCard
                   key={cat.id}
+                  cat={cat}
                   href={`/dashboard/database/general?id=${cat.id}`}
-                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
-                >
-                  <div className="flex items-stretch gap-0">
-                    {/* Full-height image column */}
-                    <CatPhoto
-                      photoUrl={cat.photo_url}
-                      name={cat.name}
-                      className="w-28 shrink-0"
-                    />
-                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
-                            {cat.name || "Unnamed"}
-                          </span>
-                          {sexSymbol(cat.sex) ? (
-                            <span className="text-white text-lg leading-none ml-1">
-                              {sexSymbol(cat.sex)}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-sm font-bold text-white truncate">
-                          {cat.color || "Unknown color"} {cat.age ? ` ${cat.age}` : ""}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex items-end justify-between gap-2">
-                        <p className="text-sm font-bold text-white truncate">
-                          {cat.spot_last_seen || "Unknown loc."} - {formatDate(cat.last_updated_at)}
-                        </p>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white/90 shadow-sm">
-                          <span className="font-bold leading-none -mt-1">...</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                  variant="compact"
+                  action="kebab"
+                />
               ))}
             </div>
           )}
@@ -276,52 +228,20 @@ export function DatabaseListScreen() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 laptop:grid-cols-3">
+        <div className="mt-4 grid grid-cols-3 gap-3 laptop:grid-cols-4">
           {loading ? (
             <div className="col-span-full"><LoadingIndicator /></div>
           ) : searchedCats.length === 0 ? (
             <div className="col-span-full"><EmptyState /></div>
           ) : (
             searchedCats.map((cat) => (
-              <Link
+              <CatCard
                 key={`desktop-${cat.id}`}
+                cat={cat}
                 href={`/dashboard/database/general?id=${cat.id}`}
-                className="group flex items-stretch overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95"
-              >
-                <CatPhoto
-                  photoUrl={cat.photo_url}
-                  name={cat.name}
-                  className="w-28 shrink-0"
-                />
-
-                <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-3.5">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h2 className="font-heading text-xl font-bold leading-tight tracking-tight text-brand-yellow truncate">
-                        {cat.name || "Unnamed"}
-                      </h2>
-                      {sexSymbol(cat.sex) ? (
-                        <span className="text-lg leading-none text-white">
-                          {sexSymbol(cat.sex)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 text-sm font-semibold text-white truncate">
-                      {cat.color || "Unknown color"}
-                      {cat.age ? ` · ${cat.age}` : ""}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-end justify-between gap-2">
-                    <p className="text-xs font-medium text-white/70 truncate">
-                      {cat.spot_last_seen || "Unknown loc."} ·{" "}
-                      {formatDate(cat.last_updated_at)}
-                    </p>
-                    <div className="flex h-7 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                      <span className="-mt-1 font-bold leading-none">...</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+                variant="default"
+                action="kebab"
+              />
             ))
           )}
         </div>

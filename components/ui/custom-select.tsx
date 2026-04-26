@@ -27,6 +27,7 @@ export function CustomSelect({
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const handleOpen = useCallback(() => {
     if (btnRef.current) {
@@ -43,23 +44,33 @@ export function CustomSelect({
     [onChange],
   );
 
-  // Close on outside mousedown
+  // Close on outside mousedown (ignore clicks on trigger — its onClick handles toggle)
   useEffect(() => {
     if (!open) return;
-    const handler = () => setOpen(false);
+    const handler = (e: MouseEvent) => {
+      if (btnRef.current && btnRef.current.contains(e.target as Node)) return;
+      setOpen(false);
+    };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Close on scroll/resize so panel doesn't drift
+  // Close on outside scroll/resize so panel doesn't drift.
+  // Ignore scrolls that happen *inside* the panel (so user can scroll options).
   useEffect(() => {
     if (!open) return;
-    const handler = () => setOpen(false);
-    window.addEventListener("scroll", handler, true);
-    window.addEventListener("resize", handler);
+    const scrollHandler = (e: Event) => {
+      if (panelRef.current && panelRef.current.contains(e.target as Node)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const resizeHandler = () => setOpen(false);
+    window.addEventListener("scroll", scrollHandler, true);
+    window.addEventListener("resize", resizeHandler);
     return () => {
-      window.removeEventListener("scroll", handler, true);
-      window.removeEventListener("resize", handler);
+      window.removeEventListener("scroll", scrollHandler, true);
+      window.removeEventListener("resize", resizeHandler);
     };
   }, [open]);
 
@@ -89,7 +100,9 @@ export function CustomSelect({
     open && rect
       ? createPortal(
           <div
+            ref={panelRef}
             onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             style={{
               position: "fixed",
               top: rect.bottom + 4,

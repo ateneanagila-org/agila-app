@@ -19,10 +19,8 @@ function computeTnvrStats(
     hrByCatId.set(hr.cat_id, hr);
   }
 
-  // Only count cats with entry_status "Original" or "Unreviewed"
-  const activeCats = cats.filter(
-    (c) => c.entry_status === "Original" || c.entry_status === "Unreviewed",
-  );
+  // Count all real cats (exclude Merged duplicates)
+  const activeCats = cats.filter((c) => c.entry_status !== "Merged");
 
   let neuteredMale = 0;
   let spayedFemale = 0;

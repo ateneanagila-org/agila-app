@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { SearchIcon } from "@/components/app-pages/shared/icons";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatCard } from "@/components/app-pages/shared/cat-card";
 import {
   FiltersDialog,
   SortByDialog,
@@ -91,12 +90,6 @@ export function CatalogScreen() {
     fetchCats();
   }, [fetchCats]);
 
-  const sexSymbol = (s: string | null | undefined): string | null => {
-    if (s === "Male") return "♂";
-    if (s === "Female") return "♀";
-    return null;
-  };
-
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col">
       {/* Green hero band */}
@@ -171,42 +164,15 @@ export function CatalogScreen() {
             No adoptable/fosterable cats available right now.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2 laptop:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 tablet:grid-cols-3 laptop:grid-cols-4">
             {searchedCats.map((cat) => (
-              <Link key={cat.id} href={`/catalog/${cat.id}`} className="block">
-                <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-95">
-                  {/* Full-height image column */}
-                  <CatPhoto
-                    photoUrl={cat.photo_url}
-                    name={cat.name}
-                    className="w-28 shrink-0"
-                  />
-                  {/* Info */}
-                  <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
-                          {cat.name || "Unnamed"}
-                        </span>
-                        {sexSymbol(cat.sex) ? (
-                          <span className="text-white text-lg leading-none ml-1">
-                            {sexSymbol(cat.sex)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-sm font-bold text-white truncate">
-                        {cat.color || "—"} {cat.age ? ` ${cat.age}` : ""}
-                      </p>
-                    </div>
-                    {/* Arrow indicator */}
-                    <div className="mt-3 flex items-end justify-end">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                        <span className="text-sm font-bold">›</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <CatCard
+                key={cat.id}
+                cat={cat}
+                href={`/catalog/${cat.id}`}
+                variant="default"
+                action="chevron"
+              />
             ))}
           </div>
         )}

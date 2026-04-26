@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatCard } from "@/components/app-pages/shared/cat-card";
 import {
   getAdoptableCats,
   getAdoptableCatHealthRecord,
@@ -165,36 +165,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
 
       {/* Content on cream */}
       <div className="flex w-full flex-col gap-5 px-4 pt-3 pb-8 tablet:px-8 tablet:pt-6 tablet:pb-12">
-        {/* Cat info — green card matching catalog list style */}
-        <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-brand-green">
-          <CatPhoto
-            photoUrl={cat.photo_url}
-            name={cat.name}
-            className="w-32 shrink-0"
-            iconClassName="h-12 w-12 text-white/40"
-          />
-          <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-4 min-h-30">
-            <div>
-              <div className="flex items-center gap-1">
-                <span className="font-heading text-3xl font-bold leading-tight text-brand-yellow truncate">
-                  {cat.name || "Unnamed"}
-                </span>
-                {sexSymbol(cat.sex) ? (
-                  <span className="text-white text-2xl leading-none ml-1">{sexSymbol(cat.sex)}</span>
-                ) : null}
-              </div>
-              <p className="mt-1 text-sm font-bold text-white truncate">
-                {cat.color || "—"} {cat.age ? ` ${cat.age}` : ""}
-              </p>
-            </div>
-            {/* Arrow indicator */}
-            <div className="mt-3 flex w-full items-end justify-end">
-              <div className="flex h-8 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                <span className="text-lg font-bold leading-none -mt-1">...</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CatCard cat={cat} variant="wide" action="none" />
 
         {/* Details — green card, 2-col grid */}
         <div>

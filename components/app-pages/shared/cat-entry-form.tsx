@@ -120,8 +120,6 @@ export function CatEntryForm({
   }, [photoFile]);
 
   useEffect(() => {
-    if (regionId) return;
-
     const loadRegions = async () => {
       setRegionsLoading(true);
       try {
@@ -152,7 +150,7 @@ export function CatEntryForm({
     };
 
     loadRegions();
-  }, [regionId]);
+  }, []);
 
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
@@ -279,18 +277,10 @@ export function CatEntryForm({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1 pr-3">
-            <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
-              Add Entry
-            </h2>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Cat name (optional)"
-              className="mt-1 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            />
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+            Add Entry
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -319,42 +309,43 @@ export function CatEntryForm({
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
           <div>
             <label className="text-sm font-semibold text-brand-orange">Photo</label>
-            <div className="mt-1.5 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-dashed border-brand-orange/50 bg-white"
-                aria-label="Upload cat photo"
-              >
-                {photoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+            <div className="mt-1.5">
+              {photoPreview ? (
+                <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photoPreview}
                     alt="Preview"
-                    className="h-full w-full object-cover"
+                    className="h-40 w-full object-cover"
                   />
-                ) : (
-                  <span className="text-2xl leading-none text-brand-orange/60">+</span>
-                )}
-              </button>
-              <div className="flex flex-col gap-1">
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-orange transition-opacity hover:opacity-90"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhotoFile(null)}
+                      className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  className="flex h-32 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-brand-orange/40 bg-white transition-colors hover:border-brand-orange hover:bg-brand-orange/5"
+                  aria-label="Upload cat photo"
                 >
-                  {photoFile ? "Change" : "Upload"}
+                  <span className="text-3xl leading-none text-brand-orange/70">+</span>
+                  <span className="text-xs font-semibold text-brand-orange">Tap to upload photo</span>
                 </button>
-                {photoFile ? (
-                  <button
-                    type="button"
-                    onClick={() => setPhotoFile(null)}
-                    className="text-xs font-semibold text-brand-orange underline"
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -367,6 +358,7 @@ export function CatEntryForm({
               />
             </div>
           </div>
+          <TextField label="Name (optional)" value={name} onChange={setName} />
           {!regionId ? (
             <div>
               <label className="text-sm font-semibold text-brand-orange">Location</label>
@@ -420,11 +412,18 @@ export function CatEntryForm({
             value={condition}
             onChange={setCondition}
           />
-          <TextField
-            label="Spot Last Seen"
-            value={spotLastSeen}
-            onChange={setSpotLastSeen}
-          />
+          <div>
+            <label className="text-sm font-semibold text-brand-orange">Spot Last Seen</label>
+            <div className="mt-1.5">
+              <CustomSelect
+                options={regionOptions.map((r) => r.name)}
+                value={spotLastSeen}
+                onChange={setSpotLastSeen}
+                placeholder={regionsLoading ? "Loading..." : "—"}
+                variant="white"
+              />
+            </div>
+          </div>
           <TextField
             label="Caretaker"
             value={caretaker}
