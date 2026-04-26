@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     try {
       await syncAllPendingRegions();
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Unknown sync error";
+      const reason =
+        error instanceof Error ? error.message : "Unknown sync error";
       console.error("[Cron Sync] Failed — auto-freezing:", reason);
       try {
         await setSyncFrozen(true, reason);
