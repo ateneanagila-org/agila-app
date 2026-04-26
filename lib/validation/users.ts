@@ -1,5 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { profiles, allowedEmails } from "@/lib/db/schema";
+import { AuthRoleEnum } from "@/lib/db/enums";
 import { z } from "zod";
 
 // PROFILES
@@ -19,6 +20,14 @@ export const getAllowedEmailsSchema = allowedEmailsSchema.partial();
 export const editAllowedEmailSchema = createInsertSchema(allowedEmails)
   .partial()
   .required({ id: true });
+
+// ADD USER (email-based, for admin UI)
+export const addUserSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  name: z.string().optional(),
+  auth_role: AuthRoleEnum.default("Volunteer"),
+});
+export type AddUserSchema = z.infer<typeof addUserSchema>;
 
 // TYPES
 export type InsertProfile = typeof profiles.$inferInsert;

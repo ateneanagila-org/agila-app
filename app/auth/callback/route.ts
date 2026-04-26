@@ -39,6 +39,20 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
       }
 
+      // Onboarding check — only emails explicitly added by an admin may access the app
+      const allowed = await usersRepo.findAllowedEmails({ email });
+      if (allowed.length === 0) {
+        try {
+          const supabaseAdmin = await createAdminClient();
+          await supabaseAdmin.auth.admin.deleteUser(data.user.id);
+          await supabase.auth.signOut();
+        } catch (adminError) {
+          console.error("Cleanup failed for non-onboarded user:", adminError);
+        }
+
+        return NextResponse.redirect(`${baseUrl}/login/not-onboarded`);
+      }
+
       // Ensure profile exists — if this fails, sign out and redirect to error
       try {
         const existingProfiles = await usersRepo.findProfiles({
@@ -51,7 +65,7 @@ export async function GET(request: Request) {
               data.user.user_metadata.full_name ||
               data.user.email?.split("@")[0] ||
               "User",
-            auth_role: "Volunteer",
+            auth_role: allowed[0].auth_role ?? "Volunteer",
           });
         }
       } catch (repoError) {

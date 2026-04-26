@@ -116,34 +116,34 @@ export function DatabaseListScreen() {
             </button>
           ) : null}
 
-          {/* Search bar — orange */}
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/60"
-            />
-          </div>
-
-          {/* Filter + Sort buttons */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFilters(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Filter <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSort(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
+          {/* Search + Filter + Sort — match desktop colors */}
+          <div className="rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
+              <input
+                type="text"
+                placeholder="Search cats by name, color, or location"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+              />
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowFilters(true)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Filter <ChevronDownIcon className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSort(true)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           {loading ? (

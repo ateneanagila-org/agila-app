@@ -314,32 +314,32 @@ export function SessionsScreen() {
             </div>
 
             {/* Full sessions table */}
-            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               {/* Table header */}
-              <div className="grid grid-cols-[auto_auto_1fr_auto] gap-x-3 border-b border-white/20 pb-2">
-                <span className="text-xs font-bold text-brand-yellow">No.</span>
-                <span className="text-xs font-bold text-brand-yellow">Date</span>
-                <span className="text-xs font-bold text-brand-yellow">Location</span>
-                <span className="text-xs font-bold text-brand-yellow">Status</span>
+              <div className="grid grid-cols-[auto_auto_1fr_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">No.</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Date</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Location</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Status</span>
               </div>
 
               {loading ? (
                 <LoadingIndicator />
               ) : filteredSessions.length === 0 ? (
-                <div className="py-6 text-center text-xs text-white/50">No sessions found.</div>
+                <div className="py-6 text-center text-xs text-brand-dark/50">No sessions found.</div>
               ) : (
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-brand-dark/8">
                   {filteredSessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
                     .map((s, i) => (
                       <div key={s.id} className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-x-3 py-2.5">
-                        <span className="text-xs font-semibold tabular-nums text-white">
+                        <span className="text-xs font-semibold tabular-nums text-brand-dark">
                           {(page - 1) * PAGE_SIZE + i + 1}
                         </span>
-                        <span className="text-xs tabular-nums text-white">
+                        <span className="text-xs tabular-nums text-brand-dark/70">
                           {formatDate(s.created_at)}
                         </span>
-                        <span className="truncate text-xs text-white">
+                        <span className="truncate text-xs text-brand-dark/70">
                           {regionMap[s.region_id] ?? "—"}
                         </span>
                         {/* Status badge */}
@@ -349,14 +349,18 @@ export function SessionsScreen() {
                             return (
                               <Link
                                 href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                                className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold text-brand-orange"
+                                className="rounded-full bg-brand-orange px-2.5 py-0.5 text-[10px] font-bold text-white"
                               >
                                 Continue ›
                               </Link>
                             );
                           }
+                          const badgeCls =
+                            st === "Reviewed"
+                              ? "bg-brand-mint text-brand-green"
+                              : "bg-brand-cream-dark text-brand-dark";
                           return (
-                            <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[10px] font-semibold text-white/80">
+                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${badgeCls}`}>
                               {st}
                             </span>
                           );
@@ -436,43 +440,47 @@ export function SessionsScreen() {
                 Create New <span className="text-sm">+</span>
               </Link>
             </div>
-            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               <div className="space-y-2.5">
-                <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">No.</span>
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Location</span>
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Date</span>
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Status</span>
+                <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">No.</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Location</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Date</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Status</span>
                 </div>
 
                 {loading ? (
                   <LoadingIndicator />
                 ) : sessions.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-white/50">No sessions yet.</div>
+                  <div className="py-4 text-center text-xs text-brand-dark/50">No sessions yet.</div>
                 ) : (
-                  <div className="divide-y divide-white/10">
+                  <div className="divide-y divide-brand-dark/8">
                     {sessions.slice(0, 5).map((s) => {
                       const st = sessionStatus(s);
+                      const badgeCls =
+                        st === "Reviewed"
+                          ? "bg-brand-mint text-brand-green"
+                          : "bg-brand-cream-dark text-brand-dark";
                       return (
                         <div key={s.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2">
-                          <span className="text-xs font-semibold tabular-nums text-white">
+                          <span className="text-xs font-semibold tabular-nums text-brand-dark">
                             {s.id.slice(0, 5)}
                           </span>
-                          <span className="truncate text-xs text-white">
+                          <span className="truncate text-xs text-brand-dark/70">
                             {regionMap[s.region_id] ?? "—"}
                           </span>
-                          <span className="text-xs tabular-nums text-white">
+                          <span className="text-xs tabular-nums text-brand-dark/70">
                             {formatDate(s.created_at)}
                           </span>
                           {st === "Unfinished" ? (
                             <Link
                               href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                              className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-brand-orange"
+                              className="rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white"
                             >
                               Continue ›
                             </Link>
                           ) : (
-                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeCls}`}>
                               {st}
                             </span>
                           )}
@@ -496,18 +504,18 @@ export function SessionsScreen() {
             <p className="font-heading text-xl font-bold text-brand-green">
               Priority Locations
             </p>
-            <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
+            <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               <div className="space-y-2.5">
-                <div className="flex justify-between border-b border-white/20 pb-2">
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Name</span>
-                  <span className="text-[11px] font-bold tracking-wide text-brand-yellow">Last Tracked</span>
+                <div className="flex justify-between border-b border-brand-dark/10 pb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Name</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Last Tracked</span>
                 </div>
 
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-brand-dark/8">
                   {priorityLocations.map((loc) => (
                     <div key={loc.name} className="flex items-center justify-between py-2">
-                      <span className="text-xs font-semibold text-white">{loc.name}</span>
-                      <span className="text-xs tabular-nums text-white italic">{loc.daysSince} days ago</span>
+                      <span className="text-xs font-semibold text-brand-dark">{loc.name}</span>
+                      <span className="text-xs tabular-nums italic text-brand-dark/65">{loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}</span>
                     </div>
                   ))}
                 </div>

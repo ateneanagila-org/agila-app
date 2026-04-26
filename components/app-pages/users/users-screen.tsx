@@ -15,19 +15,19 @@ import {
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import {
-  getProfiles,
-  createProfile,
-  editProfile,
-  removeProfile,
+  getAllowedEmails,
+  addUser,
+  editAllowedEmail,
+  removeAllowedEmail,
 } from "@/app/actions/users";
-import type { findProfiles } from "@/lib/repo/users.repo";
+import type { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
 import { AUTH_ROLE_VALUES } from "@/lib/db/enums";
 import type { AuthRole } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { SyncControls } from "./sync-controls";
 
-type ProfileWithEmail = Awaited<ReturnType<typeof findProfiles>>[number];
+type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
 export function UsersScreen() {
   const [showAddUser, setShowAddUser] = useState(false);
@@ -35,16 +35,16 @@ export function UsersScreen() {
   const [showSort, setShowSort] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AllowedEmailEntry | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [users, setUsers] = useState<ProfileWithEmail[]>([]);
+  const [users, setUsers] = useState<AllowedEmailEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
   // Add user form
-  const [newUserId, setNewUserId] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState<string>("");
+  const [newRole, setNewRole] = useState<string>("Volunteer");
   const [creating, setCreating] = useState(false);
 
   // Edit user form
@@ -65,7 +65,7 @@ export function UsersScreen() {
     setSortOrder,
     search,
     setSearch,
-  } = useFilterSort<ProfileWithEmail>(
+  } = useFilterSort<AllowedEmailEntry>(
     users,
     USERS_CONFIG,
     (user, key) => {
@@ -73,7 +73,7 @@ export function UsersScreen() {
       return null;
     },
     (user, key) => {
-      if (key === "name") return user.name ?? "";
+      if (key === "name") return user.profile_name ?? "";
       if (key === "auth_role") return user.auth_role ?? "";
       return null;
     },
@@ -83,8 +83,8 @@ export function UsersScreen() {
     ? filteredUsers.filter((u) => {
         const q = search.toLowerCase();
         return (
-          u.name?.toLowerCase().includes(q) ||
-          u.user?.email.toLowerCase().includes(q)
+          u.profile_name?.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q)
         );
       })
     : filteredUsers;
@@ -92,7 +92,7 @@ export function UsersScreen() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getProfiles({});
+      const result = await getAllowedEmails();
       if (result?.data) {
         setUsers(result.data);
       }
@@ -108,15 +108,15 @@ export function UsersScreen() {
   }, [fetchUsers]);
 
   const handleCreate = useCallback(async () => {
-    if (!newUserId.trim()) {
-      setError("User ID (Supabase UUID) is required.");
+    if (!newEmail.trim()) {
+      setError("Email is required.");
       return;
     }
     setCreating(true);
     setError(null);
     try {
-      const result = await createProfile({
-        id: newUserId,
+      const result = await addUser({
+        email: newEmail.trim(),
         name: newName || undefined,
         auth_role: (newRole || "Volunteer") as AuthRole,
       });
@@ -124,9 +124,9 @@ export function UsersScreen() {
         setError(result.serverError);
         return;
       }
-      setNewUserId("");
+      setNewEmail("");
       setNewName("");
-      setNewRole("");
+      setNewRole("Volunteer");
       setShowAddUser(false);
       await fetchUsers();
     } catch (err) {
@@ -134,15 +134,14 @@ export function UsersScreen() {
     } finally {
       setCreating(false);
     }
-  }, [newUserId, newName, newRole, fetchUsers]);
+  }, [newEmail, newName, newRole, fetchUsers]);
 
   const handleSaveRole = useCallback(async () => {
     if (!selectedUser) return;
     setSaving(true);
     setError(null);
     try {
-      const result = await editProfile.bind(null, selectedUser.id)({
-        id: selectedUser.id,
+      const result = await editAllowedEmail.bind(null, selectedUser.id)({
         auth_role: editRole as AuthRole,
       });
       if (result?.serverError) {
@@ -167,7 +166,7 @@ export function UsersScreen() {
     if (!userToDelete) return;
     setDeleting(true);
     try {
-      const boundRemove = removeProfile.bind(null, userToDelete);
+      const boundRemove = removeAllowedEmail.bind(null, userToDelete);
       const result = await boundRemove();
       if (result?.serverError) {
         setError(result.serverError);
@@ -184,7 +183,7 @@ export function UsersScreen() {
     }
   }, [userToDelete, fetchUsers]);
 
-  const handleSelectUser = useCallback((user: ProfileWithEmail) => {
+  const handleSelectUser = useCallback((user: AllowedEmailEntry) => {
     setSelectedUser(user);
     setEditRole(user.auth_role ?? "Volunteer");
   }, []);
@@ -216,7 +215,7 @@ export function UsersScreen() {
             onClick={() => setShowAddUser(true)}
             className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
           >
-            Add Entry <span className="text-xl">+</span>
+            Add Entry <PlusIcon className="h-4 w-4" />
           </button>
 
           {/* Search, Filter, Sort */}
@@ -233,14 +232,14 @@ export function UsersScreen() {
               onClick={() => setShowFilters(true)}
               className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Filter <span className="text-xs">▼</span>
+              Filter <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setShowSort(true)}
               className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Sort By <span className="text-xs">▼</span>
+              Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -248,30 +247,30 @@ export function UsersScreen() {
           {loading ? (
             <LoadingIndicator />
           ) : searchedUsers.length === 0 ? (
-            <div className="py-8 text-center text-sm text-white/50">No users found.</div>
+            <div className="py-8 text-center text-sm text-brand-dark/50">No users found.</div>
           ) : (
             <div className="space-y-2 pb-20">
               {searchedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-start justify-between overflow-hidden rounded-2xl bg-brand-green p-3.5"
+                  className="flex items-start justify-between overflow-hidden rounded-2xl bg-white p-3.5 ring-1 ring-brand-dark/8"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="text-lg font-bold tracking-tight text-brand-yellow">
-                        {user.name || "Unnamed"}
+                      <span className="text-lg font-bold tracking-tight text-brand-dark">
+                        {user.profile_name || user.email}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleSelectUser(user)}
-                        className="flex items-center gap-0.5 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-brand-orange shadow-sm transition-opacity hover:opacity-90"
+                        className="flex items-center gap-0.5 rounded-full bg-brand-mint px-2.5 py-0.5 text-xs font-bold text-brand-green transition-opacity hover:opacity-90"
                       >
                         {roleLabel(user.auth_role)}
-                        <span className="text-[10px] ml-0.5">▼</span>
+                        <ChevronDownIcon className="ml-0.5 h-3 w-3" />
                       </button>
                     </div>
-                    <p className="text-xs font-medium text-white">
-                      {user.user?.email ?? user.id.slice(0, 8) + "..."}
+                    <p className="text-xs font-medium text-brand-dark/65">
+                      {user.email}
                     </p>
                   </div>
                   <div className="flex w-10 shrink-0 items-center justify-center">
@@ -297,7 +296,7 @@ export function UsersScreen() {
           className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-transform hover:scale-110 active:scale-95 tablet:hidden"
           aria-label="Add entry"
         >
-          <span className="text-2xl font-bold text-white">+</span>
+          <PlusIcon className="h-6 w-6 text-white" />
         </button>
       </div>
 
@@ -308,7 +307,7 @@ export function UsersScreen() {
               User Control
             </h1>
             <p className="mt-1 text-xs font-semibold text-brand-green">
-              {searchedUsers.length} users registered
+              {searchedUsers.length} allowed users
             </p>
           </div>
           <button
@@ -380,11 +379,11 @@ export function UsersScreen() {
                       className="min-w-0 text-left"
                     >
                       <p className="truncate font-heading text-sm font-bold text-brand-dark">
-                        {user.name || "Unnamed"}
+                        {user.profile_name || "—"}
                       </p>
                     </button>
                     <p className="truncate text-sm text-brand-dark/70">
-                      {user.user?.email ?? user.id.slice(0, 12) + "…"}
+                      {user.email}
                     </p>
                     <button
                       type="button"
@@ -427,8 +426,8 @@ export function UsersScreen() {
         onClose={() => { setShowAddUser(false); setError(null); }}
         name={newName}
         onNameChange={setNewName}
-        userId={newUserId}
-        onUserIdChange={setNewUserId}
+        email={newEmail}
+        onEmailChange={setNewEmail}
         role={newRole}
         onRoleChange={setNewRole}
         roleOptions={AUTH_ROLE_VALUES}
@@ -489,13 +488,13 @@ export function UsersScreen() {
               <div>
                 <p className="text-sm font-semibold text-brand-orange">Name</p>
                 <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm font-semibold leading-9 text-brand-dark">
-                  {selectedUser.name || "Unnamed"}
+                  {selectedUser.profile_name || "—"}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-semibold text-brand-orange">Email</p>
                 <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm text-brand-dark/80 leading-9">
-                  {selectedUser.user?.email ?? selectedUser.id}
+                  {selectedUser.email}
                 </p>
               </div>
               <div>

@@ -93,41 +93,9 @@ export function CatalogScreen() {
         </p>
       </div>
 
-      {/* Mobile: search bar + filter/sort buttons */}
-      <div className="space-y-2 tablet:hidden">
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full appearance-none rounded-xl bg-brand-orange pl-9 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/60"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setShowFilters(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSort(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Desktop: combined search + filter + sort row */}
-      <div className="hidden tablet:block">
-        <div className="flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
+      {/* Search + Filter + Sort — same colors mobile + desktop */}
+      <div className="rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
+        <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
             <input
@@ -138,22 +106,24 @@ export function CatalogScreen() {
               className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSort(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Sort by
-            <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFilters(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
+            >
+              Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              <ChevronDownIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSort(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
+            >
+              Sort by
+              <ChevronDownIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
