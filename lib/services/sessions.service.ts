@@ -2,7 +2,6 @@ import { db } from "../db";
 import { cats, sessionCats, sessions } from "../db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import * as sessionsRepo from "../repo/sessions.repo";
-import * as catsRepo from "../repo/cats.repo";
 import {
   CreateSessionCatSchema,
   CreateSessionSchema,
