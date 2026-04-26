@@ -1,41 +1,28 @@
 "use server";
-import { isSyncFrozen, setSyncFrozen } from "@/lib/services/system.service";
 import {
-  freezeSheetProtections,
-  unfreezeSheetProtections,
-  syncSheetEditors,
-} from "@/lib/services/helper.service";
+  isSyncFrozen,
+  setSyncFrozen,
+  getSyncFreezeReason,
+} from "@/lib/services/system.service";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
+import { sendSyncAlert } from "@/lib/services/discord.service";
 import {
   requireAuth,
   requireRole,
   ADMIN_ONLY,
 } from "@/lib/auth/rbac";
 
-export async function freezeSync() {
-  await requireRole(...ADMIN_ONLY);
-  await setSyncFrozen(true);
-  await freezeSheetProtections();
-  return { frozen: true };
-}
-
-/**
- * Unfreezes the sync system after app recovery.
- * 1. Restores sheet protections (managers/admins only)
- * 2. Runs full reverse sync — imports all manual GSheet edits made during freeze
- * 3. Clears freeze flag — cron resumes; remaining PENDING tasks run normally
- */
 export async function unfreezeSync() {
   await requireRole(...ADMIN_ONLY);
-  await syncSheetEditors();
-  await unfreezeSheetProtections();
   const reverseSyncResult = await fullReverseSync();
   await setSyncFrozen(false);
+  await sendSyncAlert("Sync manually unfrozen by admin. System resumed.");
   return { frozen: false, reverseSyncResult };
 }
 
 export async function getSyncStatus() {
   await requireAuth();
   const frozen = await isSyncFrozen();
-  return { frozen };
+  const reason = frozen ? await getSyncFreezeReason() : null;
+  return { frozen, reason };
 }

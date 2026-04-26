@@ -7,8 +7,7 @@ dotenv.config({ path: ".env.local" });
 
 import { google } from "googleapis";
 import { db } from "@/lib/db";
-import { cats, catHealthRecords, interventions, sessions, sessionCats } from "@/lib/db/schema";
-import { eq, and, exists } from "drizzle-orm";
+import { cats, catHealthRecords, interventions } from "@/lib/db/schema";
 import {
   CATHEALTHRECORD_CONDITION_VALUES,
   CAT_COLOR_VALUES,
@@ -22,10 +21,16 @@ import {
 
 type InterventionType = (typeof INTERVENTION_TYPE_VALUES)[number];
 type InterventionStatus = (typeof INTERVENTION_STATUS_VALUES)[number];
-type ParsedIntervention = { type: InterventionType; status: InterventionStatus } | null;
+type ParsedIntervention = {
+  type: InterventionType;
+  status: InterventionStatus;
+} | null;
 import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
-import { syncRegionSheetNames, setupUuidProtections } from "@/lib/services/helper.service";
+import {
+  syncRegionSheetNames,
+  setupUuidProtections,
+} from "@/lib/services/helper.service";
 import { randomUUID } from "crypto";
 
 type ConditionValue = (typeof CATHEALTHRECORD_CONDITION_VALUES)[number];
@@ -75,7 +80,10 @@ const VALID_SEXES = ["Male", "Female"];
 const VALID_SOCIABILITIES = ["Domesticated", "Tame", "Feral"];
 const VALID_STATUSES = ["Deceased", "Fostered", "Adopted", "MIA"];
 
-function resolveIntervention(raw: string, type: InterventionType): ParsedIntervention {
+function resolveIntervention(
+  raw: string,
+  type: InterventionType,
+): ParsedIntervention {
   const v = raw.trim().toLowerCase();
   if (v.startsWith("will have")) return { type, status: "Pending" };
   if (v.startsWith("had")) return { type, status: "Finished" };
@@ -97,7 +105,8 @@ function parseDate(value: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
   const delays = [1000, 3000, 8000, 20000, 45000];
@@ -129,11 +138,17 @@ function parseStandardRow(row: string[], uuid: string): ParsedRow {
 
   return {
     id: uuid,
-    color: (VALID_COLORS.includes(colorStr) ? colorStr : null) as CatColor | null,
+    color: (VALID_COLORS.includes(colorStr)
+      ? colorStr
+      : null) as CatColor | null,
     age: (VALID_AGES.includes(ageStr) ? ageStr : null) as CatAge | null,
     sex: (VALID_SEXES.includes(sexStr) ? sexStr : "Unknown") as CatSex,
-    sociability: (VALID_SOCIABILITIES.includes(socStr) ? socStr : "Unknown") as CatSociability,
-    cat_status: (VALID_STATUSES.includes(statusStr) ? statusStr : null) as CatStatus | null,
+    sociability: (VALID_SOCIABILITIES.includes(socStr)
+      ? socStr
+      : "Unknown") as CatSociability,
+    cat_status: (VALID_STATUSES.includes(statusStr)
+      ? statusStr
+      : null) as CatStatus | null,
     name: row[2] && row[2] !== "N/A" ? row[2] : null,
     spot_last_seen: row[14] && row[14] !== "N/A" ? row[14] : null,
     caretaker: row[12] && row[12] !== "N/A" ? row[12] : null,
@@ -145,7 +160,10 @@ function parseStandardRow(row: string[], uuid: string): ParsedRow {
     neuter_date: parseDate(row[15]),
     vaccination_date: parseDate(row[16]),
     tnvr_intervention: resolveIntervention(String(row[19] ?? ""), "TNVR"),
-    vet_intervention: resolveIntervention(String(row[20] ?? ""), "Veterinarian"),
+    vet_intervention: resolveIntervention(
+      String(row[20] ?? ""),
+      "Veterinarian",
+    ),
   };
 }
 
@@ -159,10 +177,14 @@ function parseUnknownRow(row: string[], uuid: string): ParsedRow {
 
   return {
     id: uuid,
-    color: (VALID_COLORS.includes(colorStr) ? colorStr : null) as CatColor | null,
+    color: (VALID_COLORS.includes(colorStr)
+      ? colorStr
+      : null) as CatColor | null,
     age: (VALID_AGES.includes(ageStr) ? ageStr : null) as CatAge | null,
     sex: (VALID_SEXES.includes(sexStr) ? sexStr : "Unknown") as CatSex,
-    sociability: (VALID_SOCIABILITIES.includes(socStr) ? socStr : "Unknown") as CatSociability,
+    sociability: (VALID_SOCIABILITIES.includes(socStr)
+      ? socStr
+      : "Unknown") as CatSociability,
     cat_status: null,
     name: null,
     spot_last_seen: row[1] && row[1] !== "N/A" ? row[1] : null,
@@ -243,8 +265,15 @@ async function importRegion(
         ? parseUnknownRow(row, uuid)
         : parseStandardRow(row, uuid);
 
-      const { condition, neuter_date, vaccination_date, paws_id, tnvr_intervention, vet_intervention, ...catFields } =
-        parsed;
+      const {
+        condition,
+        neuter_date,
+        vaccination_date,
+        paws_id,
+        tnvr_intervention,
+        vet_intervention,
+        ...catFields
+      } = parsed;
 
       await db.transaction(async (tx) => {
         await tx
@@ -262,10 +291,16 @@ async function importRegion(
           .onConflictDoNothing();
         await linkCatToSystemSession(uuid, regionRecord.id, tx);
         if (tnvr_intervention) {
-          await tx.insert(interventions).values({ cat_id: uuid, ...tnvr_intervention }).onConflictDoNothing();
+          await tx
+            .insert(interventions)
+            .values({ cat_id: uuid, ...tnvr_intervention })
+            .onConflictDoNothing();
         }
         if (vet_intervention) {
-          await tx.insert(interventions).values({ cat_id: uuid, ...vet_intervention }).onConflictDoNothing();
+          await tx
+            .insert(interventions)
+            .values({ cat_id: uuid, ...vet_intervention })
+            .onConflictDoNothing();
         }
       });
 

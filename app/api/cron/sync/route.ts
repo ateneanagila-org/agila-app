@@ -1,6 +1,8 @@
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
+import { setSyncFrozen } from "@/lib/services/system.service";
+import { sendSyncAlert } from "@/lib/services/discord.service";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -14,8 +16,17 @@ export async function POST(request: NextRequest) {
     try {
       await syncAllPendingRegions();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Cron Sync] Failed:", message);
+      const reason =
+        error instanceof Error ? error.message : "Unknown sync error";
+      console.error("[Cron Sync] Failed — auto-freezing:", reason);
+      try {
+        await setSyncFrozen(true, reason);
+      } catch (freezeError) {
+        console.error("[Cron Sync] Failed to write freeze flag:", freezeError);
+      }
+      await sendSyncAlert(
+        `Sync auto-frozen. Reason: ${reason}. Unfreeze from the admin panel after resolving.`,
+      );
     }
   });
 
