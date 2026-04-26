@@ -1,25 +1,16 @@
 /**
- * AGILA CATalog — Sheet Protection Toggle
+ * AGILA CATalog — System Column Protection
  *
- * Standalone manual utilities for sheet access management.
- * These are NOT part of the automated sync failover system.
+ * Permanently protects the system-managed columns (W, X, Y) on all region sheets:
+ *   W — edited_at timestamp (written by the onEdit trigger)
+ *   X — editor email (written by the onEdit trigger)
+ *   Y — UUID (assigned on first human edit; used as the DB catalog ID)
  *
- * The automated failover (auto-freeze) only pauses the sync flag in the DB —
- * it does NOT touch sheet protections. These functions are for a separate
- * scenario: the app is completely unreachable and you want users to edit
- * sheets directly until the app recovers.
+ * Volunteers can freely edit all data columns (A–V). The system columns are
+ * off-limits to humans — script-level writes bypass the protection automatically.
  *
- * FREEZE: Removes A3:V protection so all users with sheet access can edit freely.
- * UNFREEZE: Re-locks A3:V; only authorized managers/admins can edit during normal ops.
- *
- * Authorized emails are stored in the _config sheet (B1) as a comma-separated list.
- * IMPORTANT: The app no longer auto-updates _config!B1. Before running unfreezeMode(),
- * verify that B1 contains the current list of manager/admin emails. Update it manually
- * in the _config sheet if any managers/admins have been added or removed since last run.
- *
- * Region sheet names are stored in the _config sheet (B2) as a comma-separated
- * list, managed by the app via the Sheets API. Only sheets matching a known region
- * name receive data range and UUID protections — static sheets (For RI, For FA, etc.)
+ * Region sheet names are stored in _config!B2 as a comma-separated list,
+ * managed by the app via the Sheets API. Static sheets (For RI, For FA, etc.)
  * are skipped.
  *
  * HOW TO DEPLOY:
@@ -30,37 +21,13 @@
  *
  * SETUP:
  * - Create a hidden, protected sheet tab named "_config" in the spreadsheet
- * - Manually enter authorized manager/admin emails as a comma-separated list in B1
  * - The app will write region sheet names as a comma-separated list to cell B2
- * - Run setupUuidProtection() once after initial spreadsheet setup
+ * - Run setupSystemColProtection() once after initial spreadsheet setup,
+ *   or after adding a new region sheet
  *
  * USAGE (manual, run from Apps Script editor only):
- * - When app is completely unreachable: run freezeMode() to open sheets for direct editing
- * - After app recovery (sync resumed via app UI): run unfreezeMode() to re-lock sheets
+ * - Run clearSystemColProtections() then setupSystemColProtection() to reset protections
  */
-
-/**
- * Reads authorized emails from the _config sheet (cell B1).
- * Returns an empty array if the sheet or cell doesn't exist.
- */
-function getAuthorizedEmails() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var configSheet = ss.getSheetByName("_config");
-  if (!configSheet) {
-    Logger.log(
-      "WARNING: _config sheet not found. No authorized emails loaded.",
-    );
-    return [];
-  }
-  var value = configSheet.getRange("B1").getValue();
-  if (!value) return [];
-  return String(value)
-    .split(",")
-    .map(function (e) {
-      return e.trim();
-    })
-    .filter(Boolean);
-}
 
 /**
  * Reads region sheet names from the _config sheet (cell B2).
@@ -84,107 +51,16 @@ function getRegionSheetNames() {
     .filter(Boolean);
 }
 
-var DATA_RANGE_NOTATION = "A3:V"; // Data range to protect/unprotect
-var UUID_COL_NOTATION = "Y3:Y"; // UUID column — permanently protected, never manually editable
+// System columns that must never be manually edited
+var SYSTEM_COLS_NOTATION = "W3:Y"; // edited_at (W), editor email (X), UUID (Y)
 
 /**
- * FREEZE MODE: Remove data range protection so all users with sheet access can edit.
- * Call this when the app goes down — students and volunteers can now update the sheet directly.
- * Only removes protections from region sheets (read from _config!B2).
- */
-function freezeMode() {
-  var regionNames = getRegionSheetNames();
-  if (regionNames.length === 0) {
-    Logger.log("WARNING: No region names found in _config!B2. Freeze aborted.");
-    return;
-  }
-
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  regionNames.forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) {
-      Logger.log("WARNING: Sheet '" + name + "' not found — skipping.");
-      return;
-    }
-
-    var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-    protections.forEach(function (protection) {
-      var notation = protection.getRange().getA1Notation();
-      if (notation.indexOf("A3") === 0) {
-        protection.remove();
-      }
-    });
-  });
-
-  Logger.log(
-    "FREEZE MODE: Data range protections removed on: " + regionNames.join(", "),
-  );
-}
-
-/**
- * UNFREEZE MODE: Re-protect data range, restricting edits to managers/admins only.
- * Authorized emails are read from the _config sheet (B1), managed by the app.
- * Only re-protects region sheets (read from _config!B2).
- * Call this after app recovery and reverse sync completion.
- */
-function unfreezeMode() {
-  var authorizedEmails = getAuthorizedEmails();
-  if (authorizedEmails.length === 0) {
-    Logger.log(
-      "WARNING: No authorized emails found in _config!B1. Unfreeze aborted — add manager emails via the app first.",
-    );
-    return;
-  }
-
-  var regionNames = getRegionSheetNames();
-  if (regionNames.length === 0) {
-    Logger.log(
-      "WARNING: No region names found in _config!B2. Unfreeze aborted.",
-    );
-    return;
-  }
-
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  regionNames.forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) {
-      Logger.log("WARNING: Sheet '" + name + "' not found — skipping.");
-      return;
-    }
-
-    var lastRow = Math.max(sheet.getLastRow(), 3);
-    var range = sheet.getRange("A3:V" + lastRow);
-    var protection = range
-      .protect()
-      .setDescription("App-managed data — edit via app only");
-
-    // Lock down to everyone, then add back only the authorized managers/admins
-    protection.removeEditors(protection.getEditors());
-    protection.addEditors(authorizedEmails);
-
-    if (protection.canDomainEdit()) {
-      protection.setDomainEdit(false);
-    }
-  });
-
-  Logger.log(
-    "UNFREEZE MODE: Data range protected on: " +
-      regionNames.join(", ") +
-      ". Editors: " +
-      authorizedEmails.join(", "),
-  );
-}
-
-/**
- * Removes ALL Y column protections on region sheets.
+ * Removes all W:Y system column protections on region sheets.
  * Must be run from GAS (as the spreadsheet owner) because the service account
  * cannot delete protections it didn't create.
- * Run this ONCE, then let the app's setupUuidProtections() recreate them
- * with the service account in the editors list.
+ * Run this before setupSystemColProtection() to reset cleanly.
  */
-function clearUuidProtections() {
+function clearSystemColProtections() {
   var regionNames = getRegionSheetNames();
   if (regionNames.length === 0) {
     Logger.log("WARNING: No region names found in _config!B2. Clear aborted.");
@@ -200,30 +76,30 @@ function clearUuidProtections() {
 
     var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
     protections.forEach(function (protection) {
-      var notation = protection.getRange().getA1Notation();
-      if (notation.indexOf("Y") === 0) {
+      var col = protection.getRange().getColumn();
+      // Columns W (23), X (24), Y (25)
+      if (col >= 23 && col <= 25) {
         protection.remove();
         cleared++;
       }
     });
   });
 
-  Logger.log("Cleared " + cleared + " Y column protection(s).");
+  Logger.log("Cleared " + cleared + " system column protection(s).");
 }
 
 /**
- * SETUP (run once): Permanently protect col Y (UUID column) on all region sheets.
- * No one should manually edit UUIDs — they are assigned by Apps Script (new rows)
- * or by the service account (forward sync). Script-level writes bypass this protection.
+ * SETUP (run once): Permanently protect cols W–Y (edited_at, editor, UUID) on all region sheets.
+ * No one should manually edit these — they are written by the onEdit trigger and the service account.
+ * Script-level writes bypass this protection automatically.
  *
- * Region sheets are read from _config!B2. Run this once after initial spreadsheet
- * setup, or after adding a new region sheet.
+ * Region sheets are read from _config!B2. Run after initial setup or after adding a new region sheet.
  */
-function setupUuidProtection() {
+function setupSystemColProtection() {
   var regionNames = getRegionSheetNames();
   if (regionNames.length === 0) {
     Logger.log(
-      "WARNING: No region names found in _config!B2. UUID protection aborted.",
+      "WARNING: No region names found in _config!B2. System column protection aborted.",
     );
     return;
   }
@@ -238,12 +114,12 @@ function setupUuidProtection() {
     }
 
     var lastRow = Math.max(sheet.getLastRow(), 3);
-    var range = sheet.getRange("Y3:Y" + lastRow);
+    var range = sheet.getRange("W3:Y" + lastRow);
     var protection = range
       .protect()
-      .setDescription("UUID column — do not edit manually");
+      .setDescription("System columns (edited_at, editor, UUID) — do not edit manually");
 
-    // Remove all editors so no human can change UUIDs through the UI.
+    // Remove all editors so no human can change these through the UI.
     // Scripts and the service account bypass protection and can still write.
     protection.removeEditors(protection.getEditors());
     if (protection.canDomainEdit()) {
@@ -251,5 +127,5 @@ function setupUuidProtection() {
     }
   });
 
-  Logger.log("UUID column (Y) protected on: " + regionNames.join(", "));
+  Logger.log("System columns (W–Y) protected on: " + regionNames.join(", "));
 }
