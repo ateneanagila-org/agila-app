@@ -1,12 +1,11 @@
 import JSZip from "jszip";
-import { parse as parseHtml } from "node-html-parser";
 import sharp from "sharp";
 import { eq, isNull } from "drizzle-orm";
+import { google } from "googleapis";
 import { db } from "@/lib/db";
 import { cats } from "@/lib/db/schema";
 import {
   connectToSheets,
-  exportSpreadsheetAsZip,
   readSheetState,
   refreshCatInSyncQueue,
   clearSheetEditTimestamps,
@@ -14,77 +13,296 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "cat-photos";
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * Scans all <tr> elements in an HTML string for UUID→imageSrc pairs.
- * Matches col Y by UUID pattern and col B by <img src="images/...">.
- * Position-independent — unaffected by merged cells or col ordering.
- */
-function parsePhotoMappingsFromHtml(
-  html: string,
-): Array<{ uuid: string; imageSrc: string }> {
-  const root = parseHtml(html);
-  const results: Array<{ uuid: string; imageSrc: string }> = [];
+// ==========================================
+// XLSX PARSING
+// ==========================================
+//
+// We export the spreadsheet as xlsx (~300 MB) and parse it as a ZIP.
+// Why xlsx: Google's `format=zip` ignores `gid` and truncates the full
+// HTML-ZIP at ~84 MB, dropping most sheets. xlsx is not size-capped and
+// embeds every image regardless of sheet count.
+//
+// xlsx layout (relevant subset):
+//   xl/workbook.xml                       — sheet name → rId
+//   xl/_rels/workbook.xml.rels            — rId → worksheets/sheetN.xml
+//   xl/sharedStrings.xml                  — text values, indexed by order
+//   xl/worksheets/sheetN.xml              — cells; <c t="s"><v>idx</v></c>
+//   xl/worksheets/_rels/sheetN.xml.rels   — sheet rId → drawings/drawingM.xml
+//   xl/drawings/drawingM.xml              — image anchors (col, row → rId)
+//   xl/drawings/_rels/drawingM.xml.rels   — image rId → media/imageK.ext
+//   xl/media/imageK.ext                   — actual bytes
+// ==========================================
 
-  for (const row of root.querySelectorAll("tr")) {
-    let uuid: string | null = null;
-    let imageSrc: string | null = null;
-
-    for (const cell of row.querySelectorAll("td")) {
-      const text = cell.text.trim();
-      if (UUID_REGEX.test(text)) uuid = text;
-
-      const img = cell.querySelector("img");
-      if (img) {
-        const src = img.getAttribute("src");
-        // ZIP uses relative paths (e.g. resources/ or images/) — exclude absolute URLs
-        if (src && !src.startsWith("http")) imageSrc = src;
-      }
-    }
-
-    if (uuid && imageSrc) results.push({ uuid, imageSrc });
+async function downloadXlsx(
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+  spreadsheetId: string,
+): Promise<Buffer> {
+  const token = await glAuth.getAccessToken();
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=xlsx`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(180_000),
+  });
+  if (!res.ok) {
+    throw new Error(`xlsx export failed ${res.status}: ${res.statusText}`);
   }
-
-  return results;
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /**
- * Parses all HTML files in the ZIP and returns a uuid → raw Buffer map.
- * Only loads image bytes for UUIDs in the candidate set.
- * This avoids loading images for rows that were not flagged by detection.
+ * Parses sharedStrings.xml into an ordered array. Each <si> is one entry;
+ * inline <r> rich-text is flattened by concatenating all <t> children.
  */
-async function buildPhotoMap(
-  zip: JSZip,
-  candidateUuids: Set<string>,
-): Promise<Map<string, Buffer>> {
-  const map = new Map<string, Buffer>();
+function parseSharedStrings(xml: string): string[] {
+  const result: string[] = [];
+  const siRegex = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let m: RegExpExecArray | null;
+  while ((m = siRegex.exec(xml)) !== null) {
+    const inner = m[1];
+    let combined = "";
+    const tRegex = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+    let tm: RegExpExecArray | null;
+    while ((tm = tRegex.exec(inner)) !== null) {
+      combined += decodeXmlEntities(tm[1]);
+    }
+    result.push(combined);
+  }
+  return result;
+}
 
-  const htmlFileNames = Object.keys(zip.files).filter((n) =>
-    n.toLowerCase().endsWith(".html"),
-  );
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
 
-  for (const htmlFileName of htmlFileNames) {
-    const html = await zip.files[htmlFileName].async("text");
-
-    for (const { uuid, imageSrc } of parsePhotoMappingsFromHtml(html)) {
-      if (!candidateUuids.has(uuid) || map.has(uuid)) continue;
-      const imageFile = zip.files[imageSrc];
-      if (!imageFile) continue;
-      const buffer = await imageFile.async("nodebuffer");
-      map.set(uuid, buffer);
+/** Map sheet display name → r:id in workbook.xml (attribute-order-independent) */
+function parseWorkbookSheets(xml: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const sheetTagRe = /<sheet\b[^/]*\/?>/g;
+  let m: RegExpExecArray | null;
+  while ((m = sheetTagRe.exec(xml)) !== null) {
+    const tag = m[0];
+    const nameMatch = tag.match(/\bname="([^"]*)"/);
+    const ridMatch = tag.match(/\br:id="([^"]*)"/);
+    if (nameMatch && ridMatch) {
+      map.set(decodeXmlEntities(nameMatch[1]), ridMatch[1]);
     }
   }
+  return map;
+}
 
+/** Map relationship Id → target path */
+function parseRels(xml: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const re = /<Relationship\b[^>]*\bId="([^"]+)"[^>]*\bTarget="([^"]+)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    map.set(m[1], m[2]);
+  }
   return map;
 }
 
 /**
- * Compresses an image buffer to JPEG 1200px max / quality 80.
- * Matches app UI compression constraints (browser-image-compression).
- * Always outputs JPEG regardless of input format.
+ * From a worksheet XML, extract UUIDs in column Y per row.
+ * Returns Map<rowNumber1Based, uuid>.
  */
+function parseSheetUuidColumnY(xml: string, sharedStrings: string[]): Map<number, string> {
+  const result = new Map<number, string>();
+  // Match cells in col Y: <c r="Y{row}" ...>...</c>
+  const cellRegex = /<c\b[^>]*\br="Y(\d+)"([^>]*)>([\s\S]*?)<\/c>/g;
+  let m: RegExpExecArray | null;
+  while ((m = cellRegex.exec(xml)) !== null) {
+    const row = parseInt(m[1], 10);
+    const attrs = m[2];
+    const inner = m[3];
+
+    let value = "";
+    const typeMatch = attrs.match(/\bt="([^"]+)"/);
+    const cellType = typeMatch?.[1];
+
+    if (cellType === "s") {
+      // Shared string reference
+      const vMatch = inner.match(/<v>([^<]+)<\/v>/);
+      if (vMatch) {
+        const idx = parseInt(vMatch[1], 10);
+        value = sharedStrings[idx] ?? "";
+      }
+    } else if (cellType === "inlineStr") {
+      const tMatch = inner.match(/<t\b[^>]*>([\s\S]*?)<\/t>/);
+      if (tMatch) value = decodeXmlEntities(tMatch[1]);
+    } else {
+      // Numeric or empty — UUIDs aren't stored this way, skip
+      const vMatch = inner.match(/<v>([^<]+)<\/v>/);
+      if (vMatch) value = vMatch[1];
+    }
+
+    const trimmed = value.trim();
+    if (trimmed) result.set(row, trimmed);
+  }
+  return result;
+}
+
+/**
+ * From a drawing XML, find images anchored at col B (col index 1).
+ * Returns Map<rowNumber1Based, embedRId>.
+ *
+ * Both <xdr:oneCellAnchor> and <xdr:twoCellAnchor> are handled. For two-cell,
+ * we use the from/start cell as the row anchor.
+ */
+function parseDrawingImagesAtColB(xml: string): Map<number, string> {
+  const result = new Map<number, string>();
+  const anchorRegex = /<xdr:(one|two)CellAnchor\b[^>]*>([\s\S]*?)<\/xdr:(one|two)CellAnchor>/g;
+  let m: RegExpExecArray | null;
+  while ((m = anchorRegex.exec(xml)) !== null) {
+    const inner = m[2];
+
+    const fromMatch = inner.match(/<xdr:from>([\s\S]*?)<\/xdr:from>/);
+    if (!fromMatch) continue;
+    const fromInner = fromMatch[1];
+
+    const colMatch = fromInner.match(/<xdr:col>(\d+)<\/xdr:col>/);
+    const rowMatch = fromInner.match(/<xdr:row>(\d+)<\/xdr:row>/);
+    if (!colMatch || !rowMatch) continue;
+
+    const col0 = parseInt(colMatch[1], 10);
+    if (col0 !== 1) continue; // col B = index 1
+
+    const row1 = parseInt(rowMatch[1], 10) + 1; // 0-based → 1-based
+
+    const embedMatch = inner.match(/r:embed="([^"]+)"/);
+    if (!embedMatch) continue;
+
+    result.set(row1, embedMatch[1]);
+  }
+  return result;
+}
+
+/** Resolves "../media/imageX.jpg" relative to "xl/drawings/drawingY.xml" → "xl/media/imageX.jpg" */
+function resolveRelativePath(basePath: string, relative: string): string {
+  const baseParts = basePath.split("/");
+  baseParts.pop(); // drop file
+  const relParts = relative.split("/");
+  for (const p of relParts) {
+    if (p === "..") baseParts.pop();
+    else if (p !== ".") baseParts.push(p);
+  }
+  return baseParts.join("/");
+}
+
+async function fetchPhotosFromXlsx(
+  candidateUuids: Set<string>,
+  regionNamesToScan: string[],
+): Promise<Map<string, Buffer>> {
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+  const { glAuth } = await connectToSheets();
+  const result = new Map<string, Buffer>();
+
+  console.log(`[PhotoImport] Downloading xlsx export...`);
+  const xlsxBuf = await downloadXlsx(glAuth, spreadsheetId);
+  console.log(`[PhotoImport] xlsx downloaded: ${(xlsxBuf.length / 1_048_576).toFixed(1)} MB`);
+
+  const zip = await JSZip.loadAsync(xlsxBuf);
+
+  const sharedStringsXml = await zip.files["xl/sharedStrings.xml"]?.async("text") ?? "";
+  const sharedStrings = parseSharedStrings(sharedStringsXml);
+
+  const workbookXml = await zip.files["xl/workbook.xml"].async("text");
+  const sheetNameToRId = parseWorkbookSheets(workbookXml);
+
+  const workbookRelsXml = await zip.files["xl/_rels/workbook.xml.rels"].async("text");
+  const workbookRels = parseRels(workbookRelsXml); // rId → "worksheets/sheetN.xml"
+
+  // Normalized name lookup: strip non-alphanumeric chars for fuzzy matching
+  // (e.g. DB has "CTC/SOM", xlsx exports as "CTCSOM")
+  const normalize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const normalizedSheetMap = new Map<string, string>();
+  for (const [name, rId] of sheetNameToRId) {
+    normalizedSheetMap.set(normalize(name), rId);
+  }
+
+  for (const regionName of regionNamesToScan) {
+    if (result.size >= candidateUuids.size) break;
+
+    const rId = sheetNameToRId.get(regionName) ?? normalizedSheetMap.get(normalize(regionName));
+    if (!rId) {
+      console.warn(`[PhotoImport] No sheet found for region "${regionName}" — skipping`);
+      continue;
+    }
+    const sheetTarget = workbookRels.get(rId);
+    if (!sheetTarget) continue;
+
+    const sheetPath = `xl/${sheetTarget.replace(/^\//, "")}`;
+    const sheetEntry = zip.files[sheetPath];
+    if (!sheetEntry) continue;
+
+    const sheetXml = await sheetEntry.async("text");
+    const rowToUuid = parseSheetUuidColumnY(sheetXml, sharedStrings);
+
+    // Build reverse: uuid → row, but only for our candidates
+    const candidateRowToUuid = new Map<number, string>();
+    for (const [row, uuid] of rowToUuid) {
+      if (candidateUuids.has(uuid) && !result.has(uuid)) {
+        candidateRowToUuid.set(row, uuid);
+      }
+    }
+    if (candidateRowToUuid.size === 0) continue;
+
+    // Locate this sheet's drawing
+    const sheetRelsPath = sheetPath.replace("/worksheets/", "/worksheets/_rels/") + ".rels";
+    const sheetRelsEntry = zip.files[sheetRelsPath];
+    if (!sheetRelsEntry) continue;
+
+    const sheetRelsXml = await sheetRelsEntry.async("text");
+    const sheetRels = parseRels(sheetRelsXml);
+    let drawingTarget: string | undefined;
+    // Drawing rel uses Type=".../drawing"; we identify by Target prefix
+    for (const target of sheetRels.values()) {
+      if (target.includes("/drawings/")) {
+        drawingTarget = target;
+        break;
+      }
+    }
+    if (!drawingTarget) continue;
+
+    const drawingPath = resolveRelativePath(sheetPath, drawingTarget);
+    const drawingEntry = zip.files[drawingPath];
+    if (!drawingEntry) continue;
+
+    const drawingXml = await drawingEntry.async("text");
+    const rowToEmbed = parseDrawingImagesAtColB(drawingXml);
+
+    const drawingRelsPath = drawingPath.replace("/drawings/", "/drawings/_rels/") + ".rels";
+    const drawingRelsXml = await zip.files[drawingRelsPath]?.async("text") ?? "";
+    const drawingRels = parseRels(drawingRelsXml); // rId → "../media/imageX.ext"
+
+    for (const [row, uuid] of candidateRowToUuid) {
+      const embedRId = rowToEmbed.get(row);
+      if (!embedRId) continue;
+
+      const mediaTarget = drawingRels.get(embedRId);
+      if (!mediaTarget) continue;
+
+      const mediaPath = resolveRelativePath(drawingPath, mediaTarget);
+      const mediaEntry = zip.files[mediaPath];
+      if (!mediaEntry || mediaEntry.dir) continue;
+
+      const buf = Buffer.from(await mediaEntry.async("arraybuffer"));
+      result.set(uuid, buf);
+    }
+  }
+
+  return result;
+}
+
+// ==========================================
+// COMPRESSION + UPLOAD
+// ==========================================
+
 async function compress(buffer: Buffer): Promise<Buffer> {
   return sharp(buffer)
     .resize({ width: 1200, withoutEnlargement: true })
@@ -148,6 +366,10 @@ async function processBatch(
   return { imported, errors };
 }
 
+// ==========================================
+// PUBLIC API
+// ==========================================
+
 export interface PhotoImportResult {
   triggered: boolean;
   imported: number;
@@ -159,22 +381,15 @@ export interface PhotoImportResult {
  *
  * Reads sheet state for each region (same data reverse sync needs) and
  * identifies candidate rows: lastEditedAt is set AND col B is "".
- * Fires ZIP export only when candidates exist. Processes only candidate
- * UUIDs found in the ZIP photo map. Cats with no actual pasted image
- * are correctly skipped (they won't appear in the photo map).
+ * Only fires the xlsx export when candidates exist.
  *
- * Known limitation: new cats added via sheet with a pasted photo and
- * photo_url still null will be caught here (col B = "", lastEditedAt set).
- * Cats whose pasted photo predates the lastEditedAt tracking system
- * require the bulk script (lib/scripts/import-photos.ts).
+ * Known limitation: cats whose pasted photo predates the lastEditedAt
+ * tracking system require the bulk script (scripts/import-photos.ts).
  */
 export async function importPhotosIfNeeded(
   allRegions: { id: string; name: string }[],
 ): Promise<PhotoImportResult> {
   const candidateUuids = new Set<string>();
-  // Track region per UUID so we can clear timestamps after import.
-  // =IMAGE() formulas return "" from the Values API, so without clearing,
-  // every cycle re-detects the same cats and re-uploads identical photos.
   const uuidToRegion = new Map<string, string>();
 
   for (const region of allRegions) {
@@ -191,16 +406,19 @@ export async function importPhotosIfNeeded(
     return { triggered: false, imported: 0, errors: [] };
   }
 
-  const { glAuth } = await connectToSheets();
-  const zipBuffer = await exportSpreadsheetAsZip(
-    process.env.CATALOG_SPREADSHEET_ID!,
-    glAuth,
-  );
-  const zip = await JSZip.loadAsync(zipBuffer);
-  const photoMap = await buildPhotoMap(zip, candidateUuids);
+  const regionIdToName = new Map(allRegions.map((r) => [r.id, r.name]));
+  const regionNamesWithCandidates = new Set<string>();
+  for (const regionId of uuidToRegion.values()) {
+    const name = regionIdToName.get(regionId);
+    if (name) regionNamesWithCandidates.add(name);
+  }
+  const regionNamesToScan = allRegions
+    .map((r) => r.name)
+    .filter((n) => regionNamesWithCandidates.has(n));
+
+  const photoMap = await fetchPhotosFromXlsx(candidateUuids, regionNamesToScan);
 
   if (photoMap.size === 0) {
-    // All candidates had no actual image (genuinely no photo cats)
     return { triggered: true, imported: 0, errors: [] };
   }
 
@@ -209,8 +427,7 @@ export async function importPhotosIfNeeded(
   const { imported, errors } = await processBatch(entries, supabase);
 
   // Clear edit timestamps for successfully imported cats so the next cycle
-  // doesn't re-detect them. API writes don't trigger Apps Script onEdit,
-  // so col W would never be cleared otherwise.
+  // doesn't re-detect them.
   const erroredIds = new Set(errors.map((e) => e.catId));
   const importedByRegion = new Map<string, string[]>();
   for (const [uuid] of entries) {
@@ -244,7 +461,7 @@ export async function importPhotosIfNeeded(
  * regardless of sheet edit state — covers cats whose pasted photos predate
  * the lastEditedAt tracking system.
  *
- * Not called by the sync cycle. Run via: pnpm tsx lib/scripts/import-photos.ts
+ * Not called by the sync cycle. Run via: pnpm tsx scripts/import-photos.ts
  */
 export async function bulkImportAllNullPhotos(): Promise<{
   imported: number;
@@ -261,17 +478,14 @@ export async function bulkImportAllNullPhotos(): Promise<{
   }
 
   const targetIds = new Set(nullPhotoCats.map((c) => c.id));
+  console.log(`[BulkImport] Fetching photos for ${targetIds.size} cats via xlsx...`);
 
-  const { glAuth } = await connectToSheets();
-  const zipBuffer = await exportSpreadsheetAsZip(
-    process.env.CATALOG_SPREADSHEET_ID!,
-    glAuth,
-  );
-  const zip = await JSZip.loadAsync(zipBuffer);
-  const photoMap = await buildPhotoMap(zip, targetIds);
+  const allRegions = await db.query.regions.findMany();
+  const regionNamesToScan = allRegions.map((r) => r.name);
+  const photoMap = await fetchPhotosFromXlsx(targetIds, regionNamesToScan);
 
   if (photoMap.size === 0) {
-    console.log("[BulkImport] ZIP contained no images for null-photo cats.");
+    console.log("[BulkImport] No images found for null-photo cats.");
     return { imported: 0, errors: [] };
   }
 
