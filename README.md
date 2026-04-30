@@ -14,24 +14,24 @@ AGILA formalizes this workflow. It treats the CATalog spreadsheet as the primary
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, React 19) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS 4 |
-| UI Primitives | Radix UI + custom components |
-| Data Fetching | TanStack Query 4 |
-| Server Actions | `next-safe-action` 8 |
-| Validation | Zod 4 |
-| ORM | Drizzle ORM + Drizzle Kit |
-| Database | PostgreSQL (via Supabase) |
-| Auth | Supabase Auth (SSR) |
-| Storage | Supabase Storage (photos) |
-| Google APIs | Sheets API, Drive API |
+| Layer            | Technology                                         |
+| ---------------- | -------------------------------------------------- |
+| Framework        | Next.js 16 (App Router, React 19)                  |
+| Language         | TypeScript (strict)                                |
+| Styling          | Tailwind CSS 4                                     |
+| UI Primitives    | Radix UI + custom components                       |
+| Data Fetching    | TanStack Query 4                                   |
+| Server Actions   | `next-safe-action` 8                               |
+| Validation       | Zod 4                                              |
+| ORM              | Drizzle ORM + Drizzle Kit                          |
+| Database         | PostgreSQL (via Supabase)                          |
+| Auth             | Supabase Auth (SSR)                                |
+| Storage          | Supabase Storage (photos)                          |
+| Google APIs      | Sheets API, Drive API                              |
 | Image Processing | Sharp (server), browser-image-compression (client) |
-| Scheduled Jobs | Cloudflare Workers (sync cron) |
-| Alerts | Discord Webhooks |
-| Charts | Recharts |
+| Scheduled Jobs   | Cloudflare Workers (sync cron)                     |
+| Alerts           | Discord Webhooks                                   |
+| Charts           | Recharts                                           |
 
 ---
 
@@ -104,10 +104,10 @@ Managers create sessions scoped to a campus region. A session groups cats and vo
 
 Administrators manage user accounts and roles through an allowlist system. Only pre-approved emails can register. Three roles exist:
 
-| Role | Capabilities |
-|---|---|
-| Volunteer | Read-only access to cat data and sessions |
-| Manager | Create/edit cats, run sessions, trigger syncs |
+| Role          | Capabilities                                    |
+| ------------- | ----------------------------------------------- |
+| Volunteer     | Read-only access to cat data and sessions       |
+| Manager       | Create/edit cats, run sessions, trigger syncs   |
 | Administrator | All of the above + user management, admin panel |
 
 Access is enforced at the server action level via RBAC middleware (`requireRole(...)`).
@@ -131,20 +131,20 @@ System-level tools for administrators: photo import utilities, sync freeze contr
 
 Core tables:
 
-| Table | Purpose |
-|---|---|
-| `cats` | Cat records (identity, status, location, catalog/paws IDs) |
+| Table                | Purpose                                                           |
+| -------------------- | ----------------------------------------------------------------- |
+| `cats`               | Cat records (identity, status, location, catalog/paws IDs)        |
 | `cat_health_records` | One-to-one health record per cat (vaccination, neuter, condition) |
-| `regions` | 36 campus locations (enum-backed) |
-| `sessions` | TNVR/vet sessions scoped to a region |
-| `session_users` | Volunteers assigned to a session |
-| `session_cats` | Cats assigned to a session |
-| `interventions` | Individual interventions per cat (type, status, notes) |
-| `profiles` | User profiles linked to Supabase auth |
-| `allowed_emails` | Registration allowlist with role assignment |
-| `gsheet_sync_queue` | Pending forward-sync operations with retry state |
-| `sync_audit_log` | History of sync runs (direction, tasks, errors, timing) |
-| `system_config` | Key-value config store (e.g. `sync_frozen`) |
+| `regions`            | 36 campus locations (enum-backed)                                 |
+| `sessions`           | TNVR/vet sessions scoped to a region                              |
+| `session_users`      | Volunteers assigned to a session                                  |
+| `session_cats`       | Cats assigned to a session                                        |
+| `interventions`      | Individual interventions per cat (type, status, notes)            |
+| `profiles`           | User profiles linked to Supabase auth                             |
+| `allowed_emails`     | Registration allowlist with role assignment                       |
+| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                  |
+| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)           |
+| `system_config`      | Key-value config store (e.g. `sync_frozen`)                       |
 
 Schema is managed with Drizzle ORM. To apply schema changes:
 
@@ -208,7 +208,7 @@ agila-app/
 
 ### Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in:
+Contact @legnspice (Niles Cabrera) for access to the following env variables:
 
 ```
 # Supabase
