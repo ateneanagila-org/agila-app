@@ -16,7 +16,6 @@ export async function syncRegion(regionId: string) {
 }
 
 export async function syncAllPendingRegions() {
-  await requireAuth();
   const pendingTasks = await db
     .selectDistinct({ regionId: gsheetSyncQueue.regionId })
     .from(gsheetSyncQueue)

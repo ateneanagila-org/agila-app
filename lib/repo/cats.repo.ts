@@ -1,6 +1,6 @@
 import { DB, db } from "../db";
 import { cats, catHealthRecords } from "../db/schema";
-import { eq, notInArray } from "drizzle-orm";
+import { eq, notInArray, isNull } from "drizzle-orm";
 import {
   InsertCat,
   InsertCatHealthRecord,
@@ -13,9 +13,11 @@ import { createEQFilters } from "./helper.repo";
 // These are general CRUD; you can make more specific ones depending on frontend
 export const findAdoptableCats = (filters: Partial<SelectCat>) =>
   db.query.cats.findMany({
-    where: (cols, { and }) => {
+    where: (cols, { and, or }) => {
       const conditions = createEQFilters(cols, filters);
-      conditions.push(notInArray(cols.cat_status, ["Adopted", "Fostered"]));
+      conditions.push(
+        or(isNull(cols.cat_status), notInArray(cols.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]))!
+      );
       return and(...conditions);
     },
   });
