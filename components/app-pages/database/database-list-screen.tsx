@@ -14,6 +14,7 @@ import {
 import { CatCard } from "@/components/app-pages/shared/cat-card";
 import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useAuth } from "@/contexts/auth-context";
@@ -23,7 +24,7 @@ export function DatabaseListScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [cats, setCats] = useState<SelectCat[]>([]);
+  const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
 
   const {
@@ -38,10 +39,11 @@ export function DatabaseListScreen() {
     setSortOrder,
     search,
     setSearch,
-  } = useFilterSort<SelectCat>(
+  } = useFilterSort<CatWithRegion>(
     cats,
     DATABASE_LIST_CONFIG,
     (cat, key) => {
+      if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },
@@ -49,6 +51,7 @@ export function DatabaseListScreen() {
       if (key === "last_updated_at") {
         return cat.last_updated_at ? new Date(cat.last_updated_at) : null;
       }
+      if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },

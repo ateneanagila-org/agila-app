@@ -12,11 +12,12 @@ import {
 } from "@/components/app-pages/database/database-dialogs";
 import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 export function CatalogScreen() {
-  const [cats, setCats] = useState<SelectCat[]>([]);
+  const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
@@ -33,16 +34,18 @@ export function CatalogScreen() {
     setSortOrder,
     search,
     setSearch,
-  } = useFilterSort<SelectCat>(
+  } = useFilterSort<CatWithRegion>(
     cats,
     DATABASE_LIST_CONFIG,
     (cat, key) => {
+      if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },
     (cat, key) => {
       if (key === "last_updated_at")
         return cat.last_updated_at ? new Date(cat.last_updated_at) : null;
+      if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },

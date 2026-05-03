@@ -9,14 +9,14 @@ import {
   INTERVENTION_TYPE_VALUES,
   INTERVENTION_STATUS_VALUES,
   AUTH_ROLE_VALUES,
+  REGION_NAME_VALUES,
 } from "@/lib/db/enums";
-import { LOCATIONS } from "@/components/app-pages/shared/constants";
 
-const LOCATION_FILTER_OPTIONS = LOCATIONS.filter((l) => l !== "All Locations");
+const REGION_FILTER_OPTIONS = REGION_NAME_VALUES.filter((r) => r !== "UNKNOWN");
 
 export const DATABASE_LIST_CONFIG: FilterSortConfig = {
   filters: [
-    { label: "Location", key: "spot_last_seen", options: LOCATION_FILTER_OPTIONS },
+    { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
     { label: "Color", key: "color", options: CAT_COLOR_VALUES },
     { label: "Age", key: "age", options: CAT_AGE_VALUES },
     { label: "Sex", key: "sex", options: CAT_SEX_VALUES },
