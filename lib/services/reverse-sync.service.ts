@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   cats,
@@ -20,7 +20,7 @@ import {
   parseUnknownSheetRow,
   SheetRowParsed,
 } from "@/lib/validation/reverse-sync";
-import { nextCatalogId } from "@/lib/services/catalog.service";
+import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 
 /**
@@ -69,6 +69,13 @@ async function reverseSyncRegionInternal(
     throw error;
   }
 
+  let maxCatalogNum = Math.max(
+    0,
+    ...sheetRows
+      .map((r) => parseCatalogId(String(r.raw[0] ?? "").trim()))
+      .filter((n): n is number => n !== null),
+  );
+
   for (const sheetRow of sheetRows) {
     if (!force && !sheetRow.lastEditedAt) {
       result.skipped++;
@@ -115,8 +122,7 @@ async function reverseSyncRegionInternal(
           continue;
         }
 
-        const colAValues = sheetRows.map((r) => String(r.raw[0] ?? "").trim());
-        const catalog_id = String(nextCatalogId(colAValues));
+        const catalog_id = String(++maxCatalogNum);
 
         await db.transaction(async (tx) => {
           const { id: _id, condition, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
@@ -342,7 +348,7 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
       if (signal === "will_have") {
         const existing = await tx.query.interventions.findFirst({
           where: (i, { eq, and }) =>
-            and(eq(i.cat_id, data.id), eq(i.type, type), eq(i.status, "Pending")),
+            and(eq(i.cat_id, data.id), eq(i.type, type), inArray(i.status, ["Pending", "Finished"])),
         });
         if (!existing) {
           await tx.insert(interventions).values({ cat_id: data.id, type, status: "Pending" });

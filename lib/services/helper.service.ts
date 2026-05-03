@@ -133,7 +133,7 @@ export function mapCatToSheetRow(
 
   return [
     catalogDisplay, // 0  (A) Catalog ID
-    cat.photo_url ? `=IMAGE("${cat.photo_url}")` : "", // 1  (B)
+    cat.photo_url ? `=IMAGE("${cat.photo_url.replace(/"/g, "")}")` : "", // 1  (B)
     cat.name ?? "N/A", // 2  (C)
     cat.color ?? "N/A", // 3  (D)
     cat.age ?? "N/A", // 4  (E)

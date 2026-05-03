@@ -16,12 +16,14 @@ declare global {
   var pgClient: ReturnType<typeof postgres> | undefined;
 }
 
-// Reuse the client in development to avoid exhausting the connection pool
-const client = global.pgClient || postgres(process.env.DATABASE_URL!);
+const client =
+  global.pgClient ??
+  postgres(process.env.DATABASE_URL!, {
+    max: 5,
+    prepare: false, // required for Supabase transaction pooler
+  });
 
-if (process.env.NODE_ENV !== "production") {
-  global.pgClient = client;
-}
+global.pgClient = client;
 
 export const db = drizzle(client, { schema: fullSchema });
 
