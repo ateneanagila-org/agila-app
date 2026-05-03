@@ -146,6 +146,7 @@ export function CatalogScreen() {
                 href={`/catalog/${cat.id}`}
                 variant="default"
                 action="chevron"
+                hideAdoptableChip
               />
             ))}
           </div>

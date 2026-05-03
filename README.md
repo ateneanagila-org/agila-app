@@ -51,9 +51,9 @@ Volunteers → Google Sheets (CATalog)
 
 **Forward sync** (DB → Sheet): reads cat records per region from the database and writes them to the corresponding sheet tab via the Sheets API. Runs on schedule and on demand.
 
-**Reverse sync** (Sheet → DB): exports the spreadsheet as a ZIP archive (HTML + embedded images), parses the HTML rows with Zod schemas, and upserts changes into the database. Conflict resolution: if a DB record was updated within a 5-second window before a sheet edit, the DB wins.
+**Reverse sync** (Sheet → DB): reads each region's sheet tab via the Sheets API, parses rows with Zod schemas, and upserts changes into the database. Rows without a recent edit timestamp (column W) are skipped. Conflict resolution: if a DB record was updated within a 5-second window before a sheet edit, the DB wins.
 
-**Photo import**: during reverse sync, embedded cell images in the spreadsheet are fetched via a Google Apps Script web app endpoint, processed with Sharp, and uploaded to Supabase Storage. The resulting public URL is stored on the cat record.
+**Photo import**: runs before each sync cycle. Downloads the full spreadsheet as an xlsx export, parses it as OOXML to locate embedded cell images by their row anchor position, matches them to cat UUIDs in column Y, processes the image bytes with Sharp, and uploads to Supabase Storage. The resulting public URL is written back to the cat record.
 
 **Sync scheduling**: a Cloudflare Worker fires on a cron schedule, health-checks the app, and hits the `/api/cron/sync` endpoint to trigger forward + reverse sync across all regions. Failures post alerts to Discord.
 
@@ -65,7 +65,6 @@ A script installed as an installable trigger on the CATalog spreadsheet handles 
 - Records the editor's email in column X
 - Auto-generates a UUID in column Y on first data entry (used as the stable record key across sync)
 - Skips writes made by the service account to prevent sync loops
-- Exposes a Web App endpoint for the photo import service to fetch embedded cell images by UUID
 
 ### Sync Queue & Audit Log
 
@@ -216,14 +215,9 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Google
-GOOGLE_SERVICE_ACCOUNT_EMAIL=
-GOOGLE_PRIVATE_KEY=
+# Google (full service account JSON as a single env var)
+SERVICE_ACCOUNT_CREDENTIALS=
 CATALOG_SPREADSHEET_ID=
-
-# Photo import (Apps Script web app)
-PHOTO_WEBAPP_URL=
-PHOTO_WEBAPP_SECRET=
 
 # Discord alerts
 DISCORD_WEBHOOK_URL=

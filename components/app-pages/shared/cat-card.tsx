@@ -34,6 +34,7 @@ type CatCardProps = {
   dateLabel?: string;
   /** Custom chips (rendered after default chips). */
   extraChips?: ReactNode;
+  hideAdoptableChip?: boolean;
   className?: string;
 };
 
@@ -115,9 +116,12 @@ export function CatCard({
   action = "chevron",
   dateLabel,
   extraChips,
+  hideAdoptableChip = false,
   className = "",
 }: CatCardProps) {
-  const { rail, chip: statusChip } = statusAccent(cat);
+  const { rail, chip: rawChip } = statusAccent(cat);
+  const statusChip =
+    hideAdoptableChip && rawChip?.label === "Adoptable" ? null : rawChip;
   const sex = sexGlyph(cat.sex);
   const isInteractive = !!href;
 

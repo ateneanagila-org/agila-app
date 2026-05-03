@@ -161,11 +161,6 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
             iconClassName="h-16 w-16 text-brand-green/30"
             sizes="(min-width: 768px) 50vw, 100vw"
           />
-          {cat.is_adoptable ? (
-            <span className="absolute left-4 top-4 inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-              Adoptable
-            </span>
-          ) : null}
         </div>
 
         <div className="flex flex-col">
