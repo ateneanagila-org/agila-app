@@ -41,6 +41,7 @@ interface ReverseSyncResult {
  */
 async function reverseSyncRegionInternal(
   regionId: string,
+  force = false,
 ): Promise<ReverseSyncResult> {
   const result: ReverseSyncResult = { imported: 0, skipped: 0, errors: [] };
   const startedAt = new Date();
@@ -69,12 +70,16 @@ async function reverseSyncRegionInternal(
   }
 
   for (const sheetRow of sheetRows) {
-    if (!sheetRow.lastEditedAt) {
+    if (!force && !sheetRow.lastEditedAt) {
       result.skipped++;
       continue;
     }
 
-    const sheetEditedAt = new Date(sheetRow.lastEditedAt);
+    // In force mode, treat the current time as the edit timestamp
+    const sheetEditedAt = sheetRow.lastEditedAt
+      ? new Date(sheetRow.lastEditedAt)
+      : new Date();
+
     if (isNaN(sheetEditedAt.getTime())) {
       result.errors.push({
         entityId: sheetRow.entityId,
@@ -114,7 +119,7 @@ async function reverseSyncRegionInternal(
         const catalog_id = String(nextCatalogId(colAValues));
 
         await db.transaction(async (tx) => {
-          const { id: _id, condition, neuter_date, vaccination_date, paws_id, ...catFields } = validation.data;
+          const { id: _id, condition, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
           const [newCat] = await tx
             .insert(cats)
             .values({
@@ -125,12 +130,23 @@ async function reverseSyncRegionInternal(
             })
             .returning();
 
+          const parsedNeuterDate = neuter_date ? new Date(neuter_date) : null;
+          const parsedVaccinationDate = vaccination_date ? new Date(vaccination_date) : null;
           await tx.insert(catHealthRecords).values({
             cat_id: newCat.id,
             condition,
-            neuter_date: neuter_date ? new Date(neuter_date) : null,
-            vaccination_date: vaccination_date ? new Date(vaccination_date) : null,
+            neuter_date: parsedNeuterDate && !isNaN(parsedNeuterDate.getTime()) ? parsedNeuterDate : null,
+            vaccination_date: parsedVaccinationDate && !isNaN(parsedVaccinationDate.getTime()) ? parsedVaccinationDate : null,
           });
+
+          for (const [signal, type] of [
+            [tnvr_signal, "TNVR"],
+            [vet_signal, "Veterinarian"],
+          ] as const) {
+            if (signal === "will_have") {
+              await tx.insert(interventions).values({ cat_id: newCat.id, type, status: "Pending" });
+            }
+          }
 
           await linkCatToSystemSession(newCat.id, regionId, tx);
           await refreshCatInSyncQueue(newCat.id, tx);
@@ -237,20 +253,25 @@ export async function reverseSyncRegion(
  * importSheetRowToDB's conflict resolution cancels PENDING tasks only
  * for cats where a newer GSheet edit was imported.
  */
-export async function fullReverseSync(): Promise<{
+export async function fullReverseSync(force = false): Promise<{
   regions: number;
   totalImported: number;
   totalErrors: number;
+  allErrors: Array<{ region: string; entityId: string; error: string }>;
 }> {
   const allRegions = await db.query.regions.findMany();
   let totalImported = 0;
   let totalErrors = 0;
+  const allErrors: Array<{ region: string; entityId: string; error: string }> = [];
 
   for (const region of allRegions) {
     try {
-      const result = await reverseSyncRegionInternal(region.id);
+      const result = await reverseSyncRegionInternal(region.id, force);
       totalImported += result.imported;
       totalErrors += result.errors.length;
+      for (const e of result.errors) {
+        allErrors.push({ region: region.name, ...e });
+      }
     } catch (error) {
       console.error(
         `[FullReverseSync] Region ${region.id} failed:`,
@@ -260,7 +281,7 @@ export async function fullReverseSync(): Promise<{
     }
   }
 
-  return { regions: allRegions.length, totalImported, totalErrors };
+  return { regions: allRegions.length, totalImported, totalErrors, allErrors };
 }
 
 /**

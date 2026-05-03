@@ -25,8 +25,9 @@ export async function syncAllPendingRegions() {
   const allRegions = await db.query.regions.findMany();
 
   // Phase 0: Photo import — detect pasted images before reverse/forward sync.
-  // Reads sheet state per region, fires ZIP only when candidates found.
-  // Must run before forward sync so col B gets the correct =IMAGE(url) formula.
+  // Reads sheet state per region, exports the spreadsheet as xlsx and extracts
+  // images for candidate rows. Must run before forward sync so col B gets the
+  // correct =IMAGE(url) formula.
   try {
     await importPhotosIfNeeded(allRegions);
   } catch (error) {
