@@ -130,11 +130,13 @@ async function reverseSyncRegionInternal(
             })
             .returning();
 
+          const parsedNeuterDate = neuter_date ? new Date(neuter_date) : null;
+          const parsedVaccinationDate = vaccination_date ? new Date(vaccination_date) : null;
           await tx.insert(catHealthRecords).values({
             cat_id: newCat.id,
             condition,
-            neuter_date: neuter_date ? new Date(neuter_date) : null,
-            vaccination_date: vaccination_date ? new Date(vaccination_date) : null,
+            neuter_date: parsedNeuterDate && !isNaN(parsedNeuterDate.getTime()) ? parsedNeuterDate : null,
+            vaccination_date: parsedVaccinationDate && !isNaN(parsedVaccinationDate.getTime()) ? parsedVaccinationDate : null,
           });
 
           for (const [signal, type] of [
@@ -255,16 +257,21 @@ export async function fullReverseSync(force = false): Promise<{
   regions: number;
   totalImported: number;
   totalErrors: number;
+  allErrors: Array<{ region: string; entityId: string; error: string }>;
 }> {
   const allRegions = await db.query.regions.findMany();
   let totalImported = 0;
   let totalErrors = 0;
+  const allErrors: Array<{ region: string; entityId: string; error: string }> = [];
 
   for (const region of allRegions) {
     try {
       const result = await reverseSyncRegionInternal(region.id, force);
       totalImported += result.imported;
       totalErrors += result.errors.length;
+      for (const e of result.errors) {
+        allErrors.push({ region: region.name, ...e });
+      }
     } catch (error) {
       console.error(
         `[FullReverseSync] Region ${region.id} failed:`,
@@ -274,7 +281,7 @@ export async function fullReverseSync(force = false): Promise<{
     }
   }
 
-  return { regions: allRegions.length, totalImported, totalErrors };
+  return { regions: allRegions.length, totalImported, totalErrors, allErrors };
 }
 
 /**

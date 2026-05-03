@@ -22,6 +22,12 @@ async function main() {
   console.log("\n[Reset] Running full reverse sync...");
   const syncResult = await fullReverseSync(true);
   console.log(`[Reset] Reverse sync done: ${syncResult.regions} regions, ${syncResult.totalImported} cats imported, ${syncResult.totalErrors} errors`);
+  if (syncResult.allErrors.length > 0) {
+    console.log("[Reset] Sync errors:");
+    for (const e of syncResult.allErrors) {
+      console.log(`  [${e.region}] ${e.entityId}: ${e.error}`);
+    }
+  }
 
   // Step 4: Bulk photo import — downloads xlsx and imports all photos
   console.log("\n[Reset] Running bulk photo import...");
