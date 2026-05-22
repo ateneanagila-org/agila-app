@@ -16,7 +16,7 @@ const regionSubquery = sql<string | null>`(
   SELECT r.name FROM regions r
   INNER JOIN sessions s ON s.region_id = r.id
   INNER JOIN session_cats sc ON sc.session_id = s.id
-  WHERE sc.cat_id = ${cats.id}
+  WHERE sc.cat_id = cats.id
   ORDER BY s.created_at DESC
   LIMIT 1
 )`;

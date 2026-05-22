@@ -48,10 +48,10 @@ export async function syncAllPendingRegions() {
     }
   }
 
-  // Phase B: Forward sync only regions with pending tasks
-  await Promise.all(
-    pendingTasks.map((task) => syncAndCompactRegion(task.regionId)),
-  );
+  // Phase B: Forward sync only regions with pending tasks — sequential to stay within write quota
+  for (const task of pendingTasks) {
+    await syncAndCompactRegion(task.regionId);
+  }
 
   // Phase C: Regenerate summary sheets
   try {
