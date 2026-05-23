@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { SearchIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getSessionCats } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
@@ -94,13 +93,13 @@ export function SessionsManagerScreen() {
               href={CENSUS_REPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-green py-2.5 text-sm font-bold text-brand-green transition-opacity hover:opacity-80"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Census Report
             </a>
             <Link
               href="/dashboard/sessions"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               My Sessions ›
             </Link>
@@ -171,47 +170,28 @@ export function SessionsManagerScreen() {
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Sessions
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
+            For Review
           </h1>
           <div className="flex items-center gap-2">
             <a
               href={CENSUS_REPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">📊</span>
+              Census Report
             </a>
             <Link
               href="/dashboard/sessions"
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               My Sessions <span className="ml-1">&#8249;</span>
             </Link>
           </div>
         </div>
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <span className="ml-1">&#9662;</span>
-            </button>
-          </div>
-        </section>
-
-        <div className="mt-4 space-y-3">
+<div className="mt-4 space-y-3">
           {loading ? (
             <LoadingIndicator />
           ) : forReview.length === 0 ? (
@@ -225,7 +205,7 @@ export function SessionsManagerScreen() {
                 className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/15">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
                     <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-20 w-20 object-cover" iconClassName="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
