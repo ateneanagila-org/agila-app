@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
-import type { SelectCat } from "@/lib/validation/cats";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
 
@@ -390,87 +389,171 @@ export function SessionSortByDialog({
   );
 }
 
-// ─── Merge Details Dialog ─────────────────────────────────────────────────────
+// ─── Merge Details Dialog (Option A — diff-only, default to new) ─────────────
 
-type MergeField = {
+export type MergeFieldDef = {
   label: string;
-  key: keyof Pick<SelectCat, "color" | "age" | "sex" | "sociability" | "cat_status">;
+  fieldKey: string;
+  currentValue: string | null;
+  newValue: string | null;
+  inputType: "pill" | "textarea";
 };
-
-const MERGE_FIELDS: MergeField[] = [
-  { label: "Color", key: "color" },
-  { label: "Size/Age", key: "age" },
-  { label: "Sex", key: "sex" },
-  { label: "Sociability", key: "sociability" },
-  { label: "Status", key: "cat_status" },
-];
-
-type MergeSelection = Partial<Record<string, "a" | "b">>;
 
 type MergeDetailsDialogProps = {
   open: boolean;
   onClose: () => void;
-  catA: SelectCat | null;
-  catB: SelectCat | null;
-  onMerge: (selections: MergeSelection) => void;
+  targetName: string | null;
+  diffFields: MergeFieldDef[];
+  autoMergedCount: number;
+  onMerge: (resolved: Record<string, string | null>) => void;
   isLoading?: boolean;
 };
 
 export function MergeDetailsDialog({
   open,
   onClose,
-  catA,
-  catB,
+  targetName,
+  diffFields,
+  autoMergedCount,
   onMerge,
   isLoading,
 }: MergeDetailsDialogProps) {
-  const [selections, setSelections] = useState<MergeSelection>({});
+  const [selections, setSelections] = useState<Record<string, "new" | "current">>({});
+  const [textValues, setTextValues] = useState<Record<string, string>>({});
 
-  const toggleSelection = (key: string, side: "a" | "b") => {
-    setSelections((prev) => ({ ...prev, [key]: prev[key] === side ? undefined : side }));
+  // Reset to defaults whenever the dialog opens with new fields
+  useEffect(() => {
+    if (!open) return;
+    setSelections(
+      Object.fromEntries(
+        diffFields
+          .filter((f) => f.inputType === "pill")
+          .map((f) => [f.fieldKey, "new" as const]),
+      ),
+    );
+    setTextValues(
+      Object.fromEntries(
+        diffFields
+          .filter((f) => f.inputType === "textarea")
+          .map((f) => [f.fieldKey, f.newValue ?? ""]),
+      ),
+    );
+    // diffFields intentionally excluded — initialize only when the dialog opens, not on every render
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleReset = () => {
+    setSelections(
+      Object.fromEntries(
+        diffFields
+          .filter((f) => f.inputType === "pill")
+          .map((f) => [f.fieldKey, "new" as const]),
+      ),
+    );
+    setTextValues(
+      Object.fromEntries(
+        diffFields
+          .filter((f) => f.inputType === "textarea")
+          .map((f) => [f.fieldKey, f.newValue ?? ""]),
+      ),
+    );
   };
 
-  const handleReset = () => setSelections({});
+  const handleMerge = () => {
+    const resolved: Record<string, string | null> = {};
+    for (const field of diffFields) {
+      if (field.inputType === "pill") {
+        const sel = selections[field.fieldKey] ?? "new";
+        resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
+      } else {
+        resolved[field.fieldKey] = textValues[field.fieldKey] ?? null;
+      }
+    }
+    onMerge(resolved);
+  };
+
+  const pillFields = diffFields.filter((f) => f.inputType === "pill");
+  const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
 
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="Merge Details" subtitle="Select which information to retain." onClose={onClose} />
+      <Header
+        title="Merge Details"
+        subtitle={targetName ? `Merging into ${targetName}` : undefined}
+        onClose={onClose}
+      />
 
-      <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-        {MERGE_FIELDS.map((field) => {
-          const valA = catA?.[field.key] ?? "—";
-          const valB = catB?.[field.key] ?? "—";
-          return (
-            <div key={field.key}>
-              <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleSelection(field.key, "a")}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-                    selections[field.key] === "a"
-                      ? "border-brand-green bg-brand-green text-white"
-                      : "border-pink-200 bg-pink-50 text-foreground hover:bg-pink-100"
-                  }`}
-                >
-                  {String(valA)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSelection(field.key, "b")}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-                    selections[field.key] === "b"
-                      ? "border-brand-green bg-brand-green text-white"
-                      : "border-pink-200 bg-pink-50 text-foreground hover:bg-pink-100"
-                  }`}
-                >
-                  {String(valB)}
-                </button>
-              </div>
+      {diffFields.length > 0 ? (
+        <p className="text-xs text-brand-dark/60">
+          {pillFields.length} field{pillFields.length !== 1 ? "s" : ""} differ
+          {autoMergedCount > 0 ? ` · ${autoMergedCount} auto-merged` : ""}
+        </p>
+      ) : (
+        <p className="text-xs text-brand-dark/60">All fields match — only notes to review.</p>
+      )}
+
+      <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
+        {pillFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            <div className="space-y-1.5">
+              {(["new", "current"] as const).map((side) => {
+                const value = side === "new" ? field.newValue : field.currentValue;
+                const selected = (selections[field.fieldKey] ?? "new") === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() =>
+                      setSelections((s) => ({ ...s, [field.fieldKey]: side }))
+                    }
+                    className={`flex w-full items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                      selected
+                        ? "border-brand-green bg-brand-green text-white"
+                        : "border-brand-dark/15 bg-brand-cream text-brand-dark hover:bg-brand-cream-dark"
+                    }`}
+                  >
+                    <span
+                      className={`w-12 shrink-0 text-left text-[10px] font-bold uppercase tracking-wider ${
+                        selected ? "text-white/70" : "text-brand-dark/40"
+                      }`}
+                    >
+                      {side === "new" ? "New" : "Current"}
+                    </span>
+                    <span className="flex-1 text-left">{value ?? "—"}</span>
+                    {selected ? <span className="text-xs">✓</span> : null}
+                  </button>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
+
+        {textareaFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            {field.currentValue ? (
+              <p className="mb-1.5 rounded-xl bg-brand-cream-dark px-3 py-2 text-xs italic text-brand-dark/60">
+                Current: &ldquo;{field.currentValue}&rdquo;
+              </p>
+            ) : null}
+            <textarea
+              value={textValues[field.fieldKey] ?? ""}
+              onChange={(e) =>
+                setTextValues((s) => ({ ...s, [field.fieldKey]: e.target.value }))
+              }
+              rows={3}
+              placeholder="No notes"
+              className="w-full rounded-xl border border-brand-dark/15 bg-white px-3 py-2 text-sm text-brand-dark outline-none focus:border-brand-green"
+            />
+          </div>
+        ))}
       </div>
+
+      {autoMergedCount > 0 ? (
+        <p className="text-xs font-semibold text-brand-dark/40">
+          ✓ {autoMergedCount} field{autoMergedCount !== 1 ? "s" : ""} matched — auto-merged
+        </p>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
@@ -483,7 +566,7 @@ export function MergeDetailsDialog({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => onMerge(selections)}
+          onClick={handleMerge}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isLoading ? "Merging..." : "Merge"} <span>✓</span>
