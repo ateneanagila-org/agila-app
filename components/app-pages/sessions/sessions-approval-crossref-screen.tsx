@@ -12,14 +12,41 @@ import {
   DiscardSessionDialog,
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
+import type { MergeFieldDef } from "@/components/app-pages/sessions/session-dialogs";
 import {
-  CatIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
-import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { getCats, editCat, removeCat, getCatHealthRecords } from "@/app/actions/cats";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatEntryStatus } from "@/lib/db/enums";
+
+function buildMergeDiff(
+  newCat: SelectCat,
+  targetCat: SelectCat,
+  newCondition: string | null,
+  targetCondition: string | null,
+): { diffFields: MergeFieldDef[]; autoMergedCount: number } {
+  const candidates: MergeFieldDef[] = [
+    { label: "Color", fieldKey: "color", currentValue: targetCat.color ?? null, newValue: newCat.color ?? null, inputType: "pill" },
+    { label: "Size/Age", fieldKey: "age", currentValue: targetCat.age ?? null, newValue: newCat.age ?? null, inputType: "pill" },
+    { label: "Sex", fieldKey: "sex", currentValue: targetCat.sex ?? null, newValue: newCat.sex ?? null, inputType: "pill" },
+    { label: "Sociability", fieldKey: "sociability", currentValue: targetCat.sociability ?? null, newValue: newCat.sociability ?? null, inputType: "pill" },
+    { label: "Status", fieldKey: "cat_status", currentValue: targetCat.cat_status ?? null, newValue: newCat.cat_status ?? null, inputType: "pill" },
+    { label: "Condition", fieldKey: "condition", currentValue: targetCondition, newValue: newCondition, inputType: "pill" },
+    { label: "Notes", fieldKey: "notes", currentValue: targetCat.notes ?? null, newValue: newCat.notes ?? null, inputType: "textarea" },
+  ];
+
+  const pillCandidates = candidates.filter((f) => f.inputType === "pill");
+  const diffFields = [
+    ...pillCandidates.filter((f) => f.currentValue !== f.newValue),
+    ...candidates.filter((f) => f.inputType === "textarea"),
+  ];
+  const autoMergedCount = pillCandidates.filter((f) => f.currentValue === f.newValue).length;
+
+  return { diffFields, autoMergedCount };
+}
 
 export function SessionsApprovalCrossRefScreen() {
   const router = useRouter();
@@ -33,6 +60,10 @@ export function SessionsApprovalCrossRefScreen() {
   const [loading, setLoading] = useState(true);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
+  const [mergeDiffFields, setMergeDiffFields] = useState<MergeFieldDef[]>([]);
+  const [mergeAutoMergedCount, setMergeAutoMergedCount] = useState(0);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,47 +114,73 @@ export function SessionsApprovalCrossRefScreen() {
 
   const similarCats = useMemo(() => {
     if (!cat) return [];
-    return allCats.filter((c) => {
-      if (c.id === cat.id) return false;
-      // Only merge into already-reviewed entries
-      if (c.entry_status !== "Original") return false;
-
-      const colorMatch = !!cat.color && c.color === cat.color;
-      const ageMatch = !!cat.age && c.age === cat.age;
-      const sexMatch = !!cat.sex && c.sex === cat.sex;
-
-      // Show entries that are likely the same cat without being too aggressive.
-      const matchCount = [colorMatch, ageMatch, sexMatch].filter(
-        Boolean,
-      ).length;
-      return matchCount >= 2;
-    });
+    return allCats.filter((c) => c.id !== cat.id && c.entry_status === "Original");
   }, [cat, allCats]);
 
-  const handleMerge = useCallback(async () => {
-    if (!catId || !mergeTargetId) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const result = await editCat({
-        id: catId,
-        merged_into_id: mergeTargetId,
-        entry_status: "Merged" as CatEntryStatus,
-      });
+  const filteredCandidates = useMemo(() => {
+    if (!searchQuery.trim()) return similarCats;
+    const q = searchQuery.toLowerCase();
+    return allCats.filter(
+      (c) => c.entry_status === "Original" && c.name?.toLowerCase().includes(q),
+    );
+  }, [searchQuery, allCats, similarCats]);
 
-      if (result?.serverError) {
-        setError(result.serverError);
-        return;
+  const handleSelectTarget = useCallback(
+    async (targetId: string) => {
+      if (!catId || !cat) return;
+      setMergeTargetId(targetId);
+      const target = allCats.find((c) => c.id === targetId);
+      if (!target) return;
+      const [newHRResult, targetHRResult] = await Promise.all([
+        getCatHealthRecords({ cat_id: catId }),
+        getCatHealthRecords({ cat_id: targetId }),
+      ]);
+      const newCondition = newHRResult?.data?.[0]?.condition ?? null;
+      const targetCondition = targetHRResult?.data?.[0]?.condition ?? null;
+      const { diffFields, autoMergedCount } = buildMergeDiff(cat, target, newCondition, targetCondition);
+      setMergeDiffFields(diffFields);
+      setMergeAutoMergedCount(autoMergedCount);
+      setShowMergeConfirm(true);
+    },
+    [catId, cat, allCats],
+  );
+
+  const handleMerge = useCallback(
+    async (resolved: Record<string, string | null>) => {
+      if (!catId || !mergeTargetId) return;
+      setSaving(true);
+      setError(null);
+      try {
+        // Step 1: update original with manager-selected field values
+        const updatePayload: Parameters<typeof editCat>[0] = { id: mergeTargetId };
+        if (resolved.color !== undefined) updatePayload.color = resolved.color as SelectCat["color"] ?? undefined;
+        if (resolved.age !== undefined) updatePayload.age = resolved.age as SelectCat["age"] ?? undefined;
+        if (resolved.sex !== undefined) updatePayload.sex = resolved.sex as SelectCat["sex"] ?? undefined;
+        if (resolved.sociability !== undefined) updatePayload.sociability = resolved.sociability as SelectCat["sociability"] ?? undefined;
+        if (resolved.cat_status !== undefined) updatePayload.cat_status = resolved.cat_status as SelectCat["cat_status"] ?? undefined;
+        if (resolved.condition !== null && resolved.condition !== undefined)
+          updatePayload.condition = resolved.condition as "Healthy" | "Sick" | "Injured" | "Sick and Injured";
+        if (resolved.notes !== undefined) updatePayload.notes = resolved.notes ?? undefined;
+        const step1 = await editCat(updatePayload);
+        if (step1?.serverError) { setError(step1.serverError); return; }
+        // Step 2: mark duplicate as merged
+        const step2 = await editCat({
+          id: catId,
+          merged_into_id: mergeTargetId,
+          entry_status: "Merged" as CatEntryStatus,
+        });
+        if (step2?.serverError) { setError(step2.serverError); return; }
+        syncAllPendingRegions();
+        setShowMergeConfirm(false);
+        router.push("/dashboard/sessions/manager");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to merge.");
+      } finally {
+        setSaving(false);
       }
-      syncAllPendingRegions();
-      setShowMergeConfirm(false);
-      router.push("/dashboard/sessions/manager");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to merge.");
-    } finally {
-      setSaving(false);
-    }
-  }, [catId, mergeTargetId, router]);
+    },
+    [catId, mergeTargetId, router],
+  );
 
   const handleApprove = useCallback(async () => {
     if (!catId) return;
@@ -252,26 +309,35 @@ export function SessionsApprovalCrossRefScreen() {
           </p>
 
           {/* Search bar + Filters */}
-          <div className="flex gap-2">
-            <div className="flex flex-1 items-center gap-2 rounded-xl border border-pink-200 bg-brand-cream px-3 py-2">
-              <span className="text-sm font-bold text-brand-orange">Search</span>
-              <SearchIcon className="h-4 w-4 shrink-0 text-brand-orange" />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSearch((s) => !s)}
+                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Search 🔍
+              </button>
             </div>
-            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
-              Filter <span className="text-xs">▼</span>
-            </button>
-            <button className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90">
-              Sort <span className="text-xs">▼</span>
-            </button>
+            {showSearch ? (
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name…"
+                autoFocus
+                className="mt-2 h-9 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none focus:border-brand-green"
+              />
+            ) : null}
           </div>
 
-          {similarCats.length === 0 ? (
+          {filteredCandidates.length === 0 ? (
             <div className="py-6 text-center text-sm text-slate-400">
               No similar cats found. This is likely a new entry.
             </div>
           ) : (
             <div className="space-y-2">
-              {similarCats.map((c) => (
+              {filteredCandidates.map((c) => (
                 <div
                   key={c.id}
                   className="overflow-hidden rounded-2xl bg-brand-green"
@@ -279,7 +345,12 @@ export function SessionsApprovalCrossRefScreen() {
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
                     <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <CatIcon className="h-10 w-10 text-white/40" />
+                      <CatPhoto
+                        photoUrl={c.photo_url}
+                        name={c.name}
+                        className="h-full w-full object-cover"
+                        iconClassName="h-8 w-8 text-white/40"
+                      />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
@@ -296,7 +367,7 @@ export function SessionsApprovalCrossRefScreen() {
                           {c.color || "—"}{c.age ? ` ${c.age}` : ""}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="mt-3 text-sm font-bold text-white truncate">
                           {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
@@ -304,17 +375,11 @@ export function SessionsApprovalCrossRefScreen() {
                         <div className="mt-2 flex items-center justify-between">
                           <button
                             type="button"
-                            onClick={() => {
-                              setMergeTargetId(c.id);
-                              setShowMergeConfirm(true);
-                            }}
+                            onClick={() => handleSelectTarget(c.id)}
                             className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
                           >
                             Merge ›
                           </button>
-                          <div className="flex h-7 w-10 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                            <span className="text-base font-bold">•••</span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -352,6 +417,8 @@ export function SessionsApprovalCrossRefScreen() {
             <div className="relative flex-1">
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search"
                 className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
               />
@@ -368,8 +435,13 @@ export function SessionsApprovalCrossRefScreen() {
 
         <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <CatIcon className="h-9 w-9 text-white/50" />
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/15">
+              <CatPhoto
+                photoUrl={cat?.photo_url}
+                name={cat?.name}
+                className="h-28 w-28 shrink-0 object-cover"
+                iconClassName="h-10 w-10 text-white/40"
+              />
             </div>
 
             <div className="flex-1">
@@ -432,19 +504,24 @@ export function SessionsApprovalCrossRefScreen() {
               </p>
 
               <div className="mt-3 space-y-2">
-                {similarCats.length === 0 ? (
+                {filteredCandidates.length === 0 ? (
                   <div className="py-6 text-center text-sm text-white/50">
                     No similar cats found. This is likely a new entry.
                   </div>
                 ) : (
-                  similarCats.map((c) => (
+                  filteredCandidates.map((c) => (
                     <div
                       key={`desktop-${c.id}`}
                       className="flex items-center justify-between rounded-xl bg-white/10 p-3"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
-                          <CatIcon className="h-5 w-5 text-white/50" />
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+                          <CatPhoto
+                            photoUrl={c.photo_url}
+                            name={c.name}
+                            className="h-full w-full object-cover"
+                            iconClassName="h-8 w-8 text-white/40"
+                          />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
@@ -465,10 +542,7 @@ export function SessionsApprovalCrossRefScreen() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setMergeTargetId(c.id);
-                          setShowMergeConfirm(true);
-                        }}
+                        onClick={() => handleSelectTarget(c.id)}
                         className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                       >
                         Merge <span className="ml-1">&#8618;</span>
@@ -485,9 +559,10 @@ export function SessionsApprovalCrossRefScreen() {
       <MergeDetailsDialog
         open={showMergeConfirm}
         onClose={() => setShowMergeConfirm(false)}
-        catA={cat}
-        catB={mergeTargetCat}
-        onMerge={() => handleMerge()}
+        targetName={mergeTargetCat?.name ?? null}
+        diffFields={mergeDiffFields}
+        autoMergedCount={mergeAutoMergedCount}
+        onMerge={handleMerge}
         isLoading={saving}
       />
 
