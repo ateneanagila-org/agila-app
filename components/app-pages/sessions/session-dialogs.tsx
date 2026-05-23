@@ -217,19 +217,19 @@ export function ApproveSessionDialog({ open, onClose, onConfirm, isLoading }: Ap
   );
 }
 
-// ─── Discard Session Dialog ───────────────────────────────────────────────────
+// ─── Delete Session Dialog ───────────────────────────────────────────────────
 
-type DiscardSessionDialogProps = {
+type DeleteSessionDialogProps = {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
 };
 
-export function DiscardSessionDialog({ open, onClose, onConfirm, isLoading }: DiscardSessionDialogProps) {
+export function DeleteSessionDialog({ open, onClose, onConfirm, isLoading }: DeleteSessionDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="Discard session?" onClose={onClose} />
+      <Header title="Delete session?" onClose={onClose} />
       <p className="text-sm text-foreground">This action cannot be undone.</p>
       <div className="flex items-center justify-end gap-2 pt-1">
         <button

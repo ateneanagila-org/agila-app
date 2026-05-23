@@ -9,7 +9,7 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import {
   ApproveSessionDialog,
-  DiscardSessionDialog,
+  DeleteSessionDialog,
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import type { MergeFieldDef } from "@/components/app-pages/sessions/session-dialogs";
@@ -571,7 +571,7 @@ export function SessionsApprovalCrossRefScreen() {
         isLoading={saving}
       />
 
-      <DiscardSessionDialog
+      <DeleteSessionDialog
         open={showDiscardConfirm}
         onClose={() => setShowDiscardConfirm(false)}
         onConfirm={handleDiscard}

@@ -11,7 +11,7 @@ import {
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
-  DiscardSessionDialog,
+  DeleteSessionDialog,
   FinishSessionDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import {
@@ -420,7 +420,7 @@ export function SessionsCreateScreen() {
         isLoading={submitting}
       />
 
-      <DiscardSessionDialog
+      <DeleteSessionDialog
         open={showDiscard}
         onClose={() => setShowDiscard(false)}
         onConfirm={handleDiscard}
