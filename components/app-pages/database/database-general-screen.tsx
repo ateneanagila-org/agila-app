@@ -16,7 +16,6 @@ import {
   DiscardChangesDialog,
   SaveChangesDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
   CAT_COLOR_VALUES,
@@ -126,7 +125,6 @@ export function DatabaseGeneralScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -180,7 +178,6 @@ export function DatabaseGeneralScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal);

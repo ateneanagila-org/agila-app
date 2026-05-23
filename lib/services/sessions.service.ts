@@ -7,7 +7,7 @@ import {
   CreateSessionSchema,
 } from "../validation/sessions";
 import { createCat } from "./cats.service";
-import { refreshCatInSyncQueue } from "./helper.service";
+
 
 // Logic mainly for handling consecutive table queries
 export const createSession = async (data: CreateSessionSchema) => {
@@ -78,9 +78,6 @@ export const createSessionCat = async (data: CreateSessionCatSchema) => {
       },
       tx,
     );
-
-    // Refresh sync queue AFTER session link exists so findCatRegionByLatestSession succeeds
-    await refreshCatInSyncQueue(newCat.id, tx);
 
     return newCat;
   });

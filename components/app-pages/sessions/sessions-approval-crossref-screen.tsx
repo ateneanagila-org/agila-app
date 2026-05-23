@@ -18,7 +18,6 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getCats, editCat, removeCat, getCatHealthRecords } from "@/app/actions/cats";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatEntryStatus } from "@/lib/db/enums";
 
@@ -170,7 +169,6 @@ export function SessionsApprovalCrossRefScreen() {
           entry_status: "Merged" as CatEntryStatus,
         });
         if (step2?.serverError) { setError(step2.serverError); return; }
-        syncAllPendingRegions();
         setShowMergeConfirm(false);
         router.push("/dashboard/sessions/manager");
       } catch (err) {

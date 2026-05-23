@@ -9,7 +9,6 @@ import {
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { editCat } from "@/app/actions/cats";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
@@ -128,7 +127,6 @@ export function DatabaseMedicalScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");

@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { PlusIcon } from "@/components/app-pages/shared/icons";
@@ -210,7 +209,6 @@ export function CatEntryForm({
             return;
           }
         }
-        syncAllPendingRegions();
         onSave?.();
         onClose();
         return;
@@ -281,7 +279,6 @@ export function CatEntryForm({
         }
       }
 
-      syncAllPendingRegions();
       onSave?.();
       onClose();
     } catch (err) {
@@ -312,7 +309,6 @@ export function CatEntryForm({
 
   /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
   const handleSkipPhoto = useCallback(() => {
-    syncAllPendingRegions();
     onSave?.();
     onClose();
   }, [onSave, onClose]);

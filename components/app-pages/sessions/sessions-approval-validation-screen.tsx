@@ -15,7 +15,6 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import type { SelectCat } from "@/lib/validation/cats";
 import {
   CAT_COLOR_VALUES,
@@ -178,7 +177,6 @@ export function SessionsApprovalValidationScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       setShowSaveConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {
@@ -208,7 +206,6 @@ export function SessionsApprovalValidationScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       setShowDiscardConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {

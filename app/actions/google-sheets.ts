@@ -36,19 +36,7 @@ export async function syncAllPendingRegions() {
     );
   }
 
-  // Phase A: Reverse sync ALL regions (text fields only — photo_url excluded)
-  for (const region of allRegions) {
-    try {
-      await reverseSyncRegion(region.id);
-    } catch (error) {
-      console.error(
-        `[ReverseSync] Region ${region.id} failed:`,
-        error instanceof Error ? error.message : error,
-      );
-    }
-  }
-
-  // Phase B: Forward sync only regions with pending tasks — sequential to stay within write quota
+  // Phase A: Forward sync only regions with pending tasks — sequential to stay within write quota
   for (const task of pendingTasks) {
     await syncAndCompactRegion(task.regionId);
   }
