@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronDownIcon,
-  PlusIcon,
+  TrashIcon,
 } from "@/components/app-pages/shared/icons";
 import {
   SessionFiltersDialog,
   SessionSortByDialog,
   CreateSessionDialog,
+  DeleteSessionDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import {
   getSessions,
   getSessionCats,
   getSessionUsers,
   createSession,
+  removeSession,
 } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
 import { createClient } from "@/lib/supabase/client";
@@ -56,6 +58,8 @@ export function SessionsScreen() {
   const [creatingSession, setCreatingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regionOptions, setRegionOptions] = useState<{ id: string; name: string }[]>([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchRegions = useCallback(async () => {
     try {
@@ -252,6 +256,20 @@ export function SessionsScreen() {
     }
   }, [newSessionRegionId, userId, router]);
 
+  const handleDeleteSession = useCallback(async () => {
+    if (!pendingDeleteId) return;
+    setDeleting(true);
+    try {
+      await removeSession.bind(null, pendingDeleteId)();
+      setSessions((prev) => prev.filter((s) => s.id !== pendingDeleteId));
+      setPendingDeleteId(null);
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDeleteId]);
+
   // Reset desktop page when filters change to avoid empty table state
   useEffect(() => { setDesktopPage(1); }, [filteredSessions]);
 
@@ -303,12 +321,6 @@ export function SessionsScreen() {
 
             {/* Search / Filter / Sort pills */}
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Search <span className="text-base">🔍</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setShowFilters(true)}
@@ -548,16 +560,6 @@ export function SessionsScreen() {
           </div>
         )}
 
-        {/* FAB */}
-        <div className="pointer-events-none fixed bottom-20 right-4 z-10">
-          <button
-            type="button"
-            onClick={() => setShowCreateDialog(true)}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
-          >
-            <PlusIcon className="h-6 w-6 text-white" />
-          </button>
-        </div>
       </div>
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
@@ -584,7 +586,7 @@ export function SessionsScreen() {
                 href="/dashboard/sessions/manager"
                 className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
-                Review Sessions
+                Review Sessions ⊙
               </Link>
             ) : null}
           </div>
@@ -608,7 +610,7 @@ export function SessionsScreen() {
 
         <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <h2 className="font-heading text-lg font-bold text-brand-dark">
+            <h2 className="font-heading text-lg font-bold text-brand-green">
               My Sessions
             </h2>
             <div className="flex gap-2">
@@ -667,13 +669,13 @@ export function SessionsScreen() {
                     className="grid grid-cols-[1fr_1fr_1fr_auto_7rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                   >
                     <span className="font-semibold tabular-nums">
-                      {s.id.slice(0, 8)}
+                      {s.id.slice(0, 5)}
                     </span>
                     <span className="tabular-nums text-brand-dark/70">
                       {formatDate(s.created_at)}
                     </span>
                     <span className="truncate text-brand-dark/70">
-                      {regionMap[s.region_id] ?? s.region_id.slice(0, 8)}
+                      {regionMap[s.region_id] ?? s.region_id.slice(0, 5)}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
@@ -704,7 +706,7 @@ export function SessionsScreen() {
           ) : null}
         </section>
 
-        <h2 className="mt-7 font-heading text-lg font-bold text-brand-dark">
+        <h2 className="mt-7 font-heading text-lg font-bold text-brand-green">
           Priority Locations
         </h2>
         <p className="mt-0.5 text-xs text-brand-dark/60">
@@ -730,7 +732,7 @@ export function SessionsScreen() {
                   >
                     <span className="font-semibold">{loc.name}</span>
                     <span className="tabular-nums text-brand-dark/70">
-                      {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days`}
+                      {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}
                     </span>
                   </div>
                 ))}
@@ -783,6 +785,12 @@ export function SessionsScreen() {
         regionOptions={regionOptions}
         onCreate={handleCreateSession}
         creating={creatingSession}
+      />
+      <DeleteSessionDialog
+        open={pendingDeleteId !== null}
+        onClose={() => setPendingDeleteId(null)}
+        onConfirm={handleDeleteSession}
+        isLoading={deleting}
       />
     </>
   );
