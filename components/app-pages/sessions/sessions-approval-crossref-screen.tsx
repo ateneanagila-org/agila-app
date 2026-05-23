@@ -13,11 +13,14 @@ import {
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import type { MergeFieldDef } from "@/components/app-pages/sessions/session-dialogs";
-import {
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
+import { SearchIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
-import { getCats, editCat, removeCat, getCatHealthRecords } from "@/app/actions/cats";
+import {
+  getCats,
+  editCat,
+  removeCat,
+  getCatHealthRecords,
+} from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatEntryStatus } from "@/lib/db/enums";
 
@@ -28,13 +31,55 @@ function buildMergeDiff(
   targetCondition: string | null,
 ): { diffFields: MergeFieldDef[]; autoMergedCount: number } {
   const candidates: MergeFieldDef[] = [
-    { label: "Color", fieldKey: "color", currentValue: targetCat.color ?? null, newValue: newCat.color ?? null, inputType: "pill" },
-    { label: "Size/Age", fieldKey: "age", currentValue: targetCat.age ?? null, newValue: newCat.age ?? null, inputType: "pill" },
-    { label: "Sex", fieldKey: "sex", currentValue: targetCat.sex ?? null, newValue: newCat.sex ?? null, inputType: "pill" },
-    { label: "Sociability", fieldKey: "sociability", currentValue: targetCat.sociability ?? null, newValue: newCat.sociability ?? null, inputType: "pill" },
-    { label: "Status", fieldKey: "cat_status", currentValue: targetCat.cat_status ?? null, newValue: newCat.cat_status ?? null, inputType: "pill" },
-    { label: "Condition", fieldKey: "condition", currentValue: targetCondition, newValue: newCondition, inputType: "pill" },
-    { label: "Notes", fieldKey: "notes", currentValue: targetCat.notes ?? null, newValue: newCat.notes ?? null, inputType: "textarea" },
+    {
+      label: "Color",
+      fieldKey: "color",
+      currentValue: targetCat.color ?? null,
+      newValue: newCat.color ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Size/Age",
+      fieldKey: "age",
+      currentValue: targetCat.age ?? null,
+      newValue: newCat.age ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Sex",
+      fieldKey: "sex",
+      currentValue: targetCat.sex ?? null,
+      newValue: newCat.sex ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Sociability",
+      fieldKey: "sociability",
+      currentValue: targetCat.sociability ?? null,
+      newValue: newCat.sociability ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Status",
+      fieldKey: "cat_status",
+      currentValue: targetCat.cat_status ?? null,
+      newValue: newCat.cat_status ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Condition",
+      fieldKey: "condition",
+      currentValue: targetCondition,
+      newValue: newCondition,
+      inputType: "pill",
+    },
+    {
+      label: "Notes",
+      fieldKey: "notes",
+      currentValue: targetCat.notes ?? null,
+      newValue: newCat.notes ?? null,
+      inputType: "textarea",
+    },
   ];
 
   const pillCandidates = candidates.filter((f) => f.inputType === "pill");
@@ -42,7 +87,9 @@ function buildMergeDiff(
     ...pillCandidates.filter((f) => f.currentValue !== f.newValue),
     ...candidates.filter((f) => f.inputType === "textarea"),
   ];
-  const autoMergedCount = pillCandidates.filter((f) => f.currentValue === f.newValue).length;
+  const autoMergedCount = pillCandidates.filter(
+    (f) => f.currentValue === f.newValue,
+  ).length;
 
   return { diffFields, autoMergedCount };
 }
@@ -107,13 +154,18 @@ export function SessionsApprovalCrossRefScreen() {
   }, [fetchData]);
 
   const mergeTargetCat = useMemo(
-    () => (mergeTargetId ? allCats.find((c) => c.id === mergeTargetId) ?? null : null),
+    () =>
+      mergeTargetId
+        ? (allCats.find((c) => c.id === mergeTargetId) ?? null)
+        : null,
     [mergeTargetId, allCats],
   );
 
   const similarCats = useMemo(() => {
     if (!cat) return [];
-    return allCats.filter((c) => c.id !== cat.id && c.entry_status === "Original");
+    return allCats.filter(
+      (c) => c.id !== cat.id && c.entry_status === "Original",
+    );
   }, [cat, allCats]);
 
   const filteredCandidates = useMemo(() => {
@@ -136,7 +188,12 @@ export function SessionsApprovalCrossRefScreen() {
       ]);
       const newCondition = newHRResult?.data?.[0]?.condition ?? null;
       const targetCondition = targetHRResult?.data?.[0]?.condition ?? null;
-      const { diffFields, autoMergedCount } = buildMergeDiff(cat, target, newCondition, targetCondition);
+      const { diffFields, autoMergedCount } = buildMergeDiff(
+        cat,
+        target,
+        newCondition,
+        targetCondition,
+      );
       setMergeDiffFields(diffFields);
       setMergeAutoMergedCount(autoMergedCount);
       setShowMergeConfirm(true);
@@ -151,24 +208,45 @@ export function SessionsApprovalCrossRefScreen() {
       setError(null);
       try {
         // Step 1: update original with manager-selected field values
-        const updatePayload: Parameters<typeof editCat>[0] = { id: mergeTargetId };
-        if (resolved.color !== undefined) updatePayload.color = resolved.color as SelectCat["color"] ?? undefined;
-        if (resolved.age !== undefined) updatePayload.age = resolved.age as SelectCat["age"] ?? undefined;
-        if (resolved.sex !== undefined) updatePayload.sex = resolved.sex as SelectCat["sex"] ?? undefined;
-        if (resolved.sociability !== undefined) updatePayload.sociability = resolved.sociability as SelectCat["sociability"] ?? undefined;
-        if (resolved.cat_status !== undefined) updatePayload.cat_status = resolved.cat_status as SelectCat["cat_status"] ?? undefined;
+        const updatePayload: Parameters<typeof editCat>[0] = {
+          id: mergeTargetId,
+        };
+        if (resolved.color !== undefined)
+          updatePayload.color =
+            (resolved.color as SelectCat["color"]) ?? undefined;
+        if (resolved.age !== undefined)
+          updatePayload.age = (resolved.age as SelectCat["age"]) ?? undefined;
+        if (resolved.sex !== undefined)
+          updatePayload.sex = (resolved.sex as SelectCat["sex"]) ?? undefined;
+        if (resolved.sociability !== undefined)
+          updatePayload.sociability =
+            (resolved.sociability as SelectCat["sociability"]) ?? undefined;
+        if (resolved.cat_status !== undefined)
+          updatePayload.cat_status =
+            (resolved.cat_status as SelectCat["cat_status"]) ?? undefined;
         if (resolved.condition !== null && resolved.condition !== undefined)
-          updatePayload.condition = resolved.condition as "Healthy" | "Sick" | "Injured" | "Sick and Injured";
-        if (resolved.notes !== undefined) updatePayload.notes = resolved.notes ?? undefined;
+          updatePayload.condition = resolved.condition as
+            | "Healthy"
+            | "Sick"
+            | "Injured"
+            | "Sick and Injured";
+        if (resolved.notes !== undefined)
+          updatePayload.notes = resolved.notes ?? undefined;
         const step1 = await editCat(updatePayload);
-        if (step1?.serverError) { setError(step1.serverError); return; }
+        if (step1?.serverError) {
+          setError(step1.serverError);
+          return;
+        }
         // Step 2: mark duplicate as merged
         const step2 = await editCat({
           id: catId,
           merged_into_id: mergeTargetId,
           entry_status: "Merged" as CatEntryStatus,
         });
-        if (step2?.serverError) { setError(step2.serverError); return; }
+        if (step2?.serverError) {
+          setError(step2.serverError);
+          return;
+        }
         setShowMergeConfirm(false);
         router.push("/dashboard/sessions/manager");
       } catch (err) {
@@ -194,7 +272,6 @@ export function SessionsApprovalCrossRefScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       setShowApproveConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {
@@ -212,7 +289,7 @@ export function SessionsApprovalCrossRefScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
+
       setShowDiscardConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {
@@ -358,17 +435,21 @@ export function SessionsApprovalCrossRefScreen() {
                             {c.name || "Unnamed"}
                           </span>
                           {sexSymbol(c.sex) ? (
-                            <span className="text-white text-lg leading-none ml-1">{sexSymbol(c.sex)}</span>
+                            <span className="text-white text-lg leading-none ml-1">
+                              {sexSymbol(c.sex)}
+                            </span>
                           ) : null}
                         </div>
                         <p className="mt-1 text-sm font-bold text-white truncate">
-                          {c.color || "—"}{c.age ? ` ${c.age}` : ""}
+                          {c.color || "—"}
+                          {c.age ? ` ${c.age}` : ""}
                         </p>
                       </div>
 
                       <div>
                         <p className="mt-3 text-sm font-bold text-white truncate">
-                          {c.spot_last_seen || "—"} - {formatDate(c.last_updated_at)}
+                          {c.spot_last_seen || "—"} -{" "}
+                          {formatDate(c.last_updated_at)}
                         </p>
                         <div className="mt-2 flex items-center justify-between">
                           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
@@ -409,53 +409,31 @@ type MergeDetailsDialogProps = {
   isLoading?: boolean;
 };
 
-export function MergeDetailsDialog({
-  open,
+function MergeDetailsDialogContent({
   onClose,
   targetName,
   diffFields,
   autoMergedCount,
   onMerge,
   isLoading,
-}: MergeDetailsDialogProps) {
-  const [selections, setSelections] = useState<Record<string, "new" | "current">>({});
-  const [textValues, setTextValues] = useState<Record<string, string>>({});
+}: Omit<MergeDetailsDialogProps, "open">) {
+  const defaultSelections = () =>
+    Object.fromEntries(
+      diffFields.filter((f) => f.inputType === "pill").map((f) => [f.fieldKey, "new" as const]),
+    );
+  const defaultTextValues = () =>
+    Object.fromEntries(
+      diffFields
+        .filter((f) => f.inputType === "textarea")
+        .map((f) => [f.fieldKey, f.newValue ?? ""]),
+    );
 
-  // Reset to defaults whenever the dialog opens with new fields
-  useEffect(() => {
-    if (!open) return;
-    setSelections(
-      Object.fromEntries(
-        diffFields
-          .filter((f) => f.inputType === "pill")
-          .map((f) => [f.fieldKey, "new" as const]),
-      ),
-    );
-    setTextValues(
-      Object.fromEntries(
-        diffFields
-          .filter((f) => f.inputType === "textarea")
-          .map((f) => [f.fieldKey, f.newValue ?? ""]),
-      ),
-    );
-    // diffFields intentionally excluded — initialize only when the dialog opens, not on every render
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [selections, setSelections] = useState<Record<string, "new" | "current">>(defaultSelections);
+  const [textValues, setTextValues] = useState<Record<string, string>>(defaultTextValues);
 
   const handleReset = () => {
-    setSelections(
-      Object.fromEntries(
-        diffFields
-          .filter((f) => f.inputType === "pill")
-          .map((f) => [f.fieldKey, "new" as const]),
-      ),
-    );
-    setTextValues(
-      Object.fromEntries(
-        diffFields
-          .filter((f) => f.inputType === "textarea")
-          .map((f) => [f.fieldKey, f.newValue ?? ""]),
-      ),
-    );
+    setSelections(defaultSelections());
+    setTextValues(defaultTextValues());
   };
 
   const handleMerge = () => {
@@ -475,7 +453,7 @@ export function MergeDetailsDialog({
   const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
 
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header
         title="Merge Details"
         subtitle={targetName ? `Merging into ${targetName}` : undefined}
@@ -572,6 +550,14 @@ export function MergeDetailsDialog({
           {isLoading ? "Merging..." : "Merge"} <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function MergeDetailsDialog({ open, ...props }: MergeDetailsDialogProps) {
+  return (
+    <Shell open={open} onClose={props.onClose}>
+      <MergeDetailsDialogContent key={String(open)} {...props} />
     </Shell>
   );
 }
