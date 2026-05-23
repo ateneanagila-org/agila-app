@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { createCat } from "@/app/actions/cats";
+import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { syncAllPendingRegions } from "@/app/actions/google-sheets";
@@ -24,6 +24,7 @@ import type {
   CatStatus,
   CatHealthRecordCondition,
 } from "@/lib/db/enums";
+import type { SelectCat } from "@/lib/validation/cats";
 
 type RegionOption = {
   id: string;
@@ -38,6 +39,8 @@ type CatEntryFormProps = {
   regionId?: string;
   /** If provided, entry will be created under this session via createSessionCat. */
   sessionId?: string;
+  /** When provided: edit mode — pre-fills fields, calls editCat on save */
+  initialCat?: SelectCat;
 };
 
 function DropdownField({
@@ -87,17 +90,18 @@ export function CatEntryForm({
   onSave,
   regionId,
   sessionId,
+  initialCat,
 }: CatEntryFormProps) {
-  const [color, setColor] = useState("");
-  const [age, setAge] = useState("");
-  const [sex, setSex] = useState("");
-  const [sociability, setSociability] = useState("");
-  const [catStatus, setCatStatus] = useState("");
+  const [color, setColor] = useState(initialCat?.color ?? "");
+  const [age, setAge] = useState(initialCat?.age ?? "");
+  const [sex, setSex] = useState(initialCat?.sex ?? "");
+  const [sociability, setSociability] = useState(initialCat?.sociability ?? "");
+  const [catStatus, setCatStatus] = useState(initialCat?.cat_status ?? "");
   const [condition, setCondition] = useState("");
-  const [spotLastSeen, setSpotLastSeen] = useState("");
-  const [caretaker, setCaretaker] = useState("");
-  const [notes, setNotes] = useState("");
-  const [name, setName] = useState("");
+  const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
+  const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
+  const [notes, setNotes] = useState(initialCat?.notes ?? "");
+  const [name, setName] = useState(initialCat?.name ?? "");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
   const [regionsLoading, setRegionsLoading] = useState(false);
@@ -107,7 +111,7 @@ export function CatEntryForm({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
-  const [savedCatId, setSavedCatId] = useState<string | null>(null);
+  const [savedCatId, setSavedCatId] = useState<string | null>(initialCat?.id ?? null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -119,6 +123,14 @@ export function CatEntryForm({
     setPhotoPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
+
+  useEffect(() => {
+    if (!initialCat) return;
+    getCatHealthRecords({ cat_id: initialCat.id }).then((res) => {
+      const cond = res?.data?.[0]?.condition;
+      if (cond) setCondition(cond);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const loadRegions = async () => {
@@ -168,6 +180,42 @@ export function CatEntryForm({
     setError(null);
     setPhotoWarning(null);
     try {
+      // Edit mode: update existing cat
+      if (initialCat) {
+        const result = await editCat({
+          id: initialCat.id,
+          condition: condition as CatHealthRecordCondition,
+          color: (color || undefined) as CatColor | undefined,
+          age: (age || undefined) as CatAge | undefined,
+          sex: (sex || undefined) as CatSex | undefined,
+          sociability: (sociability || undefined) as CatSociability | undefined,
+          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          spot_last_seen: spotLastSeen || undefined,
+          caretaker: caretaker || undefined,
+          notes: notes || undefined,
+          name: name || undefined,
+        });
+        if (result?.serverError) { setError(result.serverError); return; }
+        if (photoFile) {
+          try {
+            const fd = new FormData();
+            fd.append("file", photoFile);
+            await uploadCatPhoto(initialCat.id, fd);
+          } catch (uploadErr) {
+            setPhotoWarning(
+              uploadErr instanceof Error
+                ? `Cat saved, but photo upload failed: ${uploadErr.message}. Click Save to retry.`
+                : "Cat saved, but photo upload failed. Click Save to retry.",
+            );
+            return;
+          }
+        }
+        syncAllPendingRegions();
+        onSave?.();
+        onClose();
+        return;
+      }
+
       let newCatId: string | undefined = savedCatId ?? undefined;
 
       // Skip cat-create when retrying after a photo-upload failure.
@@ -259,6 +307,7 @@ export function CatEntryForm({
     onClose,
     photoFile,
     savedCatId,
+    initialCat,
   ]);
 
   /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
@@ -280,7 +329,7 @@ export function CatEntryForm({
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
-            Add Entry
+            {initialCat ? "Edit Entry" : "Add Entry"}
           </h2>
           <button
             type="button"

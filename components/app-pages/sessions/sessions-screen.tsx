@@ -132,7 +132,6 @@ export function SessionsScreen() {
         statusMap[s.id] = hasUnreviewed ? "Submitted" : "Reviewed";
       }
       setStatusBySession(statusMap);
-      setCatCountBySession(countMap);
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
     } finally {
