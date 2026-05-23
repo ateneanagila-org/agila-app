@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  CatIcon,
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
+import { SearchIcon } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getSessionCats } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
@@ -16,6 +14,8 @@ type ReviewItem = {
   sessionId: string;
   sessionCatId: string;
 };
+
+const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
 
 export function SessionsManagerScreen() {
   const [forReview, setForReview] = useState<ReviewItem[]>([]);
@@ -90,17 +90,19 @@ export function SessionsManagerScreen() {
         <div className="flex-1 space-y-3 px-4 py-4">
           {/* Top action buttons */}
           <div className="flex gap-2">
-            <button
-              type="button"
+            <a
+              href={CENSUS_REPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-green py-2.5 text-sm font-bold text-brand-green transition-opacity hover:opacity-80"
             >
               Census Report
-            </button>
+            </a>
             <Link
               href="/dashboard/sessions"
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions ⊙
+              My Sessions ›
             </Link>
           </div>
 
@@ -130,8 +132,8 @@ export function SessionsManagerScreen() {
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
-                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <CatIcon className="h-10 w-10 text-white/40" />
+                    <div className="flex w-28 shrink-0 items-center justify-center overflow-hidden bg-white/10">
+                      <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-28 w-28 object-cover" iconClassName="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
@@ -173,17 +175,19 @@ export function SessionsManagerScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <a
+              href={CENSUS_REPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Census Report <span className="ml-1">📊</span>
-            </button>
+            </a>
             <Link
               href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Back <span className="ml-1">&#8249;</span>
+              My Sessions <span className="ml-1">&#8249;</span>
             </Link>
           </div>
         </div>
@@ -221,8 +225,8 @@ export function SessionsManagerScreen() {
                 className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                    <CatIcon className="h-9 w-9 text-white/50" />
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/15">
+                    <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-20 w-20 object-cover" iconClassName="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
