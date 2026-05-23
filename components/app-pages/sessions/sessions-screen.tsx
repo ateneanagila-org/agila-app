@@ -27,7 +27,7 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 const PAGE_SIZE = 10;
 
-const CENSUS_REPORT_URL = "#";
+const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
 
 type SessionStatus = "Unfinished" | "Submitted" | "Reviewed";
 
@@ -39,9 +39,6 @@ export function SessionsScreen() {
   const [allSessions, setAllSessions] = useState<SelectSession[]>([]);
   const [statusBySession, setStatusBySession] = useState<
     Record<string, SessionStatus>
-  >({});
-  const [catCountBySession, setCatCountBySession] = useState<
-    Record<string, number>
   >({});
   const [unreviewedCatCount, setUnreviewedCatCount] = useState(0);
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
@@ -57,6 +54,7 @@ export function SessionsScreen() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newSessionRegionId, setNewSessionRegionId] = useState("");
   const [creatingSession, setCreatingSession] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [regionOptions, setRegionOptions] = useState<{ id: string; name: string }[]>([]);
 
   const fetchRegions = useCallback(async () => {
@@ -244,7 +242,7 @@ export function SessionsScreen() {
     setCreatingSession(true);
     try {
       const result = await createSession({ region_id: newSessionRegionId, user_id: userId });
-      if (result?.serverError) return;
+      if (result?.serverError) { setError(result.serverError); return; }
       const newSession = result?.data;
       if (!newSession?.id) return;
       setShowCreateDialog(false);
@@ -254,6 +252,9 @@ export function SessionsScreen() {
       setCreatingSession(false);
     }
   }, [newSessionRegionId, userId, router]);
+
+  // Reset desktop page when filters change to avoid empty table state
+  useEffect(() => { setDesktopPage(1); }, [filteredSessions]);
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
@@ -769,9 +770,15 @@ export function SessionsScreen() {
         onSort={setSortKey}
         onOrder={setSortOrder}
       />
+      {error ? (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          {error}
+          <button type="button" onClick={() => setError(null)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+        </div>
+      ) : null}
       <CreateSessionDialog
         open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
+        onClose={() => { setShowCreateDialog(false); setError(null); }}
         regionId={newSessionRegionId}
         onRegionChange={setNewSessionRegionId}
         regionOptions={regionOptions}
