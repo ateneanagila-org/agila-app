@@ -191,7 +191,7 @@ export function SessionsManagerScreen() {
           </div>
         </div>
 
-<div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3">
           {loading ? (
             <LoadingIndicator />
           ) : forReview.length === 0 ? (
