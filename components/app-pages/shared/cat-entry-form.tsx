@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
-import { uploadCatPhoto } from "@/app/actions/cat-photo";
+import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -106,6 +106,8 @@ export function CatEntryForm({
   const [photoWarning, setPhotoWarning] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const existingPhotoUrlRef = useRef<string | null>(initialCat?.photo_url ?? null);
+  const [removedExisting, setRemovedExisting] = useState(false);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
   const [savedCatId, setSavedCatId] = useState<string | null>(initialCat?.id ?? null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -207,6 +209,8 @@ export function CatEntryForm({
             );
             return;
           }
+        } else if (removedExisting && existingPhotoUrlRef.current) {
+          await removeCatPhoto(initialCat.id);
         }
         onSave?.();
         onClose();
@@ -300,7 +304,12 @@ export function CatEntryForm({
     photoFile,
     savedCatId,
     initialCat,
+    removedExisting,
   ]);
+
+  const showPhoto =
+    photoPreview ??
+    (existingPhotoUrlRef.current && !removedExisting ? existingPhotoUrlRef.current : null);
 
   /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
   const handleSkipPhoto = useCallback(() => {
@@ -351,11 +360,11 @@ export function CatEntryForm({
           <div>
             <label className="text-sm font-semibold text-brand-orange">Photo</label>
             <div className="mt-1.5">
-              {photoPreview ? (
+              {showPhoto ? (
                 <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={photoPreview}
+                    src={showPhoto}
                     alt="Preview"
                     className="h-40 w-full object-cover"
                   />
@@ -369,7 +378,13 @@ export function CatEntryForm({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPhotoFile(null)}
+                      onClick={() => {
+                        if (photoFile) {
+                          setPhotoFile(null);
+                        } else if (existingPhotoUrlRef.current) {
+                          setRemovedExisting(true);
+                        }
+                      }}
                       className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-80"
                     >
                       Remove
