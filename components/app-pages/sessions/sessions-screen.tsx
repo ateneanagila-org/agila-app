@@ -377,14 +377,18 @@ export function SessionsScreen() {
                         ) : (
                           <span />
                         )}
-                        <button
-                          type="button"
-                          onClick={() => setPendingDeleteId(s.id)}
-                          className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                          aria-label="Delete session"
-                        >
-                          <TrashIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {sessionStatus(s) === "Unfinished" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteId(s.id)}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                            aria-label="Delete session"
+                          >
+                            <TrashIcon className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <span />
+                        )}
                       </div>
                     ))}
                 </div>
@@ -498,14 +502,18 @@ export function SessionsScreen() {
                         ) : (
                           <span />
                         )}
-                        <button
-                          type="button"
-                          onClick={() => setPendingDeleteId(s.id)}
-                          className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                          aria-label="Delete session"
-                        >
-                          <TrashIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {sessionStatus(s) === "Unfinished" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteId(s.id)}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                            aria-label="Delete session"
+                          >
+                            <TrashIcon className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <span />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -689,14 +697,18 @@ export function SessionsScreen() {
                           ) : (
                             <span />
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setPendingDeleteId(s.id)}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                            aria-label="Delete session"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
+                          {st === "Unfinished" ? (
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(s.id)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Delete session"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <span />
+                          )}
                         </div>
                       );
                     })}
@@ -767,14 +779,18 @@ export function SessionsScreen() {
                       ) : (
                         <span />
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteId(s.id)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                        aria-label="Delete session"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      {st === "Unfinished" ? (
+                        <button
+                          type="button"
+                          onClick={() => setPendingDeleteId(s.id)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                          aria-label="Delete session"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <span />
+                      )}
                     </div>
                   );
                 })}
