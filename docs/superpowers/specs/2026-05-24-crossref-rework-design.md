@@ -69,7 +69,7 @@ Replace the inline toolbar markup + `useFilterSort` call with `<CatFilterToolbar
 
 ## Risks / Open items
 
-- `DATABASE_LIST_CONFIG` may include filter categories (e.g. `entry_status`) that are no-ops on cross-ref because Original is enforced at fetch. Acceptable — the filter just narrows an already-narrow set.
+- `DATABASE_LIST_CONFIG` filters are Region, Color, Age, Sex, Sociability, and Status (`cat_status`: Deceased, MIA, etc.). None touch `entry_status`, so all filters are meaningful on the Original-only result set.
 - Render-prop pattern means the toolbar can't memoize the list rendering. Should be fine at current DB sizes; revisit if perf becomes an issue.
 - `useFilterSort` accessor logic is duplicated from `database-list-screen.tsx` into the toolbar. Acceptable: the toolbar is now the single owner; the database screen no longer holds its own copy.
 
