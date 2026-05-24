@@ -72,7 +72,7 @@ export const SESSIONS_MANAGER_CONFIG: FilterSortConfig = {
   filters: [
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
-    { label: "Condition", key: "condition", options: CATHEALTHRECORD_CONDITION_VALUES },
+    { label: "Condition", key: "condition", options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"] },
   ],
   sortOptions: [
     { label: "Name", key: "name" },

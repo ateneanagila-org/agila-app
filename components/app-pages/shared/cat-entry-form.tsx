@@ -22,6 +22,7 @@ import type {
   CatHealthRecordCondition,
 } from "@/lib/db/enums";
 import type { SelectCat } from "@/lib/validation/cats";
+import { normalizeCatField } from "@/lib/utils";
 
 type RegionOption = {
   id: string;
@@ -93,7 +94,7 @@ export function CatEntryForm({
   const [age, setAge] = useState(initialCat?.age ?? (initialCat ? "Unknown" : ""));
   const [sex, setSex] = useState(initialCat?.sex ?? (initialCat ? "Unknown" : ""));
   const [sociability, setSociability] = useState(initialCat?.sociability ?? (initialCat ? "Unknown" : ""));
-  const [condition, setCondition] = useState("");
+  const [condition, setCondition] = useState(initialCat ? "Unknown" : "");
   const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
   const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
   const [notes, setNotes] = useState(initialCat?.notes ?? "");
@@ -126,7 +127,7 @@ export function CatEntryForm({
     if (!initialCat) return;
     getCatHealthRecords({ cat_id: initialCat.id }).then((res) => {
       const cond = res?.data?.[0]?.condition;
-      if (cond) setCondition(cond);
+      setCondition(cond ?? "Unknown");
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -163,8 +164,6 @@ export function CatEntryForm({
     loadRegions();
   }, []);
 
-  const normalize = <T,>(v: string): T | undefined =>
-    v === "Unknown" || v === "" ? undefined : (v as T);
 
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
@@ -172,11 +171,6 @@ export function CatEntryForm({
       setError("Please select a region/location.");
       return;
     }
-    if (!condition) {
-      setError("Please select a condition.");
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setPhotoWarning(null);
@@ -185,11 +179,11 @@ export function CatEntryForm({
       if (initialCat) {
         const result = await editCat({
           id: initialCat.id,
-          condition: condition as CatHealthRecordCondition,
-          color: normalize<CatColor>(color),
-          age: normalize<CatAge>(age),
-          sex: normalize<CatSex>(sex),
-          sociability: normalize<CatSociability>(sociability),
+          condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          color: normalizeCatField<CatColor>(color),
+          age: normalizeCatField<CatAge>(age),
+          sex: normalizeCatField<CatSex>(sex),
+          sociability: normalizeCatField<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
           caretaker: caretaker || undefined,
           notes: notes || undefined,
@@ -223,11 +217,11 @@ export function CatEntryForm({
       if (!newCatId) {
         const payload = {
           region_id: effectiveRegionId,
-          condition: condition as CatHealthRecordCondition,
-          color: normalize<CatColor>(color),
-          age: normalize<CatAge>(age),
-          sex: normalize<CatSex>(sex),
-          sociability: normalize<CatSociability>(sociability),
+          condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          color: normalizeCatField<CatColor>(color),
+          age: normalizeCatField<CatAge>(age),
+          sex: normalizeCatField<CatSex>(sex),
+          sociability: normalizeCatField<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
           caretaker: caretaker || undefined,
           notes: notes || undefined,
@@ -458,7 +452,7 @@ export function CatEntryForm({
           />
           <DropdownField
             label="Condition"
-            options={CATHEALTHRECORD_CONDITION_VALUES}
+            options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
             value={condition}
             onChange={setCondition}
           />

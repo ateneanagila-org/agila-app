@@ -56,12 +56,13 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const id = row[24]?.trim(); // UUID from col Y
   if (!id) return null;
 
-  const isSick = String(row[8] ?? "").toUpperCase() === "YES";
-  const isInjured = String(row[9] ?? "").toUpperCase() === "YES";
+  const rawSick = String(row[8] ?? "").toUpperCase();
+  const rawInjured = String(row[9] ?? "").toUpperCase();
   let condition: string | null = null;
-  if (isSick && isInjured) condition = "Sick and Injured";
-  else if (isSick) condition = "Sick";
-  else if (isInjured) condition = "Injured";
+  if (rawSick === "???" || rawInjured === "???") condition = null;
+  else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
+  else if (rawSick === "YES") condition = "Sick";
+  else if (rawInjured === "YES") condition = "Injured";
   else condition = "Healthy";
 
   const rawSex = String(row[5] ?? "").trim();
@@ -138,12 +139,13 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
   const id = row[24]?.trim(); // UUID from col Y
   if (!id) return null;
 
-  const isSick = String(row[8] ?? "").toUpperCase() === "YES";
-  const isInjured = String(row[9] ?? "").toUpperCase() === "YES";
+  const rawSick = String(row[8] ?? "").toUpperCase();
+  const rawInjured = String(row[9] ?? "").toUpperCase();
   let condition: string | null = null;
-  if (isSick && isInjured) condition = "Sick and Injured";
-  else if (isSick) condition = "Sick";
-  else if (isInjured) condition = "Injured";
+  if (rawSick === "???" || rawInjured === "???") condition = null;
+  else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
+  else if (rawSick === "YES") condition = "Sick";
+  else if (rawInjured === "YES") condition = "Injured";
   else condition = "Healthy";
 
   const rawSex = String(row[5] ?? "").trim();

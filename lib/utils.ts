@@ -6,3 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const displayCatField = (v: string | null | undefined): string => v ?? "Unknown";
+
+export const normalizeCatField = <T,>(v: string): T | undefined =>
+  v === "Unknown" || v === "" ? undefined : (v as T);
