@@ -11,7 +11,6 @@ import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import {
   ChevronDownIcon,
   CatIcon,
-  SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
@@ -70,7 +69,7 @@ function DropdownField({
 
   return (
     <div>
-      <label className="text-xs font-medium text-white/70">{label}</label>
+      <label className="text-xs font-bold text-brand-yellow">{label}</label>
       <div className="relative mt-1 rounded-lg border border-white/20 bg-white/15">
         <select
           value={value}
@@ -366,25 +365,6 @@ export function SessionsApprovalValidationScreen() {
           </div>
         </div>
 
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <span className="ml-1">&#9662;</span>
-            </button>
-          </div>
-        </section>
-
         {error ? (
           <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
             {error}
@@ -445,14 +425,14 @@ export function SessionsApprovalValidationScreen() {
                     type="button"
                     disabled={saving}
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
-                    Approve <span className="ml-1">&#10003;</span>
+                    New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full border border-brand-orange bg-transparent px-4 py-1.5 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90"
+                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Cancel <span className="ml-1">&#10005;</span>
                   </button>
@@ -491,7 +471,7 @@ export function SessionsApprovalValidationScreen() {
                   onChange={setCatStatus}
                 />
                 <div>
-                  <label className="text-xs font-medium text-white/70">
+                  <label className="text-xs font-bold text-brand-yellow">
                     Caretaker
                   </label>
                   <input
@@ -503,7 +483,7 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-medium text-white/70">
+                <label className="text-xs font-bold text-brand-yellow">
                   Specific Location
                 </label>
                 <input
@@ -514,7 +494,7 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-medium text-white/70">
+                <label className="text-xs font-bold text-brand-yellow">
                   Notes
                 </label>
                 <textarea

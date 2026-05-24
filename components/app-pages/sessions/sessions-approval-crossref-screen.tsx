@@ -526,7 +526,7 @@ export function SessionsApprovalCrossRefScreen() {
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full border border-brand-orange bg-transparent px-4 py-1.5 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Discard <span className="ml-1">&#10005;</span>
                   </button>
@@ -562,7 +562,7 @@ export function SessionsApprovalCrossRefScreen() {
                               </div>
                               <div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-bold tracking-tight text-white">
+                                  <span className="font-heading text-sm font-bold tracking-tight text-brand-yellow">
                                     {c.name || "Unnamed"}
                                   </span>
                                   {sexSymbol(c.sex) ? (
