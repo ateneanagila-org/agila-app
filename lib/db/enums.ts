@@ -114,7 +114,7 @@ export const CatAgeEnum = z.enum(CAT_AGE_VALUES);
 export type CatAge = z.infer<typeof CatAgeEnum>;
 
 // Cat Sex
-export const CAT_SEX_VALUES = ["Female", "Male", "Unknown"] as const;
+export const CAT_SEX_VALUES = ["Female", "Male"] as const;
 export const catSexEnum = pgEnum("cat_sex", CAT_SEX_VALUES);
 export const CatSexEnum = z.enum(CAT_SEX_VALUES);
 export type CatSex = z.infer<typeof CatSexEnum>;
@@ -124,7 +124,6 @@ export const CAT_SOCIABILITY_VALUES = [
   "Domesticated",
   "Tame",
   "Feral",
-  "Unknown",
 ] as const;
 export const catSociabilityEnum = pgEnum(
   "cat_sociability",
@@ -139,7 +138,6 @@ export const CAT_STATUS_VALUES = [
   "Fostered",
   "Adopted",
   "MIA",
-  "Unknown",
 ] as const;
 export const catStatusEnum = pgEnum("cat_status", CAT_STATUS_VALUES);
 export const CatStatusEnum = z.enum(CAT_STATUS_VALUES);
