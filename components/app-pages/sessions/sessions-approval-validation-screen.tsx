@@ -8,13 +8,10 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import {
-  ChevronDownIcon,
-  CatIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, CatIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
-import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -96,7 +93,7 @@ export function SessionsApprovalValidationScreen() {
   const sessionId = searchParams.get("sessionId");
   const sessionCatId = searchParams.get("sessionCatId");
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
+  const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +110,7 @@ export function SessionsApprovalValidationScreen() {
   const [notes, setNotes] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState("");
 
-  const populateForm = useCallback((catData: SelectCat) => {
+  const populateForm = useCallback((catData: CatWithRegion) => {
     setColor(catData.color ?? "");
     setAge(catData.age ?? "");
     setSex(catData.sex ?? "");
@@ -299,31 +296,73 @@ export function SessionsApprovalValidationScreen() {
           <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
-                <p className="mt-1 text-[15px] font-semibold text-white">
-                  {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
+                <p className="text-xs font-bold text-brand-yellow">
+                  Last seen at:
                 </p>
+                <p className="mt-1 text-[15px] font-semibold text-white">
+                  {formatDate(cat?.last_updated_at)} /{" "}
+                  {cat?.spot_last_seen || "—"}
+                </p>
+                {cat?.region_name ? (
+                  <span className="mt-2 inline-block rounded-full bg-brand-dark/60 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                    {cat.region_name}
+                  </span>
+                ) : null}
               </div>
 
               {(
                 [
-                  { label: "Color", options: CAT_COLOR_VALUES, value: color, onChange: setColor },
-                  { label: "Size/Age", options: CAT_AGE_VALUES, value: age, onChange: setAge },
-                  { label: "Sex", options: CAT_SEX_VALUES, value: sex, onChange: setSex },
-                  { label: "Sociability", options: CAT_SOCIABILITY_VALUES, value: sociability, onChange: setSociability },
-                  { label: "Status", options: CAT_STATUS_VALUES, value: catStatus, onChange: setCatStatus },
+                  {
+                    label: "Color",
+                    options: CAT_COLOR_VALUES,
+                    value: color,
+                    onChange: setColor,
+                  },
+                  {
+                    label: "Size/Age",
+                    options: CAT_AGE_VALUES,
+                    value: age,
+                    onChange: setAge,
+                  },
+                  {
+                    label: "Sex",
+                    options: CAT_SEX_VALUES,
+                    value: sex,
+                    onChange: setSex,
+                  },
+                  {
+                    label: "Sociability",
+                    options: CAT_SOCIABILITY_VALUES,
+                    value: sociability,
+                    onChange: setSociability,
+                  },
+                  {
+                    label: "Status",
+                    options: CAT_STATUS_VALUES,
+                    value: catStatus,
+                    onChange: setCatStatus,
+                  },
                 ] as const
               ).map(({ label, options, value, onChange }) => (
                 <div key={label}>
-                  <label className="text-xs font-bold text-brand-yellow">{label}</label>
+                  <label className="text-xs font-bold text-brand-yellow">
+                    {label}
+                  </label>
                   <div className="mt-1.5">
-                    <CustomSelect options={options} value={value} onChange={onChange} variant="cream" />
+                    <CustomSelect
+                      options={options}
+                      value={value}
+                      onChange={onChange}
+                      variant="cream"
+                    />
                   </div>
                 </div>
               ))}
 
               <div>
-                <label className="text-xs font-bold text-brand-yellow">Caretaker</label>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Caretaker
+                </label>
                 <input
                   value={caretaker}
                   onChange={(e) => setCaretaker(e.target.value)}
@@ -332,7 +371,9 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-brand-yellow">Notes</label>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Notes
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -350,12 +391,6 @@ export function SessionsApprovalValidationScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Census Report <span className="ml-1">📊</span>
-            </button>
             <Link
               href={backHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -390,7 +425,7 @@ export function SessionsApprovalValidationScreen() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-2 flex gap-1.5">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {cat?.color ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.color}
@@ -399,6 +434,11 @@ export function SessionsApprovalValidationScreen() {
                     {cat?.age ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.age}
+                      </span>
+                    ) : null}
+                    {cat?.region_name ? (
+                      <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                        {cat.region_name}
                       </span>
                     ) : null}
                   </div>

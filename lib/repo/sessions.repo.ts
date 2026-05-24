@@ -23,6 +23,7 @@ export const findSessions = (filters: Partial<SelectSession>) =>
       ];
       return and(...conditions);
     },
+    orderBy: (cols, { desc }) => [desc(cols.created_at)],
   });
 
 export const insertSession = (data: InsertSession, client: DB = db) =>

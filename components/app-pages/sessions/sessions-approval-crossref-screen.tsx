@@ -25,8 +25,6 @@ import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
-import { CENSUS_REPORT_URL } from "@/lib/constants";
-import { FileText } from "lucide-react";
 
 function buildMergeDiff(
   newCat: SelectCat,
@@ -410,6 +408,11 @@ export function SessionsApprovalCrossRefScreen() {
                               {c.color || "—"}
                               {c.age ? ` ${c.age}` : ""}
                             </p>
+                            {c.region_name ? (
+                              <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                                {c.region_name}
+                              </span>
+                            ) : null}
                           </div>
 
                           <div>
@@ -444,14 +447,6 @@ export function SessionsApprovalCrossRefScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <a
-              href={CENSUS_REPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Census Report <FileText className="h-4 w-4" />
-            </a>
             <Link
               href={validationHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -491,7 +486,7 @@ export function SessionsApprovalCrossRefScreen() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-2 flex gap-1.5">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {cat?.color ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.color}
@@ -500,6 +495,11 @@ export function SessionsApprovalCrossRefScreen() {
                     {cat?.age ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.age}
+                      </span>
+                    ) : null}
+                    {cat?.region_name ? (
+                      <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                        {cat.region_name}
                       </span>
                     ) : null}
                   </div>
@@ -566,7 +566,9 @@ export function SessionsApprovalCrossRefScreen() {
                                     {c.name || "Unnamed"}
                                   </span>
                                   {sexSymbol(c.sex) ? (
-                                    <span className={`text-sm ${sexColor(c.sex)}`}>
+                                    <span
+                                      className={`text-sm ${sexColor(c.sex)}`}
+                                    >
                                       {sexSymbol(c.sex)}
                                     </span>
                                   ) : null}
@@ -574,6 +576,7 @@ export function SessionsApprovalCrossRefScreen() {
                                 <p className="mt-0.5 text-xs text-white/70">
                                   {c.color || "—"} · {c.age || "—"} ·{" "}
                                   {c.spot_last_seen || "—"}
+                                  {c.region_name ? ` · ${c.region_name}` : ""}
                                 </p>
                               </div>
                             </div>

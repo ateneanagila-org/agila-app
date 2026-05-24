@@ -6,11 +6,11 @@ import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getSessionCats } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
-import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
 type ReviewItem = {
-  cat: SelectCat;
+  cat: CatWithRegion;
   sessionId: string;
   sessionCatId: string;
 };
@@ -151,6 +151,11 @@ export function SessionsManagerScreen() {
                         <p className="mt-1 text-sm font-bold text-white truncate">
                           {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
                         </p>
+                        {item.cat.region_name ? (
+                          <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                            {item.cat.region_name}
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-3 flex items-end justify-between gap-2">
                         <p className="text-sm font-bold text-white truncate">
@@ -220,7 +225,7 @@ export function SessionsManagerScreen() {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-2 flex gap-1.5">
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.cat.color ? (
                         <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {item.cat.color}
@@ -229,6 +234,11 @@ export function SessionsManagerScreen() {
                       {item.cat.age ? (
                         <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {item.cat.age}
+                        </span>
+                      ) : null}
+                      {item.cat.region_name ? (
+                        <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                          {item.cat.region_name}
                         </span>
                       ) : null}
                     </div>
