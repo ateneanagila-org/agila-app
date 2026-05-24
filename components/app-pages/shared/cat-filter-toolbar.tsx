@@ -48,7 +48,8 @@ export function CatFilterToolbar({
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
-      return val != null ? String(val) : null;
+      if (val == null) return "Unknown";
+      return String(val);
     },
     (cat, key) => {
       if (key === "last_updated_at") {
