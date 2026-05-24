@@ -161,7 +161,7 @@ export function CatCard({
                 ) : null}
               </div>
               <p className="mt-0.5 text-xs font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
               </p>
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -224,7 +224,7 @@ export function CatCard({
                 ) : null}
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
               </p>
             </div>
             {action !== "none" ? (
@@ -279,7 +279,7 @@ export function CatCard({
               ) : null}
             </div>
             <p className="mt-1 text-sm font-medium text-brand-dark/60 truncate">
-              {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+              {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
             </p>
             {extraChips ? (
               <div className="mt-2 flex flex-wrap gap-1.5">{extraChips}</div>

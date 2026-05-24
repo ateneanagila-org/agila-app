@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { getSessionCats } from "@/app/actions/sessions";
 import { getCats } from "@/app/actions/cats";
@@ -148,7 +149,7 @@ export function SessionsManagerScreen() {
                           ) : null}
                         </div>
                         <p className="mt-1 text-sm font-bold text-white truncate">
-                          {item.cat.color || "Unknown"}{item.cat.age ? ` ${item.cat.age}` : ""}
+                          {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
                         </p>
                       </div>
                       <div className="mt-3 flex items-end justify-between gap-2">

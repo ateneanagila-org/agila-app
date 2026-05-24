@@ -270,7 +270,7 @@ export function DatabaseGeneralScreen() {
                     {cat.age}
                   </span>
                 ) : null}
-                {cat?.sociability && cat.sociability !== "Unknown" ? (
+                {cat?.sociability ? (
                   <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.sociability}
                   </span>
