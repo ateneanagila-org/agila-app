@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import {
   DatabaseFiltersDialog,
   DatabaseSortByDialog,
@@ -22,11 +23,12 @@ type CatFilterToolbarProps = {
 export function CatFilterToolbar({
   cats,
   config,
-  searchFields = ["name", "color", "spot_last_seen"],
+  searchFields = ["name"],
   children,
 }: CatFilterToolbarProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
   const {
     filtered,
@@ -58,6 +60,11 @@ export function CatFilterToolbar({
     },
   );
 
+  const [debouncedSearch] = useDebounce(searchInput, 250);
+  useEffect(() => {
+    setSearch(debouncedSearch);
+  }, [debouncedSearch, setSearch]);
+
   const filteredCats = search
     ? filtered.filter((cat) => {
         const q = search.toLowerCase();
@@ -76,9 +83,9 @@ export function CatFilterToolbar({
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
             <input
               type="text"
-              placeholder="Search by name, color, or location"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
