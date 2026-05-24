@@ -396,7 +396,7 @@ export type MergeFieldDef = {
   fieldKey: string;
   currentValue: string | null;
   newValue: string | null;
-  inputType: "pill" | "textarea";
+  inputType: "pill" | "textarea" | "readonly";
 };
 
 type MergeDetailsDialogProps = {
@@ -439,6 +439,7 @@ function MergeDetailsDialogContent({
   const handleMerge = () => {
     const resolved: Record<string, string | null> = {};
     for (const field of diffFields) {
+      if (field.inputType === "readonly") continue;
       if (field.inputType === "pill") {
         const sel = selections[field.fieldKey] ?? "new";
         resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
@@ -449,6 +450,7 @@ function MergeDetailsDialogContent({
     onMerge(resolved);
   };
 
+  const readonlyFields = diffFields.filter((f) => f.inputType === "readonly");
   const pillFields = diffFields.filter((f) => f.inputType === "pill");
   const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
 
@@ -460,7 +462,7 @@ function MergeDetailsDialogContent({
         onClose={onClose}
       />
 
-      {diffFields.length > 0 ? (
+      {pillFields.length > 0 || textareaFields.length > 0 ? (
         <p className="text-xs text-brand-dark/60">
           {pillFields.length} field{pillFields.length !== 1 ? "s" : ""} differ
           {autoMergedCount > 0 ? ` · ${autoMergedCount} auto-merged` : ""}
@@ -468,6 +470,19 @@ function MergeDetailsDialogContent({
       ) : (
         <p className="text-xs text-brand-dark/60">All fields match — only notes to review.</p>
       )}
+
+      {readonlyFields.map((field) => (
+        <div key={field.fieldKey} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <p className="text-xs font-bold text-amber-700">
+            ⚠ Region mismatch
+          </p>
+          <p className="mt-0.5 text-xs text-amber-600">
+            New entry: <span className="font-semibold">{field.newValue ?? "—"}</span>
+            {" · "}
+            Existing: <span className="font-semibold">{field.currentValue ?? "—"}</span>
+          </p>
+        </div>
+      ))}
 
       <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
         {pillFields.map((field) => (

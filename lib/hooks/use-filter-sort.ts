@@ -25,8 +25,9 @@ export function useFilterSort<T>(
   config: FilterSortConfig,
   getFilterValue: (item: T, key: string) => string | null | undefined,
   getSortValue: (item: T, key: string) => string | number | Date | null | undefined,
+  initialFilters?: FilterState,
 ) {
-  const [activeFilters, setActiveFilters] = useState<FilterState>({});
+  const [activeFilters, setActiveFilters] = useState<FilterState>(initialFilters ?? {});
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [search, setSearch] = useState("");

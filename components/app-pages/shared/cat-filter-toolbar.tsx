@@ -17,6 +17,7 @@ type CatFilterToolbarProps = {
   cats: CatWithRegion[];
   config: FilterSortConfig;
   searchFields?: (keyof SelectCat)[];
+  initialFilters?: Record<string, Set<string>>;
   children: (filteredCats: CatWithRegion[]) => ReactNode;
 };
 
@@ -24,6 +25,7 @@ export function CatFilterToolbar({
   cats,
   config,
   searchFields = ["name"],
+  initialFilters,
   children,
 }: CatFilterToolbarProps) {
   const [showFilters, setShowFilters] = useState(false);
@@ -59,6 +61,7 @@ export function CatFilterToolbar({
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },
+    initialFilters,
   );
 
   const [debouncedSearch] = useDebounce(searchInput, 250);

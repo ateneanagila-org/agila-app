@@ -27,8 +27,8 @@ import type { CatEntryStatus } from "@/lib/db/enums";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 function buildMergeDiff(
-  newCat: SelectCat,
-  targetCat: SelectCat,
+  newCat: CatWithRegion,
+  targetCat: CatWithRegion,
   newCondition: string | null,
   targetCondition: string | null,
 ): { diffFields: MergeFieldDef[]; autoMergedCount: number } {
@@ -83,6 +83,17 @@ function buildMergeDiff(
       inputType: "textarea",
     },
   ];
+
+  // Warn when cats are from different regions (read-only — region is session-derived, not writable)
+  if (newCat.region_name !== targetCat.region_name) {
+    candidates.unshift({
+      label: "Region",
+      fieldKey: "region_name",
+      currentValue: targetCat.region_name ?? null,
+      newValue: newCat.region_name ?? null,
+      inputType: "readonly",
+    });
+  }
 
   const pillCandidates = candidates.filter((f) => f.inputType === "pill");
   const diffFields = [
@@ -159,6 +170,14 @@ export function SessionsApprovalCrossRefScreen() {
         ? (allCats.find((c) => c.id === mergeTargetId) ?? null)
         : null,
     [mergeTargetId, allCats],
+  );
+
+  const defaultRegionFilter = useMemo(
+    () =>
+      cat?.region_name
+        ? { region_name: new Set([cat.region_name]) }
+        : undefined,
+    [cat?.region_name],
   );
 
   const handleSelectTarget = useCallback(
@@ -368,7 +387,7 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG}>
+          <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG} initialFilters={defaultRegionFilter}>
             {(filteredCats) =>
               filteredCats.length === 0 ? (
                 <div className="py-6 text-center text-sm text-slate-400">
@@ -538,7 +557,7 @@ export function SessionsApprovalCrossRefScreen() {
               </p>
 
               <div className="mt-3">
-                <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG}>
+                <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG} initialFilters={defaultRegionFilter}>
                   {(filteredCats) =>
                     filteredCats.length === 0 ? (
                       <div className="py-6 text-center text-sm text-white/50">
