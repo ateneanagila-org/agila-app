@@ -12,7 +12,6 @@ import {
   CAT_AGE_VALUES,
   CAT_SEX_VALUES,
   CAT_SOCIABILITY_VALUES,
-  CAT_STATUS_VALUES,
   CATHEALTHRECORD_CONDITION_VALUES,
 } from "@/lib/db/enums";
 import type {
@@ -20,7 +19,6 @@ import type {
   CatAge,
   CatSex,
   CatSociability,
-  CatStatus,
   CatHealthRecordCondition,
 } from "@/lib/db/enums";
 import type { SelectCat } from "@/lib/validation/cats";
@@ -91,11 +89,10 @@ export function CatEntryForm({
   sessionId,
   initialCat,
 }: CatEntryFormProps) {
-  const [color, setColor] = useState(initialCat?.color ?? "");
-  const [age, setAge] = useState(initialCat?.age ?? "");
-  const [sex, setSex] = useState(initialCat?.sex ?? "");
-  const [sociability, setSociability] = useState(initialCat?.sociability ?? "");
-  const [catStatus, setCatStatus] = useState(initialCat?.cat_status ?? "");
+  const [color, setColor] = useState(initialCat?.color ?? (initialCat ? "Unknown" : ""));
+  const [age, setAge] = useState(initialCat?.age ?? (initialCat ? "Unknown" : ""));
+  const [sex, setSex] = useState(initialCat?.sex ?? (initialCat ? "Unknown" : ""));
+  const [sociability, setSociability] = useState(initialCat?.sociability ?? (initialCat ? "Unknown" : ""));
   const [condition, setCondition] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
   const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
@@ -164,6 +161,9 @@ export function CatEntryForm({
     loadRegions();
   }, []);
 
+  const normalize = <T,>(v: string): T | undefined =>
+    v === "Unknown" || v === "" ? undefined : (v as T);
+
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
     if (!effectiveRegionId) {
@@ -184,11 +184,10 @@ export function CatEntryForm({
         const result = await editCat({
           id: initialCat.id,
           condition: condition as CatHealthRecordCondition,
-          color: (color || undefined) as CatColor | undefined,
-          age: (age || undefined) as CatAge | undefined,
-          sex: (sex || undefined) as CatSex | undefined,
-          sociability: (sociability || undefined) as CatSociability | undefined,
-          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          color: normalize<CatColor>(color),
+          age: normalize<CatAge>(age),
+          sex: normalize<CatSex>(sex),
+          sociability: normalize<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
           caretaker: caretaker || undefined,
           notes: notes || undefined,
@@ -221,13 +220,10 @@ export function CatEntryForm({
         const payload = {
           region_id: effectiveRegionId,
           condition: condition as CatHealthRecordCondition,
-          color: (color || undefined) as CatColor | undefined,
-          age: (age || undefined) as CatAge | undefined,
-          sex: (sex || undefined) as CatSex | undefined,
-          sociability: (sociability || undefined) as
-            | CatSociability
-            | undefined,
-          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          color: normalize<CatColor>(color),
+          age: normalize<CatAge>(age),
+          sex: normalize<CatSex>(sex),
+          sociability: normalize<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
           caretaker: caretaker || undefined,
           notes: notes || undefined,
@@ -294,7 +290,6 @@ export function CatEntryForm({
     age,
     sex,
     sociability,
-    catStatus,
     spotLastSeen,
     caretaker,
     notes,
@@ -424,33 +419,27 @@ export function CatEntryForm({
           ) : null}
           <DropdownField
             label="Color"
-            options={CAT_COLOR_VALUES}
+            options={["Unknown", ...CAT_COLOR_VALUES]}
             value={color}
             onChange={setColor}
           />
           <DropdownField
             label="Size / Age"
-            options={CAT_AGE_VALUES}
+            options={["Unknown", ...CAT_AGE_VALUES]}
             value={age}
             onChange={setAge}
           />
           <DropdownField
             label="Sex"
-            options={CAT_SEX_VALUES}
+            options={["Unknown", ...CAT_SEX_VALUES]}
             value={sex}
             onChange={setSex}
           />
           <DropdownField
             label="Sociability"
-            options={CAT_SOCIABILITY_VALUES}
+            options={["Unknown", ...CAT_SOCIABILITY_VALUES]}
             value={sociability}
             onChange={setSociability}
-          />
-          <DropdownField
-            label="Status"
-            options={CAT_STATUS_VALUES}
-            value={catStatus}
-            onChange={setCatStatus}
           />
           <DropdownField
             label="Condition"
@@ -458,18 +447,7 @@ export function CatEntryForm({
             value={condition}
             onChange={setCondition}
           />
-          <div>
-            <label className="text-sm font-semibold text-brand-orange">Spot Last Seen</label>
-            <div className="mt-1.5">
-              <CustomSelect
-                options={regionOptions.map((r) => r.name)}
-                value={spotLastSeen}
-                onChange={setSpotLastSeen}
-                placeholder={regionsLoading ? "Loading..." : "—"}
-                variant="white"
-              />
-            </div>
-          </div>
+          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
           <TextField
             label="Caretaker"
             value={caretaker}
