@@ -65,15 +65,15 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   else condition = "Healthy";
 
   const rawSex = String(row[5] ?? "").trim();
-  const sex = ["Male", "Female"].includes(rawSex) ? rawSex : "Unknown";
+  const sex = ["Male", "Female"].includes(rawSex) ? rawSex : null;
 
   const rawSociability = String(row[7] ?? "").trim();
   const sociability = ["Domesticated", "Tame", "Feral"].includes(rawSociability)
     ? rawSociability
-    : "Unknown";
+    : null;
 
   const rawStatus = String(row[11] ?? "").trim();
-  const validStatuses = ["Deceased", "Fostered", "Adopted", "MIA", "Unknown"];
+  const validStatuses = ["Deceased", "Fostered", "Adopted", "MIA"];
   const cat_status = validStatuses.includes(rawStatus) ? rawStatus : null;
 
   const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
@@ -147,12 +147,12 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
   else condition = "Healthy";
 
   const rawSex = String(row[5] ?? "").trim();
-  const sex = ["Male", "Female"].includes(rawSex) ? rawSex : "Unknown";
+  const sex = ["Male", "Female"].includes(rawSex) ? rawSex : null;
 
   const rawSociability = String(row[7] ?? "").trim();
   const sociability = ["Domesticated", "Tame", "Feral"].includes(rawSociability)
     ? rawSociability
-    : "Unknown";
+    : null;
 
   const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
 
