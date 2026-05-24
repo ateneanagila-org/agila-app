@@ -2,71 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
-import {
-  DatabaseFiltersDialog,
-  DatabaseSortByDialog,
-} from "@/components/app-pages/database/database-dialogs";
-import {
-  ChevronDownIcon,
-  PlusIcon,
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
+import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
+import { PlusIcon } from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
 import { getCats } from "@/app/actions/cats";
-import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
-import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useAuth } from "@/contexts/auth-context";
 
 export function DatabaseListScreen() {
   const { canManage } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const {
-    filtered: filteredCats,
-    activeFilters,
-    toggleFilter,
-    clearFilters,
-    activeFilterCount,
-    sortKey,
-    setSortKey,
-    sortOrder,
-    setSortOrder,
-    search,
-    setSearch,
-  } = useFilterSort<CatWithRegion>(
-    cats,
-    DATABASE_LIST_CONFIG,
-    (cat, key) => {
-      if (key === "region_name") return cat.region_name ?? null;
-      const val = cat[key as keyof SelectCat];
-      return val != null ? String(val) : null;
-    },
-    (cat, key) => {
-      if (key === "last_updated_at") {
-        return cat.last_updated_at ? new Date(cat.last_updated_at) : null;
-      }
-      if (key === "region_name") return cat.region_name ?? null;
-      const val = cat[key as keyof SelectCat];
-      return val != null ? String(val) : null;
-    },
-  );
-
-  const searchedCats = search
-    ? filteredCats.filter((cat) => {
-        const q = search.toLowerCase();
-        return (
-          cat.name?.toLowerCase().includes(q) ||
-          cat.color?.toLowerCase().includes(q) ||
-          cat.spot_last_seen?.toLowerCase().includes(q)
-        );
-      })
-    : filteredCats;
 
   const fetchCats = useCallback(async () => {
     setLoading(true);
@@ -119,53 +67,27 @@ export function DatabaseListScreen() {
             </button>
           ) : null}
 
-          {/* Search + Filter + Sort — match desktop colors */}
-          <div className="rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
-              <input
-                type="text"
-                placeholder="Search cats by name, color, or location"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
-              />
-            </div>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFilters(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Filter <ChevronDownIcon className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSort(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <LoadingIndicator />
-          ) : searchedCats.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {searchedCats.map((cat) => (
-                <CatCard
-                  key={cat.id}
-                  cat={cat}
-                  href={`/dashboard/database/general?id=${cat.id}`}
-                  variant="default"
-                  action="kebab"
-                />
-              ))}
-            </div>
-          )}
+          <CatFilterToolbar cats={cats} config={DATABASE_LIST_CONFIG}>
+            {(filteredCats) =>
+              loading ? (
+                <LoadingIndicator />
+              ) : filteredCats.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredCats.map((cat) => (
+                    <CatCard
+                      key={cat.id}
+                      cat={cat}
+                      href={`/dashboard/database/general?id=${cat.id}`}
+                      variant="default"
+                      action="kebab"
+                    />
+                  ))}
+                </div>
+              )
+            }
+          </CatFilterToolbar>
         </div>
 
         {canManage ? (
@@ -188,7 +110,7 @@ export function DatabaseListScreen() {
               Database
             </h1>
             <p className="mt-1 text-xs font-semibold text-brand-green">
-              {searchedCats.length} cats on record
+              {cats.length} cats on record
             </p>
           </div>
           {canManage ? (
@@ -203,75 +125,34 @@ export function DatabaseListScreen() {
           ) : null}
         </div>
 
-        <div className="mt-5 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">
-          <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
-            <input
-              type="text"
-              placeholder="Search cats by name, color, or location"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowFilters(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Filter
-            <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSort(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Sort by
-            <ChevronDownIcon className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-5 gap-3">
-          {loading ? (
-            <div className="col-span-full"><LoadingIndicator /></div>
-          ) : searchedCats.length === 0 ? (
-            <div className="col-span-full"><EmptyState /></div>
-          ) : (
-            searchedCats.map((cat) => (
-              <CatCard
-                key={`desktop-${cat.id}`}
-                cat={cat}
-                href={`/dashboard/database/general?id=${cat.id}`}
-                variant="default"
-                action="kebab"
-              />
-            ))
-          )}
+        <div className="mt-5">
+          <CatFilterToolbar cats={cats} config={DATABASE_LIST_CONFIG}>
+            {(filteredCats) => (
+              <div className="mt-4 grid grid-cols-5 gap-3">
+                {loading ? (
+                  <div className="col-span-full"><LoadingIndicator /></div>
+                ) : filteredCats.length === 0 ? (
+                  <div className="col-span-full"><EmptyState /></div>
+                ) : (
+                  filteredCats.map((cat) => (
+                    <CatCard
+                      key={`desktop-${cat.id}`}
+                      cat={cat}
+                      href={`/dashboard/database/general?id=${cat.id}`}
+                      variant="default"
+                      action="kebab"
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </CatFilterToolbar>
         </div>
       </div>
 
       {showAdd ? (
         <CatEntryForm onClose={() => setShowAdd(false)} onSave={handleSave} />
       ) : null}
-      <DatabaseFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
-        categories={DATABASE_LIST_CONFIG.filters}
-        activeFilters={activeFilters}
-        onToggle={toggleFilter}
-        onClear={clearFilters}
-        activeCount={activeFilterCount}
-      />
-      <DatabaseSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
-        options={DATABASE_LIST_CONFIG.sortOptions}
-        activeKey={sortKey}
-        order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
-      />
     </>
   );
 }

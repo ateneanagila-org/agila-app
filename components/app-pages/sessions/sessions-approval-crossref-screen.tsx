@@ -13,8 +13,8 @@ import {
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import type { MergeFieldDef } from "@/components/app-pages/sessions/session-dialogs";
-import { SearchIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
 import {
   getCats,
   editCat,
@@ -22,7 +22,9 @@ import {
   getCatHealthRecords,
 } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
+import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 function buildMergeDiff(
   newCat: SelectCat,
@@ -101,15 +103,13 @@ export function SessionsApprovalCrossRefScreen() {
   const sessionId = searchParams.get("sessionId");
   const sessionCatId = searchParams.get("sessionCatId");
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
-  const [allCats, setAllCats] = useState<SelectCat[]>([]);
+  const [cat, setCat] = useState<CatWithRegion | null>(null);
+  const [allCats, setAllCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
   const [mergeDiffFields, setMergeDiffFields] = useState<MergeFieldDef[]>([]);
   const [mergeAutoMergedCount, setMergeAutoMergedCount] = useState(0);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -160,21 +160,6 @@ export function SessionsApprovalCrossRefScreen() {
         : null,
     [mergeTargetId, allCats],
   );
-
-  const similarCats = useMemo(() => {
-    if (!cat) return [];
-    return allCats.filter(
-      (c) => c.id !== cat.id && c.entry_status === "Original",
-    );
-  }, [cat, allCats]);
-
-  const filteredCandidates = useMemo(() => {
-    if (!searchQuery.trim()) return similarCats;
-    const q = searchQuery.toLowerCase();
-    return allCats.filter(
-      (c) => c.entry_status === "Original" && c.name?.toLowerCase().includes(q),
-    );
-  }, [searchQuery, allCats, similarCats]);
 
   const handleSelectTarget = useCallback(
     async (targetId: string) => {
@@ -383,90 +368,71 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          {/* Search bar + Filters */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowSearch((s) => !s)}
-                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Search 🔍
-              </button>
-            </div>
-            {showSearch ? (
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name…"
-                autoFocus
-                className="mt-2 h-9 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none focus:border-brand-green"
-              />
-            ) : null}
-          </div>
-
-          {filteredCandidates.length === 0 ? (
-            <div className="py-6 text-center text-sm text-slate-400">
-              No similar cats found. This is likely a new entry.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredCandidates.map((c) => (
-                <div
-                  key={c.id}
-                  className="overflow-hidden rounded-2xl bg-brand-green"
-                >
-                  <div className="flex items-stretch gap-0">
-                    {/* Full-height image column */}
-                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <CatPhoto
-                        photoUrl={c.photo_url}
-                        name={c.name}
-                        className="h-full w-full object-cover"
-                        iconClassName="h-8 w-8 text-white/40"
-                      />
-                    </div>
-                    {/* Info */}
-                    <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
-                            {c.name || "Unnamed"}
-                          </span>
-                          {sexSymbol(c.sex) ? (
-                            <span className="text-white text-lg leading-none ml-1">
-                              {sexSymbol(c.sex)}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-sm font-bold text-white truncate">
-                          {c.color || "—"}
-                          {c.age ? ` ${c.age}` : ""}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="mt-3 text-sm font-bold text-white truncate">
-                          {c.spot_last_seen || "—"} -{" "}
-                          {formatDate(c.last_updated_at)}
-                        </p>
-                        <div className="mt-2 flex items-center justify-between">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectTarget(c.id)}
-                            className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                          >
-                            Merge ›
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG}>
+            {(filteredCats) =>
+              filteredCats.length === 0 ? (
+                <div className="py-6 text-center text-sm text-slate-400">
+                  No matches.
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div className="space-y-2">
+                  {filteredCats.map((c) => (
+                    <div
+                      key={c.id}
+                      className="overflow-hidden rounded-2xl bg-brand-green"
+                    >
+                      <div className="flex items-stretch gap-0">
+                        {/* Full-height image column */}
+                        <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                          <CatPhoto
+                            photoUrl={c.photo_url}
+                            name={c.name}
+                            className="h-full w-full object-cover"
+                            iconClassName="h-8 w-8 text-white/40"
+                          />
+                        </div>
+                        {/* Info */}
+                        <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                                {c.name || "Unnamed"}
+                              </span>
+                              {sexSymbol(c.sex) ? (
+                                <span className="text-white text-lg leading-none ml-1">
+                                  {sexSymbol(c.sex)}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-sm font-bold text-white truncate">
+                              {c.color || "—"}
+                              {c.age ? ` ${c.age}` : ""}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="mt-3 text-sm font-bold text-white truncate">
+                              {c.spot_last_seen || "—"} -{" "}
+                              {formatDate(c.last_updated_at)}
+                            </p>
+                            <div className="mt-2 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTarget(c.id)}
+                                className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                              >
+                                Merge ›
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+          </CatFilterToolbar>
         </PageContent>
       </div>
 
@@ -490,21 +456,6 @@ export function SessionsApprovalCrossRefScreen() {
             </Link>
           </div>
         </div>
-
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-          </div>
-        </section>
 
         {error ? (
           <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -582,53 +533,59 @@ export function SessionsApprovalCrossRefScreen() {
                 Does this cat match an existing entry? If so, merge.
               </p>
 
-              <div className="mt-3 space-y-2">
-                {filteredCandidates.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-white/50">
-                    No similar cats found. This is likely a new entry.
-                  </div>
-                ) : (
-                  filteredCandidates.map((c) => (
-                    <div
-                      key={`desktop-${c.id}`}
-                      className="flex items-center justify-between rounded-xl bg-white/10 p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
-                          <CatPhoto
-                            photoUrl={c.photo_url}
-                            name={c.name}
-                            className="h-full w-full object-cover"
-                            iconClassName="h-8 w-8 text-white/40"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold tracking-tight text-white">
-                              {c.name || "Unnamed"}
-                            </span>
-                            {sexSymbol(c.sex) ? (
-                              <span className={`text-sm ${sexColor(c.sex)}`}>
-                                {sexSymbol(c.sex)}
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-0.5 text-xs text-white/70">
-                            {c.color || "—"} · {c.age || "—"} ·{" "}
-                            {c.spot_last_seen || "—"}
-                          </p>
-                        </div>
+              <div className="mt-3">
+                <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG}>
+                  {(filteredCats) =>
+                    filteredCats.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-white/50">
+                        No matches.
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectTarget(c.id)}
-                        className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                      >
-                        Merge <span className="ml-1">&#8618;</span>
-                      </button>
-                    </div>
-                  ))
-                )}
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredCats.map((c) => (
+                          <div
+                            key={`desktop-${c.id}`}
+                            className="flex items-center justify-between rounded-xl bg-white/10 p-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+                                <CatPhoto
+                                  photoUrl={c.photo_url}
+                                  name={c.name}
+                                  className="h-full w-full object-cover"
+                                  iconClassName="h-8 w-8 text-white/40"
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-bold tracking-tight text-white">
+                                    {c.name || "Unnamed"}
+                                  </span>
+                                  {sexSymbol(c.sex) ? (
+                                    <span className={`text-sm ${sexColor(c.sex)}`}>
+                                      {sexSymbol(c.sex)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-0.5 text-xs text-white/70">
+                                  {c.color || "—"} · {c.age || "—"} ·{" "}
+                                  {c.spot_last_seen || "—"}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectTarget(c.id)}
+                              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                            >
+                              Merge <span className="ml-1">&#8618;</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  }
+                </CatFilterToolbar>
               </div>
             </div>
           </div>
