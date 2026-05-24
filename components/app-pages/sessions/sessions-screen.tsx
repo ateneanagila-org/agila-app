@@ -567,189 +567,217 @@ export function SessionsScreen() {
           </div>
         </div>
 
-        <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <h2 className="font-heading text-lg font-bold text-brand-green">
-              My Sessions
-            </h2>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFilters(true)}
-                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
-              >
-                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
-                <ChevronDownIcon className="h-3 w-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSort(true)}
-                className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
-              >
-                Sort by <ChevronDownIcon className="h-3 w-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateDialog(true)}
-                className="flex items-center gap-1 rounded-full bg-brand-orange px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Create New <span>+</span>
-              </button>
+        {showAll ? (
+          /* ── All Sessions view ── */
+          <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <h2 className="font-heading text-lg font-bold text-brand-green">
+                My Sessions
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
+                >
+                  Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
+                  <ChevronDownIcon className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSort(true)}
+                  className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
+                >
+                  Sort by <ChevronDownIcon className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateDialog(true)}
+                  className="flex items-center gap-1 rounded-full bg-brand-orange px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Create New <span>+</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
-            <span>Census No.</span>
-            <span>Date</span>
-            <span>Location</span>
-            <span>Status</span>
-            <span />
-            <span />
-          </div>
-
-          {loading ? (
-            <LoadingIndicator />
-          ) : sessions.length === 0 ? (
-            <div className="py-10 text-center text-sm text-brand-dark/50">
-              No sessions yet.
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+              <span>Census No.</span>
+              <span>Date</span>
+              <span>Location</span>
+              <span>Status</span>
+              <span />
+              <span />
             </div>
-          ) : showAll ? (
-            <>
-              {filteredSessions.length === 0 ? (
+
+            {loading ? (
+              <LoadingIndicator />
+            ) : filteredSessions.length === 0 ? (
+              <div className="py-10 text-center text-sm text-brand-dark/50">
+                No sessions match the current filters.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {filteredSessions
+                  .slice((desktopPage - 1) * PAGE_SIZE, desktopPage * PAGE_SIZE)
+                  .map((s) => {
+                    const st = sessionStatus(s);
+                    const badgeClass =
+                      st === "Reviewed"
+                        ? "bg-brand-mint text-brand-green"
+                        : st === "Submitted"
+                          ? "bg-brand-cream-dark text-brand-dark"
+                          : "bg-brand-pink text-brand-orange";
+                    return (
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
+                      >
+                        <span className="font-semibold tabular-nums">{s.census_no}</span>
+                        <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
+                        <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                          {st}
+                        </span>
+                        {st === "Unfinished" ? (
+                          <Link
+                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                            className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                          >
+                            Continue <span className="ml-0.5">&#8250;</span>
+                          </Link>
+                        ) : (
+                          <span />
+                        )}
+                        {st === "Unfinished" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteId(s.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                            aria-label="Delete session"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            <div className="flex items-center justify-between border-t border-border px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setShowAll(false)}
+                className="text-sm font-bold text-brand-green underline underline-offset-2"
+              >
+                Show less sessions
+              </button>
+              {filteredSessions.length > PAGE_SIZE ? (
+                <div className="flex items-center gap-1 text-xs font-semibold text-brand-dark/70">
+                  <button
+                    type="button"
+                    onClick={() => setDesktopPage((p) => Math.max(1, p - 1))}
+                    disabled={desktopPage === 1}
+                    className="disabled:opacity-40"
+                  >
+                    ‹
+                  </button>
+                  <span className="mx-1 tabular-nums">
+                    {(desktopPage - 1) * PAGE_SIZE + 1}–{Math.min(desktopPage * PAGE_SIZE, filteredSessions.length)} / {filteredSessions.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDesktopPage((p) => Math.min(Math.ceil(filteredSessions.length / PAGE_SIZE), p + 1))}
+                    disabled={desktopPage >= Math.ceil(filteredSessions.length / PAGE_SIZE)}
+                    className="disabled:opacity-40"
+                  >
+                    ›
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : (
+          /* ── Dashboard view ── */
+          <>
+            <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <h2 className="font-heading text-lg font-bold text-brand-green">
+                  Recent Sessions
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateDialog(true)}
+                  className="flex items-center gap-1 rounded-full bg-brand-orange px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Create New <span>+</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+                <span>Census No.</span>
+                <span>Date</span>
+                <span>Location</span>
+                <span>Status</span>
+                <span />
+                <span />
+              </div>
+
+              {loading ? (
+                <LoadingIndicator />
+              ) : sessions.length === 0 ? (
                 <div className="py-10 text-center text-sm text-brand-dark/50">
-                  No sessions match the current filters.
+                  No sessions yet.
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {filteredSessions
-                    .slice((desktopPage - 1) * PAGE_SIZE, desktopPage * PAGE_SIZE)
-                    .map((s) => {
-                      const st = sessionStatus(s);
-                      const badgeClass =
-                        st === "Reviewed"
-                          ? "bg-brand-mint text-brand-green"
-                          : st === "Submitted"
-                            ? "bg-brand-cream-dark text-brand-dark"
-                            : "bg-brand-pink text-brand-orange";
-                      return (
-                        <div
-                          key={s.id}
-                          className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
-                        >
-                          <span className="font-semibold tabular-nums">{s.census_no}</span>
-                          <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
-                          <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
-                            {st}
-                          </span>
-                          {st === "Unfinished" ? (
-                            <Link
-                              href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                              className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                            >
-                              Continue <span className="ml-0.5">&#8250;</span>
-                            </Link>
-                          ) : (
-                            <span />
-                          )}
-                          {st === "Unfinished" ? (
-                            <button
-                              type="button"
-                              onClick={() => setPendingDeleteId(s.id)}
-                              className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                              aria-label="Delete session"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          ) : (
-                            <span />
-                          )}
-                        </div>
-                      );
-                    })}
+                  {sessions.slice(0, 5).map((s) => {
+                    const st = sessionStatus(s);
+                    const badgeClass =
+                      st === "Reviewed"
+                        ? "bg-brand-mint text-brand-green"
+                        : st === "Submitted"
+                          ? "bg-brand-cream-dark text-brand-dark"
+                          : "bg-brand-pink text-brand-orange";
+                    return (
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
+                      >
+                        <span className="font-semibold tabular-nums">{s.census_no}</span>
+                        <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
+                        <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                          {st}
+                        </span>
+                        {st === "Unfinished" ? (
+                          <Link
+                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                            className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                          >
+                            Continue <span className="ml-0.5">&#8250;</span>
+                          </Link>
+                        ) : (
+                          <span />
+                        )}
+                        {st === "Unfinished" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteId(s.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                            aria-label="Delete session"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-              <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAll(false)}
-                  className="text-sm font-bold text-brand-green underline underline-offset-2"
-                >
-                  Show less sessions
-                </button>
-                {filteredSessions.length > PAGE_SIZE ? (
-                  <div className="flex items-center gap-1 text-xs font-semibold text-brand-dark/70">
-                    <button
-                      type="button"
-                      onClick={() => setDesktopPage((p) => Math.max(1, p - 1))}
-                      disabled={desktopPage === 1}
-                      className="disabled:opacity-40"
-                    >
-                      ‹
-                    </button>
-                    <span className="mx-1 tabular-nums">
-                      {(desktopPage - 1) * PAGE_SIZE + 1}–{Math.min(desktopPage * PAGE_SIZE, filteredSessions.length)} / {filteredSessions.length}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setDesktopPage((p) => Math.min(Math.ceil(filteredSessions.length / PAGE_SIZE), p + 1))}
-                      disabled={desktopPage >= Math.ceil(filteredSessions.length / PAGE_SIZE)}
-                      className="disabled:opacity-40"
-                    >
-                      ›
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="divide-y divide-border">
-                {sessions.slice(0, 5).map((s) => {
-                  const st = sessionStatus(s);
-                  const badgeClass =
-                    st === "Reviewed"
-                      ? "bg-brand-mint text-brand-green"
-                      : st === "Submitted"
-                        ? "bg-brand-cream-dark text-brand-dark"
-                        : "bg-brand-pink text-brand-orange";
-                  return (
-                    <div
-                      key={s.id}
-                      className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
-                    >
-                      <span className="font-semibold tabular-nums">{s.census_no}</span>
-                      <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
-                      <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
-                        {st}
-                      </span>
-                      {st === "Unfinished" ? (
-                        <Link
-                          href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                          className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                        >
-                          Continue <span className="ml-0.5">&#8250;</span>
-                        </Link>
-                      ) : (
-                        <span />
-                      )}
-                      {st === "Unfinished" ? (
-                        <button
-                          type="button"
-                          onClick={() => setPendingDeleteId(s.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                          aria-label="Delete session"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
               <div className="border-t border-border px-5 py-3">
                 <button
                   type="button"
@@ -759,55 +787,55 @@ export function SessionsScreen() {
                   Show all sessions
                 </button>
               </div>
-            </>
-          )}
-        </section>
+            </section>
 
-        <h2 className="mt-7 font-heading text-lg font-bold text-brand-green">
-          Priority Locations
-        </h2>
-        <p className="mt-0.5 text-xs text-brand-dark/60">
-          Regions ranked by days since last census
-        </p>
+            <h2 className="mt-7 font-heading text-lg font-bold text-brand-green">
+              Priority Locations
+            </h2>
+            <p className="mt-0.5 text-xs text-brand-dark/60">
+              Regions ranked by days since last census
+            </p>
 
-        <section className="mt-3 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
-          <div className="grid grid-cols-2 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
-            <span>Location</span>
-            <span>Days Since Last Census</span>
-          </div>
-          <div className="divide-y divide-border">
-            {priorityLocations.length === 0 ? (
-              <div className="py-8 text-center text-sm text-brand-dark/50">
-                No data yet.
+            <section className="mt-3 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+              <div className="grid grid-cols-2 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+                <span>Location</span>
+                <span>Days Since Last Census</span>
               </div>
-            ) : (
-              <>
-                {(showMoreLocations ? priorityLocations : priorityLocations.slice(0, 5)).map((loc) => (
-                  <div
-                    key={`priority-${loc.name}`}
-                    className="grid grid-cols-2 px-5 py-3 text-sm text-brand-dark"
-                  >
-                    <span className="font-semibold">{loc.name}</span>
-                    <span className="tabular-nums text-brand-dark/70">
-                      {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}
-                    </span>
+              <div className="divide-y divide-border">
+                {priorityLocations.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-brand-dark/50">
+                    No data yet.
                   </div>
-                ))}
-                {priorityLocations.length > 5 ? (
-                  <div className="px-5 py-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowMoreLocations((s) => !s)}
-                      className="pt-1 text-xs font-bold text-brand-green underline underline-offset-2"
-                    >
-                      {showMoreLocations ? "Show less" : "More"}
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
-        </section>
+                ) : (
+                  <>
+                    {(showMoreLocations ? priorityLocations : priorityLocations.slice(0, 5)).map((loc) => (
+                      <div
+                        key={`priority-${loc.name}`}
+                        className="grid grid-cols-2 px-5 py-3 text-sm text-brand-dark"
+                      >
+                        <span className="font-semibold">{loc.name}</span>
+                        <span className="tabular-nums text-brand-dark/70">
+                          {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}
+                        </span>
+                      </div>
+                    ))}
+                    {priorityLocations.length > 5 ? (
+                      <div className="px-5 py-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowMoreLocations((s) => !s)}
+                          className="pt-1 text-xs font-bold text-brand-green underline underline-offset-2"
+                        >
+                          {showMoreLocations ? "Show less" : "More"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </div>
 
       <SessionFiltersDialog
