@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FileText, Eye } from "lucide-react";
 import {
   ChevronDownIcon,
   TrashIcon,
 } from "@/components/app-pages/shared/icons";
+import { CENSUS_REPORT_URL } from "@/lib/constants";
 import {
   SessionFiltersDialog,
   SessionSortByDialog,
@@ -29,8 +31,6 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 const PAGE_SIZE = 10;
 
-const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
-
 type SessionStatus = "Unfinished" | "Submitted" | "Reviewed";
 
 export function SessionsScreen() {
@@ -42,7 +42,6 @@ export function SessionsScreen() {
   const [statusBySession, setStatusBySession] = useState<
     Record<string, SessionStatus>
   >({});
-  const [unreviewedCatCount, setUnreviewedCatCount] = useState(0);
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -95,7 +94,6 @@ export function SessionsScreen() {
         setSessions([]);
         setAllSessions([]);
         setStatusBySession({});
-        setUnreviewedCatCount(0);
         return;
       }
 
@@ -114,7 +112,6 @@ export function SessionsScreen() {
       const unreviewedIds = new Set(
         (unreviewedRes?.data ?? []).map((c) => c.id),
       );
-      setUnreviewedCatCount(unreviewedIds.size);
 
       const catIdsBySession = new Map<string, string[]>();
       for (const sc of scRes?.data ?? []) {
@@ -124,10 +121,8 @@ export function SessionsScreen() {
       }
 
       const statusMap: Record<string, SessionStatus> = {};
-      const countMap: Record<string, number> = {};
       for (const s of mine) {
         const catIds = catIdsBySession.get(s.id) ?? [];
-        countMap[s.id] = catIds.length;
         if (!s.is_finished) {
           statusMap[s.id] = "Unfinished";
           continue;
@@ -183,25 +178,6 @@ export function SessionsScreen() {
       return null;
     },
   );
-
-  /** Compute summary stats from sessions */
-  const summary = useMemo(() => {
-    let reviewed = 0;
-    let submitted = 0;
-    let unfinished = 0;
-    for (const s of sessions) {
-      const st = statusBySession[s.id] ?? (s.is_finished ? "Submitted" : "Unfinished");
-      if (st === "Reviewed") reviewed += 1;
-      else if (st === "Submitted") submitted += 1;
-      else unfinished += 1;
-    }
-    return [
-      { label: "Reviewed", value: String(reviewed) },
-      { label: "Submitted", value: String(submitted) },
-      { label: "Unfinished", value: String(unfinished) },
-      { label: "For Review", value: String(unreviewedCatCount) },
-    ];
-  }, [sessions, statusBySession, unreviewedCatCount]);
 
   /** Compute priority locations — every region, sorted by days since last session (global).
    *  Regions with no session show "Unknown" days. */
@@ -293,14 +269,14 @@ export function SessionsScreen() {
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
-                Census Report
+                Census Report <FileText className="h-4 w-4" />
               </a>
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                 >
-                  Review Sessions ⊙
+                  Review Sessions <Eye className="h-4 w-4" />
                 </Link>
               ) : null}
             </div>
@@ -356,10 +332,10 @@ export function SessionsScreen() {
                 <div className="divide-y divide-brand-dark/8">
                   {filteredSessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-                    .map((s, i) => (
+                    .map((s) => (
                       <div key={s.id} className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-x-3 py-2.5">
                         <span className="text-xs font-semibold tabular-nums text-brand-dark">
-                          {(page - 1) * PAGE_SIZE + i + 1}
+                          {s.census_no}
                         </span>
                         <span className="text-xs tabular-nums text-brand-dark/70">
                           {formatDate(s.created_at)}
@@ -440,14 +416,14 @@ export function SessionsScreen() {
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
-                Census Report
+                Census Report <FileText className="h-4 w-4" />
               </a>
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                 >
-                  Review Sessions
+                  Review Sessions <Eye className="h-4 w-4" />
                 </Link>
               ) : null}
             </div>
@@ -484,7 +460,7 @@ export function SessionsScreen() {
                     {sessions.slice(0, 5).map((s) => (
                       <div key={s.id} className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-x-3 py-2">
                         <span className="text-xs font-semibold tabular-nums text-brand-dark">
-                          {s.id.slice(0, 5)}
+                          {s.census_no}
                         </span>
                         <span className="truncate text-xs text-brand-dark/70">
                           {regionMap[s.region_id] ?? "—"}
@@ -568,48 +544,27 @@ export function SessionsScreen() {
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
         <div className="flex items-end justify-between">
-          <div>
-            <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
-              Sessions
-            </h1>
-            <p className="mt-1 text-xs font-semibold text-brand-green">
-              {sessions.length} total &middot; {summary[2].value} unfinished
-            </p>
-          </div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
+            Sessions
+          </h1>
           <div className="flex items-center gap-2">
             <a
               href={CENSUS_REPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Census Report
+              Census Report <FileText className="h-4 w-4" />
             </a>
             {canManage ? (
               <Link
                 href="/dashboard/sessions/manager"
-                className="rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
               >
-                Review Sessions ⊙
+                Review Sessions <Eye className="h-4 w-4" />
               </Link>
             ) : null}
           </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-4 gap-3">
-          {summary.map((item) => (
-            <article
-              key={item.label}
-              className="rounded-2xl bg-brand-green px-5 py-4"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
-                {item.label}
-              </p>
-              <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
-                {item.value}
-              </p>
-            </article>
-          ))}
         </div>
 
         <section className="mt-5 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
@@ -681,7 +636,7 @@ export function SessionsScreen() {
                           key={s.id}
                           className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                         >
-                          <span className="font-semibold tabular-nums">{s.id.slice(0, 5)}</span>
+                          <span className="font-semibold tabular-nums">{s.census_no}</span>
                           <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
                           <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
@@ -763,7 +718,7 @@ export function SessionsScreen() {
                       key={s.id}
                       className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                     >
-                      <span className="font-semibold tabular-nums">{s.id.slice(0, 5)}</span>
+                      <span className="font-semibold tabular-nums">{s.census_no}</span>
                       <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
                       <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>

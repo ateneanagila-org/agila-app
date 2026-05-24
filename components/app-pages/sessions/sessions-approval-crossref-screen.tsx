@@ -25,6 +25,8 @@ import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { CENSUS_REPORT_URL } from "@/lib/constants";
+import { FileText } from "lucide-react";
 
 function buildMergeDiff(
   newCat: SelectCat,
@@ -442,12 +444,14 @@ export function SessionsApprovalCrossRefScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            <a
+              href={CENSUS_REPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">📊</span>
-            </button>
+              Census Report <FileText className="h-4 w-4" />
+            </a>
             <Link
               href={validationHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"

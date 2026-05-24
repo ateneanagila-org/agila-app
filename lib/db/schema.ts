@@ -68,6 +68,7 @@ export const regions = pgTable(
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  census_no: integer("census_no").generatedByDefaultAsIdentity().notNull().unique(),
   region_id: uuid("region_id")
     .notNull()
     .references(() => regions.id, {

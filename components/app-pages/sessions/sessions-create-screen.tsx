@@ -33,6 +33,7 @@ export function SessionsCreateScreen() {
   const existingSessionId = searchParams.get("sessionId");
 
   const [sessionId, setSessionId] = useState<string | null>(existingSessionId);
+  const [censusNo, setCensusNo] = useState<number | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState("");
   const [selectedRegionName, setSelectedRegionName] = useState("");
   const [cats, setCats] = useState<SessionCatEntry[]>([]);
@@ -80,6 +81,7 @@ export function SessionsCreateScreen() {
         const existing = sessionResult?.data?.[0];
         if (!existing) { setError("Session not found."); return; }
         setSessionId(existing.id);
+        setCensusNo(existing.census_no);
         setSelectedRegionId(existing.region_id);
         const regionName =
           (regionsResult.data ?? []).find((r) => r.id === existing.region_id)?.name ?? "Unknown Location";
@@ -200,7 +202,7 @@ export function SessionsCreateScreen() {
           {sessionId ? (
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-brand-green px-3 py-1.5 text-xs font-bold text-brand-yellow">
-                Census No. {sessionId.slice(0, 8)}
+                Census No. {censusNo ?? "—"}
               </span>
               <div className="ml-auto flex items-center gap-1.5">
                 <button
@@ -299,12 +301,7 @@ export function SessionsCreateScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Census Report <span className="ml-1">📊</span>
-            </button>
+            
             <Link
               href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -328,7 +325,7 @@ export function SessionsCreateScreen() {
         <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-xl font-bold tracking-tight text-white">
-              Census No. {sessionId ? sessionId.slice(0, 8) : "—"}
+              Census No. {censusNo ?? "—"}
             </h2>
             <div className="flex items-center gap-2">
               <button
