@@ -31,7 +31,6 @@ export const createCatSchema = createInsertSchema(cats)
   });
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
-  .extend({ region_id: z.string() })
   .merge(editCatHealthRecordSchema.omit({ cat_id: true }))
   .omit({ catalog_id: true })
   .partial()

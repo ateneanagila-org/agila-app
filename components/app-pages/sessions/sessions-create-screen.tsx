@@ -21,7 +21,7 @@ import {
   removeSession,
   removeSessionCat,
 } from "@/app/actions/sessions";
-import { getCats } from "@/app/actions/cats";
+import { getCats, removeCat } from "@/app/actions/cats";
 import { createClient } from "@/lib/supabase/client";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
@@ -52,8 +52,13 @@ export function SessionsCreateScreen() {
     try {
       const scResult = await getSessionCats({ session_id: sid });
       const sessionCats = scResult?.data ?? [];
-      if (sessionCats.length === 0) { setCats([]); return; }
-      const catPromises = sessionCats.map((sc: SelectSessionCat) => getCats({ id: sc.cat_id }));
+      if (sessionCats.length === 0) {
+        setCats([]);
+        return;
+      }
+      const catPromises = sessionCats.map((sc: SelectSessionCat) =>
+        getCats({ id: sc.cat_id }),
+      );
       const catResults = await Promise.all(catPromises);
       const entries: SessionCatEntry[] = catResults
         .map((r, i) => {
@@ -79,16 +84,22 @@ export function SessionsCreateScreen() {
           supabase.from("regions").select("id,name"),
         ]);
         const existing = sessionResult?.data?.[0];
-        if (!existing) { setError("Session not found."); return; }
+        if (!existing) {
+          setError("Session not found.");
+          return;
+        }
         setSessionId(existing.id);
         setCensusNo(existing.census_no);
         setSelectedRegionId(existing.region_id);
         const regionName =
-          (regionsResult.data ?? []).find((r) => r.id === existing.region_id)?.name ?? "Unknown Location";
+          (regionsResult.data ?? []).find((r) => r.id === existing.region_id)
+            ?.name ?? "Unknown Location";
         setSelectedRegionName(regionName);
         await fetchSessionCats(existing.id);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load session.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load session.",
+        );
       } finally {
         setLoading(false);
       }
@@ -136,7 +147,10 @@ export function SessionsCreateScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await editSession.bind(null, sessionId)({ id: sessionId, is_finished: true });
+      const result = await editSession.bind(
+        null,
+        sessionId,
+      )({ id: sessionId, is_finished: true });
       if (result?.serverError) {
         setError(result.serverError);
         return;
@@ -166,15 +180,19 @@ export function SessionsCreateScreen() {
     }
   }, [sessionId, fetchSessionCats]);
 
-  const handleRemoveCat = useCallback(async (sessionCatId: string) => {
-    setRemovingCatId(sessionCatId);
-    try {
-      await removeSessionCat.bind(null, sessionCatId)();
-      if (sessionId) await fetchSessionCats(sessionId);
-    } finally {
-      setRemovingCatId(null);
-    }
-  }, [sessionId, fetchSessionCats]);
+  const handleRemoveCat = useCallback(
+    async (sessionCatId: string, catId: string) => {
+      setRemovingCatId(sessionCatId);
+      try {
+        await removeSessionCat.bind(null, sessionCatId)();
+        await removeCat({ id: catId });
+        if (sessionId) await fetchSessionCats(sessionId);
+      } finally {
+        setRemovingCatId(null);
+      }
+    },
+    [sessionId, fetchSessionCats],
+  );
 
   const sexSymbol = (s: string | null | undefined): string | null => {
     if (s === "Male") return "♂";
@@ -194,8 +212,12 @@ export function SessionsCreateScreen() {
         <div className="flex-1 space-y-3 px-4 py-4">
           {/* Location heading */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-dark/40">Location</p>
-            <p className="font-heading text-xl font-bold text-brand-green">{selectedRegionName || "Loading…"}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-dark/40">
+              Location
+            </p>
+            <p className="font-heading text-xl font-bold text-brand-green">
+              {selectedRegionName || "Loading…"}
+            </p>
           </div>
 
           {/* Census No. + action buttons */}
@@ -247,14 +269,22 @@ export function SessionsCreateScreen() {
           ) : (
             <div className="space-y-2">
               {cats.map(({ cat, sessionCatId }) => (
-                <div key={cat.id} className="overflow-hidden rounded-2xl bg-brand-green">
+                <div
+                  key={cat.id}
+                  className="overflow-hidden rounded-2xl bg-brand-green"
+                >
                   <div className="flex items-stretch">
                     <button
                       type="button"
                       onClick={() => setEditingCat(cat)}
                       className="flex w-24 shrink-0 items-center justify-center overflow-hidden bg-white/10"
                     >
-                      <CatPhoto photoUrl={cat.photo_url} name={cat.name} className="h-24 w-24 object-cover" iconClassName="h-10 w-10 text-white/40" />
+                      <CatPhoto
+                        photoUrl={cat.photo_url}
+                        name={cat.name}
+                        className="h-24 w-24 object-cover"
+                        iconClassName="h-10 w-10 text-white/40"
+                      />
                     </button>
                     <button
                       type="button"
@@ -262,14 +292,21 @@ export function SessionsCreateScreen() {
                       className="flex min-w-0 flex-1 items-start px-3.5 py-3 text-left"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-heading text-xl font-bold leading-tight text-brand-yellow truncate">{cat.name || "Unnamed"}</p>
-                        <p className="mt-0.5 text-xs text-white/70 truncate">{[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}</p>
-                        <p className="mt-1 text-xs text-white/60 truncate">{cat.spot_last_seen || "—"}</p>
+                        <p className="font-heading text-xl font-bold leading-tight text-brand-yellow truncate">
+                          {cat.name || "Unnamed"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/70 truncate">
+                          {[cat.color, cat.age].filter(Boolean).join(" · ") ||
+                            "—"}
+                        </p>
+                        <p className="mt-1 text-xs text-white/60 truncate">
+                          {cat.spot_last_seen || "—"}
+                        </p>
                       </div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleRemoveCat(sessionCatId)}
+                      onClick={() => handleRemoveCat(sessionCatId, cat.id)}
                       disabled={removingCatId === sessionCatId}
                       className="flex w-10 shrink-0 items-center justify-center bg-brand-dark/20 transition-colors hover:bg-red-500/70 disabled:opacity-40"
                       aria-label="Remove cat from session"
@@ -301,7 +338,6 @@ export function SessionsCreateScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            
             <Link
               href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -312,8 +348,12 @@ export function SessionsCreateScreen() {
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground/60">Location:</span>
-          <span className="font-heading text-xl font-bold text-brand-green">{selectedRegionName || "Loading…"}</span>
+          <span className="text-sm font-semibold text-foreground/60">
+            Location:
+          </span>
+          <span className="font-heading text-xl font-bold text-brand-green">
+            {selectedRegionName || "Loading…"}
+          </span>
         </div>
 
         {error ? (
@@ -373,7 +413,12 @@ export function SessionsCreateScreen() {
                     onClick={() => setEditingCat(cat)}
                     className="flex w-24 shrink-0 items-center justify-center overflow-hidden bg-white/10"
                   >
-                    <CatPhoto photoUrl={cat.photo_url} name={cat.name} className="h-24 w-24 object-cover" iconClassName="h-10 w-10 text-white/40" />
+                    <CatPhoto
+                      photoUrl={cat.photo_url}
+                      name={cat.name}
+                      className="h-24 w-24 object-cover"
+                      iconClassName="h-10 w-10 text-white/40"
+                    />
                   </button>
                   <button
                     type="button"
@@ -382,21 +427,35 @@ export function SessionsCreateScreen() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-heading text-xl font-bold leading-tight text-brand-yellow truncate">{cat.name || "Unnamed"}</p>
+                        <p className="font-heading text-xl font-bold leading-tight text-brand-yellow truncate">
+                          {cat.name || "Unnamed"}
+                        </p>
                         {sexSymbol(cat.sex) ? (
-                          <span className={`text-xl ${sexColor(cat.sex)}`}>{sexSymbol(cat.sex)}</span>
+                          <span className={`text-xl ${sexColor(cat.sex)}`}>
+                            {sexSymbol(cat.sex)}
+                          </span>
                         ) : null}
                       </div>
                       <div className="mt-1.5 flex gap-1.5">
-                        {cat.color ? <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">{cat.color}</span> : null}
-                        {cat.age ? <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">{cat.age}</span> : null}
+                        {cat.color ? (
+                          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                            {cat.color}
+                          </span>
+                        ) : null}
+                        {cat.age ? (
+                          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                            {cat.age}
+                          </span>
+                        ) : null}
                       </div>
-                      <p className="mt-2 text-xs text-white/60 truncate">{cat.spot_last_seen || "—"}</p>
+                      <p className="mt-2 text-xs text-white/60 truncate">
+                        {cat.spot_last_seen || "—"}
+                      </p>
                     </div>
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRemoveCat(sessionCatId)}
+                    onClick={() => handleRemoveCat(sessionCatId, cat.id)}
                     disabled={removingCatId === sessionCatId}
                     className="flex w-12 shrink-0 items-center justify-center bg-brand-dark/20 transition-colors hover:bg-red-500/70 disabled:opacity-40"
                     aria-label="Remove cat from session"

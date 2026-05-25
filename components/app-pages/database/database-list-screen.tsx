@@ -19,7 +19,7 @@ export function DatabaseListScreen() {
   const fetchCats = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getCats({});
+      const result = await getCats({ entry_status: "Original" });
       if (result?.data) {
         setCats(result.data);
       }
@@ -79,6 +79,7 @@ export function DatabaseListScreen() {
                     <CatCard
                       key={cat.id}
                       cat={cat}
+                      region_name={cat.region_name}
                       href={`/dashboard/database/general?id=${cat.id}`}
                       variant="default"
                       action="kebab"
@@ -138,6 +139,7 @@ export function DatabaseListScreen() {
                     <CatCard
                       key={`desktop-${cat.id}`}
                       cat={cat}
+                      region_name={cat.region_name}
                       href={`/dashboard/database/general?id=${cat.id}`}
                       variant="default"
                       action="kebab"

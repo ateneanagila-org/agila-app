@@ -11,14 +11,16 @@ import { createEQFilters } from "./helper.repo";
 
 export type CatWithRegion = SelectCat & { region_name: string | null };
 
-// Correlated subquery — gets the latest session's region name for each cat row
-const regionSubquery = sql<string | null>`(
-  SELECT r.name FROM regions r
-  INNER JOIN sessions s ON s.region_id = r.id
-  INNER JOIN session_cats sc ON sc.session_id = s.id
-  WHERE sc.cat_id = cats.id
-  ORDER BY s.created_at DESC
-  LIMIT 1
+// Region name resolution: cats.region_id (manual override) takes priority,
+// otherwise fall back to the most recent session's region.
+const regionSubquery = sql<string | null>`COALESCE(
+  (SELECT r2.name FROM regions r2 WHERE r2.id = cats.region_id),
+  (SELECT r.name FROM regions r
+    INNER JOIN sessions s ON s.region_id = r.id
+    INNER JOIN session_cats sc ON sc.session_id = s.id
+    WHERE sc.cat_id = cats.id
+    ORDER BY s.created_at DESC
+    LIMIT 1)
 )`;
 
 function buildCatConditions(filters: Partial<SelectCat>) {

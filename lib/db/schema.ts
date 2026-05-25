@@ -116,6 +116,9 @@ export const cats = pgTable("cats", {
       onDelete: "set null",
     },
   ),
+  region_id: uuid("region_id").references(() => regions.id, {
+    onDelete: "set null",
+  }),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   entry_status: catEntryStatusEnum("entry_status")
     .default("Unsubmitted")

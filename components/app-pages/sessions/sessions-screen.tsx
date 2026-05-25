@@ -56,7 +56,9 @@ export function SessionsScreen() {
   const [newSessionRegionId, setNewSessionRegionId] = useState("");
   const [creatingSession, setCreatingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [regionOptions, setRegionOptions] = useState<{ id: string; name: string }[]>([]);
+  const [regionOptions, setRegionOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -87,9 +89,7 @@ export function SessionsScreen() {
     try {
       // 1. Sessions linked to current user via session_users
       const linkRes = await getSessionUsers({ user_id: userId });
-      const myIds = new Set(
-        (linkRes?.data ?? []).map((su) => su.session_id),
-      );
+      const myIds = new Set((linkRes?.data ?? []).map((su) => su.session_id));
       if (myIds.size === 0) {
         setSessions([]);
         setAllSessions([]);
@@ -212,7 +212,8 @@ export function SessionsScreen() {
       })
       .map((entry) => ({
         name: entry.name,
-        daysSince: entry.daysSince == null ? "Unknown" : String(entry.daysSince),
+        daysSince:
+          entry.daysSince == null ? "Unknown" : String(entry.daysSince),
       }));
   }, [allSessions, regionMap]);
 
@@ -220,8 +221,14 @@ export function SessionsScreen() {
     if (!newSessionRegionId || !userId) return;
     setCreatingSession(true);
     try {
-      const result = await createSession({ region_id: newSessionRegionId, user_id: userId });
-      if (result?.serverError) { setError(result.serverError); return; }
+      const result = await createSession({
+        region_id: newSessionRegionId,
+        user_id: userId,
+      });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
       const newSession = result?.data;
       if (!newSession?.id) return;
       setShowCreateDialog(false);
@@ -247,7 +254,9 @@ export function SessionsScreen() {
   }, [pendingDeleteId]);
 
   // Reset desktop page when filters change to avoid empty table state
-  useEffect(() => { setDesktopPage(1); }, [filteredSessions]);
+  useEffect(() => {
+    setDesktopPage(1);
+  }, [filteredSessions]);
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
@@ -283,7 +292,9 @@ export function SessionsScreen() {
 
             {/* My Sessions heading + Create New */}
             <div className="flex items-center justify-between">
-              <p className="font-heading text-2xl font-bold text-brand-green">My Sessions</p>
+              <p className="font-heading text-2xl font-bold text-brand-green">
+                My Sessions
+              </p>
               <button
                 type="button"
                 onClick={() => setShowCreateDialog(true)}
@@ -317,9 +328,15 @@ export function SessionsScreen() {
             <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               {/* Table header */}
               <div className="grid grid-cols-[auto_auto_1fr_auto_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">No.</span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Date</span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Location</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                  No.
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                  Date
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                  Location
+                </span>
                 <span />
                 <span />
               </div>
@@ -327,13 +344,18 @@ export function SessionsScreen() {
               {loading ? (
                 <LoadingIndicator />
               ) : filteredSessions.length === 0 ? (
-                <div className="py-6 text-center text-xs text-brand-dark/50">No sessions found.</div>
+                <div className="py-6 text-center text-xs text-brand-dark/50">
+                  No sessions found.
+                </div>
               ) : (
                 <div className="divide-y divide-brand-dark/8">
                   {filteredSessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
                     .map((s) => (
-                      <div key={s.id} className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-x-3 py-2.5">
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-x-3 py-2.5"
+                      >
                         <span className="text-xs font-semibold tabular-nums text-brand-dark">
                           {s.census_no}
                         </span>
@@ -391,12 +413,23 @@ export function SessionsScreen() {
                     ‹
                   </button>
                   <span className="mx-1 tabular-nums">
-                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredSessions.length)} / {filteredSessions.length}
+                    {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, filteredSessions.length)} /{" "}
+                    {filteredSessions.length}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setPage((p) => Math.min(Math.ceil(filteredSessions.length / PAGE_SIZE), p + 1))}
-                    disabled={page >= Math.ceil(filteredSessions.length / PAGE_SIZE)}
+                    onClick={() =>
+                      setPage((p) =>
+                        Math.min(
+                          Math.ceil(filteredSessions.length / PAGE_SIZE),
+                          p + 1,
+                        ),
+                      )
+                    }
+                    disabled={
+                      page >= Math.ceil(filteredSessions.length / PAGE_SIZE)
+                    }
                     className="disabled:opacity-40"
                   >
                     ›
@@ -444,9 +477,15 @@ export function SessionsScreen() {
             <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               <div className="space-y-2.5">
                 <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">No.</span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Location</span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Date</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                    No.
+                  </span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                    Location
+                  </span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                    Date
+                  </span>
                   <span />
                   <span />
                 </div>
@@ -454,11 +493,16 @@ export function SessionsScreen() {
                 {loading ? (
                   <LoadingIndicator />
                 ) : sessions.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-brand-dark/50">No sessions yet.</div>
+                  <div className="py-4 text-center text-xs text-brand-dark/50">
+                    No sessions yet.
+                  </div>
                 ) : (
                   <div className="divide-y divide-brand-dark/8">
                     {sessions.slice(0, 5).map((s) => (
-                      <div key={s.id} className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-x-3 py-2">
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-x-3 py-2"
+                      >
                         <span className="text-xs font-semibold tabular-nums text-brand-dark">
                           {s.census_no}
                         </span>
@@ -497,7 +541,10 @@ export function SessionsScreen() {
 
                 <button
                   type="button"
-                  onClick={() => { setShowAll(true); setPage(1); }}
+                  onClick={() => {
+                    setShowAll(true);
+                    setPage(1);
+                  }}
                   className="text-xs font-bold text-brand-green underline underline-offset-2"
                 >
                   Show all sessions
@@ -512,16 +559,30 @@ export function SessionsScreen() {
             <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               <div className="space-y-2.5">
                 <div className="flex justify-between border-b border-brand-dark/10 pb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Name</span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">Last Tracked</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                    Name
+                  </span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                    Last Tracked
+                  </span>
                 </div>
 
                 <div className="divide-y divide-brand-dark/8">
-                  {(showMoreLocations ? priorityLocations : priorityLocations.slice(0, 5)).map((loc) => (
-                    <div key={loc.name} className="flex items-center justify-between py-2">
-                      <span className="text-xs font-semibold text-brand-dark">{loc.name}</span>
+                  {(showMoreLocations
+                    ? priorityLocations
+                    : priorityLocations.slice(0, 5)
+                  ).map((loc) => (
+                    <div
+                      key={loc.name}
+                      className="flex items-center justify-between py-2"
+                    >
+                      <span className="text-xs font-semibold text-brand-dark">
+                        {loc.name}
+                      </span>
                       <span className="text-xs tabular-nums italic text-brand-dark/65">
-                        {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}
+                        {loc.daysSince === "Unknown"
+                          ? "Unknown"
+                          : `${loc.daysSince} days ago`}
                       </span>
                     </div>
                   ))}
@@ -539,7 +600,6 @@ export function SessionsScreen() {
             </div>
           </div>
         )}
-
       </div>
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
@@ -632,10 +692,18 @@ export function SessionsScreen() {
                         key={s.id}
                         className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                       >
-                        <span className="font-semibold tabular-nums">{s.census_no}</span>
-                        <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
-                        <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                        <span className="font-semibold tabular-nums">
+                          {s.census_no}
+                        </span>
+                        <span className="tabular-nums text-brand-dark/70">
+                          {formatDate(s.created_at)}
+                        </span>
+                        <span className="truncate text-brand-dark/70">
+                          {regionMap[s.region_id] ?? s.region_id.slice(0, 5)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
+                        >
                           {st}
                         </span>
                         {st === "Unfinished" ? (
@@ -684,12 +752,24 @@ export function SessionsScreen() {
                     ‹
                   </button>
                   <span className="mx-1 tabular-nums">
-                    {(desktopPage - 1) * PAGE_SIZE + 1}–{Math.min(desktopPage * PAGE_SIZE, filteredSessions.length)} / {filteredSessions.length}
+                    {(desktopPage - 1) * PAGE_SIZE + 1}–
+                    {Math.min(desktopPage * PAGE_SIZE, filteredSessions.length)}{" "}
+                    / {filteredSessions.length}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setDesktopPage((p) => Math.min(Math.ceil(filteredSessions.length / PAGE_SIZE), p + 1))}
-                    disabled={desktopPage >= Math.ceil(filteredSessions.length / PAGE_SIZE)}
+                    onClick={() =>
+                      setDesktopPage((p) =>
+                        Math.min(
+                          Math.ceil(filteredSessions.length / PAGE_SIZE),
+                          p + 1,
+                        ),
+                      )
+                    }
+                    disabled={
+                      desktopPage >=
+                      Math.ceil(filteredSessions.length / PAGE_SIZE)
+                    }
                     className="disabled:opacity-40"
                   >
                     ›
@@ -715,7 +795,7 @@ export function SessionsScreen() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+              <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
                 <span>Census No.</span>
                 <span>Date</span>
                 <span>Location</span>
@@ -745,10 +825,18 @@ export function SessionsScreen() {
                         key={s.id}
                         className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                       >
-                        <span className="font-semibold tabular-nums">{s.census_no}</span>
-                        <span className="tabular-nums text-brand-dark/70">{formatDate(s.created_at)}</span>
-                        <span className="truncate text-brand-dark/70">{regionMap[s.region_id] ?? s.region_id.slice(0, 5)}</span>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                        <span className="font-semibold tabular-nums">
+                          {s.census_no}
+                        </span>
+                        <span className="tabular-nums text-brand-dark/70">
+                          {formatDate(s.created_at)}
+                        </span>
+                        <span className="truncate text-brand-dark/70">
+                          {regionMap[s.region_id] ?? s.region_id.slice(0, 5)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
+                        >
                           {st}
                         </span>
                         {st === "Unfinished" ? (
@@ -781,7 +869,10 @@ export function SessionsScreen() {
               <div className="border-t border-border px-5 py-3">
                 <button
                   type="button"
-                  onClick={() => { setShowAll(true); setDesktopPage(1); }}
+                  onClick={() => {
+                    setShowAll(true);
+                    setDesktopPage(1);
+                  }}
                   className="text-sm font-bold text-brand-green underline underline-offset-2"
                 >
                   Show all sessions
@@ -808,14 +899,19 @@ export function SessionsScreen() {
                   </div>
                 ) : (
                   <>
-                    {(showMoreLocations ? priorityLocations : priorityLocations.slice(0, 5)).map((loc) => (
+                    {(showMoreLocations
+                      ? priorityLocations
+                      : priorityLocations.slice(0, 5)
+                    ).map((loc) => (
                       <div
                         key={`priority-${loc.name}`}
                         className="grid grid-cols-2 px-5 py-3 text-sm text-brand-dark"
                       >
                         <span className="font-semibold">{loc.name}</span>
                         <span className="tabular-nums text-brand-dark/70">
-                          {loc.daysSince === "Unknown" ? "Unknown" : `${loc.daysSince} days ago`}
+                          {loc.daysSince === "Unknown"
+                            ? "Unknown"
+                            : `${loc.daysSince} days ago`}
                         </span>
                       </div>
                     ))}
@@ -859,12 +955,21 @@ export function SessionsScreen() {
       {error ? (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
           {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="ml-2 opacity-70 hover:opacity-100"
+          >
+            ✕
+          </button>
         </div>
       ) : null}
       <CreateSessionDialog
         open={showCreateDialog}
-        onClose={() => { setShowCreateDialog(false); setError(null); }}
+        onClose={() => {
+          setShowCreateDialog(false);
+          setError(null);
+        }}
         regionId={newSessionRegionId}
         onRegionChange={setNewSessionRegionId}
         regionOptions={regionOptions}

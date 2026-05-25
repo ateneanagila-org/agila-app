@@ -12,6 +12,7 @@ import { ChevronDownIcon, CatIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { useRegions } from "@/lib/hooks/use-regions";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -109,6 +110,10 @@ export function SessionsApprovalValidationScreen() {
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState("");
+  const [regionId, setRegionId] = useState<string | null>(null);
+  const [regionFallbackName, setRegionFallbackName] = useState("");
+
+  const regions = useRegions();
 
   const populateForm = useCallback((catData: CatWithRegion) => {
     setColor(catData.color ?? "");
@@ -119,6 +124,8 @@ export function SessionsApprovalValidationScreen() {
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
+    setRegionId(catData.region_id ?? null);
+    setRegionFallbackName(catData.region_name ?? "");
   }, []);
 
   const fetchCat = useCallback(async () => {
@@ -168,6 +175,7 @@ export function SessionsApprovalValidationScreen() {
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
         entry_status: "Original" as CatEntryStatus,
+        region_id: regionId,
       });
       if (result?.serverError) {
         setError(result.serverError);
@@ -190,6 +198,7 @@ export function SessionsApprovalValidationScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    regionId,
     router,
   ]);
 
@@ -359,6 +368,14 @@ export function SessionsApprovalValidationScreen() {
                 </div>
               ))}
 
+              <DropdownField
+                label="Region (override)"
+                options={regions.map((r) => r.name)}
+                value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+                onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+                isMobile
+              />
+
               <div>
                 <label className="text-xs font-bold text-brand-yellow">
                   Caretaker
@@ -509,6 +526,12 @@ export function SessionsApprovalValidationScreen() {
                   options={CAT_STATUS_VALUES}
                   value={catStatus}
                   onChange={setCatStatus}
+                />
+                <DropdownField
+                  label="Region (override)"
+                  options={regions.map((r) => r.name)}
+                  value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+                  onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
                 />
                 <div>
                   <label className="text-xs font-bold text-brand-yellow">

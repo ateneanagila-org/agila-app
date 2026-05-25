@@ -25,6 +25,7 @@ import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { useRegions } from "@/lib/hooks/use-regions";
 
 function buildMergeDiff(
   newCat: CatWithRegion,
@@ -84,14 +85,13 @@ function buildMergeDiff(
     },
   ];
 
-  // Warn when cats are from different regions (read-only — region is session-derived, not writable)
   if (newCat.region_name !== targetCat.region_name) {
     candidates.unshift({
       label: "Region",
       fieldKey: "region_name",
       currentValue: targetCat.region_name ?? null,
       newValue: newCat.region_name ?? null,
-      inputType: "readonly",
+      inputType: "pill",
     });
   }
 
@@ -125,6 +125,8 @@ export function SessionsApprovalCrossRefScreen() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const regions = useRegions();
 
   const fetchData = useCallback(async () => {
     if (!catId) {
@@ -236,6 +238,10 @@ export function SessionsApprovalCrossRefScreen() {
             | "Sick and Injured";
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;
+        if (resolved.region_name !== undefined) {
+          updatePayload.region_id =
+            regions.find((r) => r.name === resolved.region_name)?.id ?? null;
+        }
         const step1 = await editCat(updatePayload);
         if (step1?.serverError) {
           setError(step1.serverError);
@@ -259,7 +265,7 @@ export function SessionsApprovalCrossRefScreen() {
         setSaving(false);
       }
     },
-    [catId, mergeTargetId, router],
+    [catId, mergeTargetId, regions, router],
   );
 
   const handleApprove = useCallback(async () => {
