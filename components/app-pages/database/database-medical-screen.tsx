@@ -9,11 +9,11 @@ import {
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { editCat } from "@/app/actions/cats";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
+import { normalizeCatField } from "@/lib/utils";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) =>
   String(i + 1).padStart(2, "0"),
@@ -93,7 +93,7 @@ export function DatabaseMedicalScreen() {
   const [vaccYear, setVaccYear] = useState("");
 
   const populateForm = useCallback((hr: SelectCatHealthRecord) => {
-    setCondition(hr.condition ?? "");
+    setCondition(hr.condition ?? "Unknown");
     const neuter = parseDateParts(hr.neuter_date);
     setNeuterMonth(neuter.month);
     setNeuterDay(neuter.day);
@@ -118,9 +118,7 @@ export function DatabaseMedicalScreen() {
     try {
       const result = await editCat({
         id: catId,
-        condition: (condition || undefined) as
-          | CatHealthRecordCondition
-          | undefined,
+        condition: normalizeCatField<CatHealthRecordCondition>(condition),
         neuter_date: buildDate(neuterMonth, neuterDay, neuterYear) ?? undefined,
         vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear) ?? undefined,
       });
@@ -128,7 +126,6 @@ export function DatabaseMedicalScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -246,7 +243,7 @@ export function DatabaseMedicalScreen() {
             <FieldLabel>Condition</FieldLabel>
             <div className="mt-1.5">
               <CustomSelect
-                options={CATHEALTHRECORD_CONDITION_VALUES}
+                options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
                 value={condition}
                 onChange={setCondition}
                 variant="white"

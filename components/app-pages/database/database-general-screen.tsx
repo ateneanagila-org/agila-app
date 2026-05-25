@@ -12,12 +12,12 @@ import { editCat } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
+import { useRegions } from "@/lib/hooks/use-regions";
 import {
   DiscardChangesDialog,
   SaveChangesDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
-import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -86,9 +86,14 @@ export function DatabaseGeneralScreen() {
   const [catStatus, setCatStatus] = useState("");
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
+  const [spotLastSeen, setSpotLastSeen] = useState("");
   const [isAdoptable, setIsAdoptable] = useState(false);
+  const [regionId, setRegionId] = useState<string | null>(null);
+  const [regionFallbackName, setRegionFallbackName] = useState("");
 
-  const populateForm = useCallback((catData: SelectCat) => {
+  const regions = useRegions();
+
+  const populateForm = useCallback((catData: CatWithRegion) => {
     setColor(catData.color ?? "");
     setAge(catData.age ?? "");
     setSex(catData.sex ?? "");
@@ -96,7 +101,10 @@ export function DatabaseGeneralScreen() {
     setCatStatus(catData.cat_status ?? "");
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
+    setSpotLastSeen(catData.spot_last_seen ?? "");
     setIsAdoptable(catData.is_adoptable ?? false);
+    setRegionId(catData.region_id ?? null);
+    setRegionFallbackName(catData.region_name ?? "");
   }, []);
 
   // Hydrate form when cat from context resolves/changes
@@ -120,13 +128,14 @@ export function DatabaseGeneralScreen() {
         cat_status: (catStatus || undefined) as CatStatus | undefined,
         caretaker: caretaker || undefined,
         notes: notes || undefined,
+        spot_last_seen: spotLastSeen || undefined,
         is_adoptable: isAdoptable,
+        region_id: regionId,
       });
       if (result?.serverError) {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
@@ -142,7 +151,9 @@ export function DatabaseGeneralScreen() {
     catStatus,
     caretaker,
     notes,
+    spotLastSeen,
     isAdoptable,
+    regionId,
     refresh,
   ]);
 
@@ -180,7 +191,6 @@ export function DatabaseGeneralScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal);
@@ -273,7 +283,7 @@ export function DatabaseGeneralScreen() {
                     {cat.age}
                   </span>
                 ) : null}
-                {cat?.sociability && cat.sociability !== "Unknown" ? (
+                {cat?.sociability ? (
                   <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
                     {cat.sociability}
                   </span>
@@ -328,11 +338,25 @@ export function DatabaseGeneralScreen() {
             <FormSelect label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
             <FormSelect label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
             <FormSelect label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+            <FormSelect
+              label="Region (override)"
+              options={regions.map((r) => r.name)}
+              value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+              onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+            />
             <div>
               <FieldLabel>Caretaker</FieldLabel>
               <input
                 value={caretaker}
                 onChange={(e) => setCaretaker(e.target.value)}
+                className="mt-1.5 h-11 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
+              />
+            </div>
+            <div>
+              <FieldLabel>Spot Last Seen</FieldLabel>
+              <input
+                value={spotLastSeen}
+                onChange={(e) => setSpotLastSeen(e.target.value)}
                 className="mt-1.5 h-11 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
               />
             </div>

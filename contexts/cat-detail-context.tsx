@@ -15,14 +15,14 @@ import {
 } from "@/app/actions/cats";
 import { getInterventions } from "@/app/actions/interventions";
 import type {
-  SelectCat,
   SelectCatHealthRecord,
 } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 
 type CatDetailContextValue = {
   catId: string | null;
-  cat: SelectCat | null;
+  cat: CatWithRegion | null;
   healthRecord: SelectCatHealthRecord | null;
   interventions: SelectIntervention[];
   loading: boolean;
@@ -37,7 +37,7 @@ export function CatDetailProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const catId = searchParams.get("id");
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
+  const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [healthRecord, setHealthRecord] =
     useState<SelectCatHealthRecord | null>(null);
   const [interventions, setInterventions] = useState<SelectIntervention[]>([]);

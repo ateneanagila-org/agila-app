@@ -25,10 +25,12 @@ export const createCatSchema = createInsertSchema(cats)
     catalog_id: true,
     paws_id: true,
   })
-  .extend({ region_id: z.string(), condition: CatHealthRecordConditionEnum });
+  .extend({
+    region_id: z.string(),
+    condition: CatHealthRecordConditionEnum.nullable().optional(),
+  });
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
-  .extend({ region_id: z.string() })
   .merge(editCatHealthRecordSchema.omit({ cat_id: true }))
   .omit({ catalog_id: true })
   .partial()

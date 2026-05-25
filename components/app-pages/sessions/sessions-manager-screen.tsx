@@ -2,24 +2,27 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  CatIcon,
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
+import { displayCatField } from "@/lib/utils";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { getSessionCats } from "@/app/actions/sessions";
-import { getCats } from "@/app/actions/cats";
-import type { SelectCat } from "@/lib/validation/cats";
+import { getCats, approveCat } from "@/app/actions/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
 type ReviewItem = {
-  cat: SelectCat;
+  cat: CatWithRegion;
   sessionId: string;
   sessionCatId: string;
 };
 
+const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
+
 export function SessionsManagerScreen() {
   const [forReview, setForReview] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approvingItem, setApprovingItem] = useState<ReviewItem | null>(null);
+  const [saving, setSaving] = useState(false);
 
   /** Fetch cats from unfinished sessions (pending review) */
   const fetchPendingCats = useCallback(async () => {
@@ -72,6 +75,24 @@ export function SessionsManagerScreen() {
     return "text-slate-400";
   };
 
+  const handleApprove = useCallback(async () => {
+    if (!approvingItem) return;
+    setSaving(true);
+    try {
+      const result = await approveCat({ id: approvingItem.cat.id });
+      if (!result?.serverError) {
+        setForReview((prev) =>
+          prev.filter((i) => i.sessionCatId !== approvingItem.sessionCatId),
+        );
+        setApprovingItem(null);
+      }
+    } catch (err) {
+      console.error("Failed to approve:", err);
+    } finally {
+      setSaving(false);
+    }
+  }, [approvingItem]);
+
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
     const d = new Date(date);
@@ -90,17 +111,19 @@ export function SessionsManagerScreen() {
         <div className="flex-1 space-y-3 px-4 py-4">
           {/* Top action buttons */}
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-green py-2.5 text-sm font-bold text-brand-green transition-opacity hover:opacity-80"
+            <a
+              href={CENSUS_REPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Census Report
-            </button>
+            </a>
             <Link
               href="/dashboard/sessions"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Review Sessions ⊙
+              My Sessions ›
             </Link>
           </div>
 
@@ -123,44 +146,60 @@ export function SessionsManagerScreen() {
           ) : (
             <div className="space-y-2">
               {forReview.map((item) => (
-                <Link
+                <div
                   key={item.sessionCatId}
-                  href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
+                  className="overflow-hidden rounded-2xl bg-brand-green"
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
-                    <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
-                      <CatIcon className="h-10 w-10 text-white/40" />
+                    <div className="flex w-28 shrink-0 items-center justify-center overflow-hidden bg-white/10">
+                      <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-28 w-28 object-cover" iconClassName="h-10 w-10 text-white/40" />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
-                            {item.cat.name || "Unnamed"}
-                          </span>
-                          {sexSymbol(item.cat.sex) ? (
-                            <span className="text-white text-lg leading-none ml-1">
-                              {sexSymbol(item.cat.sex)}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                              {item.cat.name || "Unnamed"}
+                            </span>
+                            {sexSymbol(item.cat.sex) ? (
+                              <span className="text-white text-lg leading-none ml-1">
+                                {sexSymbol(item.cat.sex)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm font-bold text-white truncate">
+                            {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
+                          </p>
+                          {item.cat.region_name ? (
+                            <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                              {item.cat.region_name}
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-sm font-bold text-white truncate">
-                          {item.cat.color || "Unknown"}{item.cat.age ? ` ${item.cat.age}` : ""}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex items-end justify-between gap-2">
-                        <p className="text-sm font-bold text-white truncate">
-                          {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
-                        </p>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                          <span className="text-sm font-bold">›</span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setApprovingItem(item)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white shadow-sm transition-opacity hover:opacity-80"
+                          >
+                            <span className="text-sm font-bold">✓</span>
+                          </button>
+                          <Link
+                            href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm"
+                          >
+                            <span className="text-sm font-bold">›</span>
+                          </Link>
                         </div>
                       </div>
+                      <p className="mt-3 text-sm font-bold text-white truncate">
+                        {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
+                      </p>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -169,43 +208,26 @@ export function SessionsManagerScreen() {
 
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-7">
         <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Sessions
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
+            For Review
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            <a
+              href={CENSUS_REPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Census Report <span className="ml-1">📊</span>
-            </button>
+              Census Report
+            </a>
             <Link
               href="/dashboard/sessions"
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Back <span className="ml-1">&#8249;</span>
+              My Sessions <span className="ml-1">&#8249;</span>
             </Link>
           </div>
         </div>
-
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <span className="ml-1">&#9662;</span>
-            </button>
-          </div>
-        </section>
 
         <div className="mt-4 space-y-3">
           {loading ? (
@@ -221,8 +243,8 @@ export function SessionsManagerScreen() {
                 className="rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green transition-opacity hover:opacity-90"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                    <CatIcon className="h-9 w-9 text-white/50" />
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+                    <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-20 w-20 object-cover" iconClassName="h-9 w-9 text-white/50" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -235,7 +257,7 @@ export function SessionsManagerScreen() {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-2 flex gap-1.5">
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.cat.color ? (
                         <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                           {item.cat.color}
@@ -246,24 +268,45 @@ export function SessionsManagerScreen() {
                           {item.cat.age}
                         </span>
                       ) : null}
+                      {item.cat.region_name ? (
+                        <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                          {item.cat.region_name}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-3 text-sm text-white/70">
                       Last seen: {item.cat.spot_last_seen || "—"} &middot;{" "}
                       {formatDate(item.cat.last_updated_at)}
                     </p>
                   </div>
-                  <Link
-                    href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                  >
-                    Review <span className="ml-1">&#9998;</span>
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setApprovingItem(item)}
+                      className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Approve <span className="ml-1">&#10003;</span>
+                    </button>
+                    <Link
+                      href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                      className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Review <span className="ml-1">&#9998;</span>
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))
           )}
         </div>
       </div>
+
+      <ApproveCatDialog
+        open={approvingItem !== null}
+        onClose={() => setApprovingItem(null)}
+        onConfirm={handleApprove}
+        isLoading={saving}
+      />
     </>
   );
 }

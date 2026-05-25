@@ -8,15 +8,11 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import {
-  ChevronDownIcon,
-  CatIcon,
-  SearchIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, CatIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
-import type { SelectCat } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { useRegions } from "@/lib/hooks/use-regions";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -71,7 +67,7 @@ function DropdownField({
 
   return (
     <div>
-      <label className="text-xs font-medium text-white/70">{label}</label>
+      <label className="text-xs font-bold text-brand-yellow">{label}</label>
       <div className="relative mt-1 rounded-lg border border-white/20 bg-white/15">
         <select
           value={value}
@@ -98,7 +94,7 @@ export function SessionsApprovalValidationScreen() {
   const sessionId = searchParams.get("sessionId");
   const sessionCatId = searchParams.get("sessionCatId");
 
-  const [cat, setCat] = useState<SelectCat | null>(null);
+  const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,8 +110,12 @@ export function SessionsApprovalValidationScreen() {
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState("");
+  const [regionId, setRegionId] = useState<string | null>(null);
+  const [regionFallbackName, setRegionFallbackName] = useState("");
 
-  const populateForm = useCallback((catData: SelectCat) => {
+  const regions = useRegions();
+
+  const populateForm = useCallback((catData: CatWithRegion) => {
     setColor(catData.color ?? "");
     setAge(catData.age ?? "");
     setSex(catData.sex ?? "");
@@ -124,6 +124,8 @@ export function SessionsApprovalValidationScreen() {
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
+    setRegionId(catData.region_id ?? null);
+    setRegionFallbackName(catData.region_name ?? "");
   }, []);
 
   const fetchCat = useCallback(async () => {
@@ -173,12 +175,12 @@ export function SessionsApprovalValidationScreen() {
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
         entry_status: "Original" as CatEntryStatus,
+        region_id: regionId,
       });
       if (result?.serverError) {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       setShowSaveConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {
@@ -196,6 +198,7 @@ export function SessionsApprovalValidationScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    regionId,
     router,
   ]);
 
@@ -208,7 +211,6 @@ export function SessionsApprovalValidationScreen() {
         setError(result.serverError);
         return;
       }
-      syncAllPendingRegions();
       setShowDiscardConfirm(false);
       router.push("/dashboard/sessions/manager");
     } catch (err) {
@@ -303,31 +305,81 @@ export function SessionsApprovalValidationScreen() {
           <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-bold text-brand-yellow">Last seen at:</p>
-                <p className="mt-1 text-[15px] font-semibold text-white">
-                  {formatDate(cat?.last_updated_at)} / {cat?.spot_last_seen || "—"}
+                <p className="text-xs font-bold text-brand-yellow">
+                  Last seen at:
                 </p>
+                <p className="mt-1 text-[15px] font-semibold text-white">
+                  {formatDate(cat?.last_updated_at)} /{" "}
+                  {cat?.spot_last_seen || "—"}
+                </p>
+                {cat?.region_name ? (
+                  <span className="mt-2 inline-block rounded-full bg-brand-dark/60 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                    {cat.region_name}
+                  </span>
+                ) : null}
               </div>
 
               {(
                 [
-                  { label: "Color", options: CAT_COLOR_VALUES, value: color, onChange: setColor },
-                  { label: "Size/Age", options: CAT_AGE_VALUES, value: age, onChange: setAge },
-                  { label: "Sex", options: CAT_SEX_VALUES, value: sex, onChange: setSex },
-                  { label: "Sociability", options: CAT_SOCIABILITY_VALUES, value: sociability, onChange: setSociability },
-                  { label: "Status", options: CAT_STATUS_VALUES, value: catStatus, onChange: setCatStatus },
+                  {
+                    label: "Color",
+                    options: CAT_COLOR_VALUES,
+                    value: color,
+                    onChange: setColor,
+                  },
+                  {
+                    label: "Size/Age",
+                    options: CAT_AGE_VALUES,
+                    value: age,
+                    onChange: setAge,
+                  },
+                  {
+                    label: "Sex",
+                    options: CAT_SEX_VALUES,
+                    value: sex,
+                    onChange: setSex,
+                  },
+                  {
+                    label: "Sociability",
+                    options: CAT_SOCIABILITY_VALUES,
+                    value: sociability,
+                    onChange: setSociability,
+                  },
+                  {
+                    label: "Status",
+                    options: CAT_STATUS_VALUES,
+                    value: catStatus,
+                    onChange: setCatStatus,
+                  },
                 ] as const
               ).map(({ label, options, value, onChange }) => (
                 <div key={label}>
-                  <label className="text-xs font-bold text-brand-yellow">{label}</label>
+                  <label className="text-xs font-bold text-brand-yellow">
+                    {label}
+                  </label>
                   <div className="mt-1.5">
-                    <CustomSelect options={options} value={value} onChange={onChange} variant="cream" />
+                    <CustomSelect
+                      options={options}
+                      value={value}
+                      onChange={onChange}
+                      variant="cream"
+                    />
                   </div>
                 </div>
               ))}
 
+              <DropdownField
+                label="Region (override)"
+                options={regions.map((r) => r.name)}
+                value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+                onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+                isMobile
+              />
+
               <div>
-                <label className="text-xs font-bold text-brand-yellow">Caretaker</label>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Caretaker
+                </label>
                 <input
                   value={caretaker}
                   onChange={(e) => setCaretaker(e.target.value)}
@@ -336,7 +388,9 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-brand-yellow">Notes</label>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Notes
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -354,12 +408,6 @@ export function SessionsApprovalValidationScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-full bg-brand-green px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Census Report <span className="ml-1">📊</span>
-            </button>
             <Link
               href={backHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -368,25 +416,6 @@ export function SessionsApprovalValidationScreen() {
             </Link>
           </div>
         </div>
-
-        <section className="mt-4 overflow-hidden rounded-2xl bg-brand-green p-4 ring-1 ring-brand-green">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search"
-                className="h-9 w-full rounded-full bg-white/15 px-4 pr-10 text-sm text-white outline-none placeholder:text-white/60"
-              />
-              <SearchIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-            </div>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            >
-              Sort by <span className="ml-1">&#9662;</span>
-            </button>
-          </div>
-        </section>
 
         {error ? (
           <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -413,7 +442,7 @@ export function SessionsApprovalValidationScreen() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-2 flex gap-1.5">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {cat?.color ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.color}
@@ -422,6 +451,11 @@ export function SessionsApprovalValidationScreen() {
                     {cat?.age ? (
                       <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
                         {cat.age}
+                      </span>
+                    ) : null}
+                    {cat?.region_name ? (
+                      <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                        {cat.region_name}
                       </span>
                     ) : null}
                   </div>
@@ -448,14 +482,14 @@ export function SessionsApprovalValidationScreen() {
                     type="button"
                     disabled={saving}
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
-                    Approve <span className="ml-1">&#10003;</span>
+                    New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-full border border-brand-orange bg-transparent px-4 py-1.5 text-sm font-bold text-brand-orange transition-opacity hover:opacity-90"
+                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Cancel <span className="ml-1">&#10005;</span>
                   </button>
@@ -493,8 +527,14 @@ export function SessionsApprovalValidationScreen() {
                   value={catStatus}
                   onChange={setCatStatus}
                 />
+                <DropdownField
+                  label="Region (override)"
+                  options={regions.map((r) => r.name)}
+                  value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+                  onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+                />
                 <div>
-                  <label className="text-xs font-medium text-white/70">
+                  <label className="text-xs font-bold text-brand-yellow">
                     Caretaker
                   </label>
                   <input
@@ -506,7 +546,7 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-medium text-white/70">
+                <label className="text-xs font-bold text-brand-yellow">
                   Specific Location
                 </label>
                 <input
@@ -517,7 +557,7 @@ export function SessionsApprovalValidationScreen() {
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-medium text-white/70">
+                <label className="text-xs font-bold text-brand-yellow">
                   Notes
                 </label>
                 <textarea

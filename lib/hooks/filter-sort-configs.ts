@@ -17,11 +17,11 @@ const REGION_FILTER_OPTIONS = REGION_NAME_VALUES.filter((r) => r !== "UNKNOWN");
 export const DATABASE_LIST_CONFIG: FilterSortConfig = {
   filters: [
     { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
-    { label: "Color", key: "color", options: CAT_COLOR_VALUES },
-    { label: "Age", key: "age", options: CAT_AGE_VALUES },
-    { label: "Sex", key: "sex", options: CAT_SEX_VALUES },
-    { label: "Sociability", key: "sociability", options: CAT_SOCIABILITY_VALUES },
-    { label: "Status", key: "cat_status", options: CAT_STATUS_VALUES },
+    { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
+    { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
+    { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
+    { label: "Sociability", key: "sociability", options: [...CAT_SOCIABILITY_VALUES, "Unknown"] },
+    { label: "Status", key: "cat_status", options: [...CAT_STATUS_VALUES, "Unknown"] },
   ],
   sortOptions: [
     { label: "Name", key: "name" },
@@ -70,9 +70,9 @@ export const INTERVENTIONS_CONFIG: FilterSortConfig = {
 
 export const SESSIONS_MANAGER_CONFIG: FilterSortConfig = {
   filters: [
-    { label: "Color", key: "color", options: CAT_COLOR_VALUES },
-    { label: "Sex", key: "sex", options: CAT_SEX_VALUES },
-    { label: "Condition", key: "condition", options: CATHEALTHRECORD_CONDITION_VALUES },
+    { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
+    { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
+    { label: "Condition", key: "condition", options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"] },
   ],
   sortOptions: [
     { label: "Name", key: "name" },

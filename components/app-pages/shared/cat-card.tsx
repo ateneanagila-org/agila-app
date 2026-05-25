@@ -26,6 +26,7 @@ type CatCardProps = {
     | "cat_status"
     | "is_adoptable"
   >;
+  region_name?: string | null;
   href?: string;
   variant?: Variant;
   /** Right-side affordance. `kebab` = options, `chevron` = navigate, `none` = nothing. */
@@ -111,6 +112,7 @@ function Chip({ children, cls }: { children: ReactNode; cls?: string }) {
 
 export function CatCard({
   cat,
+  region_name,
   href,
   variant = "compact",
   action = "chevron",
@@ -161,7 +163,7 @@ export function CatCard({
                 ) : null}
               </div>
               <p className="mt-0.5 text-xs font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
               </p>
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -224,7 +226,7 @@ export function CatCard({
                 ) : null}
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
               </p>
             </div>
             {action !== "none" ? (
@@ -236,10 +238,10 @@ export function CatCard({
           ) : null}
           <p className="mt-0.5 flex min-w-0 items-baseline gap-1 truncate text-[10px]">
             <span className="font-semibold uppercase tracking-wider text-brand-green/80">
-              Loc
+              Region
             </span>
             <span className="truncate font-medium text-brand-dark/75">
-              {cat.spot_last_seen || "Unknown"}
+              {region_name || "—"}
             </span>
             <span className="text-brand-dark/30">·</span>
             <span className="font-medium tabular-nums text-brand-dark/55">
@@ -279,7 +281,7 @@ export function CatCard({
               ) : null}
             </div>
             <p className="mt-1 text-sm font-medium text-brand-dark/60 truncate">
-              {[cat.color, cat.age].filter(Boolean).join(" · ") || "—"}
+              {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
             </p>
             {extraChips ? (
               <div className="mt-2 flex flex-wrap gap-1.5">{extraChips}</div>

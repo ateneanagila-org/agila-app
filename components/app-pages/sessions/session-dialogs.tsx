@@ -2,8 +2,9 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
-import type { SelectCat } from "@/lib/validation/cats";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
 
@@ -79,17 +80,6 @@ function getFilterValue(activeFilters: FilterState, key: string): string {
   return set && set.size > 0 ? (set.values().next().value as string) : "";
 }
 
-function applyDropdownFilter(
-  key: string,
-  value: string,
-  activeFilters: FilterState,
-  toggleFilter: (k: string, v: string) => void,
-) {
-  const current = getFilterValue(activeFilters, key);
-  if (current) toggleFilter(key, current);
-  if (value) toggleFilter(key, value);
-}
-
 // ─── Create Session Dialog ────────────────────────────────────────────────────
 
 type CreateSessionDialogProps = {
@@ -117,18 +107,17 @@ export function CreateSessionDialog({
 
       <div>
         <label className="text-sm font-semibold text-brand-orange">Location</label>
-        <div className="relative mt-1.5">
-          <select
-            value={regionId}
-            onChange={(e) => onRegionChange(e.target.value)}
-            className="h-10 w-full appearance-none rounded-full border border-brand-orange/30 bg-white px-4 pr-10 text-sm text-foreground outline-none"
-          >
-            <option value="">Value (type to search)</option>
-            {regionOptions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange/70" />
+        <div className="mt-1.5">
+          <CustomSelect
+            options={regionOptions.map((r) => r.name)}
+            value={regionOptions.find((r) => r.id === regionId)?.name ?? ""}
+            onChange={(name) => {
+              const found = regionOptions.find((r) => r.name === name);
+              if (found) onRegionChange(found.id);
+            }}
+            placeholder="—"
+            variant="white"
+          />
         </div>
       </div>
 
@@ -184,17 +173,17 @@ export function FinishSessionDialog({ open, onClose, onConfirm, isLoading }: Fin
 
 // ─── Approve Session Dialog ───────────────────────────────────────────────────
 
-type ApproveSessionDialogProps = {
+type ApproveCatDialogProps = {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
 };
 
-export function ApproveSessionDialog({ open, onClose, onConfirm, isLoading }: ApproveSessionDialogProps) {
+export function ApproveCatDialog({ open, onClose, onConfirm, isLoading }: ApproveCatDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="Approve session?" onClose={onClose} />
+      <Header title="Approve cat?" onClose={onClose} />
       <p className="text-sm text-foreground">This action cannot be undone.</p>
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
@@ -218,19 +207,19 @@ export function ApproveSessionDialog({ open, onClose, onConfirm, isLoading }: Ap
   );
 }
 
-// ─── Discard Session Dialog ───────────────────────────────────────────────────
+// ─── Delete Session Dialog ───────────────────────────────────────────────────
 
-type DiscardSessionDialogProps = {
+type DeleteSessionDialogProps = {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
 };
 
-export function DiscardSessionDialog({ open, onClose, onConfirm, isLoading }: DiscardSessionDialogProps) {
+export function DeleteSessionDialog({ open, onClose, onConfirm, isLoading }: DeleteSessionDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="Discard session?" onClose={onClose} />
+      <Header title="Delete session?" onClose={onClose} />
       <p className="text-sm text-foreground">This action cannot be undone.</p>
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
@@ -261,25 +250,32 @@ type SessionFiltersDialogProps = {
   onClose: () => void;
   categories: FilterCategory[];
   activeFilters: FilterState;
-  onToggle: (key: string, value: string) => void;
   onClear: () => void;
-  activeCount: number;
+  onApply: (filters: Record<string, string>) => void;
 };
 
-export function SessionFiltersDialog({
-  open,
-  onClose,
+function SessionFiltersBody({
   categories,
   activeFilters,
-  onToggle,
+  onClose,
   onClear,
-  activeCount,
-}: SessionFiltersDialogProps) {
+  onApply,
+}: Omit<SessionFiltersDialogProps, "open">) {
+  const [pending, setPending] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const cat of categories) {
+      init[cat.key] = getFilterValue(activeFilters, cat.key);
+    }
+    return init;
+  });
+
+  const pendingCount = Object.values(pending).filter(Boolean).length;
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header
         title="Filters"
-        subtitle={activeCount > 0 ? `${activeCount} selected` : undefined}
+        subtitle={pendingCount > 0 ? `${pendingCount} selected` : undefined}
         onClose={onClose}
       />
 
@@ -288,8 +284,8 @@ export function SessionFiltersDialog({
           <SelectField
             key={cat.key}
             label={cat.label}
-            value={getFilterValue(activeFilters, cat.key)}
-            onChange={(v) => applyDropdownFilter(cat.key, v, activeFilters, onToggle)}
+            value={pending[cat.key] ?? ""}
+            onChange={(v) => setPending((prev) => ({ ...prev, [cat.key]: v }))}
             options={cat.options}
           />
         ))}
@@ -298,19 +294,27 @@ export function SessionFiltersDialog({
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
           type="button"
-          onClick={() => { onClear(); onClose(); }}
+          onClick={onClear}
           className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
           Reset <span>✕</span>
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function SessionFiltersDialog(props: SessionFiltersDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <SessionFiltersBody {...props} />
     </Shell>
   );
 }
@@ -323,21 +327,22 @@ type SessionSortByDialogProps = {
   options: SortOption[];
   activeKey: string | null;
   order: "asc" | "desc";
-  onSort: (key: string | null) => void;
-  onOrder: (o: "asc" | "desc") => void;
+  onApply: (key: string | null, order: "asc" | "desc") => void;
 };
 
-export function SessionSortByDialog({
-  open,
-  onClose,
+function SessionSortBody({
   options,
   activeKey,
   order,
-  onSort,
-  onOrder,
-}: SessionSortByDialogProps) {
+  onClose,
+  onApply,
+}: Omit<SessionSortByDialogProps, "open">) {
+  const [pending, setPending] = useState<{ key: string | null; order: "asc" | "desc" }>(
+    () => ({ key: activeKey, order }),
+  );
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header title="Sort By" onClose={onClose} />
 
       <div className="grid grid-cols-2 gap-2">
@@ -345,9 +350,9 @@ export function SessionSortByDialog({
           <button
             key={opt.key}
             type="button"
-            onClick={() => onSort(activeKey === opt.key ? null : opt.key)}
+            onClick={() => setPending((p) => ({ ...p, key: p.key === opt.key ? null : opt.key }))}
             className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-              activeKey === opt.key
+              pending.key === opt.key
                 ? "border-brand-green bg-brand-green text-white"
                 : "border-brand-green/30 text-foreground hover:bg-brand-green/5"
             }`}
@@ -364,9 +369,9 @@ export function SessionSortByDialog({
             <button
               key={o}
               type="button"
-              onClick={() => onOrder(o)}
+              onClick={() => setPending((p) => ({ ...p, order: o }))}
               className={`rounded-full px-3 py-2 text-sm font-semibold transition-opacity ${
-                order === o
+                pending.order === o
                   ? "bg-brand-orange text-white"
                   : "border border-brand-orange/40 text-foreground hover:opacity-80"
               }`}
@@ -380,97 +385,214 @@ export function SessionSortByDialog({
       <div className="flex justify-end pt-1">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending.key, pending.order)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function SessionSortByDialog(props: SessionSortByDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <SessionSortBody {...props} />
     </Shell>
   );
 }
 
-// ─── Merge Details Dialog ─────────────────────────────────────────────────────
+// ─── Merge Details Dialog (Option A — diff-only, default to new) ─────────────
 
-type MergeField = {
+export type MergeFieldDef = {
   label: string;
-  key: keyof Pick<SelectCat, "color" | "age" | "sex" | "sociability" | "cat_status">;
+  fieldKey: string;
+  currentValue: string | null;
+  newValue: string | null;
+  inputType: "pill" | "textarea" | "image";
 };
-
-const MERGE_FIELDS: MergeField[] = [
-  { label: "Color", key: "color" },
-  { label: "Size/Age", key: "age" },
-  { label: "Sex", key: "sex" },
-  { label: "Sociability", key: "sociability" },
-  { label: "Status", key: "cat_status" },
-];
-
-type MergeSelection = Partial<Record<string, "a" | "b">>;
 
 type MergeDetailsDialogProps = {
   open: boolean;
   onClose: () => void;
-  catA: SelectCat | null;
-  catB: SelectCat | null;
-  onMerge: (selections: MergeSelection) => void;
+  targetName: string | null;
+  newName: string | null;
+  diffFields: MergeFieldDef[];
+  autoMergedCount: number;
+  onMerge: (resolved: Record<string, string | null>) => void;
   isLoading?: boolean;
 };
 
-export function MergeDetailsDialog({
-  open,
+function MergeDetailsDialogContent({
   onClose,
-  catA,
-  catB,
+  targetName,
+  newName,
+  diffFields,
+  autoMergedCount,
   onMerge,
   isLoading,
-}: MergeDetailsDialogProps) {
-  const [selections, setSelections] = useState<MergeSelection>({});
+}: Omit<MergeDetailsDialogProps, "open">) {
+  const defaultSelections = () =>
+    Object.fromEntries(
+      diffFields
+        .filter((f) => f.inputType === "pill" || f.inputType === "image")
+        .map((f) => [f.fieldKey, "new" as const]),
+    );
+  const defaultTextValues = () =>
+    Object.fromEntries(
+      diffFields
+        .filter((f) => f.inputType === "textarea")
+        .map((f) => [f.fieldKey, f.newValue ?? ""]),
+    );
 
-  const toggleSelection = (key: string, side: "a" | "b") => {
-    setSelections((prev) => ({ ...prev, [key]: prev[key] === side ? undefined : side }));
+  const [selections, setSelections] = useState<Record<string, "new" | "current">>(defaultSelections);
+  const [textValues, setTextValues] = useState<Record<string, string>>(defaultTextValues);
+
+  const handleReset = () => {
+    setSelections(defaultSelections());
+    setTextValues(defaultTextValues());
   };
 
-  const handleReset = () => setSelections({});
+  const handleMerge = () => {
+    const resolved: Record<string, string | null> = {};
+    for (const field of diffFields) {
+      if (field.inputType === "pill" || field.inputType === "image") {
+        const sel = selections[field.fieldKey] ?? "new";
+        resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
+      } else {
+        resolved[field.fieldKey] = textValues[field.fieldKey] ?? null;
+      }
+    }
+    onMerge(resolved);
+  };
+
+  const pillFields = diffFields.filter((f) => f.inputType === "pill");
+  const imageFields = diffFields.filter((f) => f.inputType === "image");
+  const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
 
   return (
-    <Shell open={open} onClose={onClose}>
-      <Header title="Merge Details" subtitle="Select which information to retain." onClose={onClose} />
+    <>
+      <Header
+        title="Merge Details"
+        subtitle={targetName ? `Merging into ${targetName}` : undefined}
+        onClose={onClose}
+      />
 
-      <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-        {MERGE_FIELDS.map((field) => {
-          const valA = catA?.[field.key] ?? "—";
-          const valB = catB?.[field.key] ?? "—";
-          return (
-            <div key={field.key}>
-              <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleSelection(field.key, "a")}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-                    selections[field.key] === "a"
-                      ? "border-brand-green bg-brand-green text-white"
-                      : "border-pink-200 bg-pink-50 text-foreground hover:bg-pink-100"
-                  }`}
-                >
-                  {String(valA)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSelection(field.key, "b")}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-                    selections[field.key] === "b"
-                      ? "border-brand-green bg-brand-green text-white"
-                      : "border-pink-200 bg-pink-50 text-foreground hover:bg-pink-100"
-                  }`}
-                >
-                  {String(valB)}
-                </button>
-              </div>
+      {pillFields.length > 0 || imageFields.length > 0 || textareaFields.length > 0 ? (
+        <p className="text-xs text-brand-dark/60">
+          {pillFields.length + imageFields.length} field
+          {pillFields.length + imageFields.length !== 1 ? "s" : ""} differ
+          {autoMergedCount > 0 ? ` · ${autoMergedCount} auto-merged` : ""}
+        </p>
+      ) : (
+        <p className="text-xs text-brand-dark/60">All fields match — only notes to review.</p>
+      )}
+
+      <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
+        {imageFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["new", "current"] as const).map((side) => {
+                const value = side === "new" ? field.newValue : field.currentValue;
+                const selected = (selections[field.fieldKey] ?? "new") === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() =>
+                      setSelections((s) => ({ ...s, [field.fieldKey]: side }))
+                    }
+                    className={`flex flex-col items-stretch gap-1.5 rounded-xl border-2 p-1.5 transition-colors ${
+                      selected
+                        ? "border-brand-green bg-brand-green/10"
+                        : "border-brand-dark/15 bg-brand-cream hover:bg-brand-cream-dark"
+                    }`}
+                  >
+                    <div className="aspect-square overflow-hidden rounded-lg">
+                      <CatPhoto
+                        photoUrl={value}
+                        name={side === "new" ? newName : targetName}
+                        className="h-full w-full"
+                        iconClassName="h-8 w-8 text-brand-dark/30"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-dark/60">
+                        {side === "new" ? "New" : "Current"}
+                      </span>
+                      {selected ? <span className="text-xs text-brand-green">✓</span> : null}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
+
+        {pillFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            <div className="space-y-1.5">
+              {(["new", "current"] as const).map((side) => {
+                const value = side === "new" ? field.newValue : field.currentValue;
+                const selected = (selections[field.fieldKey] ?? "new") === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() =>
+                      setSelections((s) => ({ ...s, [field.fieldKey]: side }))
+                    }
+                    className={`flex w-full items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                      selected
+                        ? "border-brand-green bg-brand-green text-white"
+                        : "border-brand-dark/15 bg-brand-cream text-brand-dark hover:bg-brand-cream-dark"
+                    }`}
+                  >
+                    <span
+                      className={`w-12 shrink-0 text-left text-[10px] font-bold uppercase tracking-wider ${
+                        selected ? "text-white/70" : "text-brand-dark/40"
+                      }`}
+                    >
+                      {side === "new" ? "New" : "Current"}
+                    </span>
+                    <span className="flex-1 text-left">{value ?? "—"}</span>
+                    {selected ? <span className="text-xs">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {textareaFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            {field.currentValue ? (
+              <p className="mb-1.5 rounded-xl bg-brand-cream-dark px-3 py-2 text-xs italic text-brand-dark/60">
+                Current: &ldquo;{field.currentValue}&rdquo;
+              </p>
+            ) : null}
+            <textarea
+              value={textValues[field.fieldKey] ?? ""}
+              onChange={(e) =>
+                setTextValues((s) => ({ ...s, [field.fieldKey]: e.target.value }))
+              }
+              rows={3}
+              placeholder="No notes"
+              className="w-full rounded-xl border border-brand-dark/15 bg-white px-3 py-2 text-sm text-brand-dark outline-none focus:border-brand-green"
+            />
+          </div>
+        ))}
       </div>
+
+      {autoMergedCount > 0 ? (
+        <p className="text-xs font-semibold text-brand-dark/40">
+          ✓ {autoMergedCount} field{autoMergedCount !== 1 ? "s" : ""} matched — auto-merged
+        </p>
+      ) : null}
 
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
@@ -483,12 +605,20 @@ export function MergeDetailsDialog({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => onMerge(selections)}
+          onClick={handleMerge}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isLoading ? "Merging..." : "Merge"} <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function MergeDetailsDialog({ open, ...props }: MergeDetailsDialogProps) {
+  return (
+    <Shell open={open} onClose={props.onClose}>
+      <MergeDetailsDialogContent key={String(open)} {...props} />
     </Shell>
   );
 }

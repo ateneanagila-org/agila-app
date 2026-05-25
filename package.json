@@ -36,6 +36,7 @@
     "recharts": "^3.8.1",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.4.0",
+    "use-debounce": "^10.1.1",
     "uuid": "^13.0.0",
     "wrangler": "^4.83.0",
     "zod": "^4.3.6"
@@ -51,7 +52,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "0.31.8",
+    "drizzle-kit": "0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "jest": "^30.3.0",

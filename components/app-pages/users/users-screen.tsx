@@ -31,8 +31,6 @@ type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>
 
 export function UsersScreen() {
   const [showAddUser, setShowAddUser] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AllowedEmailEntry | null>(null);
@@ -56,13 +54,16 @@ export function UsersScreen() {
   const {
     filtered: filteredUsers,
     activeFilters,
-    toggleFilter,
-    clearFilters,
     activeFilterCount,
     sortKey,
-    setSortKey,
     sortOrder,
-    setSortOrder,
+    openDialog,
+    openFilterDialog,
+    openSortDialog,
+    closeDialog,
+    applyFilters,
+    applySort,
+    clearFilters,
     search,
     setSearch,
   } = useFilterSort<AllowedEmailEntry>(
@@ -229,14 +230,14 @@ export function UsersScreen() {
             </button>
             <button
               type="button"
-              onClick={() => setShowFilters(true)}
+              onClick={() => openFilterDialog()}
               className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Filter <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
-              onClick={() => setShowSort(true)}
+              onClick={() => openSortDialog()}
               className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -337,7 +338,7 @@ export function UsersScreen() {
           </div>
           <button
             type="button"
-            onClick={() => setShowFilters(true)}
+            onClick={() => openFilterDialog()}
             className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Filter role{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
@@ -345,7 +346,7 @@ export function UsersScreen() {
           </button>
           <button
             type="button"
-            onClick={() => setShowSort(true)}
+            onClick={() => openSortDialog()}
             className="flex items-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -437,22 +438,20 @@ export function UsersScreen() {
       />
 
       <UserFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
+        open={openDialog === "filter"}
+        onClose={closeDialog}
         categories={USERS_CONFIG.filters}
         activeFilters={activeFilters}
-        onToggle={toggleFilter}
         onClear={clearFilters}
-        activeCount={activeFilterCount}
+        onApply={applyFilters}
       />
       <UserSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
+        open={openDialog === "sort"}
+        onClose={closeDialog}
         options={USERS_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
+        onApply={applySort}
       />
 
       {selectedUser ? (

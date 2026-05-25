@@ -1,13 +1,26 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { TrashIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
-import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
+import type {
+  FilterCategory,
+  FilterState,
+  SortOption,
+} from "@/lib/hooks/use-filter-sort";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
 
-function Shell({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+function Shell({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   if (!open) return null;
   return (
     <div
@@ -24,12 +37,24 @@ function Shell({ open, onClose, children }: { open: boolean; onClose: () => void
   );
 }
 
-function Header({ title, subtitle, onClose }: { title: string; subtitle?: string; onClose: () => void }) {
+function Header({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+}) {
   return (
     <div className="flex items-start justify-between">
       <div>
-        <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">{title}</h2>
-        {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+        <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+          {title}
+        </h2>
+        {subtitle ? (
+          <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        ) : null}
       </div>
       <button
         type="button"
@@ -58,7 +83,12 @@ function SelectField({
     <div>
       <label className="text-sm font-semibold text-brand-orange">{label}</label>
       <div className="mt-1.5">
-        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+        <CustomSelect
+          options={options}
+          value={value}
+          onChange={onChange}
+          variant="white"
+        />
       </div>
     </div>
   );
@@ -67,17 +97,6 @@ function SelectField({
 function getFilterValue(activeFilters: FilterState, key: string): string {
   const set = activeFilters[key];
   return set && set.size > 0 ? (set.values().next().value as string) : "";
-}
-
-function applyDropdownFilter(
-  key: string,
-  value: string,
-  activeFilters: FilterState,
-  toggleFilter: (k: string, v: string) => void,
-) {
-  const current = getFilterValue(activeFilters, key);
-  if (current) toggleFilter(key, current);
-  if (value) toggleFilter(key, value);
 }
 
 // ─── Discard Changes Dialog ───────────────────────────────────────────────────
@@ -89,7 +108,12 @@ type DiscardChangesDialogProps = {
   isLoading?: boolean;
 };
 
-export function DiscardChangesDialog({ open, onClose, onConfirm, isLoading }: DiscardChangesDialogProps) {
+export function DiscardChangesDialog({
+  open,
+  onClose,
+  onConfirm,
+  isLoading,
+}: DiscardChangesDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
       <Header title="Discard changes?" onClose={onClose} />
@@ -109,7 +133,8 @@ export function DiscardChangesDialog({ open, onClose, onConfirm, isLoading }: Di
           disabled={isLoading}
           className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {isLoading ? "Discarding..." : "Discard"} <TrashIcon className="h-4 w-4" />
+          {isLoading ? "Discarding..." : "Discard"}{" "}
+          <TrashIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>
@@ -125,7 +150,12 @@ type SaveChangesDialogProps = {
   isLoading?: boolean;
 };
 
-export function SaveChangesDialog({ open, onClose, onConfirm, isLoading }: SaveChangesDialogProps) {
+export function SaveChangesDialog({
+  open,
+  onClose,
+  onConfirm,
+  isLoading,
+}: SaveChangesDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
       <Header title="Save changes?" onClose={onClose} />
@@ -159,25 +189,34 @@ type DatabaseFiltersDialogProps = {
   onClose: () => void;
   categories: FilterCategory[];
   activeFilters: FilterState;
-  onToggle: (key: string, value: string) => void;
   onClear: () => void;
-  activeCount: number;
+  onApply: (filters: Record<string, string>) => void;
 };
 
-export function DatabaseFiltersDialog({
-  open,
-  onClose,
+// Body is split out so its `useState(() => init)` runs fresh on each open
+// (parent unmounts/remounts on `open` toggle) — avoids syncing via useEffect.
+function FiltersDialogBody({
   categories,
   activeFilters,
-  onToggle,
+  onClose,
   onClear,
-  activeCount,
-}: DatabaseFiltersDialogProps) {
+  onApply,
+}: Omit<DatabaseFiltersDialogProps, "open">) {
+  const [pending, setPending] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const cat of categories) {
+      init[cat.key] = getFilterValue(activeFilters, cat.key);
+    }
+    return init;
+  });
+
+  const pendingCount = Object.values(pending).filter(Boolean).length;
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header
         title="Filters"
-        subtitle={activeCount > 0 ? `${activeCount} selected` : undefined}
+        subtitle={pendingCount > 0 ? `${pendingCount} selected` : undefined}
         onClose={onClose}
       />
 
@@ -186,8 +225,8 @@ export function DatabaseFiltersDialog({
           <SelectField
             key={cat.key}
             label={cat.label}
-            value={getFilterValue(activeFilters, cat.key)}
-            onChange={(v) => applyDropdownFilter(cat.key, v, activeFilters, onToggle)}
+            value={pending[cat.key] ?? ""}
+            onChange={(v) => setPending((prev) => ({ ...prev, [cat.key]: v }))}
             options={cat.options}
           />
         ))}
@@ -196,19 +235,27 @@ export function DatabaseFiltersDialog({
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
           type="button"
-          onClick={() => { onClear(); onClose(); }}
+          onClick={onClear}
           className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
           Reset <span>✕</span>
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function DatabaseFiltersDialog(props: DatabaseFiltersDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <FiltersDialogBody {...props} />
     </Shell>
   );
 }
@@ -221,21 +268,22 @@ type DatabaseSortByDialogProps = {
   options: SortOption[];
   activeKey: string | null;
   order: "asc" | "desc";
-  onSort: (key: string | null) => void;
-  onOrder: (o: "asc" | "desc") => void;
+  onApply: (key: string | null, order: "asc" | "desc") => void;
 };
 
-export function DatabaseSortByDialog({
-  open,
-  onClose,
+function SortDialogBody({
   options,
   activeKey,
   order,
-  onSort,
-  onOrder,
-}: DatabaseSortByDialogProps) {
+  onClose,
+  onApply,
+}: Omit<DatabaseSortByDialogProps, "open">) {
+  const [pending, setPending] = useState<{ key: string | null; order: "asc" | "desc" }>(
+    () => ({ key: activeKey, order }),
+  );
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header title="Sort By" onClose={onClose} />
 
       <div className="grid grid-cols-2 gap-2">
@@ -243,9 +291,9 @@ export function DatabaseSortByDialog({
           <button
             key={opt.key}
             type="button"
-            onClick={() => onSort(activeKey === opt.key ? null : opt.key)}
+            onClick={() => setPending((p) => ({ ...p, key: p.key === opt.key ? null : opt.key }))}
             className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-              activeKey === opt.key
+              pending.key === opt.key
                 ? "border-brand-green bg-brand-green text-white"
                 : "border-brand-green/30 text-foreground hover:bg-brand-green/5"
             }`}
@@ -262,9 +310,9 @@ export function DatabaseSortByDialog({
             <button
               key={o}
               type="button"
-              onClick={() => onOrder(o)}
+              onClick={() => setPending((p) => ({ ...p, order: o }))}
               className={`rounded-full px-3 py-2 text-sm font-semibold transition-opacity ${
-                order === o
+                pending.order === o
                   ? "bg-brand-orange text-white"
                   : "border border-brand-orange/40 text-foreground hover:opacity-80"
               }`}
@@ -278,12 +326,20 @@ export function DatabaseSortByDialog({
       <div className="flex justify-end pt-1">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending.key, pending.order)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function DatabaseSortByDialog(props: DatabaseSortByDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <SortDialogBody {...props} />
     </Shell>
   );
 }
@@ -320,7 +376,9 @@ export function NewInterventionDialog({
       <Header title="New Intervention" onClose={onClose} />
 
       {error ? (
-        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
+        <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+        </div>
       ) : null}
 
       <div className="space-y-3">
@@ -331,7 +389,9 @@ export function NewInterventionDialog({
           options={typeOptions}
         />
         <div>
-          <label className="text-sm font-semibold text-brand-orange">Notes</label>
+          <label className="text-sm font-semibold text-brand-orange">
+            Notes
+          </label>
           <textarea
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}

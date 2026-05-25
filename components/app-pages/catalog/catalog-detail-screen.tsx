@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import {
   ArrowLeftIcon,
@@ -123,10 +124,10 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const isInjured = !!healthRecord?.condition?.includes("Injured");
 
   const profileFields: { label: string; value: React.ReactNode }[] = [
-    { label: "Sex", value: cat.sex ? (sex ? `${cat.sex} ${sex}` : cat.sex) : "—" },
-    { label: "Size / Age", value: cat.age ?? "—" },
-    { label: "Color", value: cat.color ?? "—" },
-    { label: "Sociability", value: cat.sociability ?? "—" },
+    { label: "Sex", value: cat.sex ? (sex ? `${cat.sex} ${sex}` : cat.sex) : "Unknown" },
+    { label: "Size / Age", value: displayCatField(cat.age) },
+    { label: "Color", value: displayCatField(cat.color) },
+    { label: "Sociability", value: displayCatField(cat.sociability) },
   ];
 
   const healthFields: { label: string; value: React.ReactNode }[] = [
@@ -187,7 +188,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
                 {cat.age}
               </span>
             ) : null}
-            {cat.sociability && cat.sociability !== "Unknown" ? (
+            {cat.sociability ? (
               <span className="inline-flex h-7 items-center rounded-full bg-brand-cream-dark/60 px-3 text-xs font-semibold text-brand-dark/80">
                 {cat.sociability}
               </span>

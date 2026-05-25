@@ -82,3 +82,32 @@ export async function uploadCatPhoto(
 
   return { photo_url: bustedUrl };
 }
+
+export async function removeCatPhoto(catId: string): Promise<void> {
+  const current = await requireAuth();
+  if (!hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
+    const owned = await db
+      .select({ id: sessionCats.id })
+      .from(sessionCats)
+      .innerJoin(sessionUsers, eq(sessionUsers.session_id, sessionCats.session_id))
+      .where(
+        and(
+          eq(sessionCats.cat_id, catId),
+          eq(sessionUsers.user_id, current.user.id),
+        ),
+      )
+      .limit(1);
+    if (owned.length === 0) {
+      throw new AppError("Forbidden: not your cat entry", 403);
+    }
+  }
+
+  const supabase = await createAdminClient();
+  // Storage delete is best-effort — orphaned blob is acceptable.
+  await supabase.storage.from(BUCKET).remove([`${catId}/photo.jpg`]);
+
+  await db
+    .update(cats)
+    .set({ photo_url: null, last_updated_at: new Date() })
+    .where(eq(cats.id, catId));
+}

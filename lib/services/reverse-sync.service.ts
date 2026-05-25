@@ -132,6 +132,7 @@ async function reverseSyncRegionInternal(
               id: sheetRow.entityId,
               catalog_id,
               paws_id: paws_id ?? null,
+              entry_status: "Original",
               ...catFields,
             })
             .returning();

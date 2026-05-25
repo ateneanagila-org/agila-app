@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { createCat } from "@/app/actions/cats";
-import { uploadCatPhoto } from "@/app/actions/cat-photo";
+import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
+import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { PlusIcon } from "@/components/app-pages/shared/icons";
@@ -13,7 +12,6 @@ import {
   CAT_AGE_VALUES,
   CAT_SEX_VALUES,
   CAT_SOCIABILITY_VALUES,
-  CAT_STATUS_VALUES,
   CATHEALTHRECORD_CONDITION_VALUES,
 } from "@/lib/db/enums";
 import type {
@@ -21,9 +19,10 @@ import type {
   CatAge,
   CatSex,
   CatSociability,
-  CatStatus,
   CatHealthRecordCondition,
 } from "@/lib/db/enums";
+import type { SelectCat } from "@/lib/validation/cats";
+import { normalizeCatField } from "@/lib/utils";
 
 type RegionOption = {
   id: string;
@@ -38,6 +37,8 @@ type CatEntryFormProps = {
   regionId?: string;
   /** If provided, entry will be created under this session via createSessionCat. */
   sessionId?: string;
+  /** When provided: edit mode — pre-fills fields, calls editCat on save */
+  initialCat?: SelectCat;
 };
 
 function DropdownField({
@@ -87,17 +88,17 @@ export function CatEntryForm({
   onSave,
   regionId,
   sessionId,
+  initialCat,
 }: CatEntryFormProps) {
-  const [color, setColor] = useState("");
-  const [age, setAge] = useState("");
-  const [sex, setSex] = useState("");
-  const [sociability, setSociability] = useState("");
-  const [catStatus, setCatStatus] = useState("");
-  const [condition, setCondition] = useState("");
-  const [spotLastSeen, setSpotLastSeen] = useState("");
-  const [caretaker, setCaretaker] = useState("");
-  const [notes, setNotes] = useState("");
-  const [name, setName] = useState("");
+  const [color, setColor] = useState(initialCat?.color ?? (initialCat ? "Unknown" : ""));
+  const [age, setAge] = useState(initialCat?.age ?? (initialCat ? "Unknown" : ""));
+  const [sex, setSex] = useState(initialCat?.sex ?? (initialCat ? "Unknown" : ""));
+  const [sociability, setSociability] = useState(initialCat?.sociability ?? (initialCat ? "Unknown" : ""));
+  const [condition, setCondition] = useState(initialCat ? "Unknown" : "");
+  const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
+  const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
+  const [notes, setNotes] = useState(initialCat?.notes ?? "");
+  const [name, setName] = useState(initialCat?.name ?? "");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
   const [regionsLoading, setRegionsLoading] = useState(false);
@@ -106,8 +107,10 @@ export function CatEntryForm({
   const [photoWarning, setPhotoWarning] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const existingPhotoUrlRef = useRef<string | null>(initialCat?.photo_url ?? null);
+  const [removedExisting, setRemovedExisting] = useState(false);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
-  const [savedCatId, setSavedCatId] = useState<string | null>(null);
+  const [savedCatId, setSavedCatId] = useState<string | null>(initialCat?.id ?? null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -119,6 +122,14 @@ export function CatEntryForm({
     setPhotoPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
+
+  useEffect(() => {
+    if (!initialCat) return;
+    getCatHealthRecords({ cat_id: initialCat.id }).then((res) => {
+      const cond = res?.data?.[0]?.condition;
+      setCondition(cond ?? "Unknown");
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const loadRegions = async () => {
@@ -153,35 +164,64 @@ export function CatEntryForm({
     loadRegions();
   }, []);
 
+
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
     if (!effectiveRegionId) {
       setError("Please select a region/location.");
       return;
     }
-    if (!condition) {
-      setError("Please select a condition.");
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setPhotoWarning(null);
     try {
+      // Edit mode: update existing cat
+      if (initialCat) {
+        const result = await editCat({
+          id: initialCat.id,
+          condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          color: normalizeCatField<CatColor>(color),
+          age: normalizeCatField<CatAge>(age),
+          sex: normalizeCatField<CatSex>(sex),
+          sociability: normalizeCatField<CatSociability>(sociability),
+          spot_last_seen: spotLastSeen || undefined,
+          caretaker: caretaker || undefined,
+          notes: notes || undefined,
+          name: name || undefined,
+        });
+        if (result?.serverError) { setError(result.serverError); return; }
+        if (photoFile) {
+          try {
+            const fd = new FormData();
+            fd.append("file", photoFile);
+            await uploadCatPhoto(initialCat.id, fd);
+          } catch (uploadErr) {
+            setPhotoWarning(
+              uploadErr instanceof Error
+                ? `Cat saved, but photo upload failed: ${uploadErr.message}. Click Save to retry.`
+                : "Cat saved, but photo upload failed. Click Save to retry.",
+            );
+            return;
+          }
+        } else if (removedExisting && existingPhotoUrlRef.current) {
+          await removeCatPhoto(initialCat.id);
+        }
+        onSave?.();
+        onClose();
+        return;
+      }
+
       let newCatId: string | undefined = savedCatId ?? undefined;
 
       // Skip cat-create when retrying after a photo-upload failure.
       if (!newCatId) {
         const payload = {
           region_id: effectiveRegionId,
-          condition: condition as CatHealthRecordCondition,
-          color: (color || undefined) as CatColor | undefined,
-          age: (age || undefined) as CatAge | undefined,
-          sex: (sex || undefined) as CatSex | undefined,
-          sociability: (sociability || undefined) as
-            | CatSociability
-            | undefined,
-          cat_status: (catStatus || undefined) as CatStatus | undefined,
+          condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          color: normalizeCatField<CatColor>(color),
+          age: normalizeCatField<CatAge>(age),
+          sex: normalizeCatField<CatSex>(sex),
+          sociability: normalizeCatField<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
           caretaker: caretaker || undefined,
           notes: notes || undefined,
@@ -233,7 +273,6 @@ export function CatEntryForm({
         }
       }
 
-      syncAllPendingRegions();
       onSave?.();
       onClose();
     } catch (err) {
@@ -249,7 +288,6 @@ export function CatEntryForm({
     age,
     sex,
     sociability,
-    catStatus,
     spotLastSeen,
     caretaker,
     notes,
@@ -259,11 +297,16 @@ export function CatEntryForm({
     onClose,
     photoFile,
     savedCatId,
+    initialCat,
+    removedExisting,
   ]);
+
+  const showPhoto =
+    photoPreview ??
+    (existingPhotoUrlRef.current && !removedExisting ? existingPhotoUrlRef.current : null);
 
   /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
   const handleSkipPhoto = useCallback(() => {
-    syncAllPendingRegions();
     onSave?.();
     onClose();
   }, [onSave, onClose]);
@@ -280,7 +323,7 @@ export function CatEntryForm({
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
-            Add Entry
+            {initialCat ? "Edit Entry" : "Add Entry"}
           </h2>
           <button
             type="button"
@@ -311,11 +354,11 @@ export function CatEntryForm({
           <div>
             <label className="text-sm font-semibold text-brand-orange">Photo</label>
             <div className="mt-1.5">
-              {photoPreview ? (
+              {showPhoto ? (
                 <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={photoPreview}
+                    src={showPhoto}
                     alt="Preview"
                     className="h-40 w-full object-cover"
                   />
@@ -329,7 +372,13 @@ export function CatEntryForm({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPhotoFile(null)}
+                      onClick={() => {
+                        if (photoFile) {
+                          setPhotoFile(null);
+                        } else if (existingPhotoUrlRef.current) {
+                          setRemovedExisting(true);
+                        }
+                      }}
                       className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-80"
                     >
                       Remove
@@ -379,52 +428,35 @@ export function CatEntryForm({
           ) : null}
           <DropdownField
             label="Color"
-            options={CAT_COLOR_VALUES}
+            options={["Unknown", ...CAT_COLOR_VALUES]}
             value={color}
             onChange={setColor}
           />
           <DropdownField
             label="Size / Age"
-            options={CAT_AGE_VALUES}
+            options={["Unknown", ...CAT_AGE_VALUES]}
             value={age}
             onChange={setAge}
           />
           <DropdownField
             label="Sex"
-            options={CAT_SEX_VALUES}
+            options={["Unknown", ...CAT_SEX_VALUES]}
             value={sex}
             onChange={setSex}
           />
           <DropdownField
             label="Sociability"
-            options={CAT_SOCIABILITY_VALUES}
+            options={["Unknown", ...CAT_SOCIABILITY_VALUES]}
             value={sociability}
             onChange={setSociability}
           />
           <DropdownField
-            label="Status"
-            options={CAT_STATUS_VALUES}
-            value={catStatus}
-            onChange={setCatStatus}
-          />
-          <DropdownField
             label="Condition"
-            options={CATHEALTHRECORD_CONDITION_VALUES}
+            options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
             value={condition}
             onChange={setCondition}
           />
-          <div>
-            <label className="text-sm font-semibold text-brand-orange">Spot Last Seen</label>
-            <div className="mt-1.5">
-              <CustomSelect
-                options={regionOptions.map((r) => r.name)}
-                value={spotLastSeen}
-                onChange={setSpotLastSeen}
-                placeholder={regionsLoading ? "Loading..." : "—"}
-                variant="white"
-              />
-            </div>
-          </div>
+          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
           <TextField
             label="Caretaker"
             value={caretaker}

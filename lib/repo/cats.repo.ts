@@ -1,6 +1,14 @@
 import { DB, db } from "../db";
 import { cats, catHealthRecords } from "../db/schema";
-import { eq, notInArray, isNull, and, or, getTableColumns, sql } from "drizzle-orm";
+import {
+  eq,
+  notInArray,
+  isNull,
+  and,
+  or,
+  getTableColumns,
+  sql,
+} from "drizzle-orm";
 import {
   InsertCat,
   InsertCatHealthRecord,
@@ -11,14 +19,16 @@ import { createEQFilters } from "./helper.repo";
 
 export type CatWithRegion = SelectCat & { region_name: string | null };
 
-// Correlated subquery — gets the latest session's region name for each cat row
-const regionSubquery = sql<string | null>`(
-  SELECT r.name FROM regions r
-  INNER JOIN sessions s ON s.region_id = r.id
-  INNER JOIN session_cats sc ON sc.session_id = s.id
-  WHERE sc.cat_id = cats.id
-  ORDER BY s.created_at DESC
-  LIMIT 1
+// Region name resolution: cats.region_id (manual override) takes priority,
+// otherwise fall back to the most recent session's region.
+const regionSubquery = sql<string | null>`COALESCE(
+  (SELECT r2.name FROM regions r2 WHERE r2.id = cats.region_id),
+  (SELECT r.name FROM regions r
+    INNER JOIN sessions s ON s.region_id = r.id
+    INNER JOIN session_cats sc ON sc.session_id = s.id
+    WHERE sc.cat_id = cats.id
+    ORDER BY s.created_at DESC
+    LIMIT 1)
 )`;
 
 function buildCatConditions(filters: Partial<SelectCat>) {
@@ -33,27 +43,36 @@ function buildCatConditions(filters: Partial<SelectCat>) {
 }
 
 // CATS
-export const findAdoptableCats = (filters: Partial<SelectCat>): Promise<CatWithRegion[]> => {
+export const findAdoptableCats = (
+  filters: Partial<SelectCat>,
+): Promise<CatWithRegion[]> => {
   const conditions = buildCatConditions(filters);
   conditions.push(
-    or(isNull(cats.cat_status), notInArray(cats.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]))!
+    or(
+      isNull(cats.cat_status),
+      notInArray(cats.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]),
+    )!,
   );
-  return db.select({
-    ...getTableColumns(cats),
-    region_name: regionSubquery,
-  })
-  .from(cats)
-  .where(and(...conditions));
+  return db
+    .select({
+      ...getTableColumns(cats),
+      region_name: regionSubquery,
+    })
+    .from(cats)
+    .where(and(...conditions));
 };
 
-export const findCats = (filters: Partial<SelectCat>): Promise<CatWithRegion[]> => {
+export const findCats = (
+  filters: Partial<SelectCat>,
+): Promise<CatWithRegion[]> => {
   const conditions = buildCatConditions(filters);
-  return db.select({
-    ...getTableColumns(cats),
-    region_name: regionSubquery,
-  })
-  .from(cats)
-  .where(conditions.length > 0 ? and(...conditions) : undefined);
+  return db
+    .select({
+      ...getTableColumns(cats),
+      region_name: regionSubquery,
+    })
+    .from(cats)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
 };
 
 export const insertCat = (data: InsertCat, client: DB = db) =>

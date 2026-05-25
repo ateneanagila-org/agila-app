@@ -135,15 +135,15 @@ export function mapCatToSheetRow(
     catalogDisplay, // 0  (A) Catalog ID
     cat.photo_url ? `=IMAGE("${cat.photo_url.replace(/"/g, "")}")` : "", // 1  (B)
     cat.name ?? "N/A", // 2  (C)
-    cat.color ?? "N/A", // 3  (D)
-    cat.age ?? "N/A", // 4  (E)
-    cat.sex ?? "Unknown", // 5  (F)
+    cat.color ?? "", // 3  (D)
+    cat.age ?? "", // 4  (E)
+    cat.sex ?? "???", // 5  (F)
     health?.neuter_date ? "YES" : "NO", // 6  (G)
-    cat.sociability ?? "Unknown", // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
+    cat.sociability ?? "???", // 7  (H)
+    condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
+    condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
-    catStatus || "Unknown", // 11 (L)
+    catStatus || "None of the above", // 11 (L)
     cat.caretaker ?? "N/A", // 12 (M)
     new Date().toLocaleDateString("en-US"), // 13 (N)
     cat.spot_last_seen ?? "N/A", // 14 (O)
@@ -177,13 +177,13 @@ export function mapUnknownCatToSheetRow(
     catalogDisplay, // 0  (A)
     cat.spot_last_seen ?? "N/A", // 1  (B) Possible Loc
     cat.paws_id ?? "", // 2  (C) PAWS ID#
-    cat.color ?? "N/A", // 3  (D)
-    cat.age ?? "N/A", // 4  (E)
-    cat.sex ?? "Unknown", // 5  (F)
+    cat.color ?? "", // 3  (D)
+    cat.age ?? "", // 4  (E)
+    cat.sex ?? "???", // 5  (F)
     health?.neuter_date ? "YES" : "NO", // 6  (G)
-    cat.sociability ?? "Unknown", // 7  (H)
-    condition.includes("Sick") ? "YES" : "NO", // 8  (I)
-    condition.includes("Injured") ? "YES" : "NO", // 9  (J)
+    cat.sociability ?? "???", // 7  (H)
+    condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
+    condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
     health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 11 (L)
     health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 12 (M)
@@ -646,11 +646,11 @@ export async function generateForFaSheet(): Promise<void> {
   for (const region of sortedRegions) {
     const adoptableCats = await db.query.cats.findMany({
       with: { catHealthRecords: true },
-      where: (c, { eq, and, exists, isNull, or }) =>
+      where: (c, { eq, and, exists, isNull }) =>
         and(
           and(
             eq(c.is_adoptable, true),
-            or(eq(c.cat_status, "Unknown"), isNull(c.cat_status)),
+            isNull(c.cat_status),
           ),
           exists(
             db

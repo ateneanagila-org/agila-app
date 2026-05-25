@@ -8,7 +8,7 @@ Load **all three** when working on frontend:
 - `vercel-react-best-practices` — performance patterns
 - `caveman` — terse responses
 
-Use **pnpm** for all package commands. No npm. Check typsescript errors with `pnpm tsc --noEmit` or `pnpm build` (which also checks types).
+Use **pnpm** for all package commands. No npm. Check typsescript errors with `pnpm tsc --noEmit` or `pnpm build` (which also checks types). Do not write code in a pattern that triggers setState linter errors (synchronous calls may cause cascading renders).
 
 ## No Dev Server for Verification
 

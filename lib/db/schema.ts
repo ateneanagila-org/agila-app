@@ -68,6 +68,7 @@ export const regions = pgTable(
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  census_no: integer("census_no").generatedByDefaultAsIdentity().notNull().unique(),
   region_id: uuid("region_id")
     .notNull()
     .references(() => regions.id, {
@@ -115,6 +116,9 @@ export const cats = pgTable("cats", {
       onDelete: "set null",
     },
   ),
+  region_id: uuid("region_id").references(() => regions.id, {
+    onDelete: "set null",
+  }),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   entry_status: catEntryStatusEnum("entry_status")
     .default("Unsubmitted")
@@ -122,9 +126,9 @@ export const cats = pgTable("cats", {
   photo_url: text("photo_url"),
   color: catColorEnum("color"),
   age: catAgeEnum("age"),
-  sex: catSexEnum("sex").default("Unknown"),
+  sex: catSexEnum("sex"),
   name: text("name"),
-  sociability: catSociabilityEnum("sociability").default("Unknown"),
+  sociability: catSociabilityEnum("sociability"),
   cat_status: catStatusEnum("cat_status"),
   spot_last_seen: text("spot_last_seen"),
   caretaker: text("caretaker"),

@@ -41,7 +41,9 @@ type CatSociability = (typeof CAT_SOCIABILITY_VALUES)[number];
 type CatStatus = (typeof CAT_STATUS_VALUES)[number];
 
 type CatInsert = typeof cats.$inferInsert;
-type ParsedRow = CatInsert & {
+type ParsedRow = Omit<CatInsert, 'sex' | 'sociability'> & {
+  sex: CatSex | null;
+  sociability: CatSociability | null;
   condition: ConditionValue;
   neuter_date: Date | null;
   vaccination_date: Date | null;
@@ -142,10 +144,10 @@ function parseStandardRow(row: string[], uuid: string): ParsedRow {
       ? colorStr
       : null) as CatColor | null,
     age: (VALID_AGES.includes(ageStr) ? ageStr : null) as CatAge | null,
-    sex: (VALID_SEXES.includes(sexStr) ? sexStr : "Unknown") as CatSex,
+    sex: (VALID_SEXES.includes(sexStr) ? sexStr : null) as CatSex | null,
     sociability: (VALID_SOCIABILITIES.includes(socStr)
       ? socStr
-      : "Unknown") as CatSociability,
+      : null) as CatSociability | null,
     cat_status: (VALID_STATUSES.includes(statusStr)
       ? statusStr
       : null) as CatStatus | null,
@@ -181,10 +183,10 @@ function parseUnknownRow(row: string[], uuid: string): ParsedRow {
       ? colorStr
       : null) as CatColor | null,
     age: (VALID_AGES.includes(ageStr) ? ageStr : null) as CatAge | null,
-    sex: (VALID_SEXES.includes(sexStr) ? sexStr : "Unknown") as CatSex,
+    sex: (VALID_SEXES.includes(sexStr) ? sexStr : null) as CatSex | null,
     sociability: (VALID_SOCIABILITIES.includes(socStr)
       ? socStr
-      : "Unknown") as CatSociability,
+      : null) as CatSociability | null,
     cat_status: null,
     name: null,
     spot_last_seen: row[1] && row[1] !== "N/A" ? row[1] : null,
