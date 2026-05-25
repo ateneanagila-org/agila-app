@@ -28,20 +28,20 @@ export function CatFilterToolbar({
   initialFilters,
   children,
 }: CatFilterToolbarProps) {
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
   const {
     filtered,
     activeFilters,
-    toggleFilter,
     clearFilters,
-    activeFilterCount,
+    applyFilters,
     sortKey,
-    setSortKey,
     sortOrder,
-    setSortOrder,
+    applySort,
+    openDialog,
+    openFilterDialog,
+    openSortDialog,
+    closeDialog,
     search,
     setSearch,
   } = useFilterSort<CatWithRegion>(
@@ -96,14 +96,14 @@ export function CatFilterToolbar({
           <div className="mt-2 flex gap-2 tablet:mt-0">
             <button
               type="button"
-              onClick={() => setShowFilters(true)}
+              onClick={openFilterDialog}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
               Filter <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
-              onClick={() => setShowSort(true)}
+              onClick={openSortDialog}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
               Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -115,22 +115,20 @@ export function CatFilterToolbar({
       {children(filteredCats)}
 
       <DatabaseFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
+        open={openDialog === "filter"}
+        onClose={closeDialog}
         categories={config.filters}
         activeFilters={activeFilters}
-        onToggle={toggleFilter}
         onClear={clearFilters}
-        activeCount={activeFilterCount}
+        onApply={applyFilters}
       />
       <DatabaseSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
+        open={openDialog === "sort"}
+        onClose={closeDialog}
         options={config.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
+        onApply={applySort}
       />
     </>
   );

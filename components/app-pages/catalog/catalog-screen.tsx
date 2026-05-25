@@ -19,19 +19,19 @@ import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 export function CatalogScreen() {
   const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
-
   const {
     filtered: filteredCats,
     activeFilters,
-    toggleFilter,
-    clearFilters,
     activeFilterCount,
     sortKey,
-    setSortKey,
     sortOrder,
-    setSortOrder,
+    openDialog,
+    openFilterDialog,
+    openSortDialog,
+    closeDialog,
+    applyFilters,
+    applySort,
+    clearFilters,
     search,
     setSearch,
   } = useFilterSort<CatWithRegion>(
@@ -112,7 +112,7 @@ export function CatalogScreen() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setShowFilters(true)}
+              onClick={openFilterDialog}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
               Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
@@ -120,7 +120,7 @@ export function CatalogScreen() {
             </button>
             <button
               type="button"
-              onClick={() => setShowSort(true)}
+              onClick={openSortDialog}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
               Sort by
@@ -157,22 +157,20 @@ export function CatalogScreen() {
       </div>
 
       <DatabaseFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
+        open={openDialog === "filter"}
+        onClose={closeDialog}
         categories={DATABASE_LIST_CONFIG.filters}
         activeFilters={activeFilters}
-        onToggle={toggleFilter}
         onClear={clearFilters}
-        activeCount={activeFilterCount}
+        onApply={applyFilters}
       />
       <DatabaseSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
+        open={openDialog === "sort"}
+        onClose={closeDialog}
         options={DATABASE_LIST_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
+        onApply={applySort}
       />
     </div>
   );

@@ -44,8 +44,6 @@ export function SessionsScreen() {
   >({});
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
   const [showMoreLocations, setShowMoreLocations] = useState(false);
@@ -158,13 +156,16 @@ export function SessionsScreen() {
   const {
     filtered: filteredSessions,
     activeFilters,
-    toggleFilter,
-    clearFilters,
     activeFilterCount,
     sortKey,
-    setSortKey,
     sortOrder,
-    setSortOrder,
+    openDialog,
+    openFilterDialog,
+    openSortDialog,
+    closeDialog,
+    applyFilters,
+    applySort,
+    clearFilters,
   } = useFilterSort<SelectSession>(
     sessions,
     SESSIONS_CONFIG,
@@ -310,14 +311,14 @@ export function SessionsScreen() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setShowFilters(true)}
+                onClick={() => openFilterDialog()}
                 className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Filter <ChevronDownIcon className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => setShowSort(true)}
+                onClick={() => openSortDialog()}
                 className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -637,7 +638,7 @@ export function SessionsScreen() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowFilters(true)}
+                  onClick={() => openFilterDialog()}
                   className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
                 >
                   Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
@@ -645,7 +646,7 @@ export function SessionsScreen() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowSort(true)}
+                  onClick={() => openSortDialog()}
                   className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
                 >
                   Sort by <ChevronDownIcon className="h-3 w-3" />
@@ -935,22 +936,20 @@ export function SessionsScreen() {
       </div>
 
       <SessionFiltersDialog
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
+        open={openDialog === "filter"}
+        onClose={closeDialog}
         categories={SESSIONS_CONFIG.filters}
         activeFilters={activeFilters}
-        onToggle={toggleFilter}
         onClear={clearFilters}
-        activeCount={activeFilterCount}
+        onApply={applyFilters}
       />
       <SessionSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
+        open={openDialog === "sort"}
+        onClose={closeDialog}
         options={SESSIONS_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
+        onApply={applySort}
       />
       {error ? (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">

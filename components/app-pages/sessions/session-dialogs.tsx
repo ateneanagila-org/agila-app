@@ -79,17 +79,6 @@ function getFilterValue(activeFilters: FilterState, key: string): string {
   return set && set.size > 0 ? (set.values().next().value as string) : "";
 }
 
-function applyDropdownFilter(
-  key: string,
-  value: string,
-  activeFilters: FilterState,
-  toggleFilter: (k: string, v: string) => void,
-) {
-  const current = getFilterValue(activeFilters, key);
-  if (current) toggleFilter(key, current);
-  if (value) toggleFilter(key, value);
-}
-
 // ─── Create Session Dialog ────────────────────────────────────────────────────
 
 type CreateSessionDialogProps = {
@@ -261,25 +250,32 @@ type SessionFiltersDialogProps = {
   onClose: () => void;
   categories: FilterCategory[];
   activeFilters: FilterState;
-  onToggle: (key: string, value: string) => void;
   onClear: () => void;
-  activeCount: number;
+  onApply: (filters: Record<string, string>) => void;
 };
 
-export function SessionFiltersDialog({
-  open,
-  onClose,
+function SessionFiltersBody({
   categories,
   activeFilters,
-  onToggle,
+  onClose,
   onClear,
-  activeCount,
-}: SessionFiltersDialogProps) {
+  onApply,
+}: Omit<SessionFiltersDialogProps, "open">) {
+  const [pending, setPending] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const cat of categories) {
+      init[cat.key] = getFilterValue(activeFilters, cat.key);
+    }
+    return init;
+  });
+
+  const pendingCount = Object.values(pending).filter(Boolean).length;
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header
         title="Filters"
-        subtitle={activeCount > 0 ? `${activeCount} selected` : undefined}
+        subtitle={pendingCount > 0 ? `${pendingCount} selected` : undefined}
         onClose={onClose}
       />
 
@@ -288,8 +284,8 @@ export function SessionFiltersDialog({
           <SelectField
             key={cat.key}
             label={cat.label}
-            value={getFilterValue(activeFilters, cat.key)}
-            onChange={(v) => applyDropdownFilter(cat.key, v, activeFilters, onToggle)}
+            value={pending[cat.key] ?? ""}
+            onChange={(v) => setPending((prev) => ({ ...prev, [cat.key]: v }))}
             options={cat.options}
           />
         ))}
@@ -298,19 +294,27 @@ export function SessionFiltersDialog({
       <div className="flex items-center justify-end gap-2 pt-1">
         <button
           type="button"
-          onClick={() => { onClear(); onClose(); }}
+          onClick={onClear}
           className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
           Reset <span>✕</span>
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function SessionFiltersDialog(props: SessionFiltersDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <SessionFiltersBody {...props} />
     </Shell>
   );
 }
@@ -323,21 +327,22 @@ type SessionSortByDialogProps = {
   options: SortOption[];
   activeKey: string | null;
   order: "asc" | "desc";
-  onSort: (key: string | null) => void;
-  onOrder: (o: "asc" | "desc") => void;
+  onApply: (key: string | null, order: "asc" | "desc") => void;
 };
 
-export function SessionSortByDialog({
-  open,
-  onClose,
+function SessionSortBody({
   options,
   activeKey,
   order,
-  onSort,
-  onOrder,
-}: SessionSortByDialogProps) {
+  onClose,
+  onApply,
+}: Omit<SessionSortByDialogProps, "open">) {
+  const [pending, setPending] = useState<{ key: string | null; order: "asc" | "desc" }>(
+    () => ({ key: activeKey, order }),
+  );
+
   return (
-    <Shell open={open} onClose={onClose}>
+    <>
       <Header title="Sort By" onClose={onClose} />
 
       <div className="grid grid-cols-2 gap-2">
@@ -345,9 +350,9 @@ export function SessionSortByDialog({
           <button
             key={opt.key}
             type="button"
-            onClick={() => onSort(activeKey === opt.key ? null : opt.key)}
+            onClick={() => setPending((p) => ({ ...p, key: p.key === opt.key ? null : opt.key }))}
             className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
-              activeKey === opt.key
+              pending.key === opt.key
                 ? "border-brand-green bg-brand-green text-white"
                 : "border-brand-green/30 text-foreground hover:bg-brand-green/5"
             }`}
@@ -364,9 +369,9 @@ export function SessionSortByDialog({
             <button
               key={o}
               type="button"
-              onClick={() => onOrder(o)}
+              onClick={() => setPending((p) => ({ ...p, order: o }))}
               className={`rounded-full px-3 py-2 text-sm font-semibold transition-opacity ${
-                order === o
+                pending.order === o
                   ? "bg-brand-orange text-white"
                   : "border border-brand-orange/40 text-foreground hover:opacity-80"
               }`}
@@ -380,12 +385,20 @@ export function SessionSortByDialog({
       <div className="flex justify-end pt-1">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => onApply(pending.key, pending.order)}
           className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
           Apply <span>✓</span>
         </button>
       </div>
+    </>
+  );
+}
+
+export function SessionSortByDialog(props: SessionSortByDialogProps) {
+  return (
+    <Shell open={props.open} onClose={props.onClose}>
+      <SessionSortBody {...props} />
     </Shell>
   );
 }

@@ -19,6 +19,13 @@ export type FilterSortConfig = {
 };
 
 export type FilterState = Record<string, Set<string>>;
+export type OpenDialog = "filter" | "sort" | null;
+
+type State = {
+  filters: FilterState;
+  sort: { key: string | null; order: "asc" | "desc" };
+  openDialog: OpenDialog;
+};
 
 export function useFilterSort<T>(
   items: T[],
@@ -27,42 +34,54 @@ export function useFilterSort<T>(
   getSortValue: (item: T, key: string) => string | number | Date | null | undefined,
   initialFilters?: FilterState,
 ) {
-  const [activeFilters, setActiveFilters] = useState<FilterState>(initialFilters ?? {});
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [state, setState] = useState<State>({
+    filters: initialFilters ?? {},
+    sort: { key: null, order: "asc" },
+    openDialog: null,
+  });
   const [search, setSearch] = useState("");
 
-  const toggleFilter = useCallback((categoryKey: string, value: string) => {
-    setActiveFilters((prev) => {
-      const next = { ...prev };
-      const set = new Set(prev[categoryKey] ?? []);
-      if (set.has(value)) {
-        set.delete(value);
-      } else {
-        set.add(value);
+  // Each action below is a single setState call — apply + close happen in one
+  // render to avoid cascading updates.
+  const applyFilters = useCallback((filters: Record<string, string>) => {
+    setState((s) => {
+      const next: FilterState = {};
+      for (const [key, value] of Object.entries(filters)) {
+        if (value) next[key] = new Set([value]);
       }
-      if (set.size === 0) {
-        delete next[categoryKey];
-      } else {
-        next[categoryKey] = set;
-      }
-      return next;
+      return { ...s, filters: next, openDialog: null };
     });
   }, []);
 
-  const clearFilters = useCallback(() => {
-    setActiveFilters({});
+  const applySort = useCallback((key: string | null, order: "asc" | "desc") => {
+    setState((s) => ({ ...s, sort: { key, order }, openDialog: null }));
   }, []);
 
-  const activeFilterCount = useMemo(() => {
-    return Object.values(activeFilters).reduce((sum, set) => sum + set.size, 0);
-  }, [activeFilters]);
+  const clearFilters = useCallback(() => {
+    setState((s) => ({ ...s, filters: {}, openDialog: null }));
+  }, []);
+
+  const openFilterDialog = useCallback(() => {
+    setState((s) => ({ ...s, openDialog: "filter" }));
+  }, []);
+
+  const openSortDialog = useCallback(() => {
+    setState((s) => ({ ...s, openDialog: "sort" }));
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setState((s) => ({ ...s, openDialog: null }));
+  }, []);
+
+  const activeFilterCount = useMemo(
+    () => Object.values(state.filters).reduce((sum, set) => sum + set.size, 0),
+    [state.filters],
+  );
 
   const filtered = useMemo(() => {
     let result = items;
 
-    // Apply filters
-    const filterEntries = Object.entries(activeFilters);
+    const filterEntries = Object.entries(state.filters);
     if (filterEntries.length > 0) {
       result = result.filter((item) =>
         filterEntries.every(([key, values]) => {
@@ -72,8 +91,9 @@ export function useFilterSort<T>(
       );
     }
 
-    // Apply sort
-    if (sortKey) {
+    if (state.sort.key) {
+      const sortKey = state.sort.key;
+      const sortOrder = state.sort.order;
       result = [...result].sort((a, b) => {
         const aVal = getSortValue(a, sortKey);
         const bVal = getSortValue(b, sortKey);
@@ -94,18 +114,21 @@ export function useFilterSort<T>(
     }
 
     return result;
-  }, [items, activeFilters, sortKey, sortOrder, getFilterValue, getSortValue]);
+  }, [items, state.filters, state.sort, getFilterValue, getSortValue]);
 
   return {
     filtered,
-    activeFilters,
-    toggleFilter,
-    clearFilters,
+    activeFilters: state.filters,
     activeFilterCount,
-    sortKey,
-    setSortKey,
-    sortOrder,
-    setSortOrder,
+    sortKey: state.sort.key,
+    sortOrder: state.sort.order,
+    openDialog: state.openDialog,
+    applyFilters,
+    applySort,
+    clearFilters,
+    openFilterDialog,
+    openSortDialog,
+    closeDialog,
     search,
     setSearch,
   };

@@ -64,7 +64,6 @@ export function DatabaseInterventionsScreen() {
     refresh,
   } = useCatDetail();
 
-  const [showSort, setShowSort] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
 
   // Create form state
@@ -78,9 +77,11 @@ export function DatabaseInterventionsScreen() {
   const {
     filtered: filteredInterventions,
     sortKey,
-    setSortKey,
     sortOrder,
-    setSortOrder,
+    openDialog,
+    openSortDialog,
+    closeDialog,
+    applySort,
   } = useFilterSort<SelectIntervention>(
     interventionsList,
     INTERVENTIONS_CONFIG,
@@ -231,7 +232,7 @@ export function DatabaseInterventionsScreen() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowSort(true)}
+            onClick={openSortDialog}
             className="inline-flex items-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
           >
             Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -318,13 +319,12 @@ export function DatabaseInterventionsScreen() {
       </div>
 
       <DatabaseSortByDialog
-        open={showSort}
-        onClose={() => setShowSort(false)}
+        open={openDialog === "sort"}
+        onClose={closeDialog}
         options={INTERVENTIONS_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
-        onSort={setSortKey}
-        onOrder={setSortOrder}
+        onApply={applySort}
       />
       <NewInterventionDialog
         open={showIntervention}
