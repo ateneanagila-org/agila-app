@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
@@ -106,18 +107,17 @@ export function CreateSessionDialog({
 
       <div>
         <label className="text-sm font-semibold text-brand-orange">Location</label>
-        <div className="relative mt-1.5">
-          <select
-            value={regionId}
-            onChange={(e) => onRegionChange(e.target.value)}
-            className="h-10 w-full appearance-none rounded-full border border-brand-orange/30 bg-white px-4 pr-10 text-sm text-foreground outline-none"
-          >
-            <option value="">Value (type to search)</option>
-            {regionOptions.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange/70" />
+        <div className="mt-1.5">
+          <CustomSelect
+            options={regionOptions.map((r) => r.name)}
+            value={regionOptions.find((r) => r.id === regionId)?.name ?? ""}
+            onChange={(name) => {
+              const found = regionOptions.find((r) => r.name === name);
+              if (found) onRegionChange(found.id);
+            }}
+            placeholder="—"
+            variant="white"
+          />
         </div>
       </div>
 
