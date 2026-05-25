@@ -45,6 +45,13 @@ export const removeCat = actionClient
     return await service.removeCat(parsedInput);
   });
 
+export const approveCat = actionClient
+  .schema(z.object({ id: z.string().uuid() }))
+  .action(async ({ parsedInput }) => {
+    await requireRole(...MANAGER_OR_ADMIN);
+    return await service.editCat({ id: parsedInput.id, entry_status: "Original" });
+  });
+
 // CAT HEALTH RECORDS
 export const getCatHealthRecords = actionClient
   .schema(getCatHealthRecordsSchema)

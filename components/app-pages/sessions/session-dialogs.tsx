@@ -173,17 +173,17 @@ export function FinishSessionDialog({ open, onClose, onConfirm, isLoading }: Fin
 
 // ─── Approve Session Dialog ───────────────────────────────────────────────────
 
-type ApproveSessionDialogProps = {
+type ApproveCatDialogProps = {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isLoading?: boolean;
 };
 
-export function ApproveSessionDialog({ open, onClose, onConfirm, isLoading }: ApproveSessionDialogProps) {
+export function ApproveCatDialog({ open, onClose, onConfirm, isLoading }: ApproveCatDialogProps) {
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="Approve session?" onClose={onClose} />
+      <Header title="Approve cat?" onClose={onClose} />
       <p className="text-sm text-foreground">This action cannot be undone.</p>
       <div className="flex items-center justify-end gap-2 pt-1">
         <button

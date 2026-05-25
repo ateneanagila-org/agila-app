@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { getSessionCats } from "@/app/actions/sessions";
-import { getCats } from "@/app/actions/cats";
+import { getCats, approveCat } from "@/app/actions/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
@@ -20,6 +21,8 @@ const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder U
 export function SessionsManagerScreen() {
   const [forReview, setForReview] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approvingItem, setApprovingItem] = useState<ReviewItem | null>(null);
+  const [saving, setSaving] = useState(false);
 
   /** Fetch cats from unfinished sessions (pending review) */
   const fetchPendingCats = useCallback(async () => {
@@ -71,6 +74,24 @@ export function SessionsManagerScreen() {
     if (s === "Female") return "text-pink-500";
     return "text-slate-400";
   };
+
+  const handleApprove = useCallback(async () => {
+    if (!approvingItem) return;
+    setSaving(true);
+    try {
+      const result = await approveCat({ id: approvingItem.cat.id });
+      if (!result?.serverError) {
+        setForReview((prev) =>
+          prev.filter((i) => i.sessionCatId !== approvingItem.sessionCatId),
+        );
+        setApprovingItem(null);
+      }
+    } catch (err) {
+      console.error("Failed to approve:", err);
+    } finally {
+      setSaving(false);
+    }
+  }, [approvingItem]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
@@ -125,10 +146,9 @@ export function SessionsManagerScreen() {
           ) : (
             <div className="space-y-2">
               {forReview.map((item) => (
-                <Link
+                <div
                   key={item.sessionCatId}
-                  href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                  className="block overflow-hidden rounded-2xl bg-brand-green transition-opacity hover:opacity-90"
+                  className="overflow-hidden rounded-2xl bg-brand-green"
                 >
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
@@ -137,37 +157,49 @@ export function SessionsManagerScreen() {
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
-                            {item.cat.name || "Unnamed"}
-                          </span>
-                          {sexSymbol(item.cat.sex) ? (
-                            <span className="text-white text-lg leading-none ml-1">
-                              {sexSymbol(item.cat.sex)}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
+                              {item.cat.name || "Unnamed"}
+                            </span>
+                            {sexSymbol(item.cat.sex) ? (
+                              <span className="text-white text-lg leading-none ml-1">
+                                {sexSymbol(item.cat.sex)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm font-bold text-white truncate">
+                            {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
+                          </p>
+                          {item.cat.region_name ? (
+                            <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                              {item.cat.region_name}
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-sm font-bold text-white truncate">
-                          {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
-                        </p>
-                        {item.cat.region_name ? (
-                          <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
-                            {item.cat.region_name}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-3 flex items-end justify-between gap-2">
-                        <p className="text-sm font-bold text-white truncate">
-                          {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
-                        </p>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm">
-                          <span className="text-sm font-bold">›</span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setApprovingItem(item)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white shadow-sm transition-opacity hover:opacity-80"
+                          >
+                            <span className="text-sm font-bold">✓</span>
+                          </button>
+                          <Link
+                            href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm"
+                          >
+                            <span className="text-sm font-bold">›</span>
+                          </Link>
                         </div>
                       </div>
+                      <p className="mt-3 text-sm font-bold text-white truncate">
+                        {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
+                      </p>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -247,18 +279,34 @@ export function SessionsManagerScreen() {
                       {formatDate(item.cat.last_updated_at)}
                     </p>
                   </div>
-                  <Link
-                    href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                  >
-                    Review <span className="ml-1">&#9998;</span>
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setApprovingItem(item)}
+                      className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Approve <span className="ml-1">&#10003;</span>
+                    </button>
+                    <Link
+                      href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
+                      className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Review <span className="ml-1">&#9998;</span>
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))
           )}
         </div>
       </div>
+
+      <ApproveCatDialog
+        open={approvingItem !== null}
+        onClose={() => setApprovingItem(null)}
+        onConfirm={handleApprove}
+        isLoading={saving}
+      />
     </>
   );
 }

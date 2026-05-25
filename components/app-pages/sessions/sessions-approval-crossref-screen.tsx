@@ -8,7 +8,7 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
-  ApproveSessionDialog,
+  ApproveCatDialog,
   DeleteSessionDialog,
   MergeDetailsDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
@@ -18,6 +18,7 @@ import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolb
 import {
   getCats,
   editCat,
+  approveCat,
   removeCat,
   getCatHealthRecords,
 } from "@/app/actions/cats";
@@ -143,6 +144,7 @@ export function SessionsApprovalCrossRefScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const regions = useRegions();
+  const backHref = "/dashboard/sessions/manager";
 
   const fetchData = useCallback(async () => {
     if (!catId) {
@@ -253,7 +255,8 @@ export function SessionsApprovalCrossRefScreen() {
             | "Injured"
             | "Sick and Injured";
         if (resolved.name !== undefined)
-          updatePayload.name = (resolved.name as SelectCat["name"]) ?? undefined;
+          updatePayload.name =
+            (resolved.name as SelectCat["name"]) ?? undefined;
         if (resolved.photo_url !== undefined)
           updatePayload.photo_url =
             (resolved.photo_url as SelectCat["photo_url"]) ?? undefined;
@@ -294,11 +297,7 @@ export function SessionsApprovalCrossRefScreen() {
     setSaving(true);
     setError(null);
     try {
-      const result = await editCat({
-        id: catId,
-        entry_status: "Original" as CatEntryStatus,
-      });
-
+      const result = await approveCat({ id: catId });
       if (result?.serverError) {
         setError(result.serverError);
         return;
@@ -414,7 +413,11 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG} initialFilters={defaultRegionFilter}>
+          <CatFilterToolbar
+            cats={allCats}
+            config={DATABASE_LIST_CONFIG}
+            initialFilters={defaultRegionFilter}
+          >
             {(filteredCats) =>
               filteredCats.length === 0 ? (
                 <div className="py-6 text-center text-sm text-slate-400">
@@ -494,7 +497,7 @@ export function SessionsApprovalCrossRefScreen() {
           </h1>
           <div className="flex items-center gap-2">
             <Link
-              href={validationHref}
+              href={backHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Back <span className="ml-1">&#8249;</span>
@@ -584,7 +587,11 @@ export function SessionsApprovalCrossRefScreen() {
               </p>
 
               <div className="mt-3">
-                <CatFilterToolbar cats={allCats} config={DATABASE_LIST_CONFIG} initialFilters={defaultRegionFilter}>
+                <CatFilterToolbar
+                  cats={allCats}
+                  config={DATABASE_LIST_CONFIG}
+                  initialFilters={defaultRegionFilter}
+                >
                   {(filteredCats) =>
                     filteredCats.length === 0 ? (
                       <div className="py-6 text-center text-sm text-white/50">
@@ -656,7 +663,7 @@ export function SessionsApprovalCrossRefScreen() {
         isLoading={saving}
       />
 
-      <ApproveSessionDialog
+      <ApproveCatDialog
         open={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
         onConfirm={handleApprove}
