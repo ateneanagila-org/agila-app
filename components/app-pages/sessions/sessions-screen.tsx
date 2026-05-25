@@ -185,8 +185,9 @@ export function SessionsScreen() {
   const priorityLocations = useMemo(() => {
     const regionLastSession = new Map<string, number>();
     for (const s of allSessions) {
+      if (!s.is_finished) continue;
       const rid = s.region_id;
-      const date = new Date(s.created_at).getTime();
+      const date = new Date(s.last_updated_at ?? s.created_at).getTime();
       const existing = regionLastSession.get(rid);
       if (!existing || date > existing) {
         regionLastSession.set(rid, date);
@@ -661,7 +662,7 @@ export function SessionsScreen() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
               <span>Census No.</span>
               <span>Date</span>
               <span>Location</span>
