@@ -3,11 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import {
-  PlusCircleIcon,
-  PlusIcon,
-  TrashIcon,
-} from "@/components/app-pages/shared/icons";
+import { PlusIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {

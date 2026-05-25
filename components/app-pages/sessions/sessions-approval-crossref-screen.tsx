@@ -35,6 +35,13 @@ function buildMergeDiff(
 ): { diffFields: MergeFieldDef[]; autoMergedCount: number } {
   const candidates: MergeFieldDef[] = [
     {
+      label: "Name",
+      fieldKey: "name",
+      currentValue: targetCat.name ?? null,
+      newValue: newCat.name ?? null,
+      inputType: "pill",
+    },
+    {
       label: "Color",
       fieldKey: "color",
       currentValue: targetCat.color ?? null,
@@ -77,6 +84,13 @@ function buildMergeDiff(
       inputType: "pill",
     },
     {
+      label: "Photo",
+      fieldKey: "photo_url",
+      currentValue: targetCat.photo_url ?? null,
+      newValue: newCat.photo_url ?? null,
+      inputType: "image",
+    },
+    {
       label: "Notes",
       fieldKey: "notes",
       currentValue: targetCat.notes ?? null,
@@ -95,12 +109,14 @@ function buildMergeDiff(
     });
   }
 
-  const pillCandidates = candidates.filter((f) => f.inputType === "pill");
+  const choiceCandidates = candidates.filter(
+    (f) => f.inputType === "pill" || f.inputType === "image",
+  );
   const diffFields = [
-    ...pillCandidates.filter((f) => f.currentValue !== f.newValue),
+    ...choiceCandidates.filter((f) => f.currentValue !== f.newValue),
     ...candidates.filter((f) => f.inputType === "textarea"),
   ];
-  const autoMergedCount = pillCandidates.filter(
+  const autoMergedCount = choiceCandidates.filter(
     (f) => f.currentValue === f.newValue,
   ).length;
 
@@ -236,6 +252,11 @@ export function SessionsApprovalCrossRefScreen() {
             | "Sick"
             | "Injured"
             | "Sick and Injured";
+        if (resolved.name !== undefined)
+          updatePayload.name = (resolved.name as SelectCat["name"]) ?? undefined;
+        if (resolved.photo_url !== undefined)
+          updatePayload.photo_url =
+            (resolved.photo_url as SelectCat["photo_url"]) ?? undefined;
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;
         if (resolved.region_name !== undefined) {
@@ -628,6 +649,7 @@ export function SessionsApprovalCrossRefScreen() {
         open={showMergeConfirm}
         onClose={() => setShowMergeConfirm(false)}
         targetName={mergeTargetCat?.name ?? null}
+        newName={cat?.name ?? null}
         diffFields={mergeDiffFields}
         autoMergedCount={mergeAutoMergedCount}
         onMerge={handleMerge}

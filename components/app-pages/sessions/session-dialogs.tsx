@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
@@ -396,13 +397,14 @@ export type MergeFieldDef = {
   fieldKey: string;
   currentValue: string | null;
   newValue: string | null;
-  inputType: "pill" | "textarea" | "readonly";
+  inputType: "pill" | "textarea" | "image";
 };
 
 type MergeDetailsDialogProps = {
   open: boolean;
   onClose: () => void;
   targetName: string | null;
+  newName: string | null;
   diffFields: MergeFieldDef[];
   autoMergedCount: number;
   onMerge: (resolved: Record<string, string | null>) => void;
@@ -412,6 +414,7 @@ type MergeDetailsDialogProps = {
 function MergeDetailsDialogContent({
   onClose,
   targetName,
+  newName,
   diffFields,
   autoMergedCount,
   onMerge,
@@ -419,7 +422,9 @@ function MergeDetailsDialogContent({
 }: Omit<MergeDetailsDialogProps, "open">) {
   const defaultSelections = () =>
     Object.fromEntries(
-      diffFields.filter((f) => f.inputType === "pill").map((f) => [f.fieldKey, "new" as const]),
+      diffFields
+        .filter((f) => f.inputType === "pill" || f.inputType === "image")
+        .map((f) => [f.fieldKey, "new" as const]),
     );
   const defaultTextValues = () =>
     Object.fromEntries(
@@ -439,8 +444,7 @@ function MergeDetailsDialogContent({
   const handleMerge = () => {
     const resolved: Record<string, string | null> = {};
     for (const field of diffFields) {
-      if (field.inputType === "readonly") continue;
-      if (field.inputType === "pill") {
+      if (field.inputType === "pill" || field.inputType === "image") {
         const sel = selections[field.fieldKey] ?? "new";
         resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
       } else {
@@ -450,8 +454,8 @@ function MergeDetailsDialogContent({
     onMerge(resolved);
   };
 
-  const readonlyFields = diffFields.filter((f) => f.inputType === "readonly");
   const pillFields = diffFields.filter((f) => f.inputType === "pill");
+  const imageFields = diffFields.filter((f) => f.inputType === "image");
   const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
 
   return (
@@ -462,29 +466,58 @@ function MergeDetailsDialogContent({
         onClose={onClose}
       />
 
-      {pillFields.length > 0 || textareaFields.length > 0 ? (
+      {pillFields.length > 0 || imageFields.length > 0 || textareaFields.length > 0 ? (
         <p className="text-xs text-brand-dark/60">
-          {pillFields.length} field{pillFields.length !== 1 ? "s" : ""} differ
+          {pillFields.length + imageFields.length} field
+          {pillFields.length + imageFields.length !== 1 ? "s" : ""} differ
           {autoMergedCount > 0 ? ` · ${autoMergedCount} auto-merged` : ""}
         </p>
       ) : (
         <p className="text-xs text-brand-dark/60">All fields match — only notes to review.</p>
       )}
 
-      {readonlyFields.map((field) => (
-        <div key={field.fieldKey} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <p className="text-xs font-bold text-amber-700">
-            ⚠ Region mismatch
-          </p>
-          <p className="mt-0.5 text-xs text-amber-600">
-            New entry: <span className="font-semibold">{field.newValue ?? "—"}</span>
-            {" · "}
-            Existing: <span className="font-semibold">{field.currentValue ?? "—"}</span>
-          </p>
-        </div>
-      ))}
-
       <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
+        {imageFields.map((field) => (
+          <div key={field.fieldKey}>
+            <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["new", "current"] as const).map((side) => {
+                const value = side === "new" ? field.newValue : field.currentValue;
+                const selected = (selections[field.fieldKey] ?? "new") === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() =>
+                      setSelections((s) => ({ ...s, [field.fieldKey]: side }))
+                    }
+                    className={`flex flex-col items-stretch gap-1.5 rounded-xl border-2 p-1.5 transition-colors ${
+                      selected
+                        ? "border-brand-green bg-brand-green/10"
+                        : "border-brand-dark/15 bg-brand-cream hover:bg-brand-cream-dark"
+                    }`}
+                  >
+                    <div className="aspect-square overflow-hidden rounded-lg">
+                      <CatPhoto
+                        photoUrl={value}
+                        name={side === "new" ? newName : targetName}
+                        className="h-full w-full"
+                        iconClassName="h-8 w-8 text-brand-dark/30"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-dark/60">
+                        {side === "new" ? "New" : "Current"}
+                      </span>
+                      {selected ? <span className="text-xs text-brand-green">✓</span> : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
         {pillFields.map((field) => (
           <div key={field.fieldKey}>
             <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
