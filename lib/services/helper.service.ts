@@ -1,5 +1,8 @@
 import { google } from "googleapis";
-import { wrapSheetsClient, type WrappedSheetsClient } from "./sheets-client.service";
+import {
+  wrapSheetsClient,
+  type WrappedSheetsClient,
+} from "./sheets-client.service";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
 import {
@@ -64,7 +67,9 @@ export async function exportSpreadsheetAsZip(
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    throw new Error(`ZIP export failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `ZIP export failed: ${response.status} ${response.statusText}`,
+    );
   }
   return Buffer.from(await response.arrayBuffer());
 }
@@ -226,9 +231,10 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
   if (!region) return;
 
-  const rowData = region.name === "UNKNOWN"
-    ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
-    : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
+  const rowData =
+    region.name === "UNKNOWN"
+      ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
+      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
 
   await tx.insert(gsheetSyncQueue).values({
     action: "UPDATE",
@@ -650,10 +656,7 @@ export async function generateForFaSheet(): Promise<void> {
       with: { catHealthRecords: true },
       where: (c, { eq, and, exists, isNull }) =>
         and(
-          and(
-            eq(c.is_adoptable, true),
-            isNull(c.cat_status),
-          ),
+          and(eq(c.is_adoptable, true), isNull(c.cat_status)),
           exists(
             db
               .select()
@@ -1121,49 +1124,64 @@ export async function readAllRegionSheetStates(
 
 /**
  * Clears the last_edited_at (col W) and edited_by (col X) for specific rows
- * after successful reverse sync import. Prevents re-importing the same edits.
+ * after successful reverse sync / photo import. Prevents re-importing the
+ * same edits.
+ *
+ * Two call shapes:
+ *   - With known row positions (from a shared readSheetState pass): no
+ *     additional Sheets read needed.
+ *   - With only entity IDs (legacy / standalone paths): one extra read of
+ *     col Y to locate row positions.
  */
+
 export async function clearSheetEditTimestamps(
   regionId: string,
-  entityIds: string[],
+  arg: string[] | Array<{ entityId: string; rowIndex: number }>,
 ): Promise<void> {
-  if (entityIds.length === 0) return;
-
-  const { glAuth, glSheets } = await connectToSheets();
-  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+  if (arg.length === 0) return;
 
   const region = await db.query.regions.findFirst({
     where: eq(regions.id, regionId),
   });
   if (!region) return;
 
-  // Read col Y to find row positions of imported entities
-  const response = await glSheets.spreadsheets.values.get({
-    auth: glAuth,
-    spreadsheetId,
-    range: `'${region.name}'!Y3:Y`,
-  });
-  const uuidColumn = response.data.values || [];
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-  const requests: Array<{ range: string; values: string[][] }> = [];
-
-  for (const entityId of entityIds) {
-    const rowIdx = uuidColumn.findIndex(
-      (row) => String(row[0] ?? "").trim() === entityId,
-    );
-    if (rowIdx === -1) continue;
-    const sheetRow = rowIdx + 3; // data starts at row 3
-    requests.push({
-      range: `'${region.name}'!W${sheetRow}:X${sheetRow}`,
-      values: [["", ""]],
-    });
-  }
-
-  if (requests.length > 0) {
-    await glSheets.spreadsheets.values.batchUpdate({
+  // Normalize input to positional entries
+  let positional: Array<{ rowIndex: number }>;
+  if (typeof arg[0] === "string") {
+    // Legacy path — must read col Y to find positions
+    const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
-      requestBody: { valueInputOption: "RAW", data: requests },
+      range: `'${region.name}'!Y3:Y`,
     });
+    const uuidColumn = response.data.values || [];
+    positional = [];
+    for (const entityId of arg as string[]) {
+      const rowIdx = uuidColumn.findIndex(
+        (row) => String(row[0] ?? "").trim() === entityId,
+      );
+      if (rowIdx === -1) continue;
+      positional.push({ rowIndex: rowIdx + 3 });
+    }
+  } else {
+    positional = (arg as Array<{ entityId: string; rowIndex: number }>).map(
+      (e) => ({ rowIndex: e.rowIndex }),
+    );
   }
+
+  if (positional.length === 0) return;
+
+  const requests = positional.map((p) => ({
+    range: `'${region.name}'!W${p.rowIndex}:X${p.rowIndex}`,
+    values: [["", ""]],
+  }));
+
+  await glSheets.spreadsheets.values.batchUpdate({
+    auth: glAuth,
+    spreadsheetId,
+    requestBody: { valueInputOption: "RAW", data: requests },
+  });
 }
