@@ -1136,6 +1136,14 @@ export async function readAllRegionSheetStates(
 
 export async function clearSheetEditTimestamps(
   regionId: string,
+  entityIds: string[],
+): Promise<void>;
+export async function clearSheetEditTimestamps(
+  regionId: string,
+  entries: Array<{ entityId: string; rowIndex: number }>,
+): Promise<void>;
+export async function clearSheetEditTimestamps(
+  regionId: string,
   arg: string[] | Array<{ entityId: string; rowIndex: number }>,
 ): Promise<void> {
   if (arg.length === 0) return;
@@ -1148,7 +1156,6 @@ export async function clearSheetEditTimestamps(
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-  // Normalize input to positional entries
   let positional: Array<{ rowIndex: number }>;
   if (typeof arg[0] === "string") {
     // Legacy path — must read col Y to find positions
