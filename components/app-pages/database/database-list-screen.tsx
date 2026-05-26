@@ -58,23 +58,15 @@ export function DatabaseListScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [cats, setCats] = useState<FilterableCat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterDataLoaded, setFilterDataLoaded] = useState(false);
 
   const fetchCats = useCallback(async () => {
     setLoading(true);
     try {
-      const [catsResult, healthResult, interventionsResult] = await Promise.all([
-        getCats({ entry_status: "Original" }),
-        getCatHealthRecords({}),
-        getInterventions({}),
-      ]);
+      const catsResult = await getCats({ entry_status: "Original" });
       if (catsResult?.data) {
-        setCats(
-          addMedicalAndInterventionInfo(
-            catsResult.data,
-            healthResult?.data,
-            interventionsResult?.data,
-          ),
-        );
+        setCats(catsResult.data);
+        setFilterDataLoaded(false);
       }
     } catch (err) {
       console.error("Failed to fetch cats:", err);
@@ -82,6 +74,34 @@ export function DatabaseListScreen() {
       setLoading(false);
     }
   }, []);
+
+  const loadFilterData = useCallback(async () => {
+    if (filterDataLoaded || cats.length === 0) return;
+
+    try {
+      const [healthResult, interventionsResult] = await Promise.allSettled([
+        getCatHealthRecords({}),
+        getInterventions({}),
+      ]);
+
+      const healthRecords =
+        healthResult.status === "fulfilled" ? healthResult.value?.data : undefined;
+      const interventions =
+        interventionsResult.status === "fulfilled"
+          ? interventionsResult.value?.data
+          : undefined;
+
+      setCats((currentCats) =>
+        addMedicalAndInterventionInfo(
+          currentCats,
+          healthRecords,
+          interventions,
+        ),
+      );
+    } finally {
+      setFilterDataLoaded(true);
+    }
+  }, [cats.length, filterDataLoaded]);
 
   useEffect(() => {
     fetchCats();
@@ -120,7 +140,11 @@ export function DatabaseListScreen() {
             </button>
           ) : null}
 
-          <CatFilterToolbar cats={cats} config={DATABASE_LIST_CONFIG}>
+          <CatFilterToolbar
+            cats={cats}
+            config={DATABASE_LIST_CONFIG}
+            onBeforeOpenFilter={loadFilterData}
+          >
             {(filteredCats) =>
               loading ? (
                 <LoadingIndicator />
@@ -181,7 +205,11 @@ export function DatabaseListScreen() {
         </div>
 
         <div className="mt-5">
-          <CatFilterToolbar cats={cats} config={DATABASE_LIST_CONFIG}>
+          <CatFilterToolbar
+            cats={cats}
+            config={DATABASE_LIST_CONFIG}
+            onBeforeOpenFilter={loadFilterData}
+          >
             {(filteredCats) => (
               <div className="mt-4 grid grid-cols-5 gap-3">
                 {loading ? (

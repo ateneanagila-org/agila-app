@@ -23,6 +23,7 @@ type CatFilterToolbarProps = {
   config: FilterSortConfig;
   searchFields?: (keyof SelectCat)[];
   initialFilters?: Record<string, Set<string>>;
+  onBeforeOpenFilter?: () => void | Promise<void>;
   children: (filteredCats: FilterableCat[]) => ReactNode;
 };
 
@@ -31,9 +32,11 @@ export function CatFilterToolbar({
   config,
   searchFields = ["name"],
   initialFilters,
+  onBeforeOpenFilter,
   children,
 }: CatFilterToolbarProps) {
   const [searchInput, setSearchInput] = useState("");
+  const [openingFilter, setOpeningFilter] = useState(false);
 
   const {
     filtered,
@@ -75,6 +78,21 @@ export function CatFilterToolbar({
     return () => window.clearTimeout(timer);
   }, [searchInput, setSearch]);
 
+  const handleOpenFilter = async () => {
+    if (!onBeforeOpenFilter) {
+      openFilterDialog();
+      return;
+    }
+
+    setOpeningFilter(true);
+    try {
+      await onBeforeOpenFilter();
+    } finally {
+      setOpeningFilter(false);
+      openFilterDialog();
+    }
+  };
+
   const filteredCats = search
     ? filtered.filter((cat) => {
         const q = search.toLowerCase();
@@ -102,10 +120,12 @@ export function CatFilterToolbar({
           <div className="mt-2 flex gap-2 tablet:mt-0">
             <button
               type="button"
-              onClick={openFilterDialog}
+              onClick={handleOpenFilter}
+              disabled={openingFilter}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
-              Filter <ChevronDownIcon className="h-3.5 w-3.5" />
+              {openingFilter ? "Loading" : "Filter"}{" "}
+              <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"

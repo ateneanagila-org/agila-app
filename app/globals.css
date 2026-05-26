@@ -1,14 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/*
-  Licensed brand font files should live in /public/fonts:
-  - /fonts/avelon.woff2
-  - /fonts/sfc-la-pura.woff2
-*/
 @font-face {
   font-family: "AVELON";
-  src: url("/fonts/avelon.woff2") format("woff2");
+  src: local("AVELON"), local("Avelon");
   font-display: swap;
   font-style: normal;
   font-weight: 400 800;
@@ -16,7 +11,7 @@
 
 @font-face {
   font-family: "SFC La Pura";
-  src: url("/fonts/sfc-la-pura.woff2") format("woff2");
+  src: local("SFC La Pura"), local("SFC LaPura");
   font-display: swap;
   font-style: normal;
   font-weight: 400 800;
