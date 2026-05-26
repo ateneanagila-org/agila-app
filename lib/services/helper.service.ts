@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { wrapSheetsClient, type WrappedSheetsClient } from "./sheets-client.service";
 import { eq, inArray, and, lt } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
 import {
@@ -21,7 +22,10 @@ const MAX_RETRIES = 3;
 // 1. AUTHENTICATION
 // ==========================================
 
-export async function connectToSheets() {
+export async function connectToSheets(): Promise<{
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>;
+  glSheets: WrappedSheetsClient;
+}> {
   const serviceAccountCredentials = JSON.parse(
     process.env.SERVICE_ACCOUNT_CREDENTIALS!,
   );
@@ -38,10 +42,8 @@ export async function connectToSheets() {
     ],
   });
 
-  return {
-    glAuth,
-    glSheets: google.sheets({ version: "v4", auth: glAuth }),
-  };
+  const raw = google.sheets({ version: "v4", auth: glAuth });
+  return { glAuth, glSheets: wrapSheetsClient(raw) };
 }
 
 /**
@@ -465,7 +467,7 @@ const SUMMARY_EXCLUDED_TABS = new Set([
 ]);
 
 async function getSpreadsheetSheets(
-  glSheets: ReturnType<typeof google.sheets>,
+  glSheets: WrappedSheetsClient,
   glAuth: InstanceType<typeof google.auth.GoogleAuth>,
   spreadsheetId: string,
 ) {
