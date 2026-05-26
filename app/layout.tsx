@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Gantari } from "next/font/google";
 import "./globals.css";
 
-// Body font — Google Fonts
 const gantari = Gantari({
   variable: "--font-gantari",
   subsets: ["latin"],

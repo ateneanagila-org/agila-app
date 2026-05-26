@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/*
+  Licensed brand font files should live in /public/fonts:
+  - /fonts/avelon.woff2
+  - /fonts/sfc-la-pura.woff2
+*/
+@font-face {
+  font-family: "AVELON";
+  src: url("/fonts/avelon.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400 800;
+}
+
+@font-face {
+  font-family: "SFC La Pura";
+  src: url("/fonts/sfc-la-pura.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400 800;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -9,8 +30,10 @@
   --breakpoint-mobile: 30rem;
   --breakpoint-tablet: 48rem;
 
-  /* Fonts — ref CSS vars set by next/font on body */
-  --font-sans: var(--font-gantari);
+  /* Fonts */
+  --font-sans: var(--font-body-stack);
+  --font-heading: var(--font-heading-stack);
+  --font-brand: var(--font-brand-stack);
   --font-mono: ui-monospace, monospace;
 
   /* Brand color utilities */
@@ -78,6 +101,9 @@
 
 :root {
   --radius: 0.625rem;
+  --font-body-stack: var(--font-gantari), Gantari, system-ui, sans-serif;
+  --font-heading-stack: "AVELON", "Avelon", var(--font-body-stack);
+  --font-brand-stack: "SFC La Pura", "SFC LaPura", var(--font-heading-stack);
 
   /* Semantic tokens — updated to brand palette */
   --background: #fff7ea;
@@ -157,13 +183,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body-stack);
   }
 }
 
 @layer utilities {
-  /* Heading font — Gantari bold stack */
   .font-heading {
-    font-family: Gantari, var(--font-gantari), sans-serif;
-    letter-spacing: -0.01em;
+    font-family: var(--font-heading-stack);
+    letter-spacing: 0;
+  }
+
+  .font-brand {
+    font-family: var(--font-brand-stack);
+    letter-spacing: 0.04em;
   }
 }

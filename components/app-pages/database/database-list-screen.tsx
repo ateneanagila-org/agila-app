@@ -3,25 +3,78 @@
 import { useState, useEffect, useCallback } from "react";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
+import type { FilterableCat } from "@/components/app-pages/shared/cat-filter-toolbar";
 import { PlusIcon } from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
-import { getCats } from "@/app/actions/cats";
-import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import { getInterventions } from "@/app/actions/interventions";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { SelectIntervention } from "@/lib/validation/interventions";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useAuth } from "@/contexts/auth-context";
+
+function groupByCatId<T extends { cat_id: string }>(items: T[] | undefined) {
+  const grouped = new Map<string, T[]>();
+  for (const item of items ?? []) {
+    const existing = grouped.get(item.cat_id);
+    if (existing) existing.push(item);
+    else grouped.set(item.cat_id, [item]);
+  }
+  return grouped;
+}
+
+function uniqueOrUnknown(values: Array<string | null | undefined>) {
+  const unique = Array.from(new Set(values.filter(Boolean) as string[]));
+  return unique.length > 0 ? unique : ["Unknown"];
+}
+
+function addMedicalAndInterventionInfo(
+  cats: FilterableCat[],
+  healthRecords: SelectCatHealthRecord[] | undefined,
+  interventions: SelectIntervention[] | undefined,
+): FilterableCat[] {
+  const healthByCatId = new Map(
+    (healthRecords ?? []).map((record) => [record.cat_id, record]),
+  );
+  const interventionsByCatId = groupByCatId(interventions);
+
+  return cats.map((cat) => {
+    const catInterventions = interventionsByCatId.get(cat.id) ?? [];
+    return {
+      ...cat,
+      condition: healthByCatId.get(cat.id)?.condition ?? "Unknown",
+      intervention_type: uniqueOrUnknown(
+        catInterventions.map((item) => item.type),
+      ),
+      intervention_status: uniqueOrUnknown(
+        catInterventions.map((item) => item.status),
+      ),
+    };
+  });
+}
 
 export function DatabaseListScreen() {
   const { canManage } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
-  const [cats, setCats] = useState<CatWithRegion[]>([]);
+  const [cats, setCats] = useState<FilterableCat[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCats = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getCats({ entry_status: "Original" });
-      if (result?.data) {
-        setCats(result.data);
+      const [catsResult, healthResult, interventionsResult] = await Promise.all([
+        getCats({ entry_status: "Original" }),
+        getCatHealthRecords({}),
+        getInterventions({}),
+      ]);
+      if (catsResult?.data) {
+        setCats(
+          addMedicalAndInterventionInfo(
+            catsResult.data,
+            healthResult?.data,
+            interventionsResult?.data,
+          ),
+        );
       }
     } catch (err) {
       console.error("Failed to fetch cats:", err);
@@ -96,7 +149,8 @@ export function DatabaseListScreen() {
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+              className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
+              aria-label="Add entry"
             >
               <PlusIcon className="h-6 w-6 text-white" />
             </button>
