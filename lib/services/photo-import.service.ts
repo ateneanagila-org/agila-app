@@ -394,6 +394,7 @@ export async function importPhotosIfNeeded(
   const candidateUuids = new Set<string>();
   const uuidToRegion = new Map<string, string>();
   const uuidToRowIndex = new Map<string, number>();
+  const uuidToExpectedTimestamp = new Map<string, string | null>();
 
   for (const region of allRegions) {
     const rows = sheetStates?.get(region.id) ?? (await readSheetState(region.id));
@@ -402,6 +403,7 @@ export async function importPhotosIfNeeded(
         candidateUuids.add(row.entityId);
         uuidToRegion.set(row.entityId, region.id);
         uuidToRowIndex.set(row.entityId, row.rowIndex);
+        uuidToExpectedTimestamp.set(row.entityId, row.lastEditedAt);
       }
     }
   }
@@ -433,15 +435,19 @@ export async function importPhotosIfNeeded(
   // Clear edit timestamps for successfully imported cats so the next cycle
   // doesn't re-detect them.
   const erroredIds = new Set(errors.map((e) => e.catId));
-  const importedByRegion = new Map<string, Array<{ entityId: string; rowIndex: number }>>();
+  const importedByRegion = new Map<
+    string,
+    Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>
+  >();
   for (const [uuid] of entries) {
     if (erroredIds.has(uuid)) continue;
     const regionId = uuidToRegion.get(uuid);
     if (!regionId) continue;
     const rowIndex = uuidToRowIndex.get(uuid);
     if (rowIndex === undefined) continue;
+    const expectedTimestamp = uuidToExpectedTimestamp.get(uuid) ?? null;
     if (!importedByRegion.has(regionId)) importedByRegion.set(regionId, []);
-    importedByRegion.get(regionId)!.push({ entityId: uuid, rowIndex });
+    importedByRegion.get(regionId)!.push({ entityId: uuid, rowIndex, expectedTimestamp });
   }
   for (const [regionId, positional] of importedByRegion) {
     try {

@@ -1140,11 +1140,11 @@ export async function clearSheetEditTimestamps(
 ): Promise<void>;
 export async function clearSheetEditTimestamps(
   regionId: string,
-  entries: Array<{ entityId: string; rowIndex: number }>,
+  entries: Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>,
 ): Promise<void>;
 export async function clearSheetEditTimestamps(
   regionId: string,
-  arg: string[] | Array<{ entityId: string; rowIndex: number }>,
+  arg: string[] | Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>,
 ): Promise<void> {
   if (arg.length === 0) return;
 
@@ -1174,9 +1174,40 @@ export async function clearSheetEditTimestamps(
       positional.push({ rowIndex: rowIdx + 3 });
     }
   } else {
-    positional = (arg as Array<{ entityId: string; rowIndex: number }>).map(
-      (e) => ({ rowIndex: e.rowIndex }),
-    );
+    // Filter out entries with no snapshot W (nothing to clear — user may have
+    // added a W timestamp since the snapshot, which we must preserve).
+    const verifyable = (arg as Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>)
+      .filter((e) => e.expectedTimestamp !== null && e.expectedTimestamp !== "");
+
+    if (verifyable.length === 0) return;
+
+    // Re-read col W for the region. Skip clear for rows whose W has changed
+    // since the snapshot — those represent edits made during the cron tick that
+    // the next tick must process.
+    const wResponse = await glSheets.spreadsheets.values.get({
+      auth: glAuth,
+      spreadsheetId,
+      range: `'${region.name}'!W3:W`,
+    });
+    const wColumn = wResponse.data.values || [];
+
+    let skippedDueToChange = 0;
+    positional = [];
+    for (const entry of verifyable) {
+      const currentW = String(wColumn[entry.rowIndex - 3]?.[0] ?? "").trim();
+      const expected = String(entry.expectedTimestamp).trim();
+      if (currentW === expected) {
+        positional.push({ rowIndex: entry.rowIndex });
+      } else {
+        skippedDueToChange++;
+      }
+    }
+
+    if (skippedDueToChange > 0) {
+      console.log(
+        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows — W changed since snapshot (re-edited during cron tick)`,
+      );
+    }
   }
 
   if (positional.length === 0) return;
