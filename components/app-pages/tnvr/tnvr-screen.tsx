@@ -5,8 +5,8 @@ import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import { SearchIcon, ChevronDownIcon } from "@/components/app-pages/shared/icons";
-import { PieChart, CHART_COLORS } from "@/components/app-pages/shared/charts";
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import { PieChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 
 /** Compute TNVR stats from cats + health records */
@@ -19,8 +19,7 @@ function computeTnvrStats(
     hrByCatId.set(hr.cat_id, hr);
   }
 
-  // Count all real cats (exclude Merged duplicates)
-  const activeCats = cats.filter((c) => c.entry_status !== "Merged");
+  const originalCats = cats.filter((c) => c.entry_status === "Original");
 
   let neuteredMale = 0;
   let spayedFemale = 0;
@@ -32,7 +31,7 @@ function computeTnvrStats(
   let totalFemale = 0;
   let totalUnknown = 0;
 
-  for (const cat of activeCats) {
+  for (const cat of originalCats) {
     const hr = hrByCatId.get(cat.id);
     const isNeutered = !!hr?.neuter_date;
 
@@ -53,7 +52,7 @@ function computeTnvrStats(
 
   const totalNeutered = neuteredMale + spayedFemale + neuteredUnknown;
   const totalUnneutered = unneuteredMale + unneuteredFemale + unneuteredUnknown;
-  const total = activeCats.length;
+  const total = originalCats.length;
 
   const pct = (n: number, d: number) =>
     d > 0 ? `${Math.round((n / d) * 100)}%` : "0%";
@@ -162,7 +161,7 @@ export function TnvrScreen() {
     setLoading(true);
     try {
       const [catResult, hrResult] = await Promise.all([
-        getCats({}),
+        getCats({ entry_status: "Original" }),
         getCatHealthRecords({}),
       ]);
       if (catResult?.data) {

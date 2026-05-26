@@ -106,6 +106,25 @@ export function UploadIcon({ className }: IconProps) {
   );
 }
 
+export function CameraIcon({ className }: IconProps) {
+  return (
+    <svg className={iconClassName(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8a3 3 0 0 1 3-3h1.5L10 3h4l1.5 2H17a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8z" />
+      <circle cx="12" cy="12.5" r="3.5" strokeWidth="2" />
+    </svg>
+  );
+}
+
+export function SwitchCameraIcon({ className }: IconProps) {
+  return (
+    <svg className={iconClassName(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8a3 3 0 0 1 3-3h1.5L10 3h4l1.5 2H17a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12a3 3 0 0 1 5.5-1.65M15 13a3 3 0 0 1-5.5 1.65" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.5 8.75v1.6h-1.6M9.5 16.25v-1.6h1.6" />
+    </svg>
+  );
+}
+
 export function ExternalLinkIcon({ className }: IconProps) {
   return (
     <svg className={iconClassName(className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false">

@@ -49,6 +49,8 @@ export function CatalogScreen() {
       const val = cat[key as keyof SelectCat];
       return val != null ? String(val) : null;
     },
+    undefined,
+    (cat) => !cat.name?.trim(),
   );
 
   const searchedCats = search

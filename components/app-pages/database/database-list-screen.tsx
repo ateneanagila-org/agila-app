@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
 import type { FilterableCat } from "@/components/app-pages/shared/cat-filter-toolbar";
-import { PlusIcon } from "@/components/app-pages/shared/icons";
+import { PlusIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
-import { getCats, getCatHealthRecords } from "@/app/actions/cats";
+import { getCats, getCatHealthRecords, removeCat } from "@/app/actions/cats";
 import { getInterventions } from "@/app/actions/interventions";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
@@ -59,6 +59,9 @@ export function DatabaseListScreen() {
   const [cats, setCats] = useState<FilterableCat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterDataLoaded, setFilterDataLoaded] = useState(false);
+  const [catToDelete, setCatToDelete] = useState<FilterableCat | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchCats = useCallback(async () => {
     setLoading(true);
@@ -111,6 +114,27 @@ export function DatabaseListScreen() {
     fetchCats();
   }, [fetchCats]);
 
+  const handleDeleteCat = useCallback(async () => {
+    if (!catToDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const result = await removeCat({ id: catToDelete.id });
+      if (result?.serverError) {
+        setDeleteError(result.serverError);
+        return;
+      }
+      setCats((currentCats) =>
+        currentCats.filter((cat) => cat.id !== catToDelete.id),
+      );
+      setCatToDelete(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete cat.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [catToDelete]);
+
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
@@ -153,14 +177,28 @@ export function DatabaseListScreen() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {filteredCats.map((cat) => (
-                    <CatCard
-                      key={cat.id}
-                      cat={cat}
-                      region_name={cat.region_name}
-                      href={`/dashboard/database/general?id=${cat.id}`}
-                      variant="default"
-                      action="kebab"
-                    />
+                    <div key={cat.id} className="group/cat-card relative">
+                      <CatCard
+                        cat={cat}
+                        region_name={cat.region_name}
+                        href={`/dashboard/database/general?id=${cat.id}`}
+                        variant="default"
+                        action={canManage ? "none" : "chevron"}
+                      />
+                      {canManage ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteError(null);
+                            setCatToDelete(cat);
+                          }}
+                          className="absolute bottom-2 right-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
+                          aria-label={`Delete ${cat.name || "unnamed cat"}`}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               )
@@ -218,14 +256,28 @@ export function DatabaseListScreen() {
                   <div className="col-span-full"><EmptyState /></div>
                 ) : (
                   filteredCats.map((cat) => (
-                    <CatCard
-                      key={`desktop-${cat.id}`}
-                      cat={cat}
-                      region_name={cat.region_name}
-                      href={`/dashboard/database/general?id=${cat.id}`}
-                      variant="default"
-                      action="kebab"
-                    />
+                    <div key={`desktop-${cat.id}`} className="group/cat-card relative">
+                      <CatCard
+                        cat={cat}
+                        region_name={cat.region_name}
+                        href={`/dashboard/database/general?id=${cat.id}`}
+                        variant="default"
+                        action={canManage ? "none" : "chevron"}
+                      />
+                      {canManage ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteError(null);
+                            setCatToDelete(cat);
+                          }}
+                          className="absolute bottom-2 right-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
+                          aria-label={`Delete ${cat.name || "unnamed cat"}`}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
                   ))
                 )}
               </div>
@@ -236,6 +288,56 @@ export function DatabaseListScreen() {
 
       {showAdd ? (
         <CatEntryForm onClose={() => setShowAdd(false)} onSave={handleSave} />
+      ) : null}
+
+      {catToDelete ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
+          onClick={() => {
+            if (!deleting) setCatToDelete(null);
+          }}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+                Delete cat?
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-brand-dark/70">
+                {catToDelete.name?.trim() || "This unnamed cat"} will be
+                permanently removed from the database.
+              </p>
+            </div>
+
+            {deleteError ? (
+              <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                {deleteError}
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCatToDelete(null)}
+                disabled={deleting}
+                className="rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCat}
+                disabled={deleting}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </>
   );

@@ -71,6 +71,7 @@ export function CatFilterToolbar({
       return val != null ? String(val) : null;
     },
     initialFilters,
+    (cat) => !cat.name?.trim(),
   );
 
   useEffect(() => {

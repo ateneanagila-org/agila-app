@@ -34,6 +34,7 @@ export function useFilterSort<T>(
   getFilterValue: (item: T, key: string) => FilterValue,
   getSortValue: (item: T, key: string) => string | number | Date | null | undefined,
   initialFilters?: FilterState,
+  shouldPinLast?: (item: T) => boolean,
 ) {
   const [state, setState] = useState<State>({
     filters: initialFilters ?? {},
@@ -117,8 +118,21 @@ export function useFilterSort<T>(
       });
     }
 
+    if (shouldPinLast) {
+      result = [...result].sort(
+        (a, b) => Number(shouldPinLast(a)) - Number(shouldPinLast(b)),
+      );
+    }
+
     return result;
-  }, [items, state.filters, state.sort, getFilterValue, getSortValue]);
+  }, [
+    items,
+    state.filters,
+    state.sort,
+    getFilterValue,
+    getSortValue,
+    shouldPinLast,
+  ]);
 
   return {
     filtered,

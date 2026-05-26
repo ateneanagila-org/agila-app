@@ -4,10 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import {
-  SearchIcon,
-  ChevronDownIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import {
   HorizontalBarChart,
   VerticalBarChart,
@@ -27,9 +24,9 @@ function computeStats(
     hrByCatId.set(hr.cat_id, hr);
   }
 
-  const activeCats = cats.filter((c) => c.entry_status !== "Merged");
+  const originalCats = cats.filter((c) => c.entry_status === "Original");
 
-  const total = activeCats.length;
+  const total = originalCats.length;
   let neutered = 0;
   let domesticated = 0;
   let tame = 0;
@@ -43,7 +40,7 @@ function computeStats(
   let mia = 0;
   let deceased = 0;
 
-  for (const cat of activeCats) {
+  for (const cat of originalCats) {
     const hr = hrByCatId.get(cat.id);
     if (hr?.neuter_date) neutered++;
     if (cat.sociability === "Domesticated") domesticated++;
@@ -108,7 +105,7 @@ export function OverviewScreen() {
     setLoading(true);
     try {
       const [catResult, hrResult] = await Promise.all([
-        getCats({}),
+        getCats({ entry_status: "Original" }),
         getCatHealthRecords({}),
       ]);
       if (catResult?.data) {
@@ -176,8 +173,7 @@ export function OverviewScreen() {
       if (loc === "All Locations") continue;
       counts.set(loc, 0);
     }
-    const activeCats = allCats.filter((c) => c.entry_status !== "Merged");
-    for (const cat of activeCats) {
+    for (const cat of allCats) {
       const spot = (cat.spot_last_seen ?? "").toUpperCase();
       if (!spot) continue;
       let matched = false;
