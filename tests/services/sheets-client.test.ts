@@ -68,13 +68,21 @@ describe("wrapSheetsClient", () => {
     expect(get).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
   }, 30_000);
 
-  it("paces sequential calls by at least PACE_MS", async () => {
+  it("first call is immediate; second call waits ≥ PACE_MS after first start", async () => {
     const get = jest.fn().mockResolvedValue({ data: {} });
     const client = wrapSheetsClient(makeFakeRaw({ get }));
-    const start = Date.now();
+
+    const t0 = Date.now();
     await client.spreadsheets.values.get({} as never);
+    const t1 = Date.now();
     await client.spreadsheets.values.get({} as never);
-    const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(1200);
-  }, 10_000);
+    const t2 = Date.now();
+
+    // First call: should be effectively immediate (no pacing wait yet).
+    expect(t1 - t0).toBeLessThan(200);
+    // Second call: must wait ≥ PACE_MS after first call's start.
+    expect(t2 - t0).toBeGreaterThanOrEqual(1200);
+    // And shouldn't wait much longer than necessary.
+    expect(t2 - t0).toBeLessThan(1500);
+  }, 5_000);
 });

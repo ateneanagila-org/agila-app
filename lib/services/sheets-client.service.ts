@@ -16,11 +16,17 @@ const RETRY_DELAYS_MS = [1000, 2000, 4000];
  * promise so the next call waits ≥ PACE_MS after this one's start.
  */
 let pacingChain: Promise<void> = Promise.resolve();
+let lastCallStartedAt = 0;
 
 function nextPaceSlot(): Promise<void> {
-  const slot = pacingChain.then(
-    () => new Promise<void>((resolve) => setTimeout(resolve, PACE_MS)),
-  );
+  const slot = pacingChain.then(async () => {
+    const elapsed = Date.now() - lastCallStartedAt;
+    const wait = Math.max(0, PACE_MS - elapsed);
+    if (wait > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, wait));
+    }
+    lastCallStartedAt = Date.now();
+  });
   pacingChain = slot;
   return slot;
 }
@@ -124,4 +130,5 @@ export function wrapSheetsClient(
  */
 export function __resetPacingForTests(): void {
   pacingChain = Promise.resolve();
+  lastCallStartedAt = 0;
 }
