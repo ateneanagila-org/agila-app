@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import {
   readSheetState,
+  readAllRegionSheetStates,
   SheetRow,
   clearSheetEditTimestamps,
   refreshCatInSyncQueue,
@@ -42,6 +43,7 @@ interface ReverseSyncResult {
 async function reverseSyncRegionInternal(
   regionId: string,
   force = false,
+  preReadRows?: SheetRow[],
 ): Promise<ReverseSyncResult> {
   const result: ReverseSyncResult = { imported: 0, skipped: 0, errors: [] };
   const startedAt = new Date();
@@ -53,20 +55,24 @@ async function reverseSyncRegionInternal(
   });
 
   let sheetRows: SheetRow[];
-  try {
-    sheetRows = await readSheetState(regionId);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "Failed to read sheet";
-    await db.insert(syncAuditLog).values({
-      regionId,
-      direction: "REVERSE",
-      tasksProcessed: 0,
-      tasksFailed: 0,
-      errorMessage: msg,
-      startedAt,
-      completedAt: new Date(),
-    });
-    throw error;
+  if (preReadRows) {
+    sheetRows = preReadRows;
+  } else {
+    try {
+      sheetRows = await readSheetState(regionId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to read sheet";
+      await db.insert(syncAuditLog).values({
+        regionId,
+        direction: "REVERSE",
+        tasksProcessed: 0,
+        tasksFailed: 0,
+        errorMessage: msg,
+        startedAt,
+        completedAt: new Date(),
+      });
+      throw error;
+    }
   }
 
   let maxCatalogNum = Math.max(
@@ -208,10 +214,22 @@ async function reverseSyncRegionInternal(
     }
   }
 
-  // Clear GSheet timestamps for successfully imported rows
-  // so they won't be re-imported on the next cycle
+  // Clear timestamps for successfully imported rows so next cycle skips them.
+  // Pass positional entries to skip the col-Y re-read.
   try {
-    await clearSheetEditTimestamps(regionId, importedIds);
+    const rowByEntity = new Map(
+      sheetRows.map((r) => [r.entityId, { rowIndex: r.rowIndex, expectedTimestamp: r.lastEditedAt }]),
+    );
+    const positionalEntries: Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }> = [];
+    for (const entityId of importedIds) {
+      const entry = rowByEntity.get(entityId);
+      if (entry !== undefined) {
+        positionalEntries.push({ entityId, rowIndex: entry.rowIndex, expectedTimestamp: entry.expectedTimestamp });
+      }
+    }
+    if (positionalEntries.length > 0) {
+      await clearSheetEditTimestamps(regionId, positionalEntries);
+    }
   } catch (error) {
     console.error(
       `[ReverseSync] Failed to clear timestamps for region ${regionId}:`,
