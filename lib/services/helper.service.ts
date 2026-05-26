@@ -1054,6 +1054,8 @@ export interface SheetRow {
   lastEditedAt: string | null;
   /** Editor email from column X */
   editedBy: string | null;
+  /** 1-based sheet row position (data starts at row 3, so first data row is 3) */
+  rowIndex: number;
 }
 
 /**
@@ -1079,13 +1081,42 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   const rows = response.data.values || [];
 
   return rows
-    .filter((row) => row[24] && String(row[24]).trim() !== "") // require UUID in col Y
-    .map((row) => ({
+    .map((row, i) => ({ row, rowIndex: i + 3 })) // capture position BEFORE filtering
+    .filter(({ row }) => row[24] && String(row[24]).trim() !== "")
+    .map(({ row, rowIndex }) => ({
       raw: row as string[],
       entityId: String(row[24]).trim(), // col Y UUID
       lastEditedAt: row[22] ? String(row[22]).trim() : null, // col W
       editedBy: row[23] ? String(row[23]).trim() : null, // col X
+      rowIndex,
     }));
+}
+
+/**
+ * Reads sheet state for every region in one paced pass. The wrapped client
+ * spaces calls automatically, so for N regions this takes roughly N * 1.2s.
+ *
+ * Per-region failures (after the wrapper's retries are exhausted) are logged
+ * and the region maps to an empty array — the cron should make progress on
+ * healthy regions even if one is broken.
+ */
+export async function readAllRegionSheetStates(
+  regionList: { id: string; name: string }[],
+): Promise<Map<string, SheetRow[]>> {
+  const result = new Map<string, SheetRow[]>();
+  for (const region of regionList) {
+    try {
+      const rows = await readSheetState(region.id);
+      result.set(region.id, rows);
+    } catch (error) {
+      console.error(
+        `[ReadAllRegionSheetStates] region ${region.name} (${region.id}) failed:`,
+        error instanceof Error ? error.message : error,
+      );
+      result.set(region.id, []);
+    }
+  }
+  return result;
 }
 
 /**
