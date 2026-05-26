@@ -9,14 +9,13 @@ import { getSessionCats } from "@/app/actions/sessions";
 import { getCats, approveCat } from "@/app/actions/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { CENSUS_REPORT_URL } from "@/lib/constants";
 
 type ReviewItem = {
   cat: CatWithRegion;
   sessionId: string;
   sessionCatId: string;
 };
-
-const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
 
 export function SessionsManagerScreen() {
   const [forReview, setForReview] = useState<ReviewItem[]>([]);

@@ -53,7 +53,7 @@ function DateInputRow({
   onYearChange: (val: string) => void;
 }) {
   return (
-    <div className="mt-1.5 grid grid-cols-3 gap-2">
+    <div className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(78px,1.15fr)] gap-1.5 tablet:gap-2">
       <CustomSelect options={MONTHS} value={month} onChange={onMonthChange} placeholder="MM" variant="white" size="sm" />
       <CustomSelect options={DAYS} value={day} onChange={onDayChange} placeholder="DD" variant="white" size="sm" />
       <CustomSelect options={YEARS} value={year} onChange={onYearChange} placeholder="YYYY" variant="white" size="sm" />

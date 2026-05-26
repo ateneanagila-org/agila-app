@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDownIcon,
+  ExternalLinkIcon,
   SearchIcon,
 } from "@/components/app-pages/shared/icons";
 import { CatCard } from "@/components/app-pages/shared/cat-card";
@@ -15,6 +16,7 @@ import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 export function CatalogScreen() {
   const [cats, setCats] = useState<CatWithRegion[]>([]);
@@ -96,6 +98,15 @@ export function CatalogScreen() {
         <p className="mx-auto mt-3 max-w-xl text-sm text-brand-dark/65 tablet:text-base">
           Every cat below is available for adoption or fostering. Give a rescued cat a second chance at a loving home.
         </p>
+        <a
+          href={ADOPT_FOSTER_APPLICATION_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          Apply to adopt/foster
+          <ExternalLinkIcon className="h-4 w-4" />
+        </a>
       </div>
 
       {/* Search + Filter + Sort — same colors mobile + desktop */}
