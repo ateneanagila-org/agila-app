@@ -9,6 +9,7 @@ import {
   readSheetState,
   refreshCatInSyncQueue,
   clearSheetEditTimestamps,
+  type SheetRow,
 } from "./helper.service";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -388,16 +389,19 @@ export interface PhotoImportResult {
  */
 export async function importPhotosIfNeeded(
   allRegions: { id: string; name: string }[],
+  sheetStates?: Map<string, SheetRow[]>,
 ): Promise<PhotoImportResult> {
   const candidateUuids = new Set<string>();
   const uuidToRegion = new Map<string, string>();
+  const uuidToRowIndex = new Map<string, number>();
 
   for (const region of allRegions) {
-    const rows = await readSheetState(region.id);
+    const rows = sheetStates?.get(region.id) ?? (await readSheetState(region.id));
     for (const row of rows) {
       if (row.lastEditedAt && (row.raw[1] ?? "").trim() === "") {
         candidateUuids.add(row.entityId);
         uuidToRegion.set(row.entityId, region.id);
+        uuidToRowIndex.set(row.entityId, row.rowIndex);
       }
     }
   }
@@ -429,17 +433,19 @@ export async function importPhotosIfNeeded(
   // Clear edit timestamps for successfully imported cats so the next cycle
   // doesn't re-detect them.
   const erroredIds = new Set(errors.map((e) => e.catId));
-  const importedByRegion = new Map<string, string[]>();
+  const importedByRegion = new Map<string, Array<{ entityId: string; rowIndex: number }>>();
   for (const [uuid] of entries) {
     if (erroredIds.has(uuid)) continue;
     const regionId = uuidToRegion.get(uuid);
     if (!regionId) continue;
+    const rowIndex = uuidToRowIndex.get(uuid);
+    if (rowIndex === undefined) continue;
     if (!importedByRegion.has(regionId)) importedByRegion.set(regionId, []);
-    importedByRegion.get(regionId)!.push(uuid);
+    importedByRegion.get(regionId)!.push({ entityId: uuid, rowIndex });
   }
-  for (const [regionId, uuids] of importedByRegion) {
+  for (const [regionId, positional] of importedByRegion) {
     try {
-      await clearSheetEditTimestamps(regionId, uuids);
+      await clearSheetEditTimestamps(regionId, positional);
     } catch (err) {
       console.error(
         `[PhotoImport] Failed to clear timestamps for region ${regionId}:`,
