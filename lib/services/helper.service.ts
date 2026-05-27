@@ -3,7 +3,7 @@ import {
   wrapSheetsClient,
   type WrappedSheetsClient,
 } from "./sheets-client.service";
-import { eq, inArray, and, lt } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
 import {
   gsheetSyncQueue,
@@ -1140,11 +1140,21 @@ export async function clearSheetEditTimestamps(
 ): Promise<void>;
 export async function clearSheetEditTimestamps(
   regionId: string,
-  entries: Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>,
+  entries: Array<{
+    entityId: string;
+    rowIndex: number;
+    expectedTimestamp: string | null;
+  }>,
 ): Promise<void>;
 export async function clearSheetEditTimestamps(
   regionId: string,
-  arg: string[] | Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>,
+  arg:
+    | string[]
+    | Array<{
+        entityId: string;
+        rowIndex: number;
+        expectedTimestamp: string | null;
+      }>,
 ): Promise<void> {
   if (arg.length === 0) return;
 
@@ -1176,8 +1186,13 @@ export async function clearSheetEditTimestamps(
   } else {
     // Filter out entries with no snapshot W (nothing to clear — user may have
     // added a W timestamp since the snapshot, which we must preserve).
-    const verifyable = (arg as Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }>)
-      .filter((e) => e.expectedTimestamp !== null && e.expectedTimestamp !== "");
+    const verifyable = (
+      arg as Array<{
+        entityId: string;
+        rowIndex: number;
+        expectedTimestamp: string | null;
+      }>
+    ).filter((e) => e.expectedTimestamp !== null && e.expectedTimestamp !== "");
 
     if (verifyable.length === 0) return;
 
