@@ -254,19 +254,38 @@ async function reverseSyncRegionInternal(
   return result;
 }
 
-/**
- * Public reverse sync for a single region — checks freeze flag first.
- * Called by the normal cron cycle.
- */
-export async function reverseSyncRegion(
-  regionId: string,
-): Promise<ReverseSyncResult> {
+export async function reverseSyncRegionsFromState(
+  sheetStates: Map<string, SheetRow[]>,
+): Promise<{ regionsProcessed: number; totalImported: number; totalErrors: number }> {
   const frozen = await isSyncFrozen();
   if (frozen) {
-    console.log(`[ReverseSync] Frozen — skipping region ${regionId}`);
-    return { imported: 0, skipped: 0, errors: [] };
+    console.log("[ReverseSync] Frozen — skipping all regions");
+    return { regionsProcessed: 0, totalImported: 0, totalErrors: 0 };
   }
-  return reverseSyncRegionInternal(regionId);
+
+  let regionsProcessed = 0;
+  let totalImported = 0;
+  let totalErrors = 0;
+
+  for (const [regionId, rows] of sheetStates) {
+    const hasEdits = rows.some((r) => r.lastEditedAt);
+    if (!hasEdits) continue;
+
+    try {
+      const result = await reverseSyncRegionInternal(regionId, false, rows);
+      regionsProcessed++;
+      totalImported += result.imported;
+      totalErrors += result.errors.length;
+    } catch (error) {
+      console.error(
+        `[ReverseSync] Region ${regionId} failed:`,
+        error instanceof Error ? error.message : error,
+      );
+      totalErrors++;
+    }
+  }
+
+  return { regionsProcessed, totalImported, totalErrors };
 }
 
 /**
@@ -285,13 +304,16 @@ export async function fullReverseSync(force = false): Promise<{
   allErrors: Array<{ region: string; entityId: string; error: string }>;
 }> {
   const allRegions = await db.query.regions.findMany();
+  const sheetStates = await readAllRegionSheetStates(allRegions);
+
   let totalImported = 0;
   let totalErrors = 0;
   const allErrors: Array<{ region: string; entityId: string; error: string }> = [];
 
   for (const region of allRegions) {
+    const rows = sheetStates.get(region.id) ?? [];
     try {
-      const result = await reverseSyncRegionInternal(region.id, force);
+      const result = await reverseSyncRegionInternal(region.id, force, rows);
       totalImported += result.imported;
       totalErrors += result.errors.length;
       for (const e of result.errors) {

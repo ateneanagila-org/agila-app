@@ -2,18 +2,8 @@
 import { db } from "@/lib/db";
 import { gsheetSyncQueue } from "@/lib/db/schema";
 import { syncAndCompactRegion, generateForRiSheet, generateForFaSheet } from "@/lib/services/helper.service";
-import { reverseSyncRegion } from "@/lib/services/reverse-sync.service";
 import { importPhotosIfNeeded } from "@/lib/services/photo-import.service";
-import { requireAuth } from "@/lib/auth/rbac";
 import { eq } from "drizzle-orm";
-
-export async function syncRegion(regionId: string) {
-  await requireAuth();
-  // Phase A: Reverse sync (import manual edits from GSheet)
-  await reverseSyncRegion(regionId);
-  // Phase C: Forward sync (push DB changes to GSheet)
-  await syncAndCompactRegion(regionId);
-}
 
 export async function syncAllPendingRegions() {
   const pendingTasks = await db
