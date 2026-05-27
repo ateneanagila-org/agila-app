@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import {
   readSheetState,
+  readAllRegionSheetStates,
   SheetRow,
   clearSheetEditTimestamps,
   refreshCatInSyncQueue,
@@ -42,6 +43,7 @@ interface ReverseSyncResult {
 async function reverseSyncRegionInternal(
   regionId: string,
   force = false,
+  preReadRows?: SheetRow[],
 ): Promise<ReverseSyncResult> {
   const result: ReverseSyncResult = { imported: 0, skipped: 0, errors: [] };
   const startedAt = new Date();
@@ -53,20 +55,24 @@ async function reverseSyncRegionInternal(
   });
 
   let sheetRows: SheetRow[];
-  try {
-    sheetRows = await readSheetState(regionId);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "Failed to read sheet";
-    await db.insert(syncAuditLog).values({
-      regionId,
-      direction: "REVERSE",
-      tasksProcessed: 0,
-      tasksFailed: 0,
-      errorMessage: msg,
-      startedAt,
-      completedAt: new Date(),
-    });
-    throw error;
+  if (preReadRows) {
+    sheetRows = preReadRows;
+  } else {
+    try {
+      sheetRows = await readSheetState(regionId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to read sheet";
+      await db.insert(syncAuditLog).values({
+        regionId,
+        direction: "REVERSE",
+        tasksProcessed: 0,
+        tasksFailed: 0,
+        errorMessage: msg,
+        startedAt,
+        completedAt: new Date(),
+      });
+      throw error;
+    }
   }
 
   let maxCatalogNum = Math.max(
@@ -208,10 +214,22 @@ async function reverseSyncRegionInternal(
     }
   }
 
-  // Clear GSheet timestamps for successfully imported rows
-  // so they won't be re-imported on the next cycle
+  // Clear timestamps for successfully imported rows so next cycle skips them.
+  // Pass positional entries to skip the col-Y re-read.
   try {
-    await clearSheetEditTimestamps(regionId, importedIds);
+    const rowByEntity = new Map(
+      sheetRows.map((r) => [r.entityId, { rowIndex: r.rowIndex, expectedTimestamp: r.lastEditedAt }]),
+    );
+    const positionalEntries: Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }> = [];
+    for (const entityId of importedIds) {
+      const entry = rowByEntity.get(entityId);
+      if (entry !== undefined) {
+        positionalEntries.push({ entityId, rowIndex: entry.rowIndex, expectedTimestamp: entry.expectedTimestamp });
+      }
+    }
+    if (positionalEntries.length > 0) {
+      await clearSheetEditTimestamps(regionId, positionalEntries);
+    }
   } catch (error) {
     console.error(
       `[ReverseSync] Failed to clear timestamps for region ${regionId}:`,
@@ -236,19 +254,38 @@ async function reverseSyncRegionInternal(
   return result;
 }
 
-/**
- * Public reverse sync for a single region — checks freeze flag first.
- * Called by the normal cron cycle.
- */
-export async function reverseSyncRegion(
-  regionId: string,
-): Promise<ReverseSyncResult> {
+export async function reverseSyncRegionsFromState(
+  sheetStates: Map<string, SheetRow[]>,
+): Promise<{ regionsProcessed: number; totalImported: number; totalErrors: number }> {
   const frozen = await isSyncFrozen();
   if (frozen) {
-    console.log(`[ReverseSync] Frozen — skipping region ${regionId}`);
-    return { imported: 0, skipped: 0, errors: [] };
+    console.log("[ReverseSync] Frozen — skipping all regions");
+    return { regionsProcessed: 0, totalImported: 0, totalErrors: 0 };
   }
-  return reverseSyncRegionInternal(regionId);
+
+  let regionsProcessed = 0;
+  let totalImported = 0;
+  let totalErrors = 0;
+
+  for (const [regionId, rows] of sheetStates) {
+    const hasEdits = rows.some((r) => r.lastEditedAt);
+    if (!hasEdits) continue;
+
+    try {
+      const result = await reverseSyncRegionInternal(regionId, false, rows);
+      regionsProcessed++;
+      totalImported += result.imported;
+      totalErrors += result.errors.length;
+    } catch (error) {
+      console.error(
+        `[ReverseSync] Region ${regionId} failed:`,
+        error instanceof Error ? error.message : error,
+      );
+      totalErrors++;
+    }
+  }
+
+  return { regionsProcessed, totalImported, totalErrors };
 }
 
 /**
@@ -267,13 +304,16 @@ export async function fullReverseSync(force = false): Promise<{
   allErrors: Array<{ region: string; entityId: string; error: string }>;
 }> {
   const allRegions = await db.query.regions.findMany();
+  const sheetStates = await readAllRegionSheetStates(allRegions);
+
   let totalImported = 0;
   let totalErrors = 0;
   const allErrors: Array<{ region: string; entityId: string; error: string }> = [];
 
   for (const region of allRegions) {
+    const rows = sheetStates.get(region.id) ?? [];
     try {
-      const result = await reverseSyncRegionInternal(region.id, force);
+      const result = await reverseSyncRegionInternal(region.id, force, rows);
       totalImported += result.imported;
       totalErrors += result.errors.length;
       for (const e of result.errors) {

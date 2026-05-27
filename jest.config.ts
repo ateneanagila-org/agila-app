@@ -8,7 +8,7 @@ const config: Config = {
   clearMocks: true,
   passWithNoTests: true,
   testEnvironment: "node",
-  testPathIgnorePatterns: ["/node_modules/", "<rootDir>/tests/"],
+  testPathIgnorePatterns: ["/node_modules/"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },

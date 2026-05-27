@@ -1,5 +1,9 @@
 import { google } from "googleapis";
-import { eq, inArray, and, lt } from "drizzle-orm";
+import {
+  wrapSheetsClient,
+  type WrappedSheetsClient,
+} from "./sheets-client.service";
+import { eq, inArray } from "drizzle-orm";
 import { db, Transaction } from "@/lib/db";
 import {
   gsheetSyncQueue,
@@ -21,7 +25,10 @@ const MAX_RETRIES = 3;
 // 1. AUTHENTICATION
 // ==========================================
 
-export async function connectToSheets() {
+export async function connectToSheets(): Promise<{
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>;
+  glSheets: WrappedSheetsClient;
+}> {
   const serviceAccountCredentials = JSON.parse(
     process.env.SERVICE_ACCOUNT_CREDENTIALS!,
   );
@@ -38,10 +45,8 @@ export async function connectToSheets() {
     ],
   });
 
-  return {
-    glAuth,
-    glSheets: google.sheets({ version: "v4", auth: glAuth }),
-  };
+  const raw = google.sheets({ version: "v4", auth: glAuth });
+  return { glAuth, glSheets: wrapSheetsClient(raw) };
 }
 
 /**
@@ -62,7 +67,9 @@ export async function exportSpreadsheetAsZip(
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    throw new Error(`ZIP export failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `ZIP export failed: ${response.status} ${response.statusText}`,
+    );
   }
   return Buffer.from(await response.arrayBuffer());
 }
@@ -224,9 +231,10 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
   if (!region) return;
 
-  const rowData = region.name === "UNKNOWN"
-    ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
-    : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
+  const rowData =
+    region.name === "UNKNOWN"
+      ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
+      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
 
   await tx.insert(gsheetSyncQueue).values({
     action: "UPDATE",
@@ -465,7 +473,7 @@ const SUMMARY_EXCLUDED_TABS = new Set([
 ]);
 
 async function getSpreadsheetSheets(
-  glSheets: ReturnType<typeof google.sheets>,
+  glSheets: WrappedSheetsClient,
   glAuth: InstanceType<typeof google.auth.GoogleAuth>,
   spreadsheetId: string,
 ) {
@@ -648,10 +656,7 @@ export async function generateForFaSheet(): Promise<void> {
       with: { catHealthRecords: true },
       where: (c, { eq, and, exists, isNull }) =>
         and(
-          and(
-            eq(c.is_adoptable, true),
-            isNull(c.cat_status),
-          ),
+          and(eq(c.is_adoptable, true), isNull(c.cat_status)),
           exists(
             db
               .select()
@@ -1052,6 +1057,8 @@ export interface SheetRow {
   lastEditedAt: string | null;
   /** Editor email from column X */
   editedBy: string | null;
+  /** 1-based sheet row position (data starts at row 3, so first data row is 3) */
+  rowIndex: number;
 }
 
 /**
@@ -1077,60 +1084,157 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   const rows = response.data.values || [];
 
   return rows
-    .filter((row) => row[24] && String(row[24]).trim() !== "") // require UUID in col Y
-    .map((row) => ({
+    .map((row, i) => ({ row, rowIndex: i + 3 })) // capture position BEFORE filtering
+    .filter(({ row }) => row[24] && String(row[24]).trim() !== "")
+    .map(({ row, rowIndex }) => ({
       raw: row as string[],
       entityId: String(row[24]).trim(), // col Y UUID
       lastEditedAt: row[22] ? String(row[22]).trim() : null, // col W
       editedBy: row[23] ? String(row[23]).trim() : null, // col X
+      rowIndex,
     }));
 }
 
 /**
- * Clears the last_edited_at (col W) and edited_by (col X) for specific rows
- * after successful reverse sync import. Prevents re-importing the same edits.
+ * Reads sheet state for every region in one paced pass. The wrapped client
+ * spaces calls automatically, so for N regions this takes roughly N * 1.2s.
+ *
+ * Per-region failures (after the wrapper's retries are exhausted) are logged
+ * and the region maps to an empty array — the cron should make progress on
+ * healthy regions even if one is broken.
  */
+export async function readAllRegionSheetStates(
+  regionList: { id: string; name: string }[],
+): Promise<Map<string, SheetRow[]>> {
+  const result = new Map<string, SheetRow[]>();
+  for (const region of regionList) {
+    try {
+      const rows = await readSheetState(region.id);
+      result.set(region.id, rows);
+    } catch (error) {
+      console.error(
+        `[ReadAllRegionSheetStates] region ${region.name} (${region.id}) failed:`,
+        error instanceof Error ? error.message : error,
+      );
+      result.set(region.id, []);
+    }
+  }
+  return result;
+}
+
+/**
+ * Clears the last_edited_at (col W) and edited_by (col X) for specific rows
+ * after successful reverse sync / photo import. Prevents re-importing the
+ * same edits.
+ *
+ * Two call shapes:
+ *   - With known row positions (from a shared readSheetState pass): no
+ *     additional Sheets read needed.
+ *   - With only entity IDs (legacy / standalone paths): one extra read of
+ *     col Y to locate row positions.
+ */
+
 export async function clearSheetEditTimestamps(
   regionId: string,
   entityIds: string[],
+): Promise<void>;
+export async function clearSheetEditTimestamps(
+  regionId: string,
+  entries: Array<{
+    entityId: string;
+    rowIndex: number;
+    expectedTimestamp: string | null;
+  }>,
+): Promise<void>;
+export async function clearSheetEditTimestamps(
+  regionId: string,
+  arg:
+    | string[]
+    | Array<{
+        entityId: string;
+        rowIndex: number;
+        expectedTimestamp: string | null;
+      }>,
 ): Promise<void> {
-  if (entityIds.length === 0) return;
-
-  const { glAuth, glSheets } = await connectToSheets();
-  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+  if (arg.length === 0) return;
 
   const region = await db.query.regions.findFirst({
     where: eq(regions.id, regionId),
   });
   if (!region) return;
 
-  // Read col Y to find row positions of imported entities
-  const response = await glSheets.spreadsheets.values.get({
-    auth: glAuth,
-    spreadsheetId,
-    range: `'${region.name}'!Y3:Y`,
-  });
-  const uuidColumn = response.data.values || [];
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
-  const requests: Array<{ range: string; values: string[][] }> = [];
-
-  for (const entityId of entityIds) {
-    const rowIdx = uuidColumn.findIndex(
-      (row) => String(row[0] ?? "").trim() === entityId,
-    );
-    if (rowIdx === -1) continue;
-    const sheetRow = rowIdx + 3; // data starts at row 3
-    requests.push({
-      range: `'${region.name}'!W${sheetRow}:X${sheetRow}`,
-      values: [["", ""]],
-    });
-  }
-
-  if (requests.length > 0) {
-    await glSheets.spreadsheets.values.batchUpdate({
+  let positional: Array<{ rowIndex: number }>;
+  if (typeof arg[0] === "string") {
+    // Legacy path — must read col Y to find positions
+    const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
-      requestBody: { valueInputOption: "RAW", data: requests },
+      range: `'${region.name}'!Y3:Y`,
     });
+    const uuidColumn = response.data.values || [];
+    positional = [];
+    for (const entityId of arg as string[]) {
+      const rowIdx = uuidColumn.findIndex(
+        (row) => String(row[0] ?? "").trim() === entityId,
+      );
+      if (rowIdx === -1) continue;
+      positional.push({ rowIndex: rowIdx + 3 });
+    }
+  } else {
+    // Filter out entries with no snapshot W (nothing to clear — user may have
+    // added a W timestamp since the snapshot, which we must preserve).
+    const verifyable = (
+      arg as Array<{
+        entityId: string;
+        rowIndex: number;
+        expectedTimestamp: string | null;
+      }>
+    ).filter((e) => e.expectedTimestamp !== null && e.expectedTimestamp !== "");
+
+    if (verifyable.length === 0) return;
+
+    // Re-read col W for the region. Skip clear for rows whose W has changed
+    // since the snapshot — those represent edits made during the cron tick that
+    // the next tick must process.
+    const wResponse = await glSheets.spreadsheets.values.get({
+      auth: glAuth,
+      spreadsheetId,
+      range: `'${region.name}'!W3:W`,
+    });
+    const wColumn = wResponse.data.values || [];
+
+    let skippedDueToChange = 0;
+    positional = [];
+    for (const entry of verifyable) {
+      const currentW = String(wColumn[entry.rowIndex - 3]?.[0] ?? "").trim();
+      const expected = String(entry.expectedTimestamp).trim();
+      if (currentW === expected) {
+        positional.push({ rowIndex: entry.rowIndex });
+      } else {
+        skippedDueToChange++;
+      }
+    }
+
+    if (skippedDueToChange > 0) {
+      console.log(
+        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows — W changed since snapshot (re-edited during cron tick)`,
+      );
+    }
   }
+
+  if (positional.length === 0) return;
+
+  const requests = positional.map((p) => ({
+    range: `'${region.name}'!W${p.rowIndex}:X${p.rowIndex}`,
+    values: [["", ""]],
+  }));
+
+  await glSheets.spreadsheets.values.batchUpdate({
+    auth: glAuth,
+    spreadsheetId,
+    requestBody: { valueInputOption: "RAW", data: requests },
+  });
 }

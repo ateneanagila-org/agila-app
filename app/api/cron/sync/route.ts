@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
-import { syncAllPendingRegions } from "@/app/actions/google-sheets";
+import { syncAllPendingRegions } from "@/lib/services/sync-cron.service";
 import { setSyncFrozen } from "@/lib/services/system.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
 
