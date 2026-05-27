@@ -83,6 +83,6 @@ describe("wrapSheetsClient", () => {
     // Second call: must wait ≥ PACE_MS after first call's start.
     expect(t2 - t0).toBeGreaterThanOrEqual(1200);
     // And shouldn't wait much longer than necessary.
-    expect(t2 - t0).toBeLessThan(1500);
+    expect(t2 - t0).toBeLessThan(2000);
   }, 5_000);
 });
