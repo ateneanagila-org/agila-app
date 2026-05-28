@@ -21,7 +21,6 @@ import {
   parseUnknownSheetRow,
   SheetRowParsed,
 } from "@/lib/validation/reverse-sync";
-import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 
 /**
@@ -75,13 +74,6 @@ async function reverseSyncRegionInternal(
     }
   }
 
-  let maxCatalogNum = Math.max(
-    0,
-    ...sheetRows
-      .map((r) => parseCatalogId(String(r.raw[0] ?? "").trim()))
-      .filter((n): n is number => n !== null),
-  );
-
   for (const sheetRow of sheetRows) {
     if (!force && !sheetRow.lastEditedAt) {
       result.skipped++;
@@ -128,15 +120,12 @@ async function reverseSyncRegionInternal(
           continue;
         }
 
-        const catalog_id = String(++maxCatalogNum);
-
         await db.transaction(async (tx) => {
           const { id: _id, condition, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
           const [newCat] = await tx
             .insert(cats)
             .values({
               id: sheetRow.entityId,
-              catalog_id,
               paws_id: paws_id ?? null,
               entry_status: "Original",
               ...catFields,

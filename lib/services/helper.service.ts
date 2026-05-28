@@ -9,7 +9,6 @@ import {
   gsheetSyncQueue,
   regions,
   syncAuditLog,
-  cats,
   sessions,
   sessionCats,
 } from "@/lib/db/schema";
@@ -121,6 +120,7 @@ export function mapCatToSheetRow(
   cat: SelectCat,
   health: SelectCatHealthRecord | null,
   interventions: SelectIntervention[] = [],
+  catalogDisplay = "",
 ): string[] {
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
@@ -133,10 +133,6 @@ export function mapCatToSheetRow(
     else if (condition.includes("Injured")) forFaStatus = "Injured & Adoptable";
     else forFaStatus = "Healthy & Adoptable";
   }
-
-  const catalogDisplay = cat.catalog_id
-    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
-    : "";
 
   return [
     catalogDisplay, // 0  (A) Catalog ID
@@ -174,11 +170,9 @@ export function mapCatToSheetRow(
 export function mapUnknownCatToSheetRow(
   cat: SelectCat,
   health: SelectCatHealthRecord | null,
+  catalogDisplay = "",
 ): string[] {
   const condition = (health?.condition ?? "") as string;
-  const catalogDisplay = cat.catalog_id
-    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
-    : "";
 
   return [
     catalogDisplay, // 0  (A)
@@ -308,41 +302,29 @@ export async function syncAndCompactRegion(regionId: string) {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
         if (idx === -1) {
-          // New cat — assign catalog_id if not yet set
+          // New cat — assign catalog number from sheet (not stored in DB)
           const cat = await db.query.cats.findFirst({
             where: (c, { eq }) => eq(c.id, task.entityId),
           });
-          if (cat && !cat.catalog_id) {
-            const colAValues = currentRows.map((r) => r[0] ?? "");
-            const newId = String(nextCatalogId(colAValues));
-            await db
-              .update(cats)
-              .set({ catalog_id: newId })
-              .where(eq(cats.id, cat.id));
-            const health = await db.query.catHealthRecords.findFirst({
-              where: (h, { eq }) => eq(h.cat_id, cat.id),
-            });
-            const interventionsList = await db.query.interventions.findMany({
-              where: (i, { eq }) => eq(i.cat_id, cat.id),
-              orderBy: (i, { desc }) => [desc(i.requested_at)],
-            });
-            const updatedCat = { ...cat, catalog_id: newId };
-            const newPayload =
-              region.name === "UNKNOWN"
-                ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
-                : mapCatToSheetRow(
-                    updatedCat,
-                    health ?? null,
-                    interventionsList,
-                  );
-            currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
-          } else {
-            // catalog_id already assigned — use task payload, pad to col Y
-            currentRows.push([...taskPayload, "", "", task.entityId]);
-          }
+          if (!cat) continue;
+          const colAValues = currentRows.map((r) => r[0] ?? "");
+          const newId = String(nextCatalogId(colAValues));
+          const health = await db.query.catHealthRecords.findFirst({
+            where: (h, { eq }) => eq(h.cat_id, cat.id),
+          });
+          const interventionsList = await db.query.interventions.findMany({
+            where: (i, { eq }) => eq(i.cat_id, cat.id),
+            orderBy: (i, { desc }) => [desc(i.requested_at)],
+          });
+          const newPayload =
+            region.name === "UNKNOWN"
+              ? mapUnknownCatToSheetRow(cat, health ?? null, newId)
+              : mapCatToSheetRow(cat, health ?? null, interventionsList, newId);
+          currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
-          // Update existing row, preserve col Y UUID
+          // Update existing row — preserve col A (sheet owns catalog number)
           const updatedRow = [...taskPayload];
+          updatedRow[0] = currentRows[idx][0] ?? "";
           updatedRow[24] = task.entityId;
           currentRows[idx] = updatedRow;
         }
@@ -1120,6 +1102,23 @@ export async function readAllRegionSheetStates(
     }
   }
   return result;
+}
+
+/**
+ * Builds a uuid → col-A display string map from a snapshot.
+ * Used by summary regen to get catalog numbers without a DB read.
+ */
+export function buildCatalogLookup(
+  snapshot: Map<string, SheetRow[]>,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const rows of snapshot.values()) {
+    for (const r of rows) {
+      const colA = String(r.raw[0] ?? "").trim();
+      if (r.entityId && colA) out.set(r.entityId, colA);
+    }
+  }
+  return out;
 }
 
 /**
