@@ -134,7 +134,6 @@ export const cats = pgTable("cats", {
   caretaker: text("caretaker"),
   notes: text("notes"),
   is_adoptable: boolean("is_adoptable").default(false),
-  catalog_id: text("catalog_id"),
   paws_id: text("paws_id"),
 });
 
