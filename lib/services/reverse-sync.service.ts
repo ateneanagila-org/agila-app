@@ -310,6 +310,7 @@ export async function fullReverseSync(force = false): Promise<{
       for (const e of result.errors) {
         allErrors.push({ region: region.name, ...e });
       }
+      await backfillCatalogIds(region.id, rows);
     } catch (error) {
       console.error(
         `[FullReverseSync] Region ${region.id} failed:`,

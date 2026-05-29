@@ -1,7 +1,5 @@
 import { db } from "../db";
 import { regions } from "../db/schema";
-import { eq } from "drizzle-orm";
-
 export const findRegions = () =>
   db.select({ id: regions.id, name: regions.name }).from(regions);
 

@@ -116,7 +116,8 @@ function getInterventionDisplayStatus(
 }
 /**
  * Maps DB records to a 22-element array (cols A–V, indices 0–21).
- * Col A = catalog_id + status suffix. UUID is written to col Y separately.
+ * Col A = catalog number + status suffix (provided by caller; sheet is source of truth).
+ * UUID is written to col Y separately.
  */
 export function mapCatToSheetRow(
   cat: SelectCat,
@@ -227,6 +228,9 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
   if (!region) return;
 
+  // catalogDisplay defaults to "" — safe because syncAndCompactRegion's UPDATE
+  // branch reads col A from the existing sheet row and recomputes the suffix,
+  // so the payload value is never written verbatim for updates.
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
@@ -1255,6 +1259,12 @@ export async function clearSheetEditTimestamps(
  * Runs after reverse-sync CREATEs so volunteer-added rows always get numbered.
  * Numbers sequentially from the current region max + 1.
  * Includes the status suffix (e.g. "5m" for MIA) from DB cat_status.
+ *
+ * Note: operates on the pre-sync snapshot. Rows added by volunteers mid-tick
+ * (after readAllRegionSheetStates ran) will be caught on the next cron tick.
+ * This is acceptable — Apps Script already has the UUID; the cat is in DB;
+ * only col A is blank for one tick.
+ *
  * Returns how many rows were backfilled.
  */
 export async function backfillCatalogIds(
@@ -1285,10 +1295,10 @@ export async function backfillCatalogIds(
   let nextNum = currentMax;
   const updates = unnumberedRows.map((r) => {
     const catStatus = catStatusById.get(r.entityId);
-    const catalogDisplay = `${++nextNum}${statusSuffix(catStatus)}`;
+    const display = `${++nextNum}${statusSuffix(catStatus)}`;
     return {
       range: `'${region.name}'!A${r.rowIndex}`,
-      values: [[catalogDisplay]],
+      values: [[display]],
     };
   });
 
