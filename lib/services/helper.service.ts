@@ -16,7 +16,7 @@ import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import * as catsRepo from "@/lib/repo/cats.repo";
 import * as regionsRepo from "@/lib/repo/regions.repo";
 import { isSyncFrozen } from "./system.service";
-import { statusSuffix, nextCatalogId, parseCatalogId } from "./catalog.service";
+import { statusSuffix, nextCatalogId, parseCatalogId, catalogDisplay } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -498,7 +498,7 @@ function sortRegionsByTabOrder(
   return sorted;
 }
 
-export async function generateForRiSheet(): Promise<void> {
+export async function generateForRiSheet(snapshot: Map<string, SheetRow[]>): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
@@ -509,6 +509,7 @@ export async function generateForRiSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+  const catalogLookup = buildCatalogLookup(snapshot);
 
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
@@ -544,7 +545,7 @@ export async function generateForRiSheet(): Promise<void> {
           (i) => i.type === "TNVR" && i.status === "Pending",
         ),
       )
-      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+      .map((cat) => catalogDisplay(catalogLookup, cat.id, cat.cat_status));
 
     const vetCats = catsInRegion
       .filter((cat) =>
@@ -552,7 +553,7 @@ export async function generateForRiSheet(): Promise<void> {
           (i) => i.type === "Veterinarian" && i.status === "Pending",
         ),
       )
-      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+      .map((cat) => catalogDisplay(catalogLookup, cat.id, cat.cat_status));
 
     const maxRows = Math.max(tnvrCats.length, vetCats.length);
     const sectionRows =
@@ -618,7 +619,7 @@ export async function generateForRiSheet(): Promise<void> {
  * 6 columns: Healthy catalog_id, status, Sick catalog_id, status, Injured catalog_id, status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
-export async function generateForFaSheet(): Promise<void> {
+export async function generateForFaSheet(snapshot: Map<string, SheetRow[]>): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
@@ -629,6 +630,7 @@ export async function generateForFaSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+  const catalogLookup = buildCatalogLookup(snapshot);
 
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
@@ -671,7 +673,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? "";
         return !cond.includes("Sick") && !cond.includes("Injured");
       })
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const sick = adoptableCats
       .filter((c) =>
@@ -680,7 +682,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? ""
         ).includes("Sick"),
       )
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const injured = adoptableCats
       .filter((c) =>
@@ -689,7 +691,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? ""
         ).includes("Injured"),
       )
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const maxRows = Math.max(healthy.length, sick.length, injured.length);
     const sectionRows =

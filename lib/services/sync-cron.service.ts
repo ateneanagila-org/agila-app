@@ -78,8 +78,8 @@ export async function syncAllPendingRegions() {
   }
 
   try {
-    await generateForRiSheet();
-    await generateForFaSheet();
+    await generateForRiSheet(sheetStates);
+    await generateForFaSheet(sheetStates);
     console.log("[SummarySheets] For RI + For FA regenerated");
   } catch (error) {
     console.error("[SummarySheets] Failed:", errMsg(error));

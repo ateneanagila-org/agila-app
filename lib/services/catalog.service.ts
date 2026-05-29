@@ -15,6 +15,15 @@ export function parseCatalogId(colA: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+export function catalogDisplay(
+  lookup: Map<string, string>,
+  catId: string,
+  catStatus: string | null | undefined,
+): string {
+  const base = parseCatalogId(lookup.get(catId) ?? "");
+  return base !== null ? `${base}${statusSuffix(catStatus)}` : "";
+}
+
 export function nextCatalogId(existingColAValues: string[]): number {
   const nums = existingColAValues
     .map(parseCatalogId)
