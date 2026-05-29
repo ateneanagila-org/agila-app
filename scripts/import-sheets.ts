@@ -25,7 +25,6 @@ type ParsedIntervention = {
   type: InterventionType;
   status: InterventionStatus;
 } | null;
-import { parseCatalogId } from "@/lib/services/catalog.service";
 import { linkCatToSystemSession } from "@/lib/services/system-session.service";
 import {
   syncRegionSheetNames,
@@ -236,13 +235,6 @@ async function importRegion(
     .map((r, idx) => ({ row: r, sheetRowNumber: idx + 3 }))
     .filter(({ row }) => row[0] && String(row[0]).trim() !== "");
 
-  let maxId = Math.max(
-    0,
-    ...rowsWithIdx
-      .map(({ row }) => parseCatalogId(String(row[0]).trim()))
-      .filter((n): n is number => n !== null),
-  );
-
   const uuidWrites: Array<{ row: number; uuid: string }> = [];
   let created = 0,
     skipped = 0,
@@ -254,11 +246,6 @@ async function importRegion(
       skipped++;
       continue;
     }
-
-    const colA = String(row[0]).trim();
-    const catalogBase = parseCatalogId(colA);
-    const catalog_id =
-      catalogBase !== null ? String(catalogBase) : String(++maxId);
 
     const uuid = randomUUID();
 
@@ -280,7 +267,7 @@ async function importRegion(
       await db.transaction(async (tx) => {
         await tx
           .insert(cats)
-          .values({ ...catFields, catalog_id })
+          .values({ ...catFields })
           .onConflictDoNothing();
         await tx
           .insert(catHealthRecords)
