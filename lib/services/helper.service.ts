@@ -13,8 +13,10 @@ import {
   sessionCats,
 } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
+import * as catsRepo from "@/lib/repo/cats.repo";
+import * as regionsRepo from "@/lib/repo/regions.repo";
 import { isSyncFrozen } from "./system.service";
-import { statusSuffix, nextCatalogId } from "./catalog.service";
+import { statusSuffix, nextCatalogId, parseCatalogId } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -308,7 +310,8 @@ export async function syncAndCompactRegion(regionId: string) {
           });
           if (!cat) continue;
           const colAValues = currentRows.map((r) => r[0] ?? "");
-          const newId = String(nextCatalogId(colAValues));
+          const num = nextCatalogId(colAValues);
+          const catalogDisplay = `${num}${statusSuffix(cat.cat_status)}`;
           const health = await db.query.catHealthRecords.findFirst({
             where: (h, { eq }) => eq(h.cat_id, cat.id),
           });
@@ -318,13 +321,20 @@ export async function syncAndCompactRegion(regionId: string) {
           });
           const newPayload =
             region.name === "UNKNOWN"
-              ? mapUnknownCatToSheetRow(cat, health ?? null, newId)
-              : mapCatToSheetRow(cat, health ?? null, interventionsList, newId);
+              ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
+              : mapCatToSheetRow(cat, health ?? null, interventionsList, catalogDisplay);
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
-          // Update existing row — preserve col A (sheet owns catalog number)
+          // Update existing row — recompute col A to keep the number but refresh the status suffix
+          const existingNum = parseCatalogId(currentRows[idx][0] ?? "");
           const updatedRow = [...taskPayload];
-          updatedRow[0] = currentRows[idx][0] ?? "";
+          if (existingNum !== null && region.name !== "UNKNOWN") {
+            // col L (index 11) = cat_status in standard rows
+            updatedRow[0] = `${existingNum}${statusSuffix(taskPayload[11])}`;
+          } else {
+            // UNKNOWN cats: preserve col A as-is (no status suffix in that layout)
+            updatedRow[0] = currentRows[idx][0] ?? "";
+          }
           updatedRow[24] = task.entityId;
           currentRows[idx] = updatedRow;
         }
@@ -1236,4 +1246,58 @@ export async function clearSheetEditTimestamps(
     spreadsheetId,
     requestBody: { valueInputOption: "RAW", data: requests },
   });
+}
+
+/**
+ * Assigns catalog numbers (col A) to any rows that are missing one.
+ * Runs after reverse-sync CREATEs so volunteer-added rows always get numbered.
+ * Numbers sequentially from the current region max + 1.
+ * Includes the status suffix (e.g. "5m" for MIA) from DB cat_status.
+ * Returns how many rows were backfilled.
+ */
+export async function backfillCatalogIds(
+  regionId: string,
+  snapshot: SheetRow[],
+): Promise<number> {
+  const unnumberedRows = snapshot.filter((r) => {
+    const colA = String(r.raw[0] ?? "").trim();
+    return !colA || parseCatalogId(colA) === null;
+  });
+
+  if (unnumberedRows.length === 0) return 0;
+
+  const region = await regionsRepo.findRegionById(regionId);
+  if (!region) return 0;
+
+  const currentMax = Math.max(
+    0,
+    ...snapshot
+      .map((r) => parseCatalogId(String(r.raw[0] ?? "").trim()))
+      .filter((n): n is number => n !== null),
+  );
+
+  const catIds = unnumberedRows.map((r) => r.entityId);
+  const catRecords = await catsRepo.findCatsByIds(catIds);
+  const catStatusById = new Map(catRecords.map((c) => [c.id, c.cat_status]));
+
+  let nextNum = currentMax;
+  const updates = unnumberedRows.map((r) => {
+    const catStatus = catStatusById.get(r.entityId);
+    const catalogDisplay = `${++nextNum}${statusSuffix(catStatus)}`;
+    return {
+      range: `'${region.name}'!A${r.rowIndex}`,
+      values: [[catalogDisplay]],
+    };
+  });
+
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  await glSheets.spreadsheets.values.batchUpdate({
+    auth: glAuth,
+    spreadsheetId,
+    requestBody: { valueInputOption: "USER_ENTERED", data: updates },
+  });
+
+  return unnumberedRows.length;
 }

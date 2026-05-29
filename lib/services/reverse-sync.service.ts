@@ -13,6 +13,7 @@ import {
   SheetRow,
   clearSheetEditTimestamps,
   refreshCatInSyncQueue,
+  backfillCatalogIds,
 } from "./helper.service";
 import { isSyncFrozen } from "./system.service";
 import {
@@ -265,6 +266,7 @@ export async function reverseSyncRegionsFromState(
       regionsProcessed++;
       totalImported += result.imported;
       totalErrors += result.errors.length;
+      await backfillCatalogIds(regionId, rows);
     } catch (error) {
       console.error(
         `[ReverseSync] Region ${regionId} failed:`,
