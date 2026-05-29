@@ -61,7 +61,7 @@ function onEditInstallable(e) {
 
   // Generate UUID on the first human edit that puts real data in the row.
   // Checking the edited cell's value (not col A) so this fires naturally when
-  // a volunteer types anything — col A is catalog_id, assigned by the system.
+  // a volunteer types anything — col A is catalog number, assigned by the system.
   // The reverse sync CREATE path uses this UUID as the DB cat ID directly.
   var editedValue = e.range.getValue();
   var colYValue = sheet.getRange(row, UUID_COL).getValue();

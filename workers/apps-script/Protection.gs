@@ -1,12 +1,13 @@
 /**
  * AGILA CATalog — System Column Protection
  *
- * Permanently protects the system-managed columns (W, X, Y) on all region sheets:
+ * Permanently protects the system-managed columns (A, W, X, Y) on all region sheets:
+ *   A — catalog number (assigned by the system; never manually typed)
  *   W — edited_at timestamp (written by the onEdit trigger)
  *   X — editor email (written by the onEdit trigger)
  *   Y — UUID (assigned on first human edit; used as the DB catalog ID)
  *
- * Volunteers can freely edit all data columns (A–V). The system columns are
+ * Volunteers can freely edit all data columns (B–V). The system columns are
  * off-limits to humans — script-level writes bypass the protection automatically.
  *
  * Region sheet names are stored in _config!B2 as a comma-separated list,
@@ -52,6 +53,7 @@ function getRegionSheetNames() {
 }
 
 // System columns that must never be manually edited
+var CATALOG_COL_NOTATION = "A3:A"; // catalog number (A) — assigned by system
 var SYSTEM_COLS_NOTATION = "W3:Y"; // edited_at (W), editor email (X), UUID (Y)
 
 /**
@@ -77,8 +79,8 @@ function clearSystemColProtections() {
     var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
     protections.forEach(function (protection) {
       var col = protection.getRange().getColumn();
-      // Columns W (23), X (24), Y (25)
-      if (col >= 23 && col <= 25) {
+      // Column A (1) and columns W (23), X (24), Y (25)
+      if (col === 1 || (col >= 23 && col <= 25)) {
         protection.remove();
         cleared++;
       }
@@ -89,9 +91,10 @@ function clearSystemColProtections() {
 }
 
 /**
- * SETUP (run once): Permanently protect cols W–Y (edited_at, editor, UUID) on all region sheets.
- * No one should manually edit these — they are written by the onEdit trigger and the service account.
- * Script-level writes bypass this protection automatically.
+ * SETUP (run once): Permanently protect cols A and W–Y on all region sheets.
+ *   A — catalog number, assigned by the system on each cron tick
+ *   W–Y — edited_at, editor email, UUID (managed by trigger + service account)
+ * No human should manually edit these. Script-level writes bypass protection.
  *
  * Region sheets are read from _config!B2. Run after initial setup or after adding a new region sheet.
  */
@@ -114,18 +117,27 @@ function setupSystemColProtection() {
     }
 
     var lastRow = Math.max(sheet.getLastRow(), 3);
-    var range = sheet.getRange("W3:Y" + lastRow);
-    var protection = range
+
+    // Protect col A (catalog number)
+    var colARange = sheet.getRange("A3:A" + lastRow);
+    var colAProtection = colARange
+      .protect()
+      .setDescription("Catalog number (A) — assigned by system, do not edit manually");
+    colAProtection.removeEditors(colAProtection.getEditors());
+    if (colAProtection.canDomainEdit()) {
+      colAProtection.setDomainEdit(false);
+    }
+
+    // Protect cols W–Y (system metadata)
+    var sysRange = sheet.getRange("W3:Y" + lastRow);
+    var sysProtection = sysRange
       .protect()
       .setDescription("System columns (edited_at, editor, UUID) — do not edit manually");
-
-    // Remove all editors so no human can change these through the UI.
-    // Scripts and the service account bypass protection and can still write.
-    protection.removeEditors(protection.getEditors());
-    if (protection.canDomainEdit()) {
-      protection.setDomainEdit(false);
+    sysProtection.removeEditors(sysProtection.getEditors());
+    if (sysProtection.canDomainEdit()) {
+      sysProtection.setDomainEdit(false);
     }
   });
 
-  Logger.log("System columns (W–Y) protected on: " + regionNames.join(", "));
+  Logger.log("System columns (A, W–Y) protected on: " + regionNames.join(", "));
 }
