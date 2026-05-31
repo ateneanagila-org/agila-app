@@ -1,13 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
-import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import { PieChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
+
+type TnvrScreenProps = {
+  initialCats: SelectCat[];
+  initialHealthRecords: SelectCatHealthRecord[];
+};
+
+function formatLatestUpdate(cats: SelectCat[]) {
+  const dates = cats
+    .map((cat) => cat.last_updated_at)
+    .filter(Boolean)
+    .map((date) => new Date(date as string | Date).getTime())
+    .filter((time) => !Number.isNaN(time));
+
+  if (dates.length === 0) return "—";
+
+  const latest = new Date(Math.max(...dates));
+  return `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`;
+}
 
 /** Compute TNVR stats from cats + health records */
 function computeTnvrStats(
@@ -147,49 +164,15 @@ function SexSection({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function TnvrScreen() {
-  const [allCats, setAllCats] = useState<SelectCat[]>([]);
-  const [allHealthRecords, setAllHealthRecords] = useState<
-    SelectCatHealthRecord[]
-  >([]);
-  const [loading, setLoading] = useState(true);
+export function TnvrScreen({
+  initialCats,
+  initialHealthRecords,
+}: TnvrScreenProps) {
+  const allCats = initialCats;
+  const allHealthRecords = initialHealthRecords;
   const [location, setLocation] = useState("All Locations");
   const [desktopLocation, setDesktopLocation] = useState("Overall");
-  const [lastUpdated, setLastUpdated] = useState("—");
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [catResult, hrResult] = await Promise.all([
-        getCats({ entry_status: "Original" }),
-        getCatHealthRecords({}),
-      ]);
-      if (catResult?.data) {
-        setAllCats(catResult.data);
-        const dates = catResult.data
-          .map((c) => c.last_updated_at)
-          .filter(Boolean)
-          .map((d) => new Date(d as string | Date).getTime());
-        if (dates.length > 0) {
-          const latest = new Date(Math.max(...dates));
-          setLastUpdated(
-            `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`,
-          );
-        }
-      }
-      if (hrResult?.data) {
-        setAllHealthRecords(hrResult.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch TNVR data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const lastUpdated = useMemo(() => formatLatestUpdate(allCats), [allCats]);
 
   // Mobile: filter by location
   const mobileCats = useMemo(() => {
@@ -236,14 +219,6 @@ export function TnvrScreen() {
   ];
   const mobilePieData = buildPieData(mobileStats);
   const desktopPieData = buildPieData(desktopStats);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
-      </div>
-    );
-  }
 
   return (
     <>

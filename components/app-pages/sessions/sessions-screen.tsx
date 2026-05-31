@@ -15,15 +15,7 @@ import {
   CreateSessionDialog,
   DeleteSessionDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
-import {
-  getSessions,
-  getSessionCats,
-  getSessionUsers,
-  createSession,
-  removeSession,
-} from "@/app/actions/sessions";
-import { getCats } from "@/app/actions/cats";
-import { createClient } from "@/lib/supabase/client";
+import { createSession, removeSession } from "@/app/actions/sessions";
 import { useAuth } from "@/contexts/auth-context";
 import type { SelectSession } from "@/lib/validation/sessions";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
@@ -32,18 +24,38 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 const PAGE_SIZE = 10;
 
 type SessionStatus = "Unfinished" | "Submitted" | "Reviewed";
+type RegionOption = { id: string; name: string };
 
-export function SessionsScreen() {
+type SessionsScreenProps = {
+  initialSessions: SelectSession[];
+  initialAllSessions: SelectSession[];
+  initialStatusBySession: Record<string, SessionStatus>;
+  initialRegionOptions: RegionOption[];
+};
+
+export function SessionsScreen({
+  initialSessions,
+  initialAllSessions,
+  initialStatusBySession,
+  initialRegionOptions,
+}: SessionsScreenProps) {
   const { canManage, userData } = useAuth();
   const userId = userData?.supabaseUser?.id;
   const router = useRouter();
-  const [sessions, setSessions] = useState<SelectSession[]>([]);
-  const [allSessions, setAllSessions] = useState<SelectSession[]>([]);
+  const [sessions, setSessions] = useState<SelectSession[]>(initialSessions);
+  const [allSessions, setAllSessions] =
+    useState<SelectSession[]>(initialAllSessions);
   const [statusBySession, setStatusBySession] = useState<
     Record<string, SessionStatus>
-  >({});
-  const [regionMap, setRegionMap] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  >(initialStatusBySession);
+  const regionMap = useMemo(
+    () =>
+      Object.fromEntries(
+        initialRegionOptions.map((region) => [region.id, region.name]),
+      ),
+    [initialRegionOptions],
+  );
+  const loading = false;
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
   const [showMoreLocations, setShowMoreLocations] = useState(false);
@@ -54,95 +66,9 @@ export function SessionsScreen() {
   const [newSessionRegionId, setNewSessionRegionId] = useState("");
   const [creatingSession, setCreatingSession] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [regionOptions, setRegionOptions] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const regionOptions = initialRegionOptions;
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const fetchRegions = useCallback(async () => {
-    try {
-      const supabase = createClient();
-      const { data } = await supabase.from("regions").select("id,name");
-      if (!data) return;
-
-      const map: Record<string, string> = {};
-      const options: { id: string; name: string }[] = [];
-      for (const row of data) {
-        if (row?.id && row?.name) {
-          map[row.id] = row.name;
-          options.push({ id: row.id, name: row.name });
-        }
-      }
-      setRegionMap(map);
-      setRegionOptions(options);
-    } catch (err) {
-      console.error("Failed to fetch regions:", err);
-    }
-  }, []);
-
-  const fetchSessions = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      // 1. Sessions linked to current user via session_users
-      const linkRes = await getSessionUsers({ user_id: userId });
-      const myIds = new Set((linkRes?.data ?? []).map((su) => su.session_id));
-      if (myIds.size === 0) {
-        setSessions([]);
-        setAllSessions([]);
-        setStatusBySession({});
-        return;
-      }
-
-      // 2. All non-system sessions, filter to mine
-      const sessionsRes = await getSessions({});
-      const all = sessionsRes?.data ?? [];
-      setAllSessions(all);
-      const mine = all.filter((s) => myIds.has(s.id));
-      setSessions(mine);
-
-      // 3. Derive status per session via session_cats + cats.entry_status
-      const [scRes, unreviewedRes] = await Promise.all([
-        getSessionCats({}),
-        getCats({ entry_status: "Unreviewed" }),
-      ]);
-      const unreviewedIds = new Set(
-        (unreviewedRes?.data ?? []).map((c) => c.id),
-      );
-
-      const catIdsBySession = new Map<string, string[]>();
-      for (const sc of scRes?.data ?? []) {
-        const list = catIdsBySession.get(sc.session_id) ?? [];
-        list.push(sc.cat_id);
-        catIdsBySession.set(sc.session_id, list);
-      }
-
-      const statusMap: Record<string, SessionStatus> = {};
-      for (const s of mine) {
-        const catIds = catIdsBySession.get(s.id) ?? [];
-        if (!s.is_finished) {
-          statusMap[s.id] = "Unfinished";
-          continue;
-        }
-        const hasUnreviewed = catIds.some((id) => unreviewedIds.has(id));
-        statusMap[s.id] = hasUnreviewed ? "Submitted" : "Reviewed";
-      }
-      setStatusBySession(statusMap);
-    } catch (err) {
-      console.error("Failed to fetch sessions:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchRegions();
-  }, [fetchRegions]);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
@@ -247,6 +173,12 @@ export function SessionsScreen() {
     try {
       await removeSession.bind(null, pendingDeleteId)();
       setSessions((prev) => prev.filter((s) => s.id !== pendingDeleteId));
+      setAllSessions((prev) => prev.filter((s) => s.id !== pendingDeleteId));
+      setStatusBySession((prev) => {
+        const next = { ...prev };
+        delete next[pendingDeleteId];
+        return next;
+      });
       setPendingDeleteId(null);
     } catch (err) {
       console.error("Failed to delete session:", err);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
 import type { FilterableCat } from "@/components/app-pages/shared/cat-filter-toolbar";
@@ -53,11 +53,15 @@ function addMedicalAndInterventionInfo(
   });
 }
 
-export function DatabaseListScreen() {
+type DatabaseListScreenProps = {
+  initialCats: FilterableCat[];
+};
+
+export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
   const { canManage } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
-  const [cats, setCats] = useState<FilterableCat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cats, setCats] = useState<FilterableCat[]>(initialCats);
+  const [loading, setLoading] = useState(false);
   const [filterDataLoaded, setFilterDataLoaded] = useState(false);
   const [catToDelete, setCatToDelete] = useState<FilterableCat | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -105,10 +109,6 @@ export function DatabaseListScreen() {
       setFilterDataLoaded(true);
     }
   }, [cats.length, filterDataLoaded]);
-
-  useEffect(() => {
-    fetchCats();
-  }, [fetchCats]);
 
   const handleSave = useCallback(() => {
     fetchCats();

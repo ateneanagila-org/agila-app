@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { SearchDialog } from "@/components/app-pages/shared/dialogs";
 
 import {
@@ -29,14 +29,25 @@ import { SyncControls } from "./sync-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
-export function UsersScreen() {
+type UsersScreenProps = {
+  initialUsers: AllowedEmailEntry[];
+  initialSyncStatus: {
+    frozen: boolean | null;
+    reason: string | null;
+  };
+};
+
+export function UsersScreen({
+  initialUsers,
+  initialSyncStatus,
+}: UsersScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AllowedEmailEntry | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [users, setUsers] = useState<AllowedEmailEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<AllowedEmailEntry[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // Add user form
@@ -99,10 +110,6 @@ export function UsersScreen() {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   const handleCreate = useCallback(async () => {
     if (!newEmail.trim()) {
@@ -182,7 +189,7 @@ export function UsersScreen() {
             <p className="font-heading text-2xl font-bold text-brand-green">User Control</p>
           </div>
           <div className="mb-4">
-            <SyncControls />
+            <SyncControls initialStatus={initialSyncStatus} />
           </div>
           {/* Add Entry Button */}
           <button
@@ -296,7 +303,7 @@ export function UsersScreen() {
         </div>
 
         <div className="mt-5">
-          <SyncControls />
+          <SyncControls initialStatus={initialSyncStatus} />
         </div>
 
         <section className="mt-4 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">

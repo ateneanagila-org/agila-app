@@ -1,66 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
-import { getSessionCats } from "@/app/actions/sessions";
-import { getCats, approveCat } from "@/app/actions/cats";
-import type { SelectSessionCat } from "@/lib/validation/sessions";
+import { approveCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { CENSUS_REPORT_URL } from "@/lib/constants";
 
-type ReviewItem = {
+export type ReviewItem = {
   cat: CatWithRegion;
   sessionId: string;
   sessionCatId: string;
 };
 
-export function SessionsManagerScreen() {
-  const [forReview, setForReview] = useState<ReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
+type SessionsManagerScreenProps = {
+  initialForReview: ReviewItem[];
+};
+
+export function SessionsManagerScreen({
+  initialForReview,
+}: SessionsManagerScreenProps) {
+  const [forReview, setForReview] = useState<ReviewItem[]>(initialForReview);
+  const loading = false;
   const [approvingItem, setApprovingItem] = useState<ReviewItem | null>(null);
   const [saving, setSaving] = useState(false);
-
-  /** Fetch cats from unfinished sessions (pending review) */
-  const fetchPendingCats = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Parallel: get all unreviewed cats + all session-cat links
-      const [catsResult, sessionCatsResult] = await Promise.all([
-        getCats({ entry_status: "Unreviewed" }),
-        getSessionCats({}),
-      ]);
-
-      const unreviewedCats = catsResult?.data ?? [];
-      const allSessionCats = sessionCatsResult?.data ?? [];
-
-      // Build cat_id → sessionCat lookup
-      const scByCatId = new Map<string, SelectSessionCat>();
-      for (const sc of allSessionCats) {
-        scByCatId.set(sc.cat_id, sc);
-      }
-
-      const resolved = unreviewedCats
-        .map((cat) => {
-          const sc = scByCatId.get(cat.id);
-          if (!sc) return null;
-          return { cat, sessionId: sc.session_id, sessionCatId: sc.id } as ReviewItem;
-        })
-        .filter((item): item is ReviewItem => item !== null);
-
-      setForReview(resolved);
-    } catch (err) {
-      console.error("Failed to fetch pending cats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPendingCats();
-  }, [fetchPendingCats]);
 
   const sexSymbol = (s: string | null | undefined): string | null => {
     if (s === "Male") return "♂";
