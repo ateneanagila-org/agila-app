@@ -122,7 +122,7 @@ async function reverseSyncRegionInternal(
         }
 
         await db.transaction(async (tx) => {
-          const { id: _id, condition, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
+          const { id: _id, condition, is_neutered, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
           const [newCat] = await tx
             .insert(cats)
             .values({
@@ -138,6 +138,7 @@ async function reverseSyncRegionInternal(
           await tx.insert(catHealthRecords).values({
             cat_id: newCat.id,
             condition,
+            is_neutered,
             neuter_date: parsedNeuterDate && !isNaN(parsedNeuterDate.getTime()) ? parsedNeuterDate : null,
             vaccination_date: parsedVaccinationDate && !isNaN(parsedVaccinationDate.getTime()) ? parsedVaccinationDate : null,
           });
@@ -351,6 +352,7 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
 
     const healthUpdate: Record<string, unknown> = {
       condition: data.condition,
+      is_neutered: data.is_neutered,
       last_updated_at: new Date(),
     };
 
