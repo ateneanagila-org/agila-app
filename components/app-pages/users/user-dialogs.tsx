@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import {
   ChevronDownIcon,
   TrashIcon,
-  ExternalLinkIcon,
   CloseIcon,
   CheckIcon,
   SaveIcon,
@@ -379,45 +378,6 @@ export function UserSortByDialog(props: UserSortByDialogProps) {
   return (
     <Shell open={props.open} onClose={props.onClose}>
       <UserSortBody {...props} />
-    </Shell>
-  );
-}
-
-// ─── User Details (Profile) Dialog ───────────────────────────────────────────
-
-type UserDetailsDialogProps = {
-  open: boolean;
-  onClose: () => void;
-  name?: string | null;
-  email?: string | null;
-  role?: string | null;
-};
-
-export function UserDetailsDialog({ open, onClose, name, email, role }: UserDetailsDialogProps) {
-  return (
-    <Shell open={open} onClose={onClose}>
-      <Header title="User Details" onClose={onClose} />
-
-      <div className="space-y-3">
-        <InputField label="Name" value={name ?? ""} readOnly />
-        <InputField label="Ateneo Student Email Address" value={email ?? ""} readOnly />
-        <InputField label="Role" value={role ?? ""} readOnly />
-      </div>
-
-      <div className="border-t border-brand-cream-dark pt-3">
-        <p className="mb-2 text-sm font-semibold text-brand-orange">Report a Bug</p>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Noticed an issue?</span>
-          <a
-            href="https://github.com/anthropics/claude-code/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            Report bug <ExternalLinkIcon className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      </div>
     </Shell>
   );
 }
