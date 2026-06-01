@@ -2,23 +2,32 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useDebounce } from "use-debounce";
 import {
   DatabaseFiltersDialog,
   DatabaseSortByDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import { ChevronDownIcon, SearchIcon } from "@/components/app-pages/shared/icons";
+import {
+  ChevronDownIcon,
+  SearchIcon,
+} from "@/components/app-pages/shared/icons";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import type { FilterSortConfig } from "@/lib/hooks/use-filter-sort";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { SelectCat } from "@/lib/validation/cats";
 
+export type FilterableCat = CatWithRegion & {
+  condition?: string | null;
+  intervention_type?: readonly string[] | string | null;
+  intervention_status?: readonly string[] | string | null;
+};
+
 type CatFilterToolbarProps = {
-  cats: CatWithRegion[];
+  cats: FilterableCat[];
   config: FilterSortConfig;
   searchFields?: (keyof SelectCat)[];
   initialFilters?: Record<string, Set<string>>;
-  children: (filteredCats: CatWithRegion[]) => ReactNode;
+  onBeforeOpenFilter?: () => void | Promise<void>;
+  children: (filteredCats: FilterableCat[]) => ReactNode;
 };
 
 export function CatFilterToolbar({
@@ -26,9 +35,11 @@ export function CatFilterToolbar({
   config,
   searchFields = ["name"],
   initialFilters,
+  onBeforeOpenFilter,
   children,
 }: CatFilterToolbarProps) {
   const [searchInput, setSearchInput] = useState("");
+  const [openingFilter, setOpeningFilter] = useState(false);
 
   const {
     filtered,
@@ -44,12 +55,13 @@ export function CatFilterToolbar({
     closeDialog,
     search,
     setSearch,
-  } = useFilterSort<CatWithRegion>(
+  } = useFilterSort<FilterableCat>(
     cats,
     config,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
-      const val = cat[key as keyof SelectCat];
+      const val = cat[key as keyof FilterableCat];
+      if (Array.isArray(val)) return val.length > 0 ? val : ["Unknown"];
       if (val == null) return "Unknown";
       return String(val);
     },
@@ -62,12 +74,28 @@ export function CatFilterToolbar({
       return val != null ? String(val) : null;
     },
     initialFilters,
+    (cat) => !cat.name?.trim(),
   );
 
-  const [debouncedSearch] = useDebounce(searchInput, 250);
   useEffect(() => {
-    setSearch(debouncedSearch);
-  }, [debouncedSearch, setSearch]);
+    const timer = window.setTimeout(() => setSearch(searchInput), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, setSearch]);
+
+  const handleOpenFilter = async () => {
+    if (!onBeforeOpenFilter) {
+      openFilterDialog();
+      return;
+    }
+
+    setOpeningFilter(true);
+    try {
+      await onBeforeOpenFilter();
+    } finally {
+      setOpeningFilter(false);
+      openFilterDialog();
+    }
+  };
 
   const filteredCats = search
     ? filtered.filter((cat) => {
@@ -96,10 +124,12 @@ export function CatFilterToolbar({
           <div className="mt-2 flex gap-2 tablet:mt-0">
             <button
               type="button"
-              onClick={openFilterDialog}
+              onClick={handleOpenFilter}
+              disabled={openingFilter}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
             >
-              Filter <ChevronDownIcon className="h-3.5 w-3.5" />
+              {openingFilter ? "Loading" : "Filter"}{" "}
+              <ChevronDownIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"

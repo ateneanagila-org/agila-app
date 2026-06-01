@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   DetailHeader,
   TopTabs,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
+import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
+import {
+  createPositionedPhotoFile,
+  DEFAULT_PHOTO_POSITION,
+  PhotoPositionEditor,
+  type PhotoPosition,
+} from "@/components/app-pages/shared/photo-position-editor";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { editCat } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
@@ -62,7 +70,12 @@ function FormSelect({
     <div>
       <FieldLabel>{label}</FieldLabel>
       <div className="mt-1.5">
-        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+        <CustomSelect
+          options={options}
+          value={value}
+          onChange={onChange}
+          variant="white"
+        />
       </div>
     </div>
   );
@@ -73,6 +86,12 @@ export function DatabaseGeneralScreen() {
   const { catId, cat, loading, error: ctxError, refresh } = useCatDetail();
 
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPosition, setPhotoPosition] = useState<PhotoPosition>(
+    DEFAULT_PHOTO_POSITION,
+  );
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -90,6 +109,7 @@ export function DatabaseGeneralScreen() {
   const [isAdoptable, setIsAdoptable] = useState(false);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const regions = useRegions();
 
@@ -111,6 +131,16 @@ export function DatabaseGeneralScreen() {
   useEffect(() => {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   const displayError = error ?? ctxError;
 
@@ -161,24 +191,31 @@ export function DatabaseGeneralScreen() {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
 
-  const handlePhotoChange = useCallback(
-    async (file: File | null) => {
-      if (!file || !catId) return;
-      setPhotoUploading(true);
-      setError(null);
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        await uploadCatPhoto(catId, fd);
-        await refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Photo upload failed.");
-      } finally {
-        setPhotoUploading(false);
-      }
-    },
-    [catId, refresh],
-  );
+  const handlePhotoSelect = useCallback((file: File | null) => {
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPosition(DEFAULT_PHOTO_POSITION);
+  }, []);
+
+  const handlePhotoUpload = useCallback(async () => {
+    const file = photoFile;
+    if (!file || !catId) return;
+    setPhotoUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      const uploadFile = await createPositionedPhotoFile(file, photoPosition);
+      fd.append("file", uploadFile);
+      await uploadCatPhoto(catId, fd);
+      setPhotoFile(null);
+      setPhotoPosition(DEFAULT_PHOTO_POSITION);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Photo upload failed.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }, [catId, photoFile, photoPosition, refresh]);
 
   const handleToggleAdoptable = useCallback(async () => {
     if (!catId) return;
@@ -194,7 +231,9 @@ export function DatabaseGeneralScreen() {
     } catch (err) {
       console.error("Failed to toggle adoptable:", err);
       setIsAdoptable(!newVal);
-      setError(err instanceof Error ? err.message : "Failed to toggle adoptable.");
+      setError(
+        err instanceof Error ? err.message : "Failed to toggle adoptable.",
+      );
     }
   }, [catId, isAdoptable]);
 
@@ -241,22 +280,44 @@ export function DatabaseGeneralScreen() {
                 sizes="128px"
               />
               {canManage ? (
-                <label
-                  className={`absolute inset-0 flex cursor-pointer items-end justify-center rounded-2xl transition-colors ${
-                    photoUploading ? "bg-brand-dark/40" : "bg-transparent hover:bg-brand-dark/30"
+                <div
+                  className={`group absolute inset-0 rounded-2xl transition-colors ${
+                    photoUploading
+                      ? "bg-brand-dark/40"
+                      : "bg-transparent hover:bg-brand-dark/30"
                   }`}
-                  aria-label="Upload photo"
                 >
-                  <span className="mb-2 rounded-full bg-brand-orange px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100 [label:hover_&]:opacity-100">
-                    {photoUploading ? "..." : "Change"}
-                  </span>
+                  <div className="absolute inset-x-2 bottom-2 grid grid-cols-2 gap-1 opacity-100 transition-opacity tablet:opacity-0 tablet:group-hover:opacity-100 tablet:group-focus-within:opacity-100">
+                    <button
+                      type="button"
+                      disabled={photoUploading}
+                      onClick={() => setShowPhotoCapture(true)}
+                      className="inline-flex h-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                      aria-label="Take photo"
+                    >
+                      <CameraIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={photoUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex h-8 items-center justify-center rounded-full bg-white text-brand-green shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                      aria-label="Choose photo"
+                    >
+                      <UploadIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
+                    onChange={(e) => {
+                      handlePhotoSelect(e.target.files?.[0] ?? null);
+                      e.currentTarget.value = "";
+                    }}
                   />
-                </label>
+                </div>
               ) : null}
             </div>
 
@@ -333,16 +394,46 @@ export function DatabaseGeneralScreen() {
         {/* Form card */}
         <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
           <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6">
-            <FormSelect label="Color" options={CAT_COLOR_VALUES} value={color} onChange={setColor} />
-            <FormSelect label="Size / Age" options={CAT_AGE_VALUES} value={age} onChange={setAge} />
-            <FormSelect label="Sex" options={CAT_SEX_VALUES} value={sex} onChange={setSex} />
-            <FormSelect label="Sociability" options={CAT_SOCIABILITY_VALUES} value={sociability} onChange={setSociability} />
-            <FormSelect label="Status" options={CAT_STATUS_VALUES} value={catStatus} onChange={setCatStatus} />
+            <FormSelect
+              label="Color"
+              options={CAT_COLOR_VALUES}
+              value={color}
+              onChange={setColor}
+            />
+            <FormSelect
+              label="Size / Age"
+              options={CAT_AGE_VALUES}
+              value={age}
+              onChange={setAge}
+            />
+            <FormSelect
+              label="Sex"
+              options={CAT_SEX_VALUES}
+              value={sex}
+              onChange={setSex}
+            />
+            <FormSelect
+              label="Sociability"
+              options={CAT_SOCIABILITY_VALUES}
+              value={sociability}
+              onChange={setSociability}
+            />
+            <FormSelect
+              label="Status"
+              options={CAT_STATUS_VALUES}
+              value={catStatus}
+              onChange={setCatStatus}
+            />
             <FormSelect
               label="Region (override)"
               options={regions.map((r) => r.name)}
-              value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
-              onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+              value={
+                regions.find((r) => r.id === regionId)?.name ??
+                regionFallbackName
+              }
+              onChange={(name) =>
+                setRegionId(regions.find((r) => r.name === name)?.id ?? null)
+              }
             />
             <div>
               <FieldLabel>Caretaker</FieldLabel>
@@ -396,14 +487,82 @@ export function DatabaseGeneralScreen() {
       <DiscardChangesDialog
         open={showDiscardDialog}
         onClose={() => setShowDiscardDialog(false)}
-        onConfirm={() => { handleCancel(); setShowDiscardDialog(false); }}
+        onConfirm={() => {
+          handleCancel();
+          setShowDiscardDialog(false);
+        }}
       />
       <SaveChangesDialog
         open={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
-        onConfirm={() => { handleSave(); setShowSaveDialog(false); }}
+        onConfirm={() => {
+          handleSave();
+          setShowSaveDialog(false);
+        }}
         isLoading={saving}
       />
+
+      {photoPreview ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
+          onClick={() => {
+            if (!photoUploading) {
+              setPhotoFile(null);
+              setPhotoPosition(DEFAULT_PHOTO_POSITION);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
+                Position Photo
+              </h2>
+              <p className="mt-1 text-xs font-semibold text-brand-dark/60">
+                Drag to move, then use the slider to zoom.
+              </p>
+            </div>
+
+            <PhotoPositionEditor
+              src={photoPreview}
+              position={photoPosition}
+              onChange={setPhotoPosition}
+            />
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={photoUploading}
+                onClick={() => {
+                  setPhotoFile(null);
+                  setPhotoPosition(DEFAULT_PHOTO_POSITION);
+                }}
+                className="rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={photoUploading}
+                onClick={handlePhotoUpload}
+                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {photoUploading ? "Uploading..." : "Use Photo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showPhotoCapture ? (
+        <PhotoCaptureDialog
+          onCapture={(file) => handlePhotoSelect(file)}
+          onClose={() => setShowPhotoCapture(false)}
+          onChooseFile={() => fileInputRef.current?.click()}
+        />
+      ) : null}
     </>
   );
 }

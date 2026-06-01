@@ -6,8 +6,9 @@ import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import {
   ArrowLeftIcon,
-  ChevronRightIcon,
+  ExternalLinkIcon,
 } from "@/components/app-pages/shared/icons";
+import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 import {
   getAdoptableCats,
   getAdoptableCatHealthRecord,
@@ -220,13 +221,15 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
             </p>
           ) : null}
 
-          <button
-            type="button"
+          <a
+            href={ADOPT_FOSTER_APPLICATION_URL}
+            target="_blank"
+            rel="noreferrer"
             className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full bg-brand-orange px-7 py-3 text-sm font-bold tracking-wide text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
-            Apply to adopt
-            <ChevronRightIcon className="h-4 w-4" />
-          </button>
+            Apply to adopt/foster
+            <ExternalLinkIcon className="h-4 w-4" />
+          </a>
         </div>
       </div>
 

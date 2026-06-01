@@ -8,13 +8,11 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
+  DatabaseFiltersDialog,
   DatabaseSortByDialog,
   NewInterventionDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import {
-  ChevronDownIcon,
-  PlusIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, PlusIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
@@ -76,9 +74,14 @@ export function DatabaseInterventionsScreen() {
 
   const {
     filtered: filteredInterventions,
+    activeFilters,
+    activeFilterCount,
+    clearFilters,
+    applyFilters,
     sortKey,
     sortOrder,
     openDialog,
+    openFilterDialog,
     openSortDialog,
     closeDialog,
     applySort,
@@ -131,7 +134,7 @@ export function DatabaseInterventionsScreen() {
           id: interventionId,
           status: newStatus as InterventionStatus,
         });
-          await refresh();
+        await refresh();
       } catch (err) {
         console.error("Failed to update status:", err);
       }
@@ -232,8 +235,16 @@ export function DatabaseInterventionsScreen() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={openFilterDialog}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+          >
+            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
+            <ChevronDownIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
             onClick={openSortDialog}
-            className="inline-flex items-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
           >
             Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
@@ -241,7 +252,7 @@ export function DatabaseInterventionsScreen() {
           <button
             type="button"
             onClick={() => setShowIntervention(true)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
           >
             New Intervention <PlusIcon className="h-3.5 w-3.5" />
           </button>
@@ -312,12 +323,21 @@ export function DatabaseInterventionsScreen() {
         <button
           type="button"
           onClick={() => setShowIntervention(true)}
-          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+          className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
+          aria-label="New intervention"
         >
           <PlusIcon className="h-6 w-6 text-white" />
         </button>
       </div>
 
+      <DatabaseFiltersDialog
+        open={openDialog === "filter"}
+        onClose={closeDialog}
+        categories={INTERVENTIONS_CONFIG.filters}
+        activeFilters={activeFilters}
+        onClear={clearFilters}
+        onApply={applyFilters}
+      />
       <DatabaseSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}
@@ -328,7 +348,10 @@ export function DatabaseInterventionsScreen() {
       />
       <NewInterventionDialog
         open={showIntervention}
-        onClose={() => { setShowIntervention(false); setError(null); }}
+        onClose={() => {
+          setShowIntervention(false);
+          setError(null);
+        }}
         type={newType}
         onTypeChange={setNewType}
         notes={newNotes}

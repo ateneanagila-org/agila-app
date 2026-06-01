@@ -1,15 +1,6 @@
 import { DB, db } from "../db";
 import { cats, catHealthRecords } from "../db/schema";
-import {
-  eq,
-  notInArray,
-  isNull,
-  and,
-  or,
-  inArray,
-  getTableColumns,
-  sql,
-} from "drizzle-orm";
+import { eq, notInArray, isNull, and, or, inArray, sql } from "drizzle-orm";
 import {
   InsertCat,
   InsertCatHealthRecord,
@@ -31,6 +22,30 @@ const regionSubquery = sql<string | null>`COALESCE(
     ORDER BY s.created_at DESC
     LIMIT 1)
 )`;
+
+// Live Supabase may not have the sync-only catalog_id/paws_id columns yet.
+// Keep read queries explicit so user-facing pages do not fail when those
+// optional sync columns are absent.
+const catReadColumns = {
+  id: cats.id,
+  merged_into_id: cats.merged_into_id,
+  region_id: cats.region_id,
+  last_updated_at: cats.last_updated_at,
+  entry_status: cats.entry_status,
+  photo_url: cats.photo_url,
+  color: cats.color,
+  age: cats.age,
+  sex: cats.sex,
+  name: cats.name,
+  sociability: cats.sociability,
+  cat_status: cats.cat_status,
+  spot_last_seen: cats.spot_last_seen,
+  caretaker: cats.caretaker,
+  notes: cats.notes,
+  is_adoptable: cats.is_adoptable,
+  catalog_id: sql<string | null>`NULL`,
+  paws_id: sql<string | null>`NULL`,
+};
 
 function buildCatConditions(filters: Partial<SelectCat>) {
   return Object.entries(filters)
@@ -61,7 +76,7 @@ export const findAdoptableCats = (
   );
   return db
     .select({
-      ...getTableColumns(cats),
+      ...catReadColumns,
       region_name: regionSubquery,
     })
     .from(cats)
@@ -74,7 +89,7 @@ export const findCats = (
   const conditions = buildCatConditions(filters);
   return db
     .select({
-      ...getTableColumns(cats),
+      ...catReadColumns,
       region_name: regionSubquery,
     })
     .from(cats)

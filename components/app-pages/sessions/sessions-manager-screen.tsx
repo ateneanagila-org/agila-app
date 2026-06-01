@@ -1,67 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
-import { getSessionCats } from "@/app/actions/sessions";
-import { getCats, approveCat } from "@/app/actions/cats";
-import type { SelectSessionCat } from "@/lib/validation/sessions";
+import { approveCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { CENSUS_REPORT_URL } from "@/lib/constants";
 
-type ReviewItem = {
+export type ReviewItem = {
   cat: CatWithRegion;
   sessionId: string;
   sessionCatId: string;
 };
 
-const CENSUS_REPORT_URL = "#"; // TODO: replace with actual Google Docs folder URL
+type SessionsManagerScreenProps = {
+  initialForReview: ReviewItem[];
+};
 
-export function SessionsManagerScreen() {
-  const [forReview, setForReview] = useState<ReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export function SessionsManagerScreen({
+  initialForReview,
+}: SessionsManagerScreenProps) {
+  const [forReview, setForReview] = useState<ReviewItem[]>(initialForReview);
+  const loading = false;
   const [approvingItem, setApprovingItem] = useState<ReviewItem | null>(null);
   const [saving, setSaving] = useState(false);
-
-  /** Fetch cats from unfinished sessions (pending review) */
-  const fetchPendingCats = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Parallel: get all unreviewed cats + all session-cat links
-      const [catsResult, sessionCatsResult] = await Promise.all([
-        getCats({ entry_status: "Unreviewed" }),
-        getSessionCats({}),
-      ]);
-
-      const unreviewedCats = catsResult?.data ?? [];
-      const allSessionCats = sessionCatsResult?.data ?? [];
-
-      // Build cat_id → sessionCat lookup
-      const scByCatId = new Map<string, SelectSessionCat>();
-      for (const sc of allSessionCats) {
-        scByCatId.set(sc.cat_id, sc);
-      }
-
-      const resolved = unreviewedCats
-        .map((cat) => {
-          const sc = scByCatId.get(cat.id);
-          if (!sc) return null;
-          return { cat, sessionId: sc.session_id, sessionCatId: sc.id } as ReviewItem;
-        })
-        .filter((item): item is ReviewItem => item !== null);
-
-      setForReview(resolved);
-    } catch (err) {
-      console.error("Failed to fetch pending cats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPendingCats();
-  }, [fetchPendingCats]);
 
   const sexSymbol = (s: string | null | undefined): string | null => {
     if (s === "Male") return "♂";
@@ -129,7 +93,9 @@ export function SessionsManagerScreen() {
 
           {/* Heading + pending count */}
           <div className="flex items-center gap-2">
-            <p className="font-heading text-2xl font-bold text-brand-green">For Review</p>
+            <p className="font-heading text-2xl font-bold text-brand-green">
+              For Review
+            </p>
             {forReview.length > 0 ? (
               <span className="rounded-full border border-brand-orange px-2.5 py-0.5 text-xs font-bold text-brand-orange">
                 {forReview.length} pending
@@ -153,7 +119,12 @@ export function SessionsManagerScreen() {
                   <div className="flex items-stretch gap-0">
                     {/* Full-height image column */}
                     <div className="flex w-28 shrink-0 items-center justify-center overflow-hidden bg-white/10">
-                      <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-28 w-28 object-cover" iconClassName="h-10 w-10 text-white/40" />
+                      <CatPhoto
+                        photoUrl={item.cat.photo_url}
+                        name={item.cat.name}
+                        className="h-28 w-28 object-cover"
+                        iconClassName="h-10 w-10 text-white/40"
+                      />
                     </div>
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
@@ -170,7 +141,8 @@ export function SessionsManagerScreen() {
                             ) : null}
                           </div>
                           <p className="mt-1 text-sm font-bold text-white truncate">
-                            {displayCatField(item.cat.color)}{item.cat.age ? ` ${item.cat.age}` : ""}
+                            {displayCatField(item.cat.color)}
+                            {item.cat.age ? ` ${item.cat.age}` : ""}
                           </p>
                           {item.cat.region_name ? (
                             <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
@@ -195,7 +167,8 @@ export function SessionsManagerScreen() {
                         </div>
                       </div>
                       <p className="mt-3 text-sm font-bold text-white truncate">
-                        {item.cat.spot_last_seen || "—"} - {formatDate(item.cat.last_updated_at)}
+                        {item.cat.spot_last_seen || "—"} -{" "}
+                        {formatDate(item.cat.last_updated_at)}
                       </p>
                     </div>
                   </div>
@@ -244,7 +217,12 @@ export function SessionsManagerScreen() {
               >
                 <div className="flex items-center gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
-                    <CatPhoto photoUrl={item.cat.photo_url} name={item.cat.name} className="h-20 w-20 object-cover" iconClassName="h-9 w-9 text-white/50" />
+                    <CatPhoto
+                      photoUrl={item.cat.photo_url}
+                      name={item.cat.name}
+                      className="h-20 w-20 object-cover"
+                      iconClassName="h-9 w-9 text-white/50"
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

@@ -53,10 +53,12 @@ export function LocationPicker({
   }, [open]);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
       setQuery("");
-      setTimeout(() => inputRef.current?.focus(), 40);
-    }
+      inputRef.current?.focus();
+    }, 40);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const filtered = useMemo(() => {

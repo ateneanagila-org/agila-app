@@ -6,7 +6,14 @@ import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
-import { PlusIcon } from "@/components/app-pages/shared/icons";
+import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
+import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
+import {
+  createPositionedPhotoFile,
+  DEFAULT_PHOTO_POSITION,
+  PhotoPositionEditor,
+  type PhotoPosition,
+} from "@/components/app-pages/shared/photo-position-editor";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -56,7 +63,12 @@ function DropdownField({
     <div>
       <label className="text-sm font-semibold text-brand-orange">{label}</label>
       <div className="mt-1.5">
-        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+        <CustomSelect
+          options={options}
+          value={value}
+          onChange={onChange}
+          variant="white"
+        />
       </div>
     </div>
   );
@@ -90,12 +102,22 @@ export function CatEntryForm({
   sessionId,
   initialCat,
 }: CatEntryFormProps) {
-  const [color, setColor] = useState(initialCat?.color ?? (initialCat ? "Unknown" : ""));
-  const [age, setAge] = useState(initialCat?.age ?? (initialCat ? "Unknown" : ""));
-  const [sex, setSex] = useState(initialCat?.sex ?? (initialCat ? "Unknown" : ""));
-  const [sociability, setSociability] = useState(initialCat?.sociability ?? (initialCat ? "Unknown" : ""));
+  const [color, setColor] = useState(
+    initialCat?.color ?? (initialCat ? "Unknown" : ""),
+  );
+  const [age, setAge] = useState(
+    initialCat?.age ?? (initialCat ? "Unknown" : ""),
+  );
+  const [sex, setSex] = useState(
+    initialCat?.sex ?? (initialCat ? "Unknown" : ""),
+  );
+  const [sociability, setSociability] = useState(
+    initialCat?.sociability ?? (initialCat ? "Unknown" : ""),
+  );
   const [condition, setCondition] = useState(initialCat ? "Unknown" : "");
-  const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
+  const [spotLastSeen, setSpotLastSeen] = useState(
+    initialCat?.spot_last_seen ?? "",
+  );
   const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
   const [notes, setNotes] = useState(initialCat?.notes ?? "");
   const [name, setName] = useState(initialCat?.name ?? "");
@@ -107,10 +129,18 @@ export function CatEntryForm({
   const [photoWarning, setPhotoWarning] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const existingPhotoUrlRef = useRef<string | null>(initialCat?.photo_url ?? null);
+  const [photoPosition, setPhotoPosition] = useState<PhotoPosition>(
+    DEFAULT_PHOTO_POSITION,
+  );
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+  const existingPhotoUrlRef = useRef<string | null>(
+    initialCat?.photo_url ?? null,
+  );
   const [removedExisting, setRemovedExisting] = useState(false);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
-  const [savedCatId, setSavedCatId] = useState<string | null>(initialCat?.id ?? null);
+  const [savedCatId, setSavedCatId] = useState<string | null>(
+    initialCat?.id ?? null,
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -164,7 +194,6 @@ export function CatEntryForm({
     loadRegions();
   }, []);
 
-
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
     if (!effectiveRegionId) {
@@ -189,11 +218,18 @@ export function CatEntryForm({
           notes: notes || undefined,
           name: name || undefined,
         });
-        if (result?.serverError) { setError(result.serverError); return; }
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
         if (photoFile) {
           try {
             const fd = new FormData();
-            fd.append("file", photoFile);
+            const uploadFile = await createPositionedPhotoFile(
+              photoFile,
+              photoPosition,
+            );
+            fd.append("file", uploadFile);
             await uploadCatPhoto(initialCat.id, fd);
           } catch (uploadErr) {
             setPhotoWarning(
@@ -260,7 +296,11 @@ export function CatEntryForm({
       if (photoFile && newCatId) {
         try {
           const fd = new FormData();
-          fd.append("file", photoFile);
+          const uploadFile = await createPositionedPhotoFile(
+            photoFile,
+            photoPosition,
+          );
+          fd.append("file", uploadFile);
           await uploadCatPhoto(newCatId, fd);
         } catch (uploadErr) {
           console.error("Photo upload failed:", uploadErr);
@@ -296,6 +336,7 @@ export function CatEntryForm({
     onSave,
     onClose,
     photoFile,
+    photoPosition,
     savedCatId,
     initialCat,
     removedExisting,
@@ -303,7 +344,16 @@ export function CatEntryForm({
 
   const showPhoto =
     photoPreview ??
-    (existingPhotoUrlRef.current && !removedExisting ? existingPhotoUrlRef.current : null);
+    (existingPhotoUrlRef.current && !removedExisting
+      ? existingPhotoUrlRef.current
+      : null);
+
+  const handlePhotoSelect = useCallback((file: File | null) => {
+    if (!file) return;
+    setPhotoFile(file);
+    setRemovedExisting(false);
+    setPhotoPosition(DEFAULT_PHOTO_POSITION);
+  }, []);
 
   /** Skip photo retry: dismiss warning and close form, leaving the cat saved. */
   const handleSkipPhoto = useCallback(() => {
@@ -352,49 +402,104 @@ export function CatEntryForm({
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
           <div>
-            <label className="text-sm font-semibold text-brand-orange">Photo</label>
+            <label className="text-sm font-semibold text-brand-orange">
+              Photo
+            </label>
             <div className="mt-1.5">
-              {showPhoto ? (
-                <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={showPhoto}
-                    alt="Preview"
-                    className="h-40 w-full object-cover"
+              {photoPreview ? (
+                <div className="space-y-2">
+                  <PhotoPositionEditor
+                    src={photoPreview}
+                    position={photoPosition}
+                    onChange={setPhotoPosition}
                   />
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoCapture(true)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-orange px-3 py-1 text-xs font-semibold text-brand-orange transition-opacity hover:opacity-80"
+                    >
+                      <CameraIcon className="h-3.5 w-3.5" />
+                      Retake
+                    </button>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-orange transition-opacity hover:opacity-90"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-3 py-1 text-xs font-semibold text-brand-green transition-opacity hover:opacity-80"
                     >
-                      Change
+                      <UploadIcon className="h-3.5 w-3.5" />
+                      File
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        if (photoFile) {
-                          setPhotoFile(null);
-                        } else if (existingPhotoUrlRef.current) {
-                          setRemovedExisting(true);
+                        setPhotoFile(null);
+                        setPhotoPosition(DEFAULT_PHOTO_POSITION);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
                         }
                       }}
-                      className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-80"
+                      className="rounded-full border border-brand-dark/20 px-3 py-1 text-xs font-semibold text-brand-dark/70 transition-opacity hover:opacity-80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : showPhoto ? (
+                <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-brand-cream-dark/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={showPhoto}
+                    alt="Preview"
+                    className="h-40 w-full object-contain"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 gap-1 bg-linear-to-t from-black/65 to-transparent px-2 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoCapture(true)}
+                      className="inline-flex items-center justify-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-brand-orange transition-opacity hover:opacity-90"
+                    >
+                      <CameraIcon className="h-3.5 w-3.5" />
+                      Take
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center justify-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-brand-green transition-opacity hover:opacity-90"
+                    >
+                      <UploadIcon className="h-3.5 w-3.5" />
+                      File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemovedExisting(true)}
+                      className="rounded-full bg-black/50 px-2 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-80"
                     >
                       Remove
                     </button>
                   </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-32 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-brand-orange/40 bg-white transition-colors hover:border-brand-orange hover:bg-brand-orange/5"
-                  aria-label="Upload cat photo"
-                >
-                  <PlusIcon className="h-7 w-7 text-brand-orange/70" />
-                  <span className="text-xs font-semibold text-brand-orange">Tap to upload photo</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoCapture(true)}
+                    className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-brand-orange/35 bg-brand-orange/8 text-brand-orange transition-colors hover:border-brand-orange hover:bg-brand-orange/12"
+                    aria-label="Take cat photo"
+                  >
+                    <CameraIcon className="h-7 w-7" />
+                    <span className="text-xs font-semibold">Take photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-green/35 bg-white text-brand-green transition-colors hover:border-brand-green hover:bg-brand-green/5"
+                    aria-label="Choose cat photo"
+                  >
+                    <UploadIcon className="h-7 w-7" />
+                    <span className="text-xs font-semibold">Choose file</span>
+                  </button>
+                </div>
               )}
               <input
                 ref={fileInputRef}
@@ -403,7 +508,8 @@ export function CatEntryForm({
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
-                  setPhotoFile(f);
+                  handlePhotoSelect(f);
+                  e.currentTarget.value = "";
                 }}
               />
             </div>
@@ -411,11 +517,16 @@ export function CatEntryForm({
           <TextField label="Name (optional)" value={name} onChange={setName} />
           {!regionId ? (
             <div>
-              <label className="text-sm font-semibold text-brand-orange">Location</label>
+              <label className="text-sm font-semibold text-brand-orange">
+                Location
+              </label>
               <div className="mt-1.5">
                 <CustomSelect
                   options={regionOptions.map((r) => r.name)}
-                  value={regionOptions.find((r) => r.id === selectedRegion)?.name ?? ""}
+                  value={
+                    regionOptions.find((r) => r.id === selectedRegion)?.name ??
+                    ""
+                  }
                   onChange={(name) => {
                     const found = regionOptions.find((r) => r.name === name);
                     if (found) setSelectedRegion(found.id);
@@ -456,14 +567,20 @@ export function CatEntryForm({
             value={condition}
             onChange={setCondition}
           />
-          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
+          <TextField
+            label="Spot Last Seen"
+            value={spotLastSeen}
+            onChange={setSpotLastSeen}
+          />
           <TextField
             label="Caretaker"
             value={caretaker}
             onChange={setCaretaker}
           />
           <div>
-            <label className="text-sm font-semibold text-brand-orange">Notes</label>
+            <label className="text-sm font-semibold text-brand-orange">
+              Notes
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -508,6 +625,14 @@ export function CatEntryForm({
           </button>
         </div>
       </div>
+
+      {showPhotoCapture ? (
+        <PhotoCaptureDialog
+          onCapture={(file) => handlePhotoSelect(file)}
+          onClose={() => setShowPhotoCapture(false)}
+          onChooseFile={() => fileInputRef.current?.click()}
+        />
+      ) : null}
     </div>
   );
 }

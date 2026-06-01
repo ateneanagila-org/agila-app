@@ -32,7 +32,7 @@ All data flows through a strict 4-layer architecture:
 
 ```
 Client Component
-    ↓ useServerAction() hook
+    ↓ awaits the action directly, reads { data?, serverError? }
 Server Action (/app/actions/)       ← validates with Zod + actionClient (next-safe-action)
     ↓
 Service Layer (/lib/services/)      ← business logic, transactions, Google Sheets sync
@@ -78,7 +78,7 @@ Cat create/update operations in the service layer call `connectToSheets()` to sy
 
 - `AppError` (from `lib/error/`) for domain/business exceptions — throw these in services.
 - `actionClient` in server actions catches `AppError` and serializes it as `serverError`.
-- Client-side: `useServerAction()` hook exposes `{ loading, error, data }` and handles both `serverError` and `validationErrors`.
+- Client-side: components `await` the action and read `result.data` / `result.serverError` (managing their own loading state). For new mutation UIs prefer `next-safe-action`'s own `useAction` hook or React's `useActionState`/`useTransition`.
 
 ## Key Environment Variables
 

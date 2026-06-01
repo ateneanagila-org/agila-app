@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { TrashIcon } from "@/components/app-pages/shared/icons";
+import {
+  CheckIcon,
+  CloseIcon,
+  SaveIcon,
+  TrashIcon,
+} from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import type {
   FilterCategory,
@@ -59,10 +64,10 @@ function Header({
       <button
         type="button"
         onClick={onClose}
-        className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
+        className="ml-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-dark p-0 text-white transition-opacity hover:opacity-80"
         aria-label="Close"
       >
-        ✕
+        <CloseIcon className="h-4 w-4" />
       </button>
     </div>
   );
@@ -123,15 +128,15 @@ export function DiscardChangesDialog({
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Keep Editing <span>✎</span>
+          Keep Editing <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={onConfirm}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isLoading ? "Discarding..." : "Discard"}{" "}
           <TrashIcon className="h-4 w-4" />
@@ -165,17 +170,17 @@ export function SaveChangesDialog({
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Keep Editing <span>✎</span>
+          Keep Editing <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={onConfirm}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {isLoading ? "Saving..." : "Save"} <span>💾</span>
+          {isLoading ? "Saving..." : "Save"} <SaveIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>
@@ -236,16 +241,16 @@ function FiltersDialogBody({
         <button
           type="button"
           onClick={onClear}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
-          Reset <span>✕</span>
+          Reset <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={() => onApply(pending)}
-          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Apply <span>✓</span>
+          Apply <CheckIcon className="h-4 w-4" />
         </button>
       </div>
     </>
@@ -278,9 +283,10 @@ function SortDialogBody({
   onClose,
   onApply,
 }: Omit<DatabaseSortByDialogProps, "open">) {
-  const [pending, setPending] = useState<{ key: string | null; order: "asc" | "desc" }>(
-    () => ({ key: activeKey, order }),
-  );
+  const [pending, setPending] = useState<{
+    key: string | null;
+    order: "asc" | "desc";
+  }>(() => ({ key: activeKey, order }));
 
   return (
     <>
@@ -291,7 +297,12 @@ function SortDialogBody({
           <button
             key={opt.key}
             type="button"
-            onClick={() => setPending((p) => ({ ...p, key: p.key === opt.key ? null : opt.key }))}
+            onClick={() =>
+              setPending((p) => ({
+                ...p,
+                key: p.key === opt.key ? null : opt.key,
+              }))
+            }
             className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
               pending.key === opt.key
                 ? "border-brand-green bg-brand-green text-white"
@@ -327,9 +338,9 @@ function SortDialogBody({
         <button
           type="button"
           onClick={() => onApply(pending.key, pending.order)}
-          className="flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Apply <span>✓</span>
+          Apply <CheckIcon className="h-4 w-4" />
         </button>
       </div>
     </>
@@ -404,17 +415,17 @@ export function NewInterventionDialog({
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80"
         >
-          Cancel <TrashIcon className="h-4 w-4" />
+          Cancel <CloseIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           disabled={creating}
           onClick={onCreate}
-          className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {creating ? "Creating..." : "Apply"} <span>💾</span>
+          {creating ? "Creating..." : "Apply"} <SaveIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>
