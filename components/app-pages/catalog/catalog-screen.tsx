@@ -88,7 +88,7 @@ export function CatalogScreen() {
       {/* Hero */}
       <div className="mb-6 text-center tablet:mb-10">
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-orange">
-          Adopt &middot; Foster
+          Ateneo de Manila Campus
         </p>
         <h1 className="mt-2 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-6xl">
           Find a friend for life.
@@ -103,7 +103,7 @@ export function CatalogScreen() {
           rel="noreferrer"
           className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
         >
-          Apply to adopt/foster
+          Apply to Adopt/Foster
           <ExternalLinkIcon className="h-4 w-4" />
         </a>
       </div>
@@ -158,6 +158,7 @@ export function CatalogScreen() {
               <CatCard
                 key={cat.id}
                 cat={cat}
+                region_name={cat.region_name}
                 href={`/catalog/${cat.id}`}
                 variant="default"
                 action="chevron"

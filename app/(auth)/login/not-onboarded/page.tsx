@@ -46,13 +46,14 @@ export default function NotOnboardedPage() {
         </div>
 
         <div className="relative mt-10 hidden tablet:block">
-          <p className="font-heading text-5xl font-bold leading-[1.05] tracking-tight text-brand-yellow laptop:text-6xl">
+          <p className="font-heading text-5xl leading-[1.05] tracking-tight text-brand-yellow laptop:text-6xl">
             Every cat,
             <br />
             accounted for.
           </p>
           <p className="mt-5 max-w-md text-base font-medium text-white/80">
-            Track, care for, and rehome the cats of Ateneo — one session at a time.
+            Track, care for, and rehome the cats of Ateneo — one session at a
+            time.
           </p>
         </div>
 
