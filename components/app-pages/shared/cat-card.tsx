@@ -57,43 +57,19 @@ function statusAccent(cat: CatCardProps["cat"]): {
   chip: { label: string; cls: string } | null;
 } {
   if (cat.cat_status === "Deceased") {
-    return {
-      rail: "bg-brand-dark/60",
-      chip: {
-        label: "Deceased",
-        cls: "bg-brand-dark/10 text-brand-dark/70",
-      },
-    };
+    return { rail: "bg-brand-dark", chip: { label: "Deceased", cls: "bg-brand-dark text-white" } };
   }
   if (cat.cat_status === "MIA") {
-    return {
-      rail: "bg-brand-dark/40",
-      chip: { label: "MIA", cls: "bg-brand-dark/10 text-brand-dark/70" },
-    };
-  }
-  if (cat.cat_status === "Fostered") {
-    return {
-      rail: "bg-brand-orange",
-      chip: {
-        label: "Fostered",
-        cls: "bg-brand-orange/15 text-brand-orange",
-      },
-    };
+    return { rail: "bg-status-mia", chip: { label: "MIA", cls: "bg-status-mia text-white" } };
   }
   if (cat.cat_status === "Adopted") {
-    return {
-      rail: "bg-brand-orange",
-      chip: { label: "Adopted", cls: "bg-brand-orange/15 text-brand-orange" },
-    };
+    return { rail: "bg-status-adopted", chip: { label: "Adopted", cls: "bg-status-adopted text-white" } };
+  }
+  if (cat.cat_status === "Fostered") {
+    return { rail: "bg-brand-orange", chip: { label: "Fostered", cls: "bg-brand-orange text-white" } };
   }
   if (cat.is_adoptable) {
-    return {
-      rail: "bg-brand-orange",
-      chip: {
-        label: "Adoptable",
-        cls: "bg-brand-orange/15 text-brand-orange",
-      },
-    };
+    return { rail: "bg-brand-green", chip: { label: "Adoptable", cls: "bg-brand-green text-white" } };
   }
   return { rail: "bg-brand-green", chip: null };
 }
