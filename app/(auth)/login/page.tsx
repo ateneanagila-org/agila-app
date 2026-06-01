@@ -69,7 +69,7 @@ export default function LoginPage() {
               Sign in
             </h1>
             <p className="mt-3 text-sm text-brand-dark/70">
-              Use your Ateneo Google account to manage the catalog.
+              Use your Google account to manage the catalog.
             </p>
           </div>
 
