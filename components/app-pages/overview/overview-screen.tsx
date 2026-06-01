@@ -1,13 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
-import { getCats, getCatHealthRecords } from "@/app/actions/cats";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import {
-  SearchIcon,
-  ChevronDownIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import {
   HorizontalBarChart,
   VerticalBarChart,
@@ -18,6 +14,24 @@ const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
 const LOCATION_PERIODS = ["Current", "2025", "2024", "2023"];
 
+type OverviewScreenProps = {
+  initialCats: SelectCat[];
+  initialHealthRecords: SelectCatHealthRecord[];
+};
+
+function formatLatestUpdate(cats: SelectCat[]) {
+  const dates = cats
+    .map((cat) => cat.last_updated_at)
+    .filter(Boolean)
+    .map((date) => new Date(date as string | Date).getTime())
+    .filter((time) => !Number.isNaN(time));
+
+  if (dates.length === 0) return "MM/DD/YY";
+
+  const latest = new Date(Math.max(...dates));
+  return `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`;
+}
+
 function computeStats(
   cats: SelectCat[],
   healthRecords: SelectCatHealthRecord[],
@@ -27,9 +41,9 @@ function computeStats(
     hrByCatId.set(hr.cat_id, hr);
   }
 
-  const activeCats = cats.filter((c) => c.entry_status !== "Merged");
+  const originalCats = cats.filter((c) => c.entry_status === "Original");
 
-  const total = activeCats.length;
+  const total = originalCats.length;
   let neutered = 0;
   let domesticated = 0;
   let tame = 0;
@@ -43,7 +57,7 @@ function computeStats(
   let mia = 0;
   let deceased = 0;
 
-  for (const cat of activeCats) {
+  for (const cat of originalCats) {
     const hr = hrByCatId.get(cat.id);
     if (hr?.neuter_date) neutered++;
     if (cat.sociability === "Domesticated") domesticated++;
@@ -87,54 +101,22 @@ function computeStats(
   };
 }
 
-export function OverviewScreen() {
+export function OverviewScreen({
+  initialCats,
+  initialHealthRecords,
+}: OverviewScreenProps) {
   const [dashboardMode, setDashboardMode] = useState(DASHBOARD_MODE_OPTIONS[0]);
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [location, setLocation] = useState("Overall");
-  const [allCats, setAllCats] = useState<SelectCat[]>([]);
-  const [allHealthRecords, setAllHealthRecords] = useState<
-    SelectCatHealthRecord[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState("MM/DD/YY");
+  const allCats = initialCats;
+  const allHealthRecords = initialHealthRecords;
+  const lastUpdated = useMemo(() => formatLatestUpdate(allCats), [allCats]);
 
   const isOverall = dashboardMode === "Overall";
   const activePeriods = useMemo(
     () => (isOverall ? OVERALL_PERIODS : LOCATION_PERIODS),
     [isOverall],
   );
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [catResult, hrResult] = await Promise.all([
-        getCats({}),
-        getCatHealthRecords({}),
-      ]);
-      if (catResult?.data) {
-        setAllCats(catResult.data);
-        const dates = catResult.data
-          .map((c) => c.last_updated_at)
-          .filter(Boolean)
-          .map((d) => new Date(d as string | Date).getTime());
-        if (dates.length > 0) {
-          const latest = new Date(Math.max(...dates));
-          setLastUpdated(
-            `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`,
-          );
-        }
-      }
-      if (hrResult?.data) setAllHealthRecords(hrResult.data);
-    } catch (err) {
-      console.error("Failed to fetch overview data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const filteredCats = useMemo(() => {
     if (location === "Overall") return allCats;
@@ -176,8 +158,7 @@ export function OverviewScreen() {
       if (loc === "All Locations") continue;
       counts.set(loc, 0);
     }
-    const activeCats = allCats.filter((c) => c.entry_status !== "Merged");
-    for (const cat of activeCats) {
+    for (const cat of allCats) {
       const spot = (cat.spot_last_seen ?? "").toUpperCase();
       if (!spot) continue;
       let matched = false;
@@ -209,14 +190,6 @@ export function OverviewScreen() {
     ],
     [desktopStats],
   );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green-light border-t-brand-green" />
-      </div>
-    );
-  }
 
   return (
     <>

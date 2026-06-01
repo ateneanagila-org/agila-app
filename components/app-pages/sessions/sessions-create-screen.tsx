@@ -321,7 +321,8 @@ export function SessionsCreateScreen() {
           <button
             type="button"
             onClick={handleOpenAddForm}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-opacity hover:opacity-90"
+            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
+            aria-label="Add cat"
           >
             <PlusIcon className="h-6 w-6 text-white" />
           </button>

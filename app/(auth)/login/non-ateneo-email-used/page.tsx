@@ -39,7 +39,7 @@ export default function NonAteneoEmailPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/60">
               Ateneo de Manila
             </p>
-            <p className="font-heading text-lg font-bold leading-tight tracking-wider text-white">
+            <p className="font-brand text-lg font-bold leading-tight text-white">
               AGILA CATALOG
             </p>
           </div>

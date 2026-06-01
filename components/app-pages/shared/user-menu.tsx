@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { UserDetailsDialog } from "@/components/app-pages/shared/user-details-dialog";
 
 type UserMenuProps = {
   variant: "sidebar" | "mobile";
@@ -48,6 +49,7 @@ function Avatar({
 export function UserMenu({ variant }: UserMenuProps) {
   const { userData } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const name =
@@ -101,6 +103,29 @@ export function UserMenu({ variant }: UserMenuProps) {
         </div>
       </div>
       <div className="p-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setShowDetails(true);
+          }}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 text-brand-orange"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M20 21a8 8 0 0 0-16 0" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          User details
+        </button>
         <form action="/auth/signout" method="post">
           <button
             type="submit"
@@ -128,23 +153,62 @@ export function UserMenu({ variant }: UserMenuProps) {
 
   if (variant === "sidebar") {
     return (
-      <div ref={rootRef} className="relative border-t border-white/10 pt-4">
+      <>
+        <div ref={rootRef} className="relative border-t border-white/10 pt-4">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="flex w-full items-center gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-white/5"
+          >
+            <Avatar src={avatarUrl} initials={initials} size="md" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{name}</p>
+              <p className="truncate text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
+                {role}
+              </p>
+            </div>
+            <svg
+              viewBox="0 0 24 24"
+              className={`h-4 w-4 shrink-0 text-white/50 transition-transform ${
+                open ? "rotate-180" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          {open ? menuPanel : null}
+        </div>
+        <UserDetailsDialog
+          open={showDetails}
+          onClose={() => setShowDetails(false)}
+          name={name}
+          email={email}
+          role={role}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div ref={rootRef} className="relative">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="flex w-full items-center gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-white/5"
+          aria-label="Open profile menu"
+          className="flex items-center gap-2 rounded-full bg-white/10 p-1 pr-2.5 ring-1 ring-white/15 transition-colors hover:bg-white/15"
         >
-          <Avatar src={avatarUrl} initials={initials} size="md" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{name}</p>
-            <p className="truncate text-[10px] font-bold uppercase tracking-widest text-brand-yellow">
-              {role}
-            </p>
-          </div>
+          <Avatar src={avatarUrl} initials={initials} size="sm" />
           <svg
             viewBox="0 0 24 24"
-            className={`h-4 w-4 shrink-0 text-white/50 transition-transform ${
+            className={`h-3.5 w-3.5 text-white/70 transition-transform ${
               open ? "rotate-180" : ""
             }`}
             fill="none"
@@ -158,34 +222,13 @@ export function UserMenu({ variant }: UserMenuProps) {
         </button>
         {open ? menuPanel : null}
       </div>
-    );
-  }
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label="Open profile menu"
-        className="flex items-center gap-2 rounded-full bg-white/10 p-1 pr-2.5 ring-1 ring-white/15 transition-colors hover:bg-white/15"
-      >
-        <Avatar src={avatarUrl} initials={initials} size="sm" />
-        <svg
-          viewBox="0 0 24 24"
-          className={`h-3.5 w-3.5 text-white/70 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {open ? menuPanel : null}
-    </div>
+      <UserDetailsDialog
+        open={showDetails}
+        onClose={() => setShowDetails(false)}
+        name={name}
+        email={email}
+        role={role}
+      />
+    </>
   );
 }

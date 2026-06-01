@@ -16,6 +16,14 @@ type CustomSelectProps = {
   size?: Size;
 };
 
+const PANEL_MARGIN = 12;
+const PANEL_GAP = 4;
+const PANEL_MAX_HEIGHT = 192;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function CustomSelect({
   options,
   value,
@@ -91,10 +99,52 @@ export function CustomSelect({
 
   // Panel styling
   const panelCls =
-    "max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg";
+    "overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg";
 
   const optActiveCls = "bg-brand-orange text-white font-semibold";
   const optNormalCls = "text-slate-900 hover:bg-slate-50";
+
+  const viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth;
+  const viewportHeight = typeof window === "undefined" ? 0 : window.innerHeight;
+  const estimatedPanelHeight = Math.min(
+    PANEL_MAX_HEIGHT,
+    Math.max(44, options.length * 40),
+  );
+  const availableBelow = rect
+    ? viewportHeight - rect.bottom - PANEL_MARGIN
+    : PANEL_MAX_HEIGHT;
+  const availableAbove = rect ? rect.top - PANEL_MARGIN : PANEL_MAX_HEIGHT;
+  const placeAbove =
+    availableBelow < estimatedPanelHeight && availableAbove > availableBelow;
+  const availableHeight = Math.max(
+    72,
+    (placeAbove ? availableAbove : availableBelow) - PANEL_GAP,
+  );
+  const panelMaxHeight = Math.min(PANEL_MAX_HEIGHT, availableHeight);
+  const panelWidth =
+    rect && viewportWidth
+      ? Math.min(
+          Math.max(rect.width, size === "sm" ? 88 : rect.width),
+          viewportWidth - PANEL_MARGIN * 2,
+        )
+      : rect?.width;
+  const panelLeft =
+    rect && panelWidth && viewportWidth
+      ? clamp(
+          rect.left,
+          PANEL_MARGIN,
+          Math.max(PANEL_MARGIN, viewportWidth - panelWidth - PANEL_MARGIN),
+        )
+      : rect?.left;
+  const panelTop =
+    rect && viewportHeight
+      ? placeAbove
+        ? Math.max(PANEL_MARGIN, rect.top - PANEL_GAP - panelMaxHeight)
+        : Math.min(
+            rect.bottom + PANEL_GAP,
+            viewportHeight - PANEL_MARGIN - panelMaxHeight,
+          )
+      : rect?.bottom;
 
   const panel =
     open && rect
@@ -105,9 +155,10 @@ export function CustomSelect({
             onWheel={(e) => e.stopPropagation()}
             style={{
               position: "fixed",
-              top: rect.bottom + 4,
-              left: rect.left,
-              width: rect.width,
+              top: panelTop,
+              left: panelLeft,
+              width: panelWidth,
+              maxHeight: panelMaxHeight,
               zIndex: 9999,
             }}
             className={panelCls}
@@ -117,7 +168,7 @@ export function CustomSelect({
                 key={`${opt}-${i}`}
                 type="button"
                 onMouseDown={() => handleSelect(opt)}
-                className={`w-full px-3 py-2.5 text-left text-sm transition-colors ${
+                className={`w-full whitespace-nowrap px-3 py-2.5 text-left text-sm transition-colors ${
                   value === opt ? optActiveCls : optNormalCls
                 }`}
               >
@@ -135,9 +186,11 @@ export function CustomSelect({
         ref={btnRef}
         type="button"
         onClick={() => (open ? setOpen(false) : handleOpen())}
-        className={`flex ${heightCls} w-full items-center justify-between rounded-xl px-3 text-sm ${triggerCls}`}
+        className={`flex ${heightCls} w-full items-center justify-between gap-2 rounded-xl px-3 text-sm ${triggerCls}`}
       >
-        <span className={value ? "" : placeholderCls}>{value || placeholder}</span>
+        <span className={`min-w-0 truncate ${value ? "" : placeholderCls}`}>
+          {value || placeholder}
+        </span>
         <ChevronDownIcon
           className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""} ${chevronCls}`}
         />

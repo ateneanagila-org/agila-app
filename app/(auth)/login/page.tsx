@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { googleLogin } from "./actions";
 
 export const metadata: Metadata = {
@@ -40,7 +41,7 @@ export default function LoginPage() {
             <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/60">
               Ateneo de Manila
             </p>
-            <p className="font-heading text-lg font-bold leading-tight tracking-wider text-white">
+            <p className="font-brand text-lg font-bold leading-tight text-white">
               AGILA CATALOG
             </p>
           </div>
@@ -105,7 +106,7 @@ export default function LoginPage() {
             <span className="h-px flex-1 bg-brand-dark/10" />
           </div>
 
-          <a
+          <Link
             href="/"
             className="block rounded-2xl bg-brand-mint px-5 py-4 transition-opacity hover:opacity-90"
           >
@@ -115,7 +116,7 @@ export default function LoginPage() {
             <p className="mt-1 text-sm font-semibold text-brand-dark">
               View the public adoption catalog →
             </p>
-          </a>
+          </Link>
 
           <p className="mt-10 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark/40">
             Ateneo de Manila University

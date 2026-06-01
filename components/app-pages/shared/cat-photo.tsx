@@ -9,6 +9,7 @@ type CatPhotoProps = {
   className?: string;
   iconClassName?: string;
   sizes?: string;
+  fit?: "cover" | "contain";
 };
 
 export function CatPhoto({
@@ -17,6 +18,7 @@ export function CatPhoto({
   className = "",
   iconClassName = "h-10 w-10 text-brand-green/40",
   sizes = "160px",
+  fit = "contain",
 }: CatPhotoProps) {
   if (!photoUrl) {
     return (
@@ -29,13 +31,13 @@ export function CatPhoto({
   }
 
   return (
-    <div className={`relative overflow-hidden bg-white/10 ${className}`}>
+    <div className={`relative overflow-hidden bg-brand-cream-dark/40 ${className}`}>
       <Image
         src={photoUrl}
         alt={name || "Cat"}
         fill
         sizes={sizes}
-        className="object-cover"
+        className={fit === "cover" ? "object-cover" : "object-contain"}
         unoptimized
       />
     </div>

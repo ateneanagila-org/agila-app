@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { SearchDialog } from "@/components/app-pages/shared/dialogs";
 
 import {
@@ -9,6 +9,7 @@ import {
   UserFiltersDialog,
   UserSortByDialog,
 } from "@/components/app-pages/users/user-dialogs";
+import { UserDetailsDialog } from "@/components/app-pages/shared/user-details-dialog";
 import {
   ChevronDownIcon,
   PlusIcon,
@@ -17,7 +18,6 @@ import {
 import {
   getAllowedEmails,
   addUser,
-  editAllowedEmail,
   removeAllowedEmail,
 } from "@/app/actions/users";
 import type { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
@@ -29,14 +29,25 @@ import { SyncControls } from "./sync-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
-export function UsersScreen() {
+type UsersScreenProps = {
+  initialUsers: AllowedEmailEntry[];
+  initialSyncStatus: {
+    frozen: boolean | null;
+    reason: string | null;
+  };
+};
+
+export function UsersScreen({
+  initialUsers,
+  initialSyncStatus,
+}: UsersScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AllowedEmailEntry | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [users, setUsers] = useState<AllowedEmailEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<AllowedEmailEntry[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // Add user form
@@ -44,10 +55,6 @@ export function UsersScreen() {
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<string>("Volunteer");
   const [creating, setCreating] = useState(false);
-
-  // Edit user form
-  const [editRole, setEditRole] = useState<string>("");
-  const [saving, setSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -104,10 +111,6 @@ export function UsersScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
   const handleCreate = useCallback(async () => {
     if (!newEmail.trim()) {
       setError("Email is required.");
@@ -137,27 +140,6 @@ export function UsersScreen() {
     }
   }, [newEmail, newName, newRole, fetchUsers]);
 
-  const handleSaveRole = useCallback(async () => {
-    if (!selectedUser) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const result = await editAllowedEmail.bind(null, selectedUser.id)({
-        auth_role: editRole as AuthRole,
-      });
-      if (result?.serverError) {
-        setError(result.serverError);
-        return;
-      }
-      setSelectedUser(null);
-      await fetchUsers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save.");
-    } finally {
-      setSaving(false);
-    }
-  }, [selectedUser, editRole, fetchUsers]);
-
   const handleDeleteClick = useCallback((userId: string) => {
     setUserToDelete(userId);
     setShowDeleteConfirm(true);
@@ -186,7 +168,6 @@ export function UsersScreen() {
 
   const handleSelectUser = useCallback((user: AllowedEmailEntry) => {
     setSelectedUser(user);
-    setEditRole(user.auth_role ?? "Volunteer");
   }, []);
 
   /** Map auth_role to display label */
@@ -208,7 +189,7 @@ export function UsersScreen() {
             <p className="font-heading text-2xl font-bold text-brand-green">User Control</p>
           </div>
           <div className="mb-4">
-            <SyncControls />
+            <SyncControls initialStatus={initialSyncStatus} />
           </div>
           {/* Add Entry Button */}
           <button
@@ -294,7 +275,7 @@ export function UsersScreen() {
         <button
           type="button"
           onClick={() => setShowAddUser(true)}
-          className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange shadow-lg transition-transform hover:scale-110 active:scale-95 tablet:hidden"
+          className="fixed bottom-20 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-transform hover:scale-110 active:scale-95 tablet:hidden"
           aria-label="Add entry"
         >
           <PlusIcon className="h-6 w-6 text-white" />
@@ -322,7 +303,7 @@ export function UsersScreen() {
         </div>
 
         <div className="mt-5">
-          <SyncControls />
+          <SyncControls initialStatus={initialSyncStatus} />
         </div>
 
         <section className="mt-4 flex items-center gap-2 rounded-2xl bg-white p-2 ring-1 ring-border">
@@ -454,89 +435,16 @@ export function UsersScreen() {
         onApply={applySort}
       />
 
-      {selectedUser ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
-          onClick={() => { setSelectedUser(null); setError(null); }}
-        >
-          <div
-            className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
-                User Details
-              </h2>
-              <button
-                type="button"
-                onClick={() => { setSelectedUser(null); setError(null); }}
-                className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm text-white transition-opacity hover:opacity-80"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error ? (
-              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                {error}
-              </div>
-            ) : null}
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-brand-orange">Name</p>
-                <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm font-semibold leading-9 text-brand-dark">
-                  {selectedUser.profile_name || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-brand-orange">Email</p>
-                <p className="mt-1.5 h-10 truncate rounded-full border border-brand-orange/30 bg-white px-4 text-sm text-brand-dark/80 leading-9">
-                  {selectedUser.email}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-brand-orange">Role</p>
-                <div className="mt-1.5 flex flex-wrap gap-2">
-                  {AUTH_ROLE_VALUES.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setEditRole(r)}
-                      className={`rounded-full border px-4 py-1.5 text-xs font-bold transition-colors ${
-                        editRole === r
-                          ? "border-transparent bg-brand-orange text-white shadow-sm"
-                          : "border-brand-orange/40 bg-white text-brand-orange hover:bg-brand-orange/10"
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => { setSelectedUser(null); setError(null); }}
-                className="flex items-center gap-1.5 rounded-full border border-brand-orange px-4 py-2 text-sm font-semibold text-brand-orange transition-opacity hover:opacity-80"
-              >
-                Cancel <span>✕</span>
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleSaveRole}
-                className="flex items-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save"} <span>✓</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <UserDetailsDialog
+        open={selectedUser !== null}
+        onClose={() => {
+          setSelectedUser(null);
+          setError(null);
+        }}
+        name={selectedUser?.profile_name}
+        email={selectedUser?.email}
+        role={roleLabel(selectedUser?.auth_role)}
+      />
 
       {/* Search Dialog */}
       <SearchDialog
