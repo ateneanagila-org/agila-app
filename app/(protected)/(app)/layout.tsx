@@ -176,9 +176,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
                   AGILA
                 </p>
-                <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
-                  CATALOG
-                </p>
+                <p className="font-brand text-base  text-white">CATALOG</p>
               </div>
             </div>
             <UserMenu variant="mobile" />
@@ -192,7 +190,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
         <footer className="sticky bottom-0 z-20 border-t border-white/10 bg-brand-dark">
           <div
             className="mx-auto grid h-16 w-full max-w-7xl"
-            style={{ gridTemplateColumns: `repeat(${NAV_ITEMS.length}, minmax(0, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${NAV_ITEMS.length}, minmax(0, 1fr))`,
+            }}
           >
             {NAV_ITEMS.map((item) => {
               const active = isActive(pathname, item.href);
@@ -236,9 +236,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
               <p className="text-[9px] font-semibold uppercase tracking-widest text-white/50">
                 AGILA
               </p>
-              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
-                CATALOG
-              </p>
+              <p className="font-brand text-base text-white">CATALOG</p>
             </div>
           </div>
 
@@ -258,7 +256,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                     >
                       <span
                         className={
-                          active ? "text-white" : "text-white/50 group-hover:text-white"
+                          active
+                            ? "text-white"
+                            : "text-white/50 group-hover:text-white"
                         }
                       >
                         {item.label === "Users" ? (

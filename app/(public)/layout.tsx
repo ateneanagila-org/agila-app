@@ -29,7 +29,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
                 AGILA
               </p>
-              <p className="font-heading text-base font-bold leading-tight tracking-wider text-white">
+              <p className="font-brand text-base leading-tight tracking-wider text-white">
                 CATALOG
               </p>
             </div>
