@@ -80,6 +80,14 @@ Mobile is baseline, stable. Desktop gets variants when:
 - `slate-100` (bg) → `brand-cream`
 - `slate-900` (dark shell) → `brand-dark`
 
+## RBAC
+
+Three roles: **Volunteer < Manager < Administrator**. Use `canManage` (`isAdmin || isManager`) from `useAuth()` for most gates.
+
+- **Volunteer**: read-only on database detail screens (General/Medical tabs — disable inputs, hide save/cancel); full create/edit access inside session forms (that's their workflow)
+- **Manager/Admin**: full CRUD on database; can approve sessions
+- **Manager/Admin only**: Census Report button, Review Sessions button, database add/delete actions
+
 ## File Locations
 
 - Pages: `app/`

@@ -212,16 +212,12 @@ export function CatCard({
           {extraChips ? (
             <div className="flex flex-wrap gap-1">{extraChips}</div>
           ) : null}
-          <p className="mt-0.5 flex min-w-0 items-baseline gap-1 truncate text-[10px]">
-            <span className="font-semibold uppercase tracking-wider text-brand-green/80">
+          <p className="mt-0.5 flex min-w-0 items-baseline gap-1 text-[10px]">
+            <span className="shrink-0 font-semibold uppercase tracking-wider text-brand-green/80">
               Region
             </span>
             <span className="truncate font-medium text-brand-dark/75">
               {region_name || "—"}
-            </span>
-            <span className="text-brand-dark/30">·</span>
-            <span className="font-medium tabular-nums text-brand-dark/55">
-              {dateLabel ?? formatDate(cat.last_updated_at)}
             </span>
           </p>
         </div>

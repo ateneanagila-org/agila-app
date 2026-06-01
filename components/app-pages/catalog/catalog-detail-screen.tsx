@@ -14,7 +14,8 @@ import {
   getAdoptableCatHealthRecord,
 } from "@/app/actions/cats";
 
-import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
 type CatalogDetailScreenProps = {
   catId: string;
@@ -60,7 +61,7 @@ function DetailRow({
 }
 
 export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
-  const [cat, setCat] = useState<SelectCat | null>(null);
+  const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [healthRecord, setHealthRecord] =
     useState<SelectCatHealthRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,10 +126,14 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   const isInjured = !!healthRecord?.condition?.includes("Injured");
 
   const profileFields: { label: string; value: React.ReactNode }[] = [
-    { label: "Sex", value: cat.sex ? (sex ? `${cat.sex} ${sex}` : cat.sex) : "Unknown" },
+    {
+      label: "Sex",
+      value: cat.sex ? (sex ? `${cat.sex} ${sex}` : cat.sex) : "Unknown",
+    },
     { label: "Size / Age", value: displayCatField(cat.age) },
     { label: "Color", value: displayCatField(cat.color) },
     { label: "Sociability", value: displayCatField(cat.sociability) },
+    { label: "Region", value: cat.region_name ?? "—" },
   ];
 
   const healthFields: { label: string; value: React.ReactNode }[] = [
@@ -227,7 +232,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
             rel="noreferrer"
             className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full bg-brand-orange px-7 py-3 text-sm font-bold tracking-wide text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
-            Apply to adopt/foster
+            Apply to Adopt/Foster
             <ExternalLinkIcon className="h-4 w-4" />
           </a>
         </div>
