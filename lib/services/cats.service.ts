@@ -16,7 +16,7 @@ export const createCat = async (
   opts?: { systemSession?: boolean },
 ) => {
   return await db.transaction(async (tx) => {
-    const { condition, region_id, ...catTableData } = data;
+    const { condition, is_neutered, region_id, ...catTableData } = data;
 
     // Direct (system-session) creations come from trusted Manager/Admin flows
     // and skip the review queue; session-scoped creations stay "Unsubmitted"
@@ -30,6 +30,7 @@ export const createCat = async (
       {
         cat_id: newCat.id,
         condition,
+        is_neutered,
       },
       tx,
     );
@@ -45,13 +46,15 @@ export const createCat = async (
 
 export const editCat = async (data: EditCatSchema) => {
   return await db.transaction(async (tx) => {
-    const { id, condition, neuter_date, vaccination_date, ...catFields } = data;
+    const { id, condition, is_neutered, neuter_date, vaccination_date, ...catFields } =
+      data;
 
     const [updatedCat] = await catsRepo.updateCat(id, catFields, tx);
     await catsRepo.updateCatHealthRecord(
       id,
       {
         condition,
+        is_neutered,
         neuter_date,
         vaccination_date,
       },

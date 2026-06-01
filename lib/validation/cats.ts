@@ -27,6 +27,7 @@ export const createCatSchema = createInsertSchema(cats)
   .extend({
     region_id: z.string(),
     condition: CatHealthRecordConditionEnum.nullable().optional(),
+    is_neutered: z.boolean().nullable().optional(),
   });
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)

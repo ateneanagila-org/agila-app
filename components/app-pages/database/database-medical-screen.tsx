@@ -29,6 +29,16 @@ function sexGlyph(s: string | null | undefined): string | null {
   return null;
 }
 
+const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
+
+/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
+function neuteredToLabel(b: boolean | null | undefined): string {
+  return b === true ? "Yes" : b === false ? "No" : "Unknown";
+}
+function neuteredToValue(s: string): boolean | null {
+  return s === "Yes" ? true : s === "No" ? false : null;
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-orange">
@@ -85,6 +95,7 @@ export function DatabaseMedicalScreen() {
 
   // Form state
   const [condition, setCondition] = useState("");
+  const [neutered, setNeutered] = useState("Unknown");
   const [neuterMonth, setNeuterMonth] = useState("");
   const [neuterDay, setNeuterDay] = useState("");
   const [neuterYear, setNeuterYear] = useState("");
@@ -94,6 +105,7 @@ export function DatabaseMedicalScreen() {
 
   const populateForm = useCallback((hr: SelectCatHealthRecord) => {
     setCondition(hr.condition ?? "Unknown");
+    setNeutered(neuteredToLabel(hr.is_neutered));
     const neuter = parseDateParts(hr.neuter_date);
     setNeuterMonth(neuter.month);
     setNeuterDay(neuter.day);
@@ -119,8 +131,9 @@ export function DatabaseMedicalScreen() {
       const result = await editCat({
         id: catId,
         condition: normalizeCatField<CatHealthRecordCondition>(condition),
-        neuter_date: buildDate(neuterMonth, neuterDay, neuterYear) ?? undefined,
-        vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear) ?? undefined,
+        is_neutered: neuteredToValue(neutered),
+        neuter_date: buildDate(neuterMonth, neuterDay, neuterYear),
+        vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear),
       });
       if (result?.serverError) {
         setError(result.serverError);
@@ -135,6 +148,7 @@ export function DatabaseMedicalScreen() {
   }, [
     catId,
     condition,
+    neutered,
     neuterMonth,
     neuterDay,
     neuterYear,
@@ -246,6 +260,18 @@ export function DatabaseMedicalScreen() {
                 options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
                 value={condition}
                 onChange={setCondition}
+                variant="white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Neutered</FieldLabel>
+            <div className="mt-1.5">
+              <CustomSelect
+                options={[...NEUTERED_OPTIONS]}
+                value={neutered}
+                onChange={setNeutered}
                 variant="white"
               />
             </div>
