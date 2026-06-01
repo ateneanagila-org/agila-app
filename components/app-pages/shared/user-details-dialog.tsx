@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  CloseIcon,
-  ExternalLinkIcon,
-} from "@/components/app-pages/shared/icons";
+import { CloseIcon, ExternalLinkIcon } from "@/components/app-pages/shared/icons";
 
 type UserDetailsDialogProps = {
   open: boolean;
@@ -13,83 +10,65 @@ type UserDetailsDialogProps = {
   role?: string | null;
 };
 
-const BUG_REPORT_URL = "https://github.com/anthropics/claude-code/issues";
+const BUG_REPORT_URL = "https://github.com/legnspice/agila-app/issues";
 
-function DetailDisplayField({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | null;
-}) {
+function DetailField({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
-      <p className="font-heading text-[22px] font-bold leading-tight text-brand-orange">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-green">
         {label}
       </p>
-      <div className="mt-2 flex min-h-14 w-full items-center rounded-[1.35rem] border-[4px] border-brand-pink bg-brand-cream px-5 text-base font-semibold text-brand-dark shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+      <div className="mt-1.5 flex min-h-11 w-full items-center rounded-xl bg-white px-4 text-sm font-semibold text-brand-dark ring-1 ring-border">
         <span className="min-w-0 truncate">{value || "—"}</span>
       </div>
     </div>
   );
 }
 
-export function UserDetailsDialog({
-  open,
-  onClose,
-  name,
-  email,
-  role,
-}: UserDetailsDialogProps) {
+export function UserDetailsDialog({ open, onClose, name, email, role }: UserDetailsDialogProps) {
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[30.5rem] rounded-t-[1.45rem] rounded-bl-[1.45rem] bg-brand-cream px-5 pb-6 pt-7 shadow-2xl tablet:px-[1.4rem] tablet:pb-[1.55rem] tablet:pt-[1.7rem]"
+        className="relative w-full max-w-md rounded-2xl bg-brand-cream p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-[1.35rem] top-[1.35rem] inline-flex h-[2.9rem] w-[2.9rem] items-center justify-center bg-brand-dark text-white transition-opacity hover:opacity-85"
+          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-dark text-white transition-opacity hover:opacity-85"
           aria-label="Close user details"
         >
-          <CloseIcon className="h-7 w-7" />
+          <CloseIcon className="h-5 w-5" />
         </button>
 
-        <div className="space-y-[0.95rem]">
-          <div className="pr-14">
-            <h2 className="font-heading text-[2rem] font-bold leading-none tracking-tight text-brand-green tablet:text-[2.1rem]">
-              User Details
-            </h2>
-          </div>
-          <DetailDisplayField label="Name" value={name} />
-          <DetailDisplayField
-            label="Ateneo Student Email Address"
-            value={email}
-          />
-          <DetailDisplayField label="Role" value={role} />
+        <h2 className="pr-12 font-heading text-2xl font-bold tracking-tight text-brand-green">
+          User Details
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          <DetailField label="Name" value={name} />
+          <DetailField label="Email Address" value={email} />
+          <DetailField label="Role" value={role} />
         </div>
 
-        <div className="mt-6">
-          <h3 className="font-heading text-[1.85rem] font-bold leading-none tracking-tight text-brand-green tablet:text-[2rem]">
-            Report a Bug
-          </h3>
-          <div className="mt-4 flex flex-col gap-3 tablet:flex-row tablet:items-center">
-            <p className="font-heading text-[1.35rem] font-bold leading-tight text-brand-orange">
-              Noticed an issue?
-            </p>
+        <div className="mt-6 border-t border-border pt-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-heading text-lg font-bold text-brand-green">Report a Bug</h3>
+              <p className="text-sm text-brand-dark/65">Noticed an issue?</p>
+            </div>
             <a
               href={BUG_REPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-[3.2rem] items-center justify-center gap-3 rounded-[1.45rem] bg-brand-orange px-6 font-heading text-[1.35rem] font-medium leading-none text-white transition-opacity hover:opacity-90"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-brand-orange px-5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Report bug <ExternalLinkIcon className="h-5 w-5" />
+              Report bug <ExternalLinkIcon className="h-4 w-4" />
             </a>
           </div>
         </div>
