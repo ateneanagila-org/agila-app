@@ -22,6 +22,21 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
     { label: "Sociability", key: "sociability", options: [...CAT_SOCIABILITY_VALUES, "Unknown"] },
     { label: "Status", key: "cat_status", options: [...CAT_STATUS_VALUES, "Unknown"] },
+    {
+      label: "Medical Condition",
+      key: "condition",
+      options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"],
+    },
+    {
+      label: "Intervention Type",
+      key: "intervention_type",
+      options: [...INTERVENTION_TYPE_VALUES, "Unknown"],
+    },
+    {
+      label: "Intervention Status",
+      key: "intervention_status",
+      options: [...INTERVENTION_STATUS_VALUES, "Unknown"],
+    },
   ],
   sortOptions: [
     { label: "Name", key: "name" },

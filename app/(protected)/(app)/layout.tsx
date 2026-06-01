@@ -176,7 +176,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                 <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
                   AGILA
                 </p>
-                <p className="font-brand text-base  text-white">CATALOG</p>
+                <p className="font-brand text-base leading-tight text-white">
+                  CATALOG
+                </p>
               </div>
             </div>
             <UserMenu variant="mobile" />
@@ -236,7 +238,9 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
               <p className="text-[9px] font-semibold uppercase tracking-widest text-white/50">
                 AGILA
               </p>
-              <p className="font-brand text-base text-white">CATALOG</p>
+              <p className="font-brand text-base leading-tight text-white">
+                CATALOG
+              </p>
             </div>
           </div>
 

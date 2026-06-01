@@ -1,6 +1,22 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "AVELON";
+  src: local("AVELON"), local("Avelon");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400 800;
+}
+
+@font-face {
+  font-family: "SFC La Pura";
+  src: local("SFC La Pura"), local("SFC LaPura");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400 800;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -80,6 +96,9 @@
 
 :root {
   --radius: 0.625rem;
+  --font-body-stack: var(--font-gantari), Gantari, system-ui, sans-serif;
+  --font-heading-stack: "AVELON", "Avelon", var(--font-body-stack);
+  --font-brand-stack: "SFC La Pura", "SFC LaPura", var(--font-heading-stack);
 
   /* Semantic tokens — updated to brand palette */
   --background: #fff7ea;
@@ -159,16 +178,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body-stack);
   }
 }
 
 @layer utilities {
   .font-heading {
     font-family: var(--font-aveton), sans-serif;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   .font-brand {
     font-family: var(--font-sfc-la-pura), sans-serif;
+    letter-spacing: 0;
   }
 }

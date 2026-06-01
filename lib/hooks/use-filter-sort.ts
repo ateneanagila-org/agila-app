@@ -20,6 +20,7 @@ export type FilterSortConfig = {
 
 export type FilterState = Record<string, Set<string>>;
 export type OpenDialog = "filter" | "sort" | null;
+export type FilterValue = string | readonly string[] | null | undefined;
 
 type State = {
   filters: FilterState;
@@ -30,9 +31,10 @@ type State = {
 export function useFilterSort<T>(
   items: T[],
   config: FilterSortConfig,
-  getFilterValue: (item: T, key: string) => string | null | undefined,
+  getFilterValue: (item: T, key: string) => FilterValue,
   getSortValue: (item: T, key: string) => string | number | Date | null | undefined,
   initialFilters?: FilterState,
+  shouldPinLast?: (item: T) => boolean,
 ) {
   const [state, setState] = useState<State>({
     filters: initialFilters ?? {},
@@ -86,7 +88,10 @@ export function useFilterSort<T>(
       result = result.filter((item) =>
         filterEntries.every(([key, values]) => {
           const val = getFilterValue(item, key);
-          return val != null && values.has(val);
+          const itemValues = Array.isArray(val) ? val : [val];
+          return itemValues.some(
+            (itemValue) => itemValue != null && values.has(itemValue),
+          );
         }),
       );
     }
@@ -113,8 +118,21 @@ export function useFilterSort<T>(
       });
     }
 
+    if (shouldPinLast) {
+      result = [...result].sort(
+        (a, b) => Number(shouldPinLast(a)) - Number(shouldPinLast(b)),
+      );
+    }
+
     return result;
-  }, [items, state.filters, state.sort, getFilterValue, getSortValue]);
+  }, [
+    items,
+    state.filters,
+    state.sort,
+    getFilterValue,
+    getSortValue,
+    shouldPinLast,
+  ]);
 
   return {
     filtered,

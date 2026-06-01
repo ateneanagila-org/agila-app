@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Gantari } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 
 const gantari = Gantari({
@@ -36,11 +37,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
-      <script src="https://accounts.google.com/gsi/client" async></script>
-      <html lang="en">
-        <body className={`${gantari.variable} ${aveton.variable} ${sfcLaPura.variable} antialiased`}>{children}</body>
-      </html>
-    </>
+    <html lang="en">
+      <body
+        className={`${gantari.variable} ${aveton.variable} ${sfcLaPura.variable} antialiased`}
+      >
+        {children}
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+      </body>
+    </html>
   );
 }

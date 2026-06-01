@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ExternalLinkIcon } from "@/components/app-pages/shared/icons";
+import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 function PawIcon({ className }: { className?: string }) {
   return (
@@ -34,15 +36,15 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
               </p>
             </div>
           </Link>
-          <button
-            type="button"
-            aria-label="Menu"
-            className="flex h-8 w-8 flex-col items-center justify-center gap-1.5"
+          <a
+            href={ADOPT_FOSTER_APPLICATION_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-3 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            <span className="h-0.5 w-5 bg-white" />
-            <span className="h-0.5 w-5 bg-white" />
-            <span className="h-0.5 w-5 bg-white" />
-          </button>
+            Apply
+            <ExternalLinkIcon className="h-3.5 w-3.5" />
+          </a>
         </div>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto bg-brand-cream">

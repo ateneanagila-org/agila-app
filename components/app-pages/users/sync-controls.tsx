@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
-import { unfreezeSync, getSyncStatus } from "@/app/actions/system";
+import { useState, useTransition } from "react";
+import { unfreezeSync } from "@/app/actions/system";
 
-export function SyncControls() {
-  const [frozen, setFrozen] = useState<boolean | null>(null);
-  const [reason, setReason] = useState<string | null>(null);
+type SyncControlsProps = {
+  initialStatus: {
+    frozen: boolean | null;
+    reason: string | null;
+  };
+};
+
+export function SyncControls({ initialStatus }: SyncControlsProps) {
+  const [frozen, setFrozen] = useState<boolean | null>(initialStatus.frozen);
+  const [reason, setReason] = useState<string | null>(initialStatus.reason);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    getSyncStatus().then((res) => {
-      setFrozen(res.frozen);
-      setReason(res.reason);
-    });
-  }, []);
 
   function handleUnfreeze() {
     startTransition(async () => {
