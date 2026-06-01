@@ -371,9 +371,10 @@ export function DatabaseGeneralScreen() {
               </span>
               <button
                 type="button"
-                onClick={handleToggleAdoptable}
+                onClick={canManage ? handleToggleAdoptable : undefined}
+                disabled={!canManage}
                 aria-pressed={isAdoptable}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   isAdoptable ? "bg-brand-orange" : "bg-brand-dark/15"
                 }`}
               >

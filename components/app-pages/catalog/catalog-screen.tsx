@@ -88,7 +88,7 @@ export function CatalogScreen() {
       {/* Hero */}
       <div className="mb-6 text-center tablet:mb-10">
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-orange">
-          Ateneo de Manila Campus
+          Ateneo de Manila University
         </p>
         <h1 className="mt-2 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-6xl">
           Find a friend for life.

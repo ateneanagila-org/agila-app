@@ -9,6 +9,7 @@ import {
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { editCat } from "@/app/actions/cats";
+import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
@@ -88,6 +89,7 @@ function buildDate(month: string, day: string, year: string): Date | null {
 }
 
 export function DatabaseMedicalScreen() {
+  const { canManage } = useAuth();
   const { catId, cat, healthRecord, loading, error: ctxError, refresh } = useCatDetail();
 
   const [saving, setSaving] = useState(false);
@@ -252,7 +254,7 @@ export function DatabaseMedicalScreen() {
 
       {/* Form card */}
       <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
-        <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6">
+        <div className={`grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6${!canManage ? " pointer-events-none opacity-60" : ""}`}>
           <div className="tablet:col-span-2">
             <FieldLabel>Condition</FieldLabel>
             <div className="mt-1.5">
@@ -302,23 +304,25 @@ export function DatabaseMedicalScreen() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-dark/8 pt-4">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSave}
-            className="rounded-full bg-brand-orange px-6 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
-        </div>
+        {canManage ? (
+          <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-dark/8 pt-4">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSave}
+              className="rounded-full bg-brand-orange px-6 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </PageContent>
   );

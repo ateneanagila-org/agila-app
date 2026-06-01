@@ -196,14 +196,16 @@ export function SessionsScreen({
           <div className="flex-1 space-y-3 px-4 py-4">
             {/* Top action buttons */}
             <div className="flex gap-2">
-              <a
-                href={CENSUS_REPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Census Report <FileText className="h-4 w-4" />
-              </a>
+              {canManage ? (
+                <a
+                  href={CENSUS_REPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Census Report <FileText className="h-4 w-4" />
+                </a>
+              ) : null}
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
@@ -375,14 +377,16 @@ export function SessionsScreen({
           <div className="flex-1 space-y-3 px-4 py-4">
             {/* Action buttons */}
             <div className="flex gap-2">
-              <a
-                href={CENSUS_REPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-              >
-                Census Report <FileText className="h-4 w-4" />
-              </a>
+              {canManage ? (
+                <a
+                  href={CENSUS_REPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Census Report <FileText className="h-4 w-4" />
+                </a>
+              ) : null}
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
@@ -548,14 +552,16 @@ export function SessionsScreen({
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <a
-              href={CENSUS_REPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              Census Report <FileText className="h-4 w-4" />
-            </a>
+            {canManage ? (
+              <a
+                href={CENSUS_REPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Census Report <FileText className="h-4 w-4" />
+              </a>
+            ) : null}
             {canManage ? (
               <Link
                 href="/dashboard/sessions/manager"
