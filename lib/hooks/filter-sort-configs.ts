@@ -55,6 +55,27 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
   ],
 };
 
+export const PUBLIC_CATALOG_CONFIG: FilterSortConfig = {
+  filters: [
+    { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
+    { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
+    { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
+    { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
+    {
+      label: "Sociability",
+      key: "sociability",
+      options: [...CAT_SOCIABILITY_VALUES, "Unknown"],
+    },
+  ],
+  sortOptions: [
+    { label: "Name", key: "name" },
+    { label: "Age", key: "age" },
+    { label: "Sex", key: "sex" },
+    { label: "Color", key: "color" },
+    { label: "Last Updated", key: "last_updated_at" },
+  ],
+};
+
 export const SESSIONS_CONFIG: FilterSortConfig = {
   filters: [
     {

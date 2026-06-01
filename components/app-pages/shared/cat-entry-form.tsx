@@ -36,6 +36,18 @@ type RegionOption = {
   name: string;
 };
 
+const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
+
+/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
+function neuteredToLabel(b: boolean | null | undefined): string {
+  return b === true ? "Yes" : b === false ? "No" : "Unknown";
+}
+// Unknown is a real tri-state value here (sheet col G "???"), so it persists as
+// null rather than being omitted — selecting Unknown actually resets the field.
+function neuteredToValue(s: string): boolean | null {
+  return s === "Yes" ? true : s === "No" ? false : null;
+}
+
 type CatEntryFormProps = {
   onClose: () => void;
   /** Called after successful save — parent can re-fetch data */
@@ -115,6 +127,7 @@ export function CatEntryForm({
     initialCat?.sociability ?? (initialCat ? "Unknown" : ""),
   );
   const [condition, setCondition] = useState(initialCat ? "Unknown" : "");
+  const [neutered, setNeutered] = useState("Unknown");
   const [spotLastSeen, setSpotLastSeen] = useState(
     initialCat?.spot_last_seen ?? "",
   );
@@ -156,8 +169,9 @@ export function CatEntryForm({
   useEffect(() => {
     if (!initialCat) return;
     getCatHealthRecords({ cat_id: initialCat.id }).then((res) => {
-      const cond = res?.data?.[0]?.condition;
-      setCondition(cond ?? "Unknown");
+      const rec = res?.data?.[0];
+      setCondition(rec?.condition ?? "Unknown");
+      setNeutered(neuteredToLabel(rec?.is_neutered));
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -209,6 +223,7 @@ export function CatEntryForm({
         const result = await editCat({
           id: initialCat.id,
           condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          is_neutered: neuteredToValue(neutered),
           color: normalizeCatField<CatColor>(color),
           age: normalizeCatField<CatAge>(age),
           sex: normalizeCatField<CatSex>(sex),
@@ -254,6 +269,7 @@ export function CatEntryForm({
         const payload = {
           region_id: effectiveRegionId,
           condition: normalizeCatField<CatHealthRecordCondition>(condition),
+          is_neutered: neuteredToValue(neutered),
           color: normalizeCatField<CatColor>(color),
           age: normalizeCatField<CatAge>(age),
           sex: normalizeCatField<CatSex>(sex),
@@ -324,6 +340,7 @@ export function CatEntryForm({
     regionId,
     selectedRegion,
     condition,
+    neutered,
     color,
     age,
     sex,
@@ -566,6 +583,12 @@ export function CatEntryForm({
             options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
             value={condition}
             onChange={setCondition}
+          />
+          <DropdownField
+            label="Neutered"
+            options={[...NEUTERED_OPTIONS]}
+            value={neutered}
+            onChange={setNeutered}
           />
           <TextField
             label="Spot Last Seen"

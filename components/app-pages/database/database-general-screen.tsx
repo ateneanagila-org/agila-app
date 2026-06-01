@@ -371,9 +371,10 @@ export function DatabaseGeneralScreen() {
               </span>
               <button
                 type="button"
-                onClick={handleToggleAdoptable}
+                onClick={canManage ? handleToggleAdoptable : undefined}
+                disabled={!canManage}
                 aria-pressed={isAdoptable}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   isAdoptable ? "bg-brand-orange" : "bg-brand-dark/15"
                 }`}
               >
@@ -393,7 +394,7 @@ export function DatabaseGeneralScreen() {
 
         {/* Form card */}
         <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
-          <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6">
+          <div className={`grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6${!canManage ? " pointer-events-none opacity-60" : ""}`}>
             <FormSelect
               label="Color"
               options={CAT_COLOR_VALUES}

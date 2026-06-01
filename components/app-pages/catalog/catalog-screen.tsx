@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import {
   ChevronDownIcon,
   ExternalLinkIcon,
@@ -15,7 +16,7 @@ import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
-import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { PUBLIC_CATALOG_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 export function CatalogScreen() {
@@ -38,7 +39,7 @@ export function CatalogScreen() {
     setSearch,
   } = useFilterSort<CatWithRegion>(
     cats,
-    DATABASE_LIST_CONFIG,
+    PUBLIC_CATALOG_CONFIG,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
@@ -56,13 +57,9 @@ export function CatalogScreen() {
   );
 
   const searchedCats = search
-    ? filteredCats.filter((cat) => {
-        const q = search.toLowerCase();
-        return (
-          cat.name?.toLowerCase().includes(q) ||
-          cat.color?.toLowerCase().includes(q)
-        );
-      })
+    ? filteredCats.filter((cat) =>
+        cat.name?.toLowerCase().includes(search.toLowerCase()),
+      )
     : filteredCats;
 
   const fetchCats = useCallback(async () => {
@@ -88,7 +85,7 @@ export function CatalogScreen() {
       {/* Hero */}
       <div className="mb-6 text-center tablet:mb-10">
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-orange">
-          Adopt &middot; Foster
+          Ateneo de Manila University
         </p>
         <h1 className="mt-2 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-6xl">
           Find a friend for life.
@@ -103,42 +100,46 @@ export function CatalogScreen() {
           rel="noreferrer"
           className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
         >
-          Apply to adopt/foster
+          Apply to Adopt/Foster
           <ExternalLinkIcon className="h-4 w-4" />
         </a>
       </div>
 
       {/* Search + Filter + Sort — same colors mobile + desktop */}
       <div className="rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
-        <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
             <input
               type="text"
-              placeholder="Search cats by name or color"
+              placeholder="Search by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={openFilterDialog}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
-            >
+          <button
+            type="button"
+            onClick={openFilterDialog}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90 tablet:gap-1.5 tablet:px-4 tablet:text-sm"
+          >
+            {activeFilterCount > 0
+              ? <span className="tablet:hidden">{activeFilterCount}</span>
+              : null}
+            <SlidersHorizontal className="h-4 w-4 tablet:hidden" />
+            <span className="hidden tablet:inline">
               Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={openSortDialog}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
-            >
-              Sort by
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
+            </span>
+            <ChevronDownIcon className="hidden h-3.5 w-3.5 tablet:block" />
+          </button>
+          <button
+            type="button"
+            onClick={openSortDialog}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90 tablet:gap-1.5 tablet:px-4 tablet:text-sm"
+          >
+            Sort
+            <ChevronDownIcon className="h-3 w-3 tablet:h-3.5 tablet:w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -158,6 +159,7 @@ export function CatalogScreen() {
               <CatCard
                 key={cat.id}
                 cat={cat}
+                region_name={cat.region_name}
                 href={`/catalog/${cat.id}`}
                 variant="default"
                 action="chevron"
@@ -171,7 +173,7 @@ export function CatalogScreen() {
       <DatabaseFiltersDialog
         open={openDialog === "filter"}
         onClose={closeDialog}
-        categories={DATABASE_LIST_CONFIG.filters}
+        categories={PUBLIC_CATALOG_CONFIG.filters}
         activeFilters={activeFilters}
         onClear={clearFilters}
         onApply={applyFilters}
@@ -179,7 +181,7 @@ export function CatalogScreen() {
       <DatabaseSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}
-        options={DATABASE_LIST_CONFIG.sortOptions}
+        options={PUBLIC_CATALOG_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
         onApply={applySort}

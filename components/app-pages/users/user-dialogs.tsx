@@ -184,10 +184,10 @@ export function AddUserDialog({
           placeholder="Full name"
         />
         <InputField
-          label="Ateneo Email Address"
+          label="Email Address"
           value={email}
           onChange={onEmailChange}
-          placeholder="user@student.ateneo.edu"
+          placeholder="user@example.com"
           type="email"
         />
         <SelectField

@@ -23,22 +23,6 @@ export async function GET(request: Request) {
     if (data?.user) {
       const email = data.user.email?.toLowerCase() || "";
 
-      // Domain restriction check
-      const isAteneo =
-        email.endsWith("@student.ateneo.edu") || email.endsWith("@ateneo.edu");
-
-      if (!isAteneo) {
-        try {
-          const supabaseAdmin = await createAdminClient();
-          await supabaseAdmin.auth.admin.deleteUser(data.user.id);
-          await supabase.auth.signOut();
-        } catch (adminError) {
-          console.error("Cleanup failed for unauthorized user:", adminError);
-        }
-
-        return NextResponse.redirect(`${baseUrl}/login/non-ateneo-email-used`);
-      }
-
       // Onboarding check — only emails explicitly added by an admin may access the app
       const allowed = await usersRepo.findAllowedEmails({ email });
       if (allowed.length === 0) {

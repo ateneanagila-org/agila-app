@@ -23,20 +23,18 @@ import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 
 const PAGE_SIZE = 10;
 
-type SessionStatus = "Unfinished" | "Submitted" | "Reviewed";
+type SessionStatus = "Unfinished" | "Submitted";
 type RegionOption = { id: string; name: string };
 
 type SessionsScreenProps = {
   initialSessions: SelectSession[];
   initialAllSessions: SelectSession[];
-  initialStatusBySession: Record<string, SessionStatus>;
   initialRegionOptions: RegionOption[];
 };
 
 export function SessionsScreen({
   initialSessions,
   initialAllSessions,
-  initialStatusBySession,
   initialRegionOptions,
 }: SessionsScreenProps) {
   const { canManage, userData } = useAuth();
@@ -45,9 +43,6 @@ export function SessionsScreen({
   const [sessions, setSessions] = useState<SelectSession[]>(initialSessions);
   const [allSessions, setAllSessions] =
     useState<SelectSession[]>(initialAllSessions);
-  const [statusBySession, setStatusBySession] = useState<
-    Record<string, SessionStatus>
-  >(initialStatusBySession);
   const regionMap = useMemo(
     () =>
       Object.fromEntries(
@@ -77,7 +72,7 @@ export function SessionsScreen({
   };
 
   const sessionStatus = (s: SelectSession): SessionStatus =>
-    statusBySession[s.id] ?? (s.is_finished ? "Submitted" : "Unfinished");
+    s.is_finished ? "Submitted" : "Unfinished";
 
   const {
     filtered: filteredSessions,
@@ -174,11 +169,6 @@ export function SessionsScreen({
       await removeSession.bind(null, pendingDeleteId)();
       setSessions((prev) => prev.filter((s) => s.id !== pendingDeleteId));
       setAllSessions((prev) => prev.filter((s) => s.id !== pendingDeleteId));
-      setStatusBySession((prev) => {
-        const next = { ...prev };
-        delete next[pendingDeleteId];
-        return next;
-      });
       setPendingDeleteId(null);
     } catch (err) {
       console.error("Failed to delete session:", err);
@@ -206,14 +196,16 @@ export function SessionsScreen({
           <div className="flex-1 space-y-3 px-4 py-4">
             {/* Top action buttons */}
             <div className="flex gap-2">
-              <a
-                href={CENSUS_REPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Census Report <FileText className="h-4 w-4" />
-              </a>
+              {canManage ? (
+                <a
+                  href={CENSUS_REPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                >
+                  Census Report <FileText className="h-4 w-4" />
+                </a>
+              ) : null}
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
@@ -261,17 +253,16 @@ export function SessionsScreen({
             {/* Full sessions table */}
             <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               {/* Table header */}
-              <div className="grid grid-cols-[auto_auto_1fr_auto_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
+              <div className="grid grid-cols-[2.5rem_1fr_4.5rem_2rem] gap-x-3 border-b border-brand-dark/10 pb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
                   No.
                 </span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
-                  Date
-                </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
                   Location
                 </span>
-                <span />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
+                  Status
+                </span>
                 <span />
               </div>
 
@@ -285,44 +276,53 @@ export function SessionsScreen({
                 <div className="divide-y divide-brand-dark/8">
                   {filteredSessions
                     .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-                    .map((s) => (
-                      <div
-                        key={s.id}
-                        className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-x-3 py-2.5"
-                      >
-                        <span className="text-xs font-semibold tabular-nums text-brand-dark">
-                          {s.census_no}
-                        </span>
-                        <span className="text-xs tabular-nums text-brand-dark/70">
-                          {formatDate(s.created_at)}
-                        </span>
-                        <span className="truncate text-xs text-brand-dark/70">
-                          {regionMap[s.region_id] ?? "—"}
-                        </span>
-                        {sessionStatus(s) === "Unfinished" ? (
-                          <Link
-                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="rounded-full bg-brand-orange px-2.5 py-0.5 text-[10px] font-bold text-white"
-                          >
-                            Continue ›
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
-                        {sessionStatus(s) === "Unfinished" ? (
-                          <button
-                            type="button"
-                            onClick={() => setPendingDeleteId(s.id)}
-                            className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                            aria-label="Delete session"
-                          >
-                            <TrashIcon className="h-3.5 w-3.5" />
-                          </button>
-                        ) : (
-                          <span />
-                        )}
-                      </div>
-                    ))}
+                    .map((s) => {
+                      const st = sessionStatus(s);
+                      return (
+                        <div
+                          key={s.id}
+                          className="grid grid-cols-[2.5rem_1fr_4.5rem_2rem] items-center gap-x-3 py-2.5"
+                        >
+                          <span className="text-xs font-semibold tabular-nums text-brand-dark">
+                            {s.census_no}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs text-brand-dark/70">
+                              {regionMap[s.region_id] ?? "—"}
+                            </p>
+                            <p className="text-[10px] tabular-nums text-brand-dark/50">
+                              {formatDate(s.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            {st === "Unfinished" ? (
+                              <Link
+                                href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                                className="inline-flex items-center rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white"
+                              >
+                                Continue ›
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-brand-cream-dark px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                                {st}
+                              </span>
+                            )}
+                          </div>
+                          {st === "Unfinished" ? (
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(s.id)}
+                              className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Delete session"
+                            >
+                              <TrashIcon className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -377,14 +377,16 @@ export function SessionsScreen({
           <div className="flex-1 space-y-3 px-4 py-4">
             {/* Action buttons */}
             <div className="flex gap-2">
-              <a
-                href={CENSUS_REPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-              >
-                Census Report <FileText className="h-4 w-4" />
-              </a>
+              {canManage ? (
+                <a
+                  href={CENSUS_REPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Census Report <FileText className="h-4 w-4" />
+                </a>
+              ) : null}
               {canManage ? (
                 <Link
                   href="/dashboard/sessions/manager"
@@ -410,7 +412,7 @@ export function SessionsScreen({
             </div>
             <div className="overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-brand-dark/8">
               <div className="space-y-2.5">
-                <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 border-b border-brand-dark/10 pb-2">
+                <div className="grid grid-cols-[2.5rem_1fr_4.5rem_2rem] gap-x-3 border-b border-brand-dark/10 pb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
                     No.
                   </span>
@@ -418,9 +420,8 @@ export function SessionsScreen({
                     Location
                   </span>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/55">
-                    Date
+                    Status
                   </span>
-                  <span />
                   <span />
                 </div>
 
@@ -432,44 +433,53 @@ export function SessionsScreen({
                   </div>
                 ) : (
                   <div className="divide-y divide-brand-dark/8">
-                    {sessions.slice(0, 5).map((s) => (
-                      <div
-                        key={s.id}
-                        className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-x-3 py-2"
-                      >
-                        <span className="text-xs font-semibold tabular-nums text-brand-dark">
-                          {s.census_no}
-                        </span>
-                        <span className="truncate text-xs text-brand-dark/70">
-                          {regionMap[s.region_id] ?? "—"}
-                        </span>
-                        <span className="text-xs tabular-nums text-brand-dark/70">
-                          {formatDate(s.created_at)}
-                        </span>
-                        {sessionStatus(s) === "Unfinished" ? (
-                          <Link
-                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white"
-                          >
-                            Continue ›
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
-                        {sessionStatus(s) === "Unfinished" ? (
-                          <button
-                            type="button"
-                            onClick={() => setPendingDeleteId(s.id)}
-                            className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
-                            aria-label="Delete session"
-                          >
-                            <TrashIcon className="h-3.5 w-3.5" />
-                          </button>
-                        ) : (
-                          <span />
-                        )}
-                      </div>
-                    ))}
+                    {sessions.slice(0, 5).map((s) => {
+                      const st = sessionStatus(s);
+                      return (
+                        <div
+                          key={s.id}
+                          className="grid grid-cols-[2.5rem_1fr_4.5rem_2rem] items-center gap-x-3 py-2"
+                        >
+                          <span className="text-xs font-semibold tabular-nums text-brand-dark">
+                            {s.census_no}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs text-brand-dark/70">
+                              {regionMap[s.region_id] ?? "—"}
+                            </p>
+                            <p className="text-[10px] tabular-nums text-brand-dark/50">
+                              {formatDate(s.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            {st === "Unfinished" ? (
+                              <Link
+                                href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                                className="inline-flex items-center rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white"
+                              >
+                                Continue ›
+                              </Link>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-brand-cream-dark px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                                {st}
+                              </span>
+                            )}
+                          </div>
+                          {st === "Unfinished" ? (
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(s.id)}
+                              className="flex h-6 w-6 items-center justify-center rounded-full text-brand-dark/40 transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Delete session"
+                            >
+                              <TrashIcon className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -542,14 +552,16 @@ export function SessionsScreen({
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <a
-              href={CENSUS_REPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              Census Report <FileText className="h-4 w-4" />
-            </a>
+            {canManage ? (
+              <a
+                href={CENSUS_REPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Census Report <FileText className="h-4 w-4" />
+              </a>
+            ) : null}
             {canManage ? (
               <Link
                 href="/dashboard/sessions/manager"
@@ -594,12 +606,11 @@ export function SessionsScreen({
               </div>
             </div>
 
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+            <div className="grid grid-cols-[1fr_8rem_1fr_9rem_2.5rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
               <span>Census No.</span>
               <span>Date</span>
               <span>Location</span>
               <span>Status</span>
-              <span />
               <span />
             </div>
 
@@ -616,15 +627,13 @@ export function SessionsScreen({
                   .map((s) => {
                     const st = sessionStatus(s);
                     const badgeClass =
-                      st === "Reviewed"
-                        ? "bg-brand-mint text-brand-green"
-                        : st === "Submitted"
-                          ? "bg-brand-cream-dark text-brand-dark"
-                          : "bg-brand-pink text-brand-orange";
+                      st === "Submitted"
+                        ? "bg-brand-cream-dark text-brand-dark"
+                        : "bg-brand-pink text-brand-orange";
                     return (
                       <div
                         key={s.id}
-                        className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
+                        className="grid grid-cols-[1fr_8rem_1fr_9rem_2.5rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                       >
                         <span className="font-semibold tabular-nums">
                           {s.census_no}
@@ -635,21 +644,20 @@ export function SessionsScreen({
                         <span className="truncate text-brand-dark/70">
                           {regionMap[s.region_id] ?? s.region_id.slice(0, 5)}
                         </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
-                        >
-                          {st}
-                        </span>
-                        {st === "Unfinished" ? (
-                          <Link
-                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                          >
-                            Continue <span className="ml-0.5">&#8250;</span>
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
+                        <div className="flex items-center">
+                          {st === "Unfinished" ? (
+                            <Link
+                              href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                              className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                            >
+                              Continue <span className="ml-0.5">&#8250;</span>
+                            </Link>
+                          ) : (
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                              {st}
+                            </span>
+                          )}
+                        </div>
                         {st === "Unfinished" ? (
                           <button
                             type="button"
@@ -729,12 +737,11 @@ export function SessionsScreen({
                 </button>
               </div>
 
-              <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+              <div className="grid grid-cols-[1fr_8rem_1fr_9rem_2.5rem] gap-x-3 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
                 <span>Census No.</span>
                 <span>Date</span>
                 <span>Location</span>
                 <span>Status</span>
-                <span />
                 <span />
               </div>
 
@@ -749,15 +756,13 @@ export function SessionsScreen({
                   {sessions.slice(0, 5).map((s) => {
                     const st = sessionStatus(s);
                     const badgeClass =
-                      st === "Reviewed"
-                        ? "bg-brand-mint text-brand-green"
-                        : st === "Submitted"
-                          ? "bg-brand-cream-dark text-brand-dark"
-                          : "bg-brand-pink text-brand-orange";
+                      st === "Submitted"
+                        ? "bg-brand-cream-dark text-brand-dark"
+                        : "bg-brand-pink text-brand-orange";
                     return (
                       <div
                         key={s.id}
-                        className="grid grid-cols-[1fr_1fr_1fr_auto_auto_2rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
+                        className="grid grid-cols-[1fr_8rem_1fr_9rem_2.5rem] items-center gap-x-3 px-5 py-3 text-sm text-brand-dark"
                       >
                         <span className="font-semibold tabular-nums">
                           {s.census_no}
@@ -768,21 +773,20 @@ export function SessionsScreen({
                         <span className="truncate text-brand-dark/70">
                           {regionMap[s.region_id] ?? s.region_id.slice(0, 5)}
                         </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
-                        >
-                          {st}
-                        </span>
-                        {st === "Unfinished" ? (
-                          <Link
-                            href={`/dashboard/sessions/create?sessionId=${s.id}`}
-                            className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                          >
-                            Continue <span className="ml-0.5">&#8250;</span>
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
+                        <div className="flex items-center">
+                          {st === "Unfinished" ? (
+                            <Link
+                              href={`/dashboard/sessions/create?sessionId=${s.id}`}
+                              className="inline-flex items-center rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                            >
+                              Continue <span className="ml-0.5">&#8250;</span>
+                            </Link>
+                          ) : (
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                              {st}
+                            </span>
+                          )}
+                        </div>
                         {st === "Unfinished" ? (
                           <button
                             type="button"

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useMemo, type ReactNode } from "react";
 import { UserMenu } from "@/components/app-pages/shared/user-menu";
 import { useAuth } from "@/contexts/auth-context";
+import { BrandLogo } from "@/components/app-pages/shared/brand-logo";
 
 type NavItem = {
   label: "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
@@ -24,22 +25,6 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function PawIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <ellipse cx="5" cy="9" rx="2" ry="3" />
-      <ellipse cx="10" cy="6.5" rx="2" ry="3" />
-      <ellipse cx="14" cy="6.5" rx="2" ry="3" />
-      <ellipse cx="19" cy="9" rx="2" ry="3" />
-      <path d="M12 12c-3.5 0-7 2.5-6.5 6.5.3 2 2 3.5 4 3.5h5c2 0 3.7-1.5 4-3.5C19 14.5 15.5 12 12 12z" />
-    </svg>
-  );
-}
 
 function NavIcon({
   label,
@@ -170,17 +155,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
       <div className="flex h-dvh w-full flex-col tablet:hidden">
         <header className="sticky top-0 z-20 bg-brand-dark">
           <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 mobile:px-5">
-            <div className="flex items-center gap-2.5">
-              <PawIcon className="h-7 w-7 text-white" />
-              <div>
-                <p className="text-[8px] font-semibold uppercase tracking-widest text-white/60">
-                  AGILA
-                </p>
-                <p className="font-brand text-base leading-tight text-white">
-                  CATALOG
-                </p>
-              </div>
-            </div>
+            <BrandLogo />
             <UserMenu variant="mobile" />
           </div>
         </header>
@@ -230,18 +205,8 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
       {/* ── Desktop layout ── */}
       <div className="hidden h-dvh w-full tablet:flex">
         <aside className="flex w-60 flex-col bg-brand-dark px-5 py-6">
-          <div className="flex items-center gap-3 px-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green">
-              <PawIcon className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-white/50">
-                AGILA
-              </p>
-              <p className="font-brand text-base leading-tight text-white">
-                CATALOG
-              </p>
-            </div>
+          <div className="px-1">
+            <BrandLogo />
           </div>
 
           <nav className="mt-8 flex-1">

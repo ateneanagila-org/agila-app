@@ -9,6 +9,7 @@ import {
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { editCat } from "@/app/actions/cats";
+import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
@@ -27,6 +28,16 @@ function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
   if (s === "Female") return "♀";
   return null;
+}
+
+const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
+
+/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
+function neuteredToLabel(b: boolean | null | undefined): string {
+  return b === true ? "Yes" : b === false ? "No" : "Unknown";
+}
+function neuteredToValue(s: string): boolean | null {
+  return s === "Yes" ? true : s === "No" ? false : null;
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -78,6 +89,7 @@ function buildDate(month: string, day: string, year: string): Date | null {
 }
 
 export function DatabaseMedicalScreen() {
+  const { canManage } = useAuth();
   const { catId, cat, healthRecord, loading, error: ctxError, refresh } = useCatDetail();
 
   const [saving, setSaving] = useState(false);
@@ -85,6 +97,7 @@ export function DatabaseMedicalScreen() {
 
   // Form state
   const [condition, setCondition] = useState("");
+  const [neutered, setNeutered] = useState("Unknown");
   const [neuterMonth, setNeuterMonth] = useState("");
   const [neuterDay, setNeuterDay] = useState("");
   const [neuterYear, setNeuterYear] = useState("");
@@ -94,6 +107,7 @@ export function DatabaseMedicalScreen() {
 
   const populateForm = useCallback((hr: SelectCatHealthRecord) => {
     setCondition(hr.condition ?? "Unknown");
+    setNeutered(neuteredToLabel(hr.is_neutered));
     const neuter = parseDateParts(hr.neuter_date);
     setNeuterMonth(neuter.month);
     setNeuterDay(neuter.day);
@@ -119,8 +133,9 @@ export function DatabaseMedicalScreen() {
       const result = await editCat({
         id: catId,
         condition: normalizeCatField<CatHealthRecordCondition>(condition),
-        neuter_date: buildDate(neuterMonth, neuterDay, neuterYear) ?? undefined,
-        vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear) ?? undefined,
+        is_neutered: neuteredToValue(neutered),
+        neuter_date: buildDate(neuterMonth, neuterDay, neuterYear),
+        vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear),
       });
       if (result?.serverError) {
         setError(result.serverError);
@@ -135,6 +150,7 @@ export function DatabaseMedicalScreen() {
   }, [
     catId,
     condition,
+    neutered,
     neuterMonth,
     neuterDay,
     neuterYear,
@@ -238,7 +254,7 @@ export function DatabaseMedicalScreen() {
 
       {/* Form card */}
       <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
-        <div className="grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6">
+        <div className={`grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6${!canManage ? " pointer-events-none opacity-60" : ""}`}>
           <div className="tablet:col-span-2">
             <FieldLabel>Condition</FieldLabel>
             <div className="mt-1.5">
@@ -246,6 +262,18 @@ export function DatabaseMedicalScreen() {
                 options={["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES]}
                 value={condition}
                 onChange={setCondition}
+                variant="white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Neutered</FieldLabel>
+            <div className="mt-1.5">
+              <CustomSelect
+                options={[...NEUTERED_OPTIONS]}
+                value={neutered}
+                onChange={setNeutered}
                 variant="white"
               />
             </div>
@@ -276,23 +304,25 @@ export function DatabaseMedicalScreen() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-dark/8 pt-4">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSave}
-            className="rounded-full bg-brand-orange px-6 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
-        </div>
+        {canManage ? (
+          <div className="mt-6 flex items-center justify-end gap-2 border-t border-brand-dark/8 pt-4">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-full border-2 border-brand-dark/15 px-5 py-2 text-sm font-bold text-brand-dark/70 transition-colors hover:border-brand-dark/40 hover:text-brand-dark"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSave}
+              className="rounded-full bg-brand-orange px-6 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        ) : null}
       </div>
     </PageContent>
   );

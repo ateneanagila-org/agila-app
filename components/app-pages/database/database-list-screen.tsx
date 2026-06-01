@@ -158,15 +158,10 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 space-y-3 px-4 py-4">
-          {canManage ? (
-            <button
-              type="button"
-              onClick={() => setShowAdd(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              Add Entry <PlusIcon className="h-4 w-4" />
-            </button>
-          ) : null}
+          <div>
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">Database</h1>
+            <p className="mt-0.5 text-xs font-semibold text-brand-green">{cats.length} cats on record</p>
+          </div>
 
           <CatFilterToolbar
             cats={cats}
@@ -179,7 +174,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
               ) : filteredCats.length === 0 ? (
                 <EmptyState />
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2">
                   {filteredCats.map((cat) => (
                     <div key={cat.id} className="group/cat-card relative">
                       <CatCard
@@ -196,7 +191,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
                             setDeleteError(null);
                             setCatToDelete(cat);
                           }}
-                          className="absolute bottom-2 right-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
+                          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
                           aria-label={`Delete ${cat.name || "unnamed cat"}`}
                         >
                           <TrashIcon className="h-4 w-4" />
@@ -253,7 +248,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
             onBeforeOpenFilter={loadFilterData}
           >
             {(filteredCats) => (
-              <div className="mt-4 grid grid-cols-5 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
                 {loading ? (
                   <div className="col-span-full">
                     <LoadingIndicator />
@@ -282,7 +277,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
                             setDeleteError(null);
                             setCatToDelete(cat);
                           }}
-                          className="absolute bottom-2 right-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
+                          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-md ring-2 ring-white transition-all duration-200 group-hover/cat-card:-translate-y-0.5 hover:scale-105 hover:opacity-90 active:scale-95"
                           aria-label={`Delete ${cat.name || "unnamed cat"}`}
                         >
                           <TrashIcon className="h-4 w-4" />
