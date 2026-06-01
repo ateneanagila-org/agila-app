@@ -9,6 +9,7 @@
 **Tech Stack:** Next.js App Router, React 19, TypeScript, Tailwind CSS v4 (`@theme inline`), Drizzle, Supabase SSR, Jest.
 
 **Conventions (from CLAUDE.md):**
+
 - Use **pnpm** only. Type-check with `pnpm tsc --noEmit`.
 - Do not run `pnpm dev` to verify. Trust the code + type-check/build.
 - Never hardcode hex in components — use brand tokens / Tailwind classes.
@@ -22,11 +23,13 @@
 ## File Structure
 
 **Create:**
+
 - `lib/stats/census-stats.ts` — shared census/TNVR stat computation (pure functions).
 - `__tests__/stats/census-stats.test.ts` — unit tests for the above.
 - `components/app-pages/shared/brand-logo.tsx` — shared logo lockup (Link → `/`).
 
 **Modify:**
+
 - `components/app-pages/overview/overview-screen.tsx` (#1, #9, #13, #14)
 - `components/app-pages/tnvr/tnvr-screen.tsx` (#9, #13)
 - `lib/hooks/filter-sort-configs.ts` (#4)
@@ -45,6 +48,7 @@
 - `app/globals.css` (#10 status tokens)
 
 **Delete:**
+
 - `app/(auth)/login/non-ateneo-email-used/page.tsx` (#6)
 
 ---
@@ -54,6 +58,7 @@
 ### Task 1: Extract + fix census stats into a tested module
 
 **Files:**
+
 - Create: `lib/stats/census-stats.ts`
 - Test: `__tests__/stats/census-stats.test.ts`
 
@@ -108,7 +113,9 @@ describe("isActiveCensus", () => {
     }
   });
   it("excludes non-Original entries", () => {
-    expect(isActiveCensus(cat({ entry_status: "Duplicate" as never }))).toBe(false);
+    expect(isActiveCensus(cat({ entry_status: "Duplicate" as never }))).toBe(
+      false,
+    );
   });
 });
 
@@ -127,7 +134,10 @@ describe("computeCensusStats", () => {
   });
 
   it("counts neutered by is_neutered flag, ignoring neuter_date", () => {
-    const cats = [cat({ id: "a", cat_status: null }), cat({ id: "b", cat_status: null })];
+    const cats = [
+      cat({ id: "a", cat_status: null }),
+      cat({ id: "b", cat_status: null }),
+    ];
     const records = [
       hr({ cat_id: "a", is_neutered: true, neuter_date: null }),
       hr({ cat_id: "b", is_neutered: false, neuter_date: new Date() }),
@@ -232,8 +242,10 @@ export function computeCensusStats(
     if (cat.sociability === "Domesticated") domesticated++;
     else if (cat.sociability === "Tame") tame++;
     else if (cat.sociability === "Feral") feral++;
-    if (rec?.condition === "Sick" || rec?.condition === "Sick and Injured") sick++;
-    if (rec?.condition === "Injured" || rec?.condition === "Sick and Injured") injured++;
+    if (rec?.condition === "Sick" || rec?.condition === "Sick and Injured")
+      sick++;
+    if (rec?.condition === "Injured" || rec?.condition === "Sick and Injured")
+      injured++;
     if (cat.is_adoptable) adoptable++;
     if (!cat.name || cat.name.trim() === "") unnamed++;
   }
@@ -330,7 +342,8 @@ export function computeTnvrStats(
   const totalNeutered = neuteredMale + spayedFemale + neuteredUnknown;
   const totalUnneutered = unneuteredMale + unneuteredFemale + unneuteredUnknown;
   const total = active.length;
-  const pct = (n: number, d: number) => (d > 0 ? `${Math.round((n / d) * 100)}%` : "0%");
+  const pct = (n: number, d: number) =>
+    d > 0 ? `${Math.round((n / d) * 100)}%` : "0%";
 
   return {
     neuteredMale,
@@ -372,6 +385,7 @@ git commit -m "feat(stats): shared active-census stats module using is_neutered 
 ### Task 2: Wire Overview screen to shared stats (#1, #9, #13)
 
 **Files:**
+
 - Modify: `components/app-pages/overview/overview-screen.tsx`
 
 - [ ] **Step 1: Replace the inline computeStats**
@@ -403,6 +417,7 @@ git commit -m "fix(overview): use shared active-census stats (no double count, i
 ### Task 3: Wire TNVR screen to shared stats (#9, #13)
 
 **Files:**
+
 - Modify: `components/app-pages/tnvr/tnvr-screen.tsx`
 
 - [ ] **Step 1: Replace inline computeTnvrStats**
@@ -434,6 +449,7 @@ git commit -m "fix(tnvr): use shared active-census stats + is_neutered flag"
 ### Task 4: Fix Overview desktop responsiveness + sociability alignment
 
 **Files:**
+
 - Modify: `components/app-pages/overview/overview-screen.tsx` (desktop block, `tablet:block`)
 
 - [ ] **Step 1: Make primary stat numbers responsive**
@@ -443,7 +459,9 @@ In the desktop "Primary stats — green hero row", change the value paragraph cl
 ```
 className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white"
 ```
+
 to:
+
 ```
 className="mt-1 font-heading text-2xl font-bold leading-none tabular-nums text-white lg:text-3xl xl:text-4xl"
 ```
@@ -461,10 +479,13 @@ And each cell to prevent label wrap and keep the number aligned:
 ```
 className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
 ```
+
 - On the label span add `whitespace-nowrap`:
+
 ```
 className="whitespace-nowrap text-xs font-semibold text-brand-dark/70"
 ```
+
 - On the value span keep `font-heading text-base font-bold tabular-nums text-brand-dark shrink-0`.
 
 - [ ] **Step 3: Make off-census parity row responsive**
@@ -490,6 +511,7 @@ git commit -m "fix(overview): responsive desktop grids + nowrap stat cells at lg
 ### Task 5: Public catalog filter config (#4)
 
 **Files:**
+
 - Modify: `lib/hooks/filter-sort-configs.ts`
 - Modify: `components/app-pages/catalog/catalog-screen.tsx`
 
@@ -541,6 +563,7 @@ git commit -m "fix(catalog): public filters limited to region/color/age/sex/soci
 ### Task 6: Shared `<BrandLogo>` component (#5)
 
 **Files:**
+
 - Create: `components/app-pages/shared/brand-logo.tsx`
 - Modify: `app/(public)/layout.tsx`, `app/(protected)/dashboard/layout.tsx`, `app/(auth)/login/page.tsx`
 
@@ -553,7 +576,12 @@ import Link from "next/link";
 
 function PawIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <ellipse cx="5" cy="9" rx="2" ry="3" />
       <ellipse cx="10" cy="6.5" rx="2" ry="3" />
       <ellipse cx="14" cy="6.5" rx="2" ry="3" />
@@ -608,7 +636,7 @@ In `app/(public)/layout.tsx`: delete the local `PawIcon` function and the `<Link
 ```tsx
 import { BrandLogo } from "@/components/app-pages/shared/brand-logo";
 // ...inside header, left side:
-<BrandLogo />
+<BrandLogo />;
 ```
 
 - [ ] **Step 3: Replace dashboard logos**
@@ -617,7 +645,7 @@ In `app/(protected)/dashboard/layout.tsx`: delete the local `PawIcon`; replace t
 
 - [ ] **Step 4: Replace login-page brand lockup**
 
-In `app/(auth)/login/page.tsx`: the brand panel lockup (the `bg-brand-dark` boxed paw + "Ateneo de Manila / AGILA CATALOG"). Replace the inner lockup with `<BrandLogo variant="boxed" eyebrow="Ateneo de Manila" />`. Leave the decorative absolute `PawIcon`s (they need the local helper) — so keep the local `PawIcon` in login page, only swap the clickable lockup.
+In `app/(auth)/login/page.tsx`: the brand panel lockup (the `bg-brand-dark` boxed paw + "Ateneo de Manila / AGILA CATALOG"). Replace the inner lockup with `<BrandLogo variant="boxed" eyebrow="AGILA" />`. Leave the decorative absolute `PawIcon`s (they need the local helper) — so keep the local `PawIcon` in login page, only swap the clickable lockup.
 
 - [ ] **Step 5: Type-check**
 
@@ -636,6 +664,7 @@ git commit -m "feat(shared): BrandLogo component; all logos link to catalog"
 ### Task 7: Homepage Login/Dashboard header button (#3)
 
 **Files:**
+
 - Modify: `components/app-pages/shared/icons.tsx`
 - Modify: `app/(public)/layout.tsx`
 
@@ -646,7 +675,15 @@ In `components/app-pages/shared/icons.tsx`, add (following the existing `IconPro
 ```tsx
 export function LogInIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
       <path d="M10 17l5-5-5-5" />
       <path d="M15 12H3" />
@@ -656,7 +693,15 @@ export function LogInIcon({ className }: IconProps) {
 
 export function DashboardIcon({ className }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="14" width="7" height="7" rx="1" />
@@ -719,6 +764,7 @@ git commit -m "feat(public): green Login/Dashboard header button based on auth"
 ### Task 8: Remove the @ateneo domain restriction (#6)
 
 **Files:**
+
 - Modify: `app/auth/callback/route.ts`
 - Modify: `components/app-pages/users/user-dialogs.tsx`
 - Modify: `app/(auth)/login/page.tsx`
@@ -763,6 +809,7 @@ git commit -m "feat(auth): drop @ateneo domain gate; rely on allowlist"
 ### Task 9: Remove "Secured access" caption (#8)
 
 **Files:**
+
 - Modify: `app/(auth)/login/page.tsx`
 
 - [ ] **Step 1: Replace the captioned separator**
@@ -804,6 +851,7 @@ git commit -m "fix(login): remove Secured access caption, keep divider"
 ### Task 10: Distinct status badge colors (#10)
 
 **Files:**
+
 - Modify: `app/globals.css`
 - Modify: `components/app-pages/shared/cat-card.tsx`
 
@@ -812,9 +860,9 @@ git commit -m "fix(login): remove Secured access caption, keep divider"
 In `app/globals.css`, inside the `@theme inline { ... }` block (after the `--color-brand-mint` line ~L52), add:
 
 ```css
-  /* Status accent tokens (cat lifecycle) */
-  --color-status-adopted: #2f7d9c; /* teal-blue */
-  --color-status-mia: #d98a1f;     /* amber */
+/* Status accent tokens (cat lifecycle) */
+--color-status-adopted: #2f7d9c; /* teal-blue */
+--color-status-mia: #d98a1f; /* amber */
 ```
 
 - [ ] **Step 2: Rewrite `statusAccent`**
@@ -827,19 +875,34 @@ function statusAccent(cat: CatCardProps["cat"]): {
   chip: { label: string; cls: string } | null;
 } {
   if (cat.cat_status === "Deceased") {
-    return { rail: "bg-brand-dark", chip: { label: "Deceased", cls: "bg-brand-dark text-white" } };
+    return {
+      rail: "bg-brand-dark",
+      chip: { label: "Deceased", cls: "bg-brand-dark text-white" },
+    };
   }
   if (cat.cat_status === "MIA") {
-    return { rail: "bg-status-mia", chip: { label: "MIA", cls: "bg-status-mia text-white" } };
+    return {
+      rail: "bg-status-mia",
+      chip: { label: "MIA", cls: "bg-status-mia text-white" },
+    };
   }
   if (cat.cat_status === "Adopted") {
-    return { rail: "bg-status-adopted", chip: { label: "Adopted", cls: "bg-status-adopted text-white" } };
+    return {
+      rail: "bg-status-adopted",
+      chip: { label: "Adopted", cls: "bg-status-adopted text-white" },
+    };
   }
   if (cat.cat_status === "Fostered") {
-    return { rail: "bg-brand-orange", chip: { label: "Fostered", cls: "bg-brand-orange text-white" } };
+    return {
+      rail: "bg-brand-orange",
+      chip: { label: "Fostered", cls: "bg-brand-orange text-white" },
+    };
   }
   if (cat.is_adoptable) {
-    return { rail: "bg-brand-green", chip: { label: "Adoptable", cls: "bg-brand-green text-white" } };
+    return {
+      rail: "bg-brand-green",
+      chip: { label: "Adoptable", cls: "bg-brand-green text-white" },
+    };
   }
   return { rail: "bg-brand-green", chip: null };
 }
@@ -864,6 +927,7 @@ git commit -m "fix(cat-card): distinct readable status badge colors + tokens"
 ### Task 11: Cat card responsiveness — stop content vanishing (#15)
 
 **Files:**
+
 - Modify: `components/app-pages/shared/cat-card.tsx`
 - Modify: `components/app-pages/database/database-list-screen.tsx`
 
@@ -892,6 +956,7 @@ git commit -m "fix(database): responsive card grid; name wraps instead of vanish
 ### Task 12: Database trash placement + mobile title (#2, #11)
 
 **Files:**
+
 - Modify: `components/app-pages/database/database-list-screen.tsx`
 
 - [ ] **Step 1: Move the delete FAB off the text row**
@@ -903,19 +968,29 @@ For both delete `<button>`s (the grid instances at ~L193 and ~L283), change the 
 In the `tablet:hidden` section, delete the inline `Add Entry` button block:
 
 ```tsx
-{canManage ? (
-  <button type="button" onClick={() => setShowAdd(true)} className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90">
-    Add Entry <PlusIcon className="h-4 w-4" />
-  </button>
-) : null}
+{
+  canManage ? (
+    <button
+      type="button"
+      onClick={() => setShowAdd(true)}
+      className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+    >
+      Add Entry <PlusIcon className="h-4 w-4" />
+    </button>
+  ) : null;
+}
 ```
 
 Replace it with a mobile header (keep the FAB at L213 untouched):
 
 ```tsx
 <div>
-  <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">Database</h1>
-  <p className="mt-0.5 text-xs font-semibold text-brand-green">{cats.length} cats on record</p>
+  <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
+    Database
+  </h1>
+  <p className="mt-0.5 text-xs font-semibold text-brand-green">
+    {cats.length} cats on record
+  </p>
 </div>
 ```
 
@@ -938,6 +1013,7 @@ git commit -m "fix(database): trash button placement; mobile title replaces inli
 ### Task 13: Merge status/continue column + align rows
 
 **Files:**
+
 - Modify: `components/app-pages/sessions/sessions-screen.tsx`
 
 There are four table instances: mobile dashboard (~L437), mobile all-sessions (~L290), desktop dashboard (~L759), desktop all-sessions (~L626). Apply the same two changes to each.
@@ -950,7 +1026,7 @@ For both desktop tables, the column template is `grid-cols-[1fr_1fr_1fr_auto_aut
 grid-cols-[1fr_8rem_1fr_9rem_2.5rem]
 ```
 
-Header row becomes: `Census No.`, `Date`, `Location`, `Status`, `` (empty for delete). Update both the header `<div>` and each row `<div>` to this template (5 columns).
+Header row becomes: `Census No.`, `Date`, `Location`, `Status`, ``(empty for delete). Update both the header`<div>`and each row`<div>` to this template (5 columns).
 
 Replace the separate Status-badge cell **and** the Continue cell with a single status cell:
 
@@ -964,7 +1040,9 @@ Replace the separate Status-badge cell **and** the Continue cell with a single s
       Continue <span className="ml-0.5">&#8250;</span>
     </Link>
   ) : (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}
+    >
       {st}
     </span>
   )}
@@ -1002,6 +1080,7 @@ git commit -m "fix(sessions): unify status/continue column, fixed grid tracks al
 ### Task 14: Mobile users tab — remove inline add, use TrashIcon (#16)
 
 **Files:**
+
 - Modify: `components/app-pages/users/users-screen.tsx`
 
 - [ ] **Step 1: Remove the inline Add Entry button**
@@ -1009,7 +1088,11 @@ git commit -m "fix(sessions): unify status/continue column, fixed grid tracks al
 In the `tablet:hidden` block, delete the full-width button:
 
 ```tsx
-<button type="button" onClick={() => setShowAddUser(true)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm">
+<button
+  type="button"
+  onClick={() => setShowAddUser(true)}
+  className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
+>
   Add Entry <PlusIcon className="h-4 w-4" />
 </button>
 ```
@@ -1037,6 +1120,7 @@ git commit -m "fix(users): remove inline mobile add button; TrashIcon for delete
 ### Task 15: User details modal redesign (#17)
 
 **Files:**
+
 - Modify: `components/app-pages/shared/user-details-dialog.tsx`
 
 - [ ] **Step 1: Rewrite the dialog**
@@ -1046,7 +1130,10 @@ Replace the entire file body with a cleaner, token-based design (sane type scale
 ```tsx
 "use client";
 
-import { CloseIcon, ExternalLinkIcon } from "@/components/app-pages/shared/icons";
+import {
+  CloseIcon,
+  ExternalLinkIcon,
+} from "@/components/app-pages/shared/icons";
 
 type UserDetailsDialogProps = {
   open: boolean;
@@ -1058,7 +1145,13 @@ type UserDetailsDialogProps = {
 
 const BUG_REPORT_URL = "https://github.com/legnspice/agila-app/issues";
 
-function DetailField({ label, value }: { label: string; value?: string | null }) {
+function DetailField({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-green">
@@ -1071,7 +1164,13 @@ function DetailField({ label, value }: { label: string; value?: string | null })
   );
 }
 
-export function UserDetailsDialog({ open, onClose, name, email, role }: UserDetailsDialogProps) {
+export function UserDetailsDialog({
+  open,
+  onClose,
+  name,
+  email,
+  role,
+}: UserDetailsDialogProps) {
   if (!open) return null;
 
   return (
@@ -1105,7 +1204,9 @@ export function UserDetailsDialog({ open, onClose, name, email, role }: UserDeta
         <div className="mt-6 border-t border-border pt-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="font-heading text-lg font-bold text-brand-green">Report a Bug</h3>
+              <h3 className="font-heading text-lg font-bold text-brand-green">
+                Report a Bug
+              </h3>
               <p className="text-sm text-brand-dark/65">Noticed an issue?</p>
             </div>
             <a
@@ -1143,12 +1244,14 @@ git commit -m "fix(users): redesign user details modal; correct bug URL + email 
 ### Task 16: Audit service-account vs sheet protections
 
 **Files:**
+
 - Investigate: `lib/services/reverse-sync.service.ts`, `lib/services/helper.service.ts`, `workers/apps-script/Protection.gs`, `workers/apps-script/WebApp.gs`, `workers/apps-script/Code.gs`
 - Reference: memory `project_gsheets_sync_deprecated`
 
 - [ ] **Step 1: Grep for protection/freeze/editor calls in the write path**
 
 Run:
+
 ```bash
 pnpm exec grep -rn "syncSheetEditors\|freeze\|unfreeze\|protect\|addEditor\|removeEditor\|Protection" lib/services workers/apps-script
 ```

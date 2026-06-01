@@ -35,7 +35,7 @@ export default function LoginPage() {
         <PawIcon className="pointer-events-none absolute right-1/3 top-1/2 hidden h-24 w-24 -rotate-12 text-white/5 tablet:block" />
 
         <div className="relative">
-          <BrandLogo variant="boxed" eyebrow="Ateneo de Manila" />
+          <BrandLogo />
         </div>
 
         <div className="relative mt-10 hidden tablet:block">

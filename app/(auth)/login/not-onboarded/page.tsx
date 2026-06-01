@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandLogo } from "@/components/app-pages/shared/brand-logo";
 
 export const metadata: Metadata = {
   title: "Access Restricted - AGILA",
@@ -31,18 +32,8 @@ export default function NotOnboardedPage() {
         <PawIcon className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rotate-12 text-white/5 tablet:h-64 tablet:w-64" />
         <PawIcon className="pointer-events-none absolute right-1/3 top-1/2 hidden h-24 w-24 -rotate-12 text-white/5 tablet:block" />
 
-        <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-dark">
-            <PawIcon className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/60">
-              Ateneo de Manila
-            </p>
-            <p className="font-brand text-lg font-bold leading-tight text-white">
-              AGILA CATALOG
-            </p>
-          </div>
+        <div className="relative">
+          <BrandLogo />
         </div>
 
         <div className="relative mt-10 hidden tablet:block">

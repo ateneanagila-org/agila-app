@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import {
   ChevronDownIcon,
   ExternalLinkIcon,
@@ -56,13 +57,9 @@ export function CatalogScreen() {
   );
 
   const searchedCats = search
-    ? filteredCats.filter((cat) => {
-        const q = search.toLowerCase();
-        return (
-          cat.name?.toLowerCase().includes(q) ||
-          cat.color?.toLowerCase().includes(q)
-        );
-      })
+    ? filteredCats.filter((cat) =>
+        cat.name?.toLowerCase().includes(search.toLowerCase()),
+      )
     : filteredCats;
 
   const fetchCats = useCallback(async () => {
@@ -110,35 +107,39 @@ export function CatalogScreen() {
 
       {/* Search + Filter + Sort — same colors mobile + desktop */}
       <div className="rounded-2xl bg-white p-2 ring-1 ring-brand-dark/8">
-        <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-dark/40" />
             <input
               type="text"
-              placeholder="Search cats by name or color"
+              placeholder="Search by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={openFilterDialog}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
-            >
+          <button
+            type="button"
+            onClick={openFilterDialog}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90 tablet:gap-1.5 tablet:px-4 tablet:text-sm"
+          >
+            {activeFilterCount > 0
+              ? <span className="tablet:hidden">{activeFilterCount}</span>
+              : null}
+            <SlidersHorizontal className="h-4 w-4 tablet:hidden" />
+            <span className="hidden tablet:inline">
               Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={openSortDialog}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 tablet:flex-none"
-            >
-              Sort by
-              <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
+            </span>
+            <ChevronDownIcon className="hidden h-3.5 w-3.5 tablet:block" />
+          </button>
+          <button
+            type="button"
+            onClick={openSortDialog}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90 tablet:gap-1.5 tablet:px-4 tablet:text-sm"
+          >
+            Sort
+            <ChevronDownIcon className="h-3 w-3 tablet:h-3.5 tablet:w-3.5" />
+          </button>
         </div>
       </div>
 

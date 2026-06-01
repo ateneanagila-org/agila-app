@@ -206,7 +206,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
       <div className="hidden h-dvh w-full tablet:flex">
         <aside className="flex w-60 flex-col bg-brand-dark px-5 py-6">
           <div className="px-1">
-            <BrandLogo variant="boxed" />
+            <BrandLogo />
           </div>
 
           <nav className="mt-8 flex-1">

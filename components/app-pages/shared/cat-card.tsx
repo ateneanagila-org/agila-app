@@ -188,31 +188,31 @@ export function CatCard({
             </span>
           ) : null}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1 px-3 pb-2.5 pt-0.5 pl-3.5">
-          <div className="flex items-start justify-between gap-1.5">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <h3 className="font-heading text-base font-bold leading-tight tracking-tight text-brand-dark line-clamp-2">
-                  {cat.name || "Unnamed"}
-                </h3>
-                {sex ? (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-green/15 px-1 text-[10px] font-bold text-brand-green">
-                    {sex}
-                  </span>
-                ) : null}
+        <div className="flex min-w-0 flex-1 flex-col justify-between px-3 pb-2.5 pt-1 pl-3.5">
+          <div>
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <h3 className="truncate font-heading text-base font-bold leading-tight tracking-tight text-brand-dark">
+                    {cat.name || "Unnamed"}
+                  </h3>
+                  {sex ? (
+                    <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-brand-green/15 px-1 text-[10px] font-bold text-brand-green">
+                      {sex}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-brand-dark/60">
+                  {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
+                </p>
               </div>
-              <p className="mt-0.5 text-[11px] font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
-              </p>
+              {action !== "none" ? <ActionAffordance type={action} /> : null}
             </div>
-            {action !== "none" ? (
-              <ActionAffordance type={action} />
+            {extraChips ? (
+              <div className="mt-1 flex flex-wrap gap-1">{extraChips}</div>
             ) : null}
           </div>
-          {extraChips ? (
-            <div className="flex flex-wrap gap-1">{extraChips}</div>
-          ) : null}
-          <p className="mt-0.5 flex min-w-0 items-baseline gap-1 text-[10px]">
+          <p className="flex min-w-0 items-baseline gap-1 text-[10px]">
             <span className="shrink-0 font-semibold uppercase tracking-wider text-brand-green/80">
               Region
             </span>
