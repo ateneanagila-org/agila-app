@@ -192,7 +192,7 @@ export function CatCard({
           <div className="flex items-start justify-between gap-1.5">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
-                <h3 className="font-heading text-base font-bold leading-tight tracking-tight text-brand-dark truncate">
+                <h3 className="font-heading text-base font-bold leading-tight tracking-tight text-brand-dark line-clamp-2">
                   {cat.name || "Unnamed"}
                 </h3>
                 {sex ? (
