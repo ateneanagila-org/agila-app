@@ -16,7 +16,12 @@ import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import * as catsRepo from "@/lib/repo/cats.repo";
 import * as regionsRepo from "@/lib/repo/regions.repo";
 import { isSyncFrozen } from "./system.service";
-import { statusSuffix, nextCatalogId, parseCatalogId, catalogDisplay } from "./catalog.service";
+import {
+  statusSuffix,
+  nextCatalogId,
+  parseCatalogId,
+  catalogDisplay,
+} from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -144,7 +149,11 @@ export function mapCatToSheetRow(
     cat.color ?? "", // 3  (D)
     cat.age ?? "", // 4  (E)
     cat.sex ?? "???", // 5  (F)
-    health?.is_neutered === true ? "YES" : health?.is_neutered === false ? "NO" : "???", // 6  (G)
+    health?.is_neutered === true
+      ? "YES"
+      : health?.is_neutered === false
+        ? "NO"
+        : "???", // 6  (G)
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
@@ -184,7 +193,11 @@ export function mapUnknownCatToSheetRow(
     cat.color ?? "", // 3  (D)
     cat.age ?? "", // 4  (E)
     cat.sex ?? "???", // 5  (F)
-    health?.is_neutered === true ? "YES" : health?.is_neutered === false ? "NO" : "???", // 6  (G)
+    health?.is_neutered === true
+      ? "YES"
+      : health?.is_neutered === false
+        ? "NO"
+        : "???", // 6  (G)
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
@@ -326,7 +339,12 @@ export async function syncAndCompactRegion(regionId: string) {
           const newPayload =
             region.name === "UNKNOWN"
               ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
-              : mapCatToSheetRow(cat, health ?? null, interventionsList, catalogDisplay);
+              : mapCatToSheetRow(
+                  cat,
+                  health ?? null,
+                  interventionsList,
+                  catalogDisplay,
+                );
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
           // Update existing row — recompute col A to keep the number but refresh the status suffix
@@ -502,7 +520,9 @@ function sortRegionsByTabOrder(
   return sorted;
 }
 
-export async function generateForRiSheet(snapshot: Map<string, SheetRow[]>): Promise<void> {
+export async function generateForRiSheet(
+  snapshot: Map<string, SheetRow[]>,
+): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
@@ -623,7 +643,9 @@ export async function generateForRiSheet(snapshot: Map<string, SheetRow[]>): Pro
  * 6 columns: Healthy catalog_id, status, Sick catalog_id, status, Injured catalog_id, status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
-export async function generateForFaSheet(snapshot: Map<string, SheetRow[]>): Promise<void> {
+export async function generateForFaSheet(
+  snapshot: Map<string, SheetRow[]>,
+): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 

@@ -28,7 +28,8 @@ export const metadata: Metadata = {
     template: "%s | AGILA CATalog",
     default: "AGILA CATalog",
   },
-  description: "AGILA's cat census and management platform for Ateneo de Manila University.",
+  description:
+    "AGILA's cat census and management platform for Ateneo de Manila University.",
 };
 
 export default function RootLayout({
@@ -42,7 +43,10 @@ export default function RootLayout({
         className={`${gantari.variable} ${aveton.variable} ${sfcLaPura.variable} antialiased`}
       >
         {children}
-        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

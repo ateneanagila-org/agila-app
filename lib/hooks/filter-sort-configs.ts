@@ -20,8 +20,16 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
-    { label: "Sociability", key: "sociability", options: [...CAT_SOCIABILITY_VALUES, "Unknown"] },
-    { label: "Status", key: "cat_status", options: [...CAT_STATUS_VALUES, "Unknown"] },
+    {
+      label: "Sociability",
+      key: "sociability",
+      options: [...CAT_SOCIABILITY_VALUES, "Unknown"],
+    },
+    {
+      label: "Status",
+      key: "cat_status",
+      options: [...CAT_STATUS_VALUES, "Unknown"],
+    },
     {
       label: "Medical Condition",
       key: "condition",
@@ -62,9 +70,7 @@ export const SESSIONS_CONFIG: FilterSortConfig = {
 };
 
 export const USERS_CONFIG: FilterSortConfig = {
-  filters: [
-    { label: "Role", key: "auth_role", options: AUTH_ROLE_VALUES },
-  ],
+  filters: [{ label: "Role", key: "auth_role", options: AUTH_ROLE_VALUES }],
   sortOptions: [
     { label: "Name", key: "name" },
     { label: "Role", key: "auth_role" },
@@ -87,7 +93,11 @@ export const SESSIONS_MANAGER_CONFIG: FilterSortConfig = {
   filters: [
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
-    { label: "Condition", key: "condition", options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"] },
+    {
+      label: "Condition",
+      key: "condition",
+      options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"],
+    },
   ],
   sortOptions: [
     { label: "Name", key: "name" },

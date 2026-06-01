@@ -60,29 +60,40 @@ function buildCatConditions(filters: Partial<SelectCat>) {
 
 // CATS
 export const findCatsByIds = (ids: string[]): Promise<SelectCat[]> =>
-  ids.length === 0 ? Promise.resolve([]) : db.select().from(cats).where(inArray(cats.id, ids));
+  ids.length === 0
+    ? Promise.resolve([])
+    : db.select().from(cats).where(inArray(cats.id, ids));
 
-export const findAdoptableCats = (filters: Partial<SelectCat>): Promise<CatWithRegion[]> => {
+export const findAdoptableCats = (
+  filters: Partial<SelectCat>,
+): Promise<CatWithRegion[]> => {
   const conditions = buildCatConditions(filters);
   conditions.push(
-    or(isNull(cats.cat_status), notInArray(cats.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]))!
+    or(
+      isNull(cats.cat_status),
+      notInArray(cats.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]),
+    )!,
   );
-  return db.select({
-    ...catReadColumns,
-    region_name: regionSubquery,
-  })
-  .from(cats)
-  .where(and(...conditions));
+  return db
+    .select({
+      ...catReadColumns,
+      region_name: regionSubquery,
+    })
+    .from(cats)
+    .where(and(...conditions));
 };
 
-export const findCats = (filters: Partial<SelectCat>): Promise<CatWithRegion[]> => {
+export const findCats = (
+  filters: Partial<SelectCat>,
+): Promise<CatWithRegion[]> => {
   const conditions = buildCatConditions(filters);
-  return db.select({
-    ...catReadColumns,
-    region_name: regionSubquery,
-  })
-  .from(cats)
-  .where(conditions.length > 0 ? and(...conditions) : undefined);
+  return db
+    .select({
+      ...catReadColumns,
+      region_name: regionSubquery,
+    })
+    .from(cats)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
 };
 
 export const insertCat = (data: InsertCat, client: DB = db) =>

@@ -6,10 +6,7 @@ import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
 import { createClient } from "@/lib/supabase/client";
 import { CustomSelect } from "@/components/ui/custom-select";
-import {
-  CameraIcon,
-  UploadIcon,
-} from "@/components/app-pages/shared/icons";
+import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
 import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
 import {
   createPositionedPhotoFile,
@@ -66,7 +63,12 @@ function DropdownField({
     <div>
       <label className="text-sm font-semibold text-brand-orange">{label}</label>
       <div className="mt-1.5">
-        <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+        <CustomSelect
+          options={options}
+          value={value}
+          onChange={onChange}
+          variant="white"
+        />
       </div>
     </div>
   );
@@ -100,12 +102,22 @@ export function CatEntryForm({
   sessionId,
   initialCat,
 }: CatEntryFormProps) {
-  const [color, setColor] = useState(initialCat?.color ?? (initialCat ? "Unknown" : ""));
-  const [age, setAge] = useState(initialCat?.age ?? (initialCat ? "Unknown" : ""));
-  const [sex, setSex] = useState(initialCat?.sex ?? (initialCat ? "Unknown" : ""));
-  const [sociability, setSociability] = useState(initialCat?.sociability ?? (initialCat ? "Unknown" : ""));
+  const [color, setColor] = useState(
+    initialCat?.color ?? (initialCat ? "Unknown" : ""),
+  );
+  const [age, setAge] = useState(
+    initialCat?.age ?? (initialCat ? "Unknown" : ""),
+  );
+  const [sex, setSex] = useState(
+    initialCat?.sex ?? (initialCat ? "Unknown" : ""),
+  );
+  const [sociability, setSociability] = useState(
+    initialCat?.sociability ?? (initialCat ? "Unknown" : ""),
+  );
   const [condition, setCondition] = useState(initialCat ? "Unknown" : "");
-  const [spotLastSeen, setSpotLastSeen] = useState(initialCat?.spot_last_seen ?? "");
+  const [spotLastSeen, setSpotLastSeen] = useState(
+    initialCat?.spot_last_seen ?? "",
+  );
   const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
   const [notes, setNotes] = useState(initialCat?.notes ?? "");
   const [name, setName] = useState(initialCat?.name ?? "");
@@ -121,10 +133,14 @@ export function CatEntryForm({
     DEFAULT_PHOTO_POSITION,
   );
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
-  const existingPhotoUrlRef = useRef<string | null>(initialCat?.photo_url ?? null);
+  const existingPhotoUrlRef = useRef<string | null>(
+    initialCat?.photo_url ?? null,
+  );
   const [removedExisting, setRemovedExisting] = useState(false);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
-  const [savedCatId, setSavedCatId] = useState<string | null>(initialCat?.id ?? null);
+  const [savedCatId, setSavedCatId] = useState<string | null>(
+    initialCat?.id ?? null,
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -178,7 +194,6 @@ export function CatEntryForm({
     loadRegions();
   }, []);
 
-
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
     if (!effectiveRegionId) {
@@ -203,11 +218,17 @@ export function CatEntryForm({
           notes: notes || undefined,
           name: name || undefined,
         });
-        if (result?.serverError) { setError(result.serverError); return; }
+        if (result?.serverError) {
+          setError(result.serverError);
+          return;
+        }
         if (photoFile) {
           try {
             const fd = new FormData();
-            const uploadFile = await createPositionedPhotoFile(photoFile, photoPosition);
+            const uploadFile = await createPositionedPhotoFile(
+              photoFile,
+              photoPosition,
+            );
             fd.append("file", uploadFile);
             await uploadCatPhoto(initialCat.id, fd);
           } catch (uploadErr) {
@@ -275,7 +296,10 @@ export function CatEntryForm({
       if (photoFile && newCatId) {
         try {
           const fd = new FormData();
-          const uploadFile = await createPositionedPhotoFile(photoFile, photoPosition);
+          const uploadFile = await createPositionedPhotoFile(
+            photoFile,
+            photoPosition,
+          );
           fd.append("file", uploadFile);
           await uploadCatPhoto(newCatId, fd);
         } catch (uploadErr) {
@@ -320,7 +344,9 @@ export function CatEntryForm({
 
   const showPhoto =
     photoPreview ??
-    (existingPhotoUrlRef.current && !removedExisting ? existingPhotoUrlRef.current : null);
+    (existingPhotoUrlRef.current && !removedExisting
+      ? existingPhotoUrlRef.current
+      : null);
 
   const handlePhotoSelect = useCallback((file: File | null) => {
     if (!file) return;
@@ -376,7 +402,9 @@ export function CatEntryForm({
         {/* Scrollable fields */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
           <div>
-            <label className="text-sm font-semibold text-brand-orange">Photo</label>
+            <label className="text-sm font-semibold text-brand-orange">
+              Photo
+            </label>
             <div className="mt-1.5">
               {photoPreview ? (
                 <div className="space-y-2">
@@ -489,11 +517,16 @@ export function CatEntryForm({
           <TextField label="Name (optional)" value={name} onChange={setName} />
           {!regionId ? (
             <div>
-              <label className="text-sm font-semibold text-brand-orange">Location</label>
+              <label className="text-sm font-semibold text-brand-orange">
+                Location
+              </label>
               <div className="mt-1.5">
                 <CustomSelect
                   options={regionOptions.map((r) => r.name)}
-                  value={regionOptions.find((r) => r.id === selectedRegion)?.name ?? ""}
+                  value={
+                    regionOptions.find((r) => r.id === selectedRegion)?.name ??
+                    ""
+                  }
                   onChange={(name) => {
                     const found = regionOptions.find((r) => r.name === name);
                     if (found) setSelectedRegion(found.id);
@@ -534,14 +567,20 @@ export function CatEntryForm({
             value={condition}
             onChange={setCondition}
           />
-          <TextField label="Spot Last Seen" value={spotLastSeen} onChange={setSpotLastSeen} />
+          <TextField
+            label="Spot Last Seen"
+            value={spotLastSeen}
+            onChange={setSpotLastSeen}
+          />
           <TextField
             label="Caretaker"
             value={caretaker}
             onChange={setCaretaker}
           />
           <div>
-            <label className="text-sm font-semibold text-brand-orange">Notes</label>
+            <label className="text-sm font-semibold text-brand-orange">
+              Notes
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

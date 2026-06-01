@@ -12,10 +12,7 @@ import {
   DatabaseSortByDialog,
   NewInterventionDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import {
-  ChevronDownIcon,
-  PlusIcon,
-} from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, PlusIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
@@ -137,7 +134,7 @@ export function DatabaseInterventionsScreen() {
           id: interventionId,
           status: newStatus as InterventionStatus,
         });
-          await refresh();
+        await refresh();
       } catch (err) {
         console.error("Failed to update status:", err);
       }
@@ -351,7 +348,10 @@ export function DatabaseInterventionsScreen() {
       />
       <NewInterventionDialog
         open={showIntervention}
-        onClose={() => { setShowIntervention(false); setError(null); }}
+        onClose={() => {
+          setShowIntervention(false);
+          setError(null);
+        }}
         type={newType}
         onTypeChange={setNewType}
         notes={newNotes}

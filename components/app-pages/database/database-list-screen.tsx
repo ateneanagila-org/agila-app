@@ -92,7 +92,9 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
       ]);
 
       const healthRecords =
-        healthResult.status === "fulfilled" ? healthResult.value?.data : undefined;
+        healthResult.status === "fulfilled"
+          ? healthResult.value?.data
+          : undefined;
       const interventions =
         interventionsResult.status === "fulfilled"
           ? interventionsResult.value?.data
@@ -129,7 +131,9 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
       );
       setCatToDelete(null);
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Failed to delete cat.");
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete cat.",
+      );
     } finally {
       setDeleting(false);
     }
@@ -251,12 +255,19 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
             {(filteredCats) => (
               <div className="mt-4 grid grid-cols-5 gap-3">
                 {loading ? (
-                  <div className="col-span-full"><LoadingIndicator /></div>
+                  <div className="col-span-full">
+                    <LoadingIndicator />
+                  </div>
                 ) : filteredCats.length === 0 ? (
-                  <div className="col-span-full"><EmptyState /></div>
+                  <div className="col-span-full">
+                    <EmptyState />
+                  </div>
                 ) : (
                   filteredCats.map((cat) => (
-                    <div key={`desktop-${cat.id}`} className="group/cat-card relative">
+                    <div
+                      key={`desktop-${cat.id}`}
+                      className="group/cat-card relative"
+                    >
                       <CatCard
                         cat={cat}
                         region_name={cat.region_name}

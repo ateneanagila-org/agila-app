@@ -6,7 +6,10 @@ import {
   DatabaseFiltersDialog,
   DatabaseSortByDialog,
 } from "@/components/app-pages/database/database-dialogs";
-import { ChevronDownIcon, SearchIcon } from "@/components/app-pages/shared/icons";
+import {
+  ChevronDownIcon,
+  SearchIcon,
+} from "@/components/app-pages/shared/icons";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import type { FilterSortConfig } from "@/lib/hooks/use-filter-sort";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";

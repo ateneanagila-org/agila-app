@@ -283,9 +283,10 @@ function SortDialogBody({
   onClose,
   onApply,
 }: Omit<DatabaseSortByDialogProps, "open">) {
-  const [pending, setPending] = useState<{ key: string | null; order: "asc" | "desc" }>(
-    () => ({ key: activeKey, order }),
-  );
+  const [pending, setPending] = useState<{
+    key: string | null;
+    order: "asc" | "desc";
+  }>(() => ({ key: activeKey, order }));
 
   return (
     <>
@@ -296,7 +297,12 @@ function SortDialogBody({
           <button
             key={opt.key}
             type="button"
-            onClick={() => setPending((p) => ({ ...p, key: p.key === opt.key ? null : opt.key }))}
+            onClick={() =>
+              setPending((p) => ({
+                ...p,
+                key: p.key === opt.key ? null : opt.key,
+              }))
+            }
             className={`rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
               pending.key === opt.key
                 ? "border-brand-green bg-brand-green text-white"

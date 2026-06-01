@@ -32,8 +32,12 @@ export function useFilterSort<T>(
   items: T[],
   config: FilterSortConfig,
   getFilterValue: (item: T, key: string) => FilterValue,
-  getSortValue: (item: T, key: string) => string | number | Date | null | undefined,
+  getSortValue: (
+    item: T,
+    key: string,
+  ) => string | number | Date | null | undefined,
   initialFilters?: FilterState,
+
   shouldPinLast?: (item: T) => boolean,
 ) {
   const [state, setState] = useState<State>({

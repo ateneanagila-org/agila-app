@@ -73,7 +73,9 @@ export async function syncAllPendingRegions() {
   const summariesNeedRegen =
     reverseResult.totalImported > 0 || pendingTasks.length > 0;
   if (!summariesNeedRegen) {
-    console.log("[SummarySheets] No catalog changes this tick — skipping regen.");
+    console.log(
+      "[SummarySheets] No catalog changes this tick — skipping regen.",
+    );
     return;
   }
 

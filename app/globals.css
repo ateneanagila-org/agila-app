@@ -192,4 +192,8 @@
     font-family: var(--font-sfc-la-pura), sans-serif;
     letter-spacing: 0;
   }
+
+  .font-brand {
+    font-family: var(--font-sfc-la-pura), sans-serif;
+  }
 }

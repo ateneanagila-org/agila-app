@@ -61,7 +61,8 @@ async function reverseSyncRegionInternal(
     try {
       sheetRows = await readSheetState(regionId);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to read sheet";
+      const msg =
+        error instanceof Error ? error.message : "Failed to read sheet";
       await db.insert(syncAuditLog).values({
         regionId,
         direction: "REVERSE",
@@ -122,7 +123,17 @@ async function reverseSyncRegionInternal(
         }
 
         await db.transaction(async (tx) => {
-          const { id: _id, condition, is_neutered, neuter_date, vaccination_date, paws_id, tnvr_signal, vet_signal, ...catFields } = validation.data;
+          const {
+            id: _id,
+            condition,
+            is_neutered,
+            neuter_date,
+            vaccination_date,
+            paws_id,
+            tnvr_signal,
+            vet_signal,
+            ...catFields
+          } = validation.data;
           const [newCat] = await tx
             .insert(cats)
             .values({
@@ -134,13 +145,21 @@ async function reverseSyncRegionInternal(
             .returning();
 
           const parsedNeuterDate = neuter_date ? new Date(neuter_date) : null;
-          const parsedVaccinationDate = vaccination_date ? new Date(vaccination_date) : null;
+          const parsedVaccinationDate = vaccination_date
+            ? new Date(vaccination_date)
+            : null;
           await tx.insert(catHealthRecords).values({
             cat_id: newCat.id,
             condition,
             is_neutered,
-            neuter_date: parsedNeuterDate && !isNaN(parsedNeuterDate.getTime()) ? parsedNeuterDate : null,
-            vaccination_date: parsedVaccinationDate && !isNaN(parsedVaccinationDate.getTime()) ? parsedVaccinationDate : null,
+            neuter_date:
+              parsedNeuterDate && !isNaN(parsedNeuterDate.getTime())
+                ? parsedNeuterDate
+                : null,
+            vaccination_date:
+              parsedVaccinationDate && !isNaN(parsedVaccinationDate.getTime())
+                ? parsedVaccinationDate
+                : null,
           });
 
           for (const [signal, type] of [
@@ -148,7 +167,9 @@ async function reverseSyncRegionInternal(
             [vet_signal, "Veterinarian"],
           ] as const) {
             if (signal === "will_have") {
-              await tx.insert(interventions).values({ cat_id: newCat.id, type, status: "Pending" });
+              await tx
+                .insert(interventions)
+                .values({ cat_id: newCat.id, type, status: "Pending" });
             }
           }
 
@@ -209,13 +230,24 @@ async function reverseSyncRegionInternal(
   // Pass positional entries to skip the col-Y re-read.
   try {
     const rowByEntity = new Map(
-      sheetRows.map((r) => [r.entityId, { rowIndex: r.rowIndex, expectedTimestamp: r.lastEditedAt }]),
+      sheetRows.map((r) => [
+        r.entityId,
+        { rowIndex: r.rowIndex, expectedTimestamp: r.lastEditedAt },
+      ]),
     );
-    const positionalEntries: Array<{ entityId: string; rowIndex: number; expectedTimestamp: string | null }> = [];
+    const positionalEntries: Array<{
+      entityId: string;
+      rowIndex: number;
+      expectedTimestamp: string | null;
+    }> = [];
     for (const entityId of importedIds) {
       const entry = rowByEntity.get(entityId);
       if (entry !== undefined) {
-        positionalEntries.push({ entityId, rowIndex: entry.rowIndex, expectedTimestamp: entry.expectedTimestamp });
+        positionalEntries.push({
+          entityId,
+          rowIndex: entry.rowIndex,
+          expectedTimestamp: entry.expectedTimestamp,
+        });
       }
     }
     if (positionalEntries.length > 0) {
@@ -247,7 +279,11 @@ async function reverseSyncRegionInternal(
 
 export async function reverseSyncRegionsFromState(
   sheetStates: Map<string, SheetRow[]>,
-): Promise<{ regionsProcessed: number; totalImported: number; totalErrors: number }> {
+): Promise<{
+  regionsProcessed: number;
+  totalImported: number;
+  totalErrors: number;
+}> {
   const frozen = await isSyncFrozen();
   if (frozen) {
     console.log("[ReverseSync] Frozen — skipping all regions");
@@ -300,7 +336,8 @@ export async function fullReverseSync(force = false): Promise<{
 
   let totalImported = 0;
   let totalErrors = 0;
-  const allErrors: Array<{ region: string; entityId: string; error: string }> = [];
+  const allErrors: Array<{ region: string; entityId: string; error: string }> =
+    [];
 
   for (const region of allRegions) {
     const rows = sheetStates.get(region.id) ?? [];
@@ -383,10 +420,16 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
       if (signal === "will_have") {
         const existing = await tx.query.interventions.findFirst({
           where: (i, { eq, and }) =>
-            and(eq(i.cat_id, data.id), eq(i.type, type), inArray(i.status, ["Pending", "Finished"])),
+            and(
+              eq(i.cat_id, data.id),
+              eq(i.type, type),
+              inArray(i.status, ["Pending", "Finished"]),
+            ),
         });
         if (!existing) {
-          await tx.insert(interventions).values({ cat_id: data.id, type, status: "Pending" });
+          await tx
+            .insert(interventions)
+            .values({ cat_id: data.id, type, status: "Pending" });
         }
       } else if (signal === "will_not_have") {
         await tx
