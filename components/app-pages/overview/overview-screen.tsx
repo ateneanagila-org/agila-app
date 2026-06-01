@@ -9,6 +9,7 @@ import {
   VerticalBarChart,
 } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
+import { computeCensusStats } from "@/lib/stats/census-stats";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
 const OVERALL_PERIODS = ["Current", "Month", "Year"];
@@ -32,74 +33,6 @@ function formatLatestUpdate(cats: SelectCat[]) {
   return `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`;
 }
 
-function computeStats(
-  cats: SelectCat[],
-  healthRecords: SelectCatHealthRecord[],
-) {
-  const hrByCatId = new Map<string, SelectCatHealthRecord>();
-  for (const hr of healthRecords) {
-    hrByCatId.set(hr.cat_id, hr);
-  }
-
-  const originalCats = cats.filter((c) => c.entry_status === "Original");
-
-  const total = originalCats.length;
-  let neutered = 0;
-  let domesticated = 0;
-  let tame = 0;
-  let feral = 0;
-  let sick = 0;
-  let injured = 0;
-  let adoptable = 0;
-  let unnamed = 0;
-  let fostered = 0;
-  let adopted = 0;
-  let mia = 0;
-  let deceased = 0;
-
-  for (const cat of originalCats) {
-    const hr = hrByCatId.get(cat.id);
-    if (hr?.neuter_date) neutered++;
-    if (cat.sociability === "Domesticated") domesticated++;
-    else if (cat.sociability === "Tame") tame++;
-    else if (cat.sociability === "Feral") feral++;
-    if (hr?.condition === "Sick" || hr?.condition === "Sick and Injured")
-      sick++;
-    if (hr?.condition === "Injured" || hr?.condition === "Sick and Injured")
-      injured++;
-    if (cat.is_adoptable) adoptable++;
-    if (!cat.name || cat.name.trim() === "") unnamed++;
-    if (cat.cat_status === "Fostered") fostered++;
-    if (cat.cat_status === "Adopted") adopted++;
-    if (cat.cat_status === "MIA") mia++;
-    if (cat.cat_status === "Deceased") deceased++;
-  }
-
-  const unneutered = total - neutered;
-  const tnvrPct = total > 0 ? Math.round((neutered / total) * 100) : 0;
-  const offCensusTotal = fostered + adopted + mia + deceased;
-  const overallTotal = total + offCensusTotal;
-
-  return {
-    total,
-    neutered,
-    unneutered,
-    tnvrPct,
-    domesticated,
-    tame,
-    feral,
-    sick,
-    injured,
-    adoptable,
-    unnamed,
-    fostered,
-    adopted,
-    mia,
-    deceased,
-    offCensusTotal,
-    overallTotal,
-  };
-}
 
 export function OverviewScreen({
   initialCats,
@@ -126,7 +59,7 @@ export function OverviewScreen({
   }, [allCats, location]);
 
   const stats = useMemo(
-    () => computeStats(filteredCats, allHealthRecords),
+    () => computeCensusStats(filteredCats, allHealthRecords),
     [filteredCats, allHealthRecords],
   );
 
@@ -138,7 +71,7 @@ export function OverviewScreen({
   }, [allCats, dashboardMode]);
 
   const desktopStats = useMemo(
-    () => computeStats(desktopCats, allHealthRecords),
+    () => computeCensusStats(desktopCats, allHealthRecords),
     [desktopCats, allHealthRecords],
   );
 
