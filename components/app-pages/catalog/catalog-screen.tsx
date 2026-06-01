@@ -87,12 +87,11 @@ export function CatalogScreen() {
           Adopt &middot; Foster
         </p>
         <h1 className="mt-2 font-heading text-4xl font-bold leading-[1.05] tracking-tight text-brand-dark tablet:text-6xl">
-          Find a friend
-          <br />
-          for life.
+          Find a friend for life.
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-brand-dark/65 tablet:text-base">
-          Every cat below is available for adoption or fostering. Give a rescued cat a second chance at a loving home.
+          Every cat below is available for adoption or fostering. Give a rescued
+          cat a second chance at a loving home.
         </p>
       </div>
 

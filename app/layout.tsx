@@ -1,12 +1,24 @@
 import type { Metadata } from "next";
 import { Gantari } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-// Body font — Google Fonts
 const gantari = Gantari({
   variable: "--font-gantari",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const aveton = localFont({
+  src: "../public/fonts/AvetonRegular-MARon.ttf",
+  variable: "--font-aveton",
+  display: "swap",
+});
+
+const sfcLaPura = localFont({
+  src: "../public/fonts/SFC La Pura.ttf",
+  variable: "--font-sfc-la-pura",
   display: "swap",
 });
 
@@ -27,7 +39,7 @@ export default function RootLayout({
     <>
       <script src="https://accounts.google.com/gsi/client" async></script>
       <html lang="en">
-        <body className={`${gantari.variable} antialiased`}>{children}</body>
+        <body className={`${gantari.variable} ${aveton.variable} ${sfcLaPura.variable} antialiased`}>{children}</body>
       </html>
     </>
   );

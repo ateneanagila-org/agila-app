@@ -9,9 +9,19 @@ export function statusSuffix(catStatus: string | null | undefined): string {
 }
 
 export function parseCatalogId(colA: string): number | null {
-  const stripped = colA.replace(/[a-zA-Z]+$/, "").trim();
-  const n = parseInt(stripped, 10);
+  const match = colA.match(/\d+/);
+  if (!match) return null;
+  const n = parseInt(match[0], 10);
   return isNaN(n) ? null : n;
+}
+
+export function catalogDisplay(
+  lookup: Map<string, string>,
+  catId: string,
+  catStatus: string | null | undefined,
+): string {
+  const base = parseCatalogId(lookup.get(catId) ?? "");
+  return base !== null ? `${base}${statusSuffix(catStatus)}` : "";
 }
 
 export function nextCatalogId(existingColAValues: string[]): number {

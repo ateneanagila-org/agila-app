@@ -22,7 +22,6 @@ export const createCatSchema = createInsertSchema(cats)
     last_updated_at: true,
     merged_into_id: true,
     entry_status: true,
-    catalog_id: true,
     paws_id: true,
   })
   .extend({
@@ -32,7 +31,6 @@ export const createCatSchema = createInsertSchema(cats)
 export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
   .merge(editCatHealthRecordSchema.omit({ cat_id: true }))
-  .omit({ catalog_id: true })
   .partial()
   .required({ id: true });
 export const removeCatSchema = z.object({

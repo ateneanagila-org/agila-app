@@ -7,6 +7,7 @@ import {
   CatStatusEnum,
   CatHealthRecordConditionEnum,
 } from "@/lib/db/enums";
+import { catHealthRecordsSchema } from "@/lib/validation/cats";
 
 /**
  * Validates a row from the GSheet before importing into the DB.
@@ -39,6 +40,7 @@ export const sheetRowSchema = z.object({
   notes: z.string().nullable(),
   is_adoptable: z.boolean(),
   condition: CatHealthRecordConditionEnum.nullable(),
+  is_neutered: catHealthRecordsSchema.shape.is_neutered,
   neuter_date: z.string().nullable(),
   vaccination_date: z.string().nullable(),
   paws_id: z.string().nullable().optional(),
@@ -91,6 +93,11 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const validAges = ["Neonatal", "Kitten", "Juvenile", "Adult"];
   const age = validAges.includes(rawAge) ? rawAge : null;
 
+  // Col G: YES/NO/??? — ??? means explicitly unknown, blank also → null.
+  const rawNeutered = String(row[6] ?? "").toUpperCase();
+  const is_neutered =
+    rawNeutered === "YES" ? true : rawNeutered === "NO" ? false : null;
+
   const neuter_date = row[15] && row[15] !== "N/A" ? row[15] : null;
   const vaccination_date = row[16] && row[16] !== "N/A" ? row[16] : null;
 
@@ -121,6 +128,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
     notes,
     is_adoptable,
     condition,
+    is_neutered,
     neuter_date,
     vaccination_date,
     tnvr_signal: parseInterventionSignal(rawTnvr),
@@ -158,6 +166,11 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
 
   const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
 
+  // Col G: YES/NO/??? — UNKNOWN sheet uses same convention as region sheets.
+  const rawNeutered = String(row[6] ?? "").toUpperCase();
+  const is_neutered =
+    rawNeutered === "YES" ? true : rawNeutered === "NO" ? false : null;
+
   const rawColor = String(row[3] ?? "").trim();
   const validColors = [
     "Black", "White", "Black and White", "Calico", "Tortie", "Torbie",
@@ -189,6 +202,7 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
     notes: null,
     is_adoptable,
     condition,
+    is_neutered,
     neuter_date,
     vaccination_date,
     tnvr_signal: "ignore" as const,

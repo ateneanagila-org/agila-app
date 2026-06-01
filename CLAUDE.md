@@ -19,8 +19,8 @@ Don't run `pnpm dev` to verify work. Trust the code.
 Super basic. Just know:
 
 - Types live in `lib/types/` — shapes only, no logic
-- Services in `lib/services/` — data fetching, API calls
-- Repo/state in `lib/repo/` — state management
+- Services in `lib/services/` — orchestration, business logic; **must go through `lib/repo/` for DB access, never call `db.*` directly**
+- Repo/state in `lib/repo/` — all direct DB queries live here; add new query functions here as needed
 
 See files themselves for specifics. Don't need schema details. When pushing new schema updates, do "pnpm drizzle-kit push", rather than generating and migrating.
 

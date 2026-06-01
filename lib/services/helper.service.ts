@@ -9,13 +9,19 @@ import {
   gsheetSyncQueue,
   regions,
   syncAuditLog,
-  cats,
   sessions,
   sessionCats,
 } from "@/lib/db/schema";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
+import * as catsRepo from "@/lib/repo/cats.repo";
+import * as regionsRepo from "@/lib/repo/regions.repo";
 import { isSyncFrozen } from "./system.service";
-import { statusSuffix, nextCatalogId } from "./catalog.service";
+import {
+  statusSuffix,
+  nextCatalogId,
+  parseCatalogId,
+  catalogDisplay,
+} from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -115,12 +121,14 @@ function getInterventionDisplayStatus(
 }
 /**
  * Maps DB records to a 22-element array (cols A–V, indices 0–21).
- * Col A = catalog_id + status suffix. UUID is written to col Y separately.
+ * Col A = catalog number + status suffix (provided by caller; sheet is source of truth).
+ * UUID is written to col Y separately.
  */
 export function mapCatToSheetRow(
   cat: SelectCat,
   health: SelectCatHealthRecord | null,
   interventions: SelectIntervention[] = [],
+  catalogDisplay = "",
 ): string[] {
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
@@ -134,10 +142,6 @@ export function mapCatToSheetRow(
     else forFaStatus = "Healthy & Adoptable";
   }
 
-  const catalogDisplay = cat.catalog_id
-    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
-    : "";
-
   return [
     catalogDisplay, // 0  (A) Catalog ID
     cat.photo_url ? `=IMAGE("${cat.photo_url.replace(/"/g, "")}")` : "", // 1  (B)
@@ -145,7 +149,11 @@ export function mapCatToSheetRow(
     cat.color ?? "", // 3  (D)
     cat.age ?? "", // 4  (E)
     cat.sex ?? "???", // 5  (F)
-    health?.neuter_date ? "YES" : "NO", // 6  (G)
+    health?.is_neutered === true
+      ? "YES"
+      : health?.is_neutered === false
+        ? "NO"
+        : "???", // 6  (G)
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
@@ -174,11 +182,9 @@ export function mapCatToSheetRow(
 export function mapUnknownCatToSheetRow(
   cat: SelectCat,
   health: SelectCatHealthRecord | null,
+  catalogDisplay = "",
 ): string[] {
   const condition = (health?.condition ?? "") as string;
-  const catalogDisplay = cat.catalog_id
-    ? `${cat.catalog_id}${statusSuffix(cat.cat_status)}`
-    : "";
 
   return [
     catalogDisplay, // 0  (A)
@@ -187,7 +193,11 @@ export function mapUnknownCatToSheetRow(
     cat.color ?? "", // 3  (D)
     cat.age ?? "", // 4  (E)
     cat.sex ?? "???", // 5  (F)
-    health?.neuter_date ? "YES" : "NO", // 6  (G)
+    health?.is_neutered === true
+      ? "YES"
+      : health?.is_neutered === false
+        ? "NO"
+        : "???", // 6  (G)
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
@@ -231,6 +241,9 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
   if (!region) return;
 
+  // catalogDisplay defaults to "" — safe because syncAndCompactRegion's UPDATE
+  // branch reads col A from the existing sheet row and recomputes the suffix,
+  // so the payload value is never written verbatim for updates.
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
@@ -308,41 +321,42 @@ export async function syncAndCompactRegion(regionId: string) {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
         if (idx === -1) {
-          // New cat — assign catalog_id if not yet set
+          // New cat — assign catalog number from sheet (not stored in DB)
           const cat = await db.query.cats.findFirst({
             where: (c, { eq }) => eq(c.id, task.entityId),
           });
-          if (cat && !cat.catalog_id) {
-            const colAValues = currentRows.map((r) => r[0] ?? "");
-            const newId = String(nextCatalogId(colAValues));
-            await db
-              .update(cats)
-              .set({ catalog_id: newId })
-              .where(eq(cats.id, cat.id));
-            const health = await db.query.catHealthRecords.findFirst({
-              where: (h, { eq }) => eq(h.cat_id, cat.id),
-            });
-            const interventionsList = await db.query.interventions.findMany({
-              where: (i, { eq }) => eq(i.cat_id, cat.id),
-              orderBy: (i, { desc }) => [desc(i.requested_at)],
-            });
-            const updatedCat = { ...cat, catalog_id: newId };
-            const newPayload =
-              region.name === "UNKNOWN"
-                ? mapUnknownCatToSheetRow(updatedCat, health ?? null)
-                : mapCatToSheetRow(
-                    updatedCat,
-                    health ?? null,
-                    interventionsList,
-                  );
-            currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
-          } else {
-            // catalog_id already assigned — use task payload, pad to col Y
-            currentRows.push([...taskPayload, "", "", task.entityId]);
-          }
+          if (!cat) continue;
+          const colAValues = currentRows.map((r) => r[0] ?? "");
+          const num = nextCatalogId(colAValues);
+          const catalogDisplay = `${num}${statusSuffix(cat.cat_status)}`;
+          const health = await db.query.catHealthRecords.findFirst({
+            where: (h, { eq }) => eq(h.cat_id, cat.id),
+          });
+          const interventionsList = await db.query.interventions.findMany({
+            where: (i, { eq }) => eq(i.cat_id, cat.id),
+            orderBy: (i, { desc }) => [desc(i.requested_at)],
+          });
+          const newPayload =
+            region.name === "UNKNOWN"
+              ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
+              : mapCatToSheetRow(
+                  cat,
+                  health ?? null,
+                  interventionsList,
+                  catalogDisplay,
+                );
+          currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
-          // Update existing row, preserve col Y UUID
+          // Update existing row — recompute col A to keep the number but refresh the status suffix
+          const existingNum = parseCatalogId(currentRows[idx][0] ?? "");
           const updatedRow = [...taskPayload];
+          if (existingNum !== null && region.name !== "UNKNOWN") {
+            // col L (index 11) = cat_status in standard rows
+            updatedRow[0] = `${existingNum}${statusSuffix(taskPayload[11])}`;
+          } else {
+            // UNKNOWN cats: preserve col A as-is (no status suffix in that layout)
+            updatedRow[0] = currentRows[idx][0] ?? "";
+          }
           updatedRow[24] = task.entityId;
           currentRows[idx] = updatedRow;
         }
@@ -506,7 +520,9 @@ function sortRegionsByTabOrder(
   return sorted;
 }
 
-export async function generateForRiSheet(): Promise<void> {
+export async function generateForRiSheet(
+  snapshot: Map<string, SheetRow[]>,
+): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
@@ -517,6 +533,7 @@ export async function generateForRiSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+  const catalogLookup = buildCatalogLookup(snapshot);
 
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
@@ -552,7 +569,7 @@ export async function generateForRiSheet(): Promise<void> {
           (i) => i.type === "TNVR" && i.status === "Pending",
         ),
       )
-      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+      .map((cat) => catalogDisplay(catalogLookup, cat.id, cat.cat_status));
 
     const vetCats = catsInRegion
       .filter((cat) =>
@@ -560,7 +577,7 @@ export async function generateForRiSheet(): Promise<void> {
           (i) => i.type === "Veterinarian" && i.status === "Pending",
         ),
       )
-      .map((cat) => `${cat.catalog_id ?? ""}${statusSuffix(cat.cat_status)}`);
+      .map((cat) => catalogDisplay(catalogLookup, cat.id, cat.cat_status));
 
     const maxRows = Math.max(tnvrCats.length, vetCats.length);
     const sectionRows =
@@ -626,7 +643,9 @@ export async function generateForRiSheet(): Promise<void> {
  * 6 columns: Healthy catalog_id, status, Sick catalog_id, status, Injured catalog_id, status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
-export async function generateForFaSheet(): Promise<void> {
+export async function generateForFaSheet(
+  snapshot: Map<string, SheetRow[]>,
+): Promise<void> {
   const { glAuth, glSheets } = await connectToSheets();
   const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
 
@@ -637,6 +656,7 @@ export async function generateForFaSheet(): Promise<void> {
 
   const allRegions = await db.query.regions.findMany();
   const sortedRegions = sortRegionsByTabOrder(allRegions, allSheets);
+  const catalogLookup = buildCatalogLookup(snapshot);
 
   const sheetData: string[][] = [];
   const regionHeaderIndices: number[] = [];
@@ -679,7 +699,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? "";
         return !cond.includes("Sick") && !cond.includes("Injured");
       })
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const sick = adoptableCats
       .filter((c) =>
@@ -688,7 +708,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? ""
         ).includes("Sick"),
       )
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const injured = adoptableCats
       .filter((c) =>
@@ -697,7 +717,7 @@ export async function generateForFaSheet(): Promise<void> {
             ?.condition ?? ""
         ).includes("Injured"),
       )
-      .map((c) => `${c.catalog_id ?? ""}${statusSuffix(c.cat_status)}`);
+      .map((c) => catalogDisplay(catalogLookup, c.id, c.cat_status));
 
     const maxRows = Math.max(healthy.length, sick.length, injured.length);
     const sectionRows =
@@ -1123,6 +1143,23 @@ export async function readAllRegionSheetStates(
 }
 
 /**
+ * Builds a uuid → col-A display string map from a snapshot.
+ * Used by summary regen to get catalog numbers without a DB read.
+ */
+export function buildCatalogLookup(
+  snapshot: Map<string, SheetRow[]>,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const rows of snapshot.values()) {
+    for (const r of rows) {
+      const colA = String(r.raw[0] ?? "").trim();
+      if (r.entityId && colA) out.set(r.entityId, colA);
+    }
+  }
+  return out;
+}
+
+/**
  * Clears the last_edited_at (col W) and edited_by (col X) for specific rows
  * after successful reverse sync / photo import. Prevents re-importing the
  * same edits.
@@ -1237,4 +1274,64 @@ export async function clearSheetEditTimestamps(
     spreadsheetId,
     requestBody: { valueInputOption: "RAW", data: requests },
   });
+}
+
+/**
+ * Assigns catalog numbers (col A) to any rows that are missing one.
+ * Runs after reverse-sync CREATEs so volunteer-added rows always get numbered.
+ * Numbers sequentially from the current region max + 1.
+ * Includes the status suffix (e.g. "5m" for MIA) from DB cat_status.
+ *
+ * Note: operates on the pre-sync snapshot. Rows added by volunteers mid-tick
+ * (after readAllRegionSheetStates ran) will be caught on the next cron tick.
+ * This is acceptable — Apps Script already has the UUID; the cat is in DB;
+ * only col A is blank for one tick.
+ *
+ * Returns how many rows were backfilled.
+ */
+export async function backfillCatalogIds(
+  regionId: string,
+  snapshot: SheetRow[],
+): Promise<number> {
+  const unnumberedRows = snapshot.filter((r) => {
+    const colA = String(r.raw[0] ?? "").trim();
+    return !colA || parseCatalogId(colA) === null;
+  });
+
+  if (unnumberedRows.length === 0) return 0;
+
+  const region = await regionsRepo.findRegionById(regionId);
+  if (!region) return 0;
+
+  const currentMax = Math.max(
+    0,
+    ...snapshot
+      .map((r) => parseCatalogId(String(r.raw[0] ?? "").trim()))
+      .filter((n): n is number => n !== null),
+  );
+
+  const catIds = unnumberedRows.map((r) => r.entityId);
+  const catRecords = await catsRepo.findCatsByIds(catIds);
+  const catStatusById = new Map(catRecords.map((c) => [c.id, c.cat_status]));
+
+  let nextNum = currentMax;
+  const updates = unnumberedRows.map((r) => {
+    const catStatus = catStatusById.get(r.entityId);
+    const display = `${++nextNum}${statusSuffix(catStatus)}`;
+    return {
+      range: `'${region.name}'!A${r.rowIndex}`,
+      values: [[display]],
+    };
+  });
+
+  const { glAuth, glSheets } = await connectToSheets();
+  const spreadsheetId = process.env.CATALOG_SPREADSHEET_ID!;
+
+  await glSheets.spreadsheets.values.batchUpdate({
+    auth: glAuth,
+    spreadsheetId,
+    requestBody: { valueInputOption: "USER_ENTERED", data: updates },
+  });
+
+  return unnumberedRows.length;
 }

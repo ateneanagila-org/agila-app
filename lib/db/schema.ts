@@ -134,7 +134,6 @@ export const cats = pgTable("cats", {
   caretaker: text("caretaker"),
   notes: text("notes"),
   is_adoptable: boolean("is_adoptable").default(false),
-  catalog_id: text("catalog_id"),
   paws_id: text("paws_id"),
 });
 
@@ -162,6 +161,10 @@ export const catHealthRecords = pgTable("cat_health_records", {
     }),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   condition: catHealthRecordConditionEnum("condition"),
+  // Sheet col G ("Neutered" YES/NO) — independent of neuter_date.
+  // Volunteers often tick neutered without recording a date, so the two facts
+  // must be stored separately. null = unknown.
+  is_neutered: boolean("is_neutered"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
 });

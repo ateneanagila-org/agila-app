@@ -11,6 +11,8 @@
 
   /* Fonts — ref CSS vars set by next/font on body */
   --font-sans: var(--font-gantari);
+  --font-heading: var(--font-aveton);
+  --font-brand: var(--font-sfc-la-pura);
   --font-mono: ui-monospace, monospace;
 
   /* Brand color utilities */
@@ -161,9 +163,12 @@
 }
 
 @layer utilities {
-  /* Heading font — Gantari bold stack */
   .font-heading {
-    font-family: Gantari, var(--font-gantari), sans-serif;
+    font-family: var(--font-aveton), sans-serif;
     letter-spacing: -0.01em;
+  }
+
+  .font-brand {
+    font-family: var(--font-sfc-la-pura), sans-serif;
   }
 }

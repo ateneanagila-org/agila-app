@@ -37,6 +37,15 @@ async function main() {
     console.log("[Reset] Photo errors:", photoResult.errors.slice(0, 10));
   }
 
+  // Step 5: Wipe sync queue last. Both reverse-sync and bulk photo import call
+  // refreshCatInSyncQueue per write — but every queued row describes data we
+  // just read FROM the sheets (col B photos are =IMAGE(photo_url) formulas,
+  // all other fields came from the same row). Flushing would echo identical
+  // values back, burning write quota.
+  console.log("\n[Reset] Wiping post-import sync queue...");
+  const wiped = await db.delete(gsheetSyncQueue).returning({ id: gsheetSyncQueue.id });
+  console.log(`[Reset] Wiped ${wiped.length} redundant queue rows`);
+
   console.log("\n[Reset] Complete.");
   process.exit(0);
 }

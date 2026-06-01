@@ -6,6 +6,7 @@ import {
   isNull,
   and,
   or,
+  inArray,
   getTableColumns,
   sql,
 } from "drizzle-orm";
@@ -43,6 +44,11 @@ function buildCatConditions(filters: Partial<SelectCat>) {
 }
 
 // CATS
+export const findCatsByIds = (ids: string[]): Promise<SelectCat[]> =>
+  ids.length === 0
+    ? Promise.resolve([])
+    : db.select().from(cats).where(inArray(cats.id, ids));
+
 export const findAdoptableCats = (
   filters: Partial<SelectCat>,
 ): Promise<CatWithRegion[]> => {
