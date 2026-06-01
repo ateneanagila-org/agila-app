@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   PlusIcon,
   SearchIcon,
+  TrashIcon,
 } from "@/components/app-pages/shared/icons";
 import {
   getAllowedEmails,
@@ -191,15 +192,6 @@ export function UsersScreen({
           <div className="mb-4">
             <SyncControls initialStatus={initialSyncStatus} />
           </div>
-          {/* Add Entry Button */}
-          <button
-            type="button"
-            onClick={() => setShowAddUser(true)}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-sm"
-          >
-            Add Entry <PlusIcon className="h-4 w-4" />
-          </button>
-
           {/* Search, Filter, Sort */}
           <div className="mb-4 flex items-center gap-2">
             <button
@@ -262,7 +254,7 @@ export function UsersScreen({
                         className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm transition-opacity hover:opacity-90"
                         aria-label="Delete user"
                     >
-                        🗑️
+                        <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
