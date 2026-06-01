@@ -15,7 +15,7 @@ import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
-import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { PUBLIC_CATALOG_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 export function CatalogScreen() {
@@ -38,7 +38,7 @@ export function CatalogScreen() {
     setSearch,
   } = useFilterSort<CatWithRegion>(
     cats,
-    DATABASE_LIST_CONFIG,
+    PUBLIC_CATALOG_CONFIG,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
@@ -171,7 +171,7 @@ export function CatalogScreen() {
       <DatabaseFiltersDialog
         open={openDialog === "filter"}
         onClose={closeDialog}
-        categories={DATABASE_LIST_CONFIG.filters}
+        categories={PUBLIC_CATALOG_CONFIG.filters}
         activeFilters={activeFilters}
         onClear={clearFilters}
         onApply={applyFilters}
@@ -179,7 +179,7 @@ export function CatalogScreen() {
       <DatabaseSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}
-        options={DATABASE_LIST_CONFIG.sortOptions}
+        options={PUBLIC_CATALOG_CONFIG.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
         onApply={applySort}
