@@ -17,14 +17,14 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           {isAuthed ? (
             <Link
               href="/dashboard/overview"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-bold text-white/70 transition-colors hover:text-white"
             >
               Dashboard <LayoutDashboard className="h-3.5 w-3.5" />
             </Link>
           ) : (
             <Link
               href="/login"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-bold text-white/70 transition-colors hover:text-white"
             >
               Login <LogIn className="h-3.5 w-3.5" />
             </Link>

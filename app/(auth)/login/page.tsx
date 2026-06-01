@@ -102,13 +102,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-brand-dark/10" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-dark/40">
-              Secured access
-            </span>
-            <span className="h-px flex-1 bg-brand-dark/10" />
-          </div>
+          <div className="my-6 h-px w-full bg-brand-dark/10" />
 
           <Link
             href="/"
