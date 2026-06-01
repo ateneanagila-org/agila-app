@@ -378,7 +378,7 @@ export function OverviewScreen({
               <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
                 {stat.label}
               </p>
-              <p className="mt-1 font-heading text-4xl font-bold leading-none tabular-nums text-white">
+              <p className="mt-1 font-heading text-2xl font-bold leading-none tabular-nums text-white lg:text-3xl xl:text-4xl">
                 {stat.value}
               </p>
             </article>
@@ -386,16 +386,16 @@ export function OverviewScreen({
         </div>
 
         {/* Status stat strip */}
-        <div className="mt-4 grid grid-cols-6 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           {desktopStatusStats.map((stat) => (
             <div
               key={stat.label}
-              className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
+              className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-border"
             >
-              <span className="text-xs font-semibold text-brand-dark/70">
+              <span className="whitespace-nowrap text-xs font-semibold text-brand-dark/70">
                 {stat.label}
               </span>
-              <span className="font-heading text-base font-bold tabular-nums text-brand-dark">
+              <span className="shrink-0 font-heading text-base font-bold tabular-nums text-brand-dark">
                 {stat.value}
               </span>
             </div>
@@ -456,12 +456,12 @@ export function OverviewScreen({
           <h2 className="mb-3 font-heading text-lg font-bold text-brand-dark">
             Off-Census
           </h2>
-          <div className="grid grid-cols-6 gap-3">
-            <article className="col-span-2 rounded-2xl bg-brand-dark px-5 py-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <article className="col-span-2 rounded-2xl bg-brand-dark px-5 py-4 xl:col-span-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-yellow">
                 Untracked / Overall Total
               </p>
-              <p className="mt-1 font-heading text-3xl font-bold leading-none tabular-nums text-white">
+              <p className="mt-1 font-heading text-2xl font-bold leading-none tabular-nums text-white lg:text-3xl">
                 {desktopStats.offCensusTotal}
                 <span className="ml-2 text-xl font-semibold text-white/60">
                   / {desktopStats.overallTotal}
