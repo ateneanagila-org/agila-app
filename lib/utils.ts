@@ -7,5 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const displayCatField = (v: string | null | undefined): string => v ?? "Unknown";
 
-export const normalizeCatField = <T,>(v: string): T | undefined =>
-  v === "Unknown" || v === "" ? undefined : (v as T);
+// "Unknown"/"" → null so the value is explicitly cleared on edit (honest
+// WYSIWYG: picking Unknown actually resets the field, not silently kept).
+export const normalizeCatField = <T,>(v: string): T | null =>
+  v === "Unknown" || v === "" ? null : (v as T);

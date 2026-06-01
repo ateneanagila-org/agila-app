@@ -7,6 +7,7 @@ import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import { PieChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
+import { computeTnvrStats } from "@/lib/stats/census-stats";
 
 type TnvrScreenProps = {
   initialCats: SelectCat[];
@@ -24,74 +25,6 @@ function formatLatestUpdate(cats: SelectCat[]) {
 
   const latest = new Date(Math.max(...dates));
   return `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`;
-}
-
-/** Compute TNVR stats from cats + health records */
-function computeTnvrStats(
-  cats: SelectCat[],
-  healthRecords: SelectCatHealthRecord[],
-) {
-  const hrByCatId = new Map<string, SelectCatHealthRecord>();
-  for (const hr of healthRecords) {
-    hrByCatId.set(hr.cat_id, hr);
-  }
-
-  const originalCats = cats.filter((c) => c.entry_status === "Original");
-
-  let neuteredMale = 0;
-  let spayedFemale = 0;
-  let neuteredUnknown = 0;
-  let unneuteredMale = 0;
-  let unneuteredFemale = 0;
-  let unneuteredUnknown = 0;
-  let totalMale = 0;
-  let totalFemale = 0;
-  let totalUnknown = 0;
-
-  for (const cat of originalCats) {
-    const hr = hrByCatId.get(cat.id);
-    const isNeutered = !!hr?.neuter_date;
-
-    if (cat.sex === "Male") {
-      totalMale++;
-      if (isNeutered) neuteredMale++;
-      else unneuteredMale++;
-    } else if (cat.sex === "Female") {
-      totalFemale++;
-      if (isNeutered) spayedFemale++;
-      else unneuteredFemale++;
-    } else {
-      totalUnknown++;
-      if (isNeutered) neuteredUnknown++;
-      else unneuteredUnknown++;
-    }
-  }
-
-  const totalNeutered = neuteredMale + spayedFemale + neuteredUnknown;
-  const totalUnneutered = unneuteredMale + unneuteredFemale + unneuteredUnknown;
-  const total = originalCats.length;
-
-  const pct = (n: number, d: number) =>
-    d > 0 ? `${Math.round((n / d) * 100)}%` : "0%";
-
-  return {
-    neuteredMale,
-    spayedFemale,
-    neuteredUnknown,
-    unneuteredMale,
-    unneuteredFemale,
-    unneuteredUnknown,
-    totalNeutered,
-    totalUnneutered,
-    total,
-    totalMale,
-    totalFemale,
-    totalUnknown,
-    overallTnvr: pct(totalNeutered, total),
-    maleTnvr: pct(neuteredMale, totalMale),
-    femaleTnvr: pct(spayedFemale, totalFemale),
-    unknownTnvr: pct(neuteredUnknown, totalUnknown),
-  };
 }
 
 // ── Shared sub-components ─────────────────────────────────────────────────────

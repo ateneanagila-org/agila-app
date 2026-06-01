@@ -19,6 +19,7 @@ import {
   createIntervention,
   editIntervention,
 } from "@/app/actions/interventions";
+import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import {
@@ -52,6 +53,7 @@ function StatusPill({ status }: { status: string | null | undefined }) {
 }
 
 export function DatabaseInterventionsScreen() {
+  const { canManage } = useAuth();
   const router = useRouter();
   const {
     catId,
@@ -249,13 +251,15 @@ export function DatabaseInterventionsScreen() {
             Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
           <div className="ml-auto" />
-          <button
-            type="button"
-            onClick={() => setShowIntervention(true)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-          >
-            New Intervention <PlusIcon className="h-3.5 w-3.5" />
-          </button>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={() => setShowIntervention(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              New Intervention <PlusIcon className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
 
         {/* List */}
@@ -291,7 +295,7 @@ export function DatabaseInterventionsScreen() {
                     ) : null}
                   </div>
 
-                  <div className="w-full tablet:w-40">
+                  <div className={`w-full tablet:w-40${!canManage ? " pointer-events-none opacity-60" : ""}`}>
                     <CustomSelect
                       options={INTERVENTION_STATUS_VALUES}
                       value={item.status ?? "Pending"}
@@ -319,16 +323,18 @@ export function DatabaseInterventionsScreen() {
       </PageContent>
 
       {/* FAB (mobile) */}
-      <div className="pointer-events-none fixed bottom-20 right-4 z-10 tablet:hidden">
-        <button
-          type="button"
-          onClick={() => setShowIntervention(true)}
-          className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
-          aria-label="New intervention"
-        >
-          <PlusIcon className="h-6 w-6 text-white" />
-        </button>
-      </div>
+      {canManage ? (
+        <div className="pointer-events-none fixed bottom-20 right-4 z-10 tablet:hidden">
+          <button
+            type="button"
+            onClick={() => setShowIntervention(true)}
+            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
+            aria-label="New intervention"
+          >
+            <PlusIcon className="h-6 w-6 text-white" />
+          </button>
+        </div>
+      ) : null}
 
       <DatabaseFiltersDialog
         open={openDialog === "filter"}

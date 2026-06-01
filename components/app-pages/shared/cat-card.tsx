@@ -57,43 +57,19 @@ function statusAccent(cat: CatCardProps["cat"]): {
   chip: { label: string; cls: string } | null;
 } {
   if (cat.cat_status === "Deceased") {
-    return {
-      rail: "bg-brand-dark/60",
-      chip: {
-        label: "Deceased",
-        cls: "bg-brand-dark/10 text-brand-dark/70",
-      },
-    };
+    return { rail: "bg-brand-dark", chip: { label: "Deceased", cls: "bg-brand-dark text-white" } };
   }
   if (cat.cat_status === "MIA") {
-    return {
-      rail: "bg-brand-dark/40",
-      chip: { label: "MIA", cls: "bg-brand-dark/10 text-brand-dark/70" },
-    };
-  }
-  if (cat.cat_status === "Fostered") {
-    return {
-      rail: "bg-brand-orange",
-      chip: {
-        label: "Fostered",
-        cls: "bg-brand-orange/15 text-brand-orange",
-      },
-    };
+    return { rail: "bg-status-mia", chip: { label: "MIA", cls: "bg-status-mia text-white" } };
   }
   if (cat.cat_status === "Adopted") {
-    return {
-      rail: "bg-brand-orange",
-      chip: { label: "Adopted", cls: "bg-brand-orange/15 text-brand-orange" },
-    };
+    return { rail: "bg-status-adopted", chip: { label: "Adopted", cls: "bg-status-adopted text-white" } };
+  }
+  if (cat.cat_status === "Fostered") {
+    return { rail: "bg-brand-orange", chip: { label: "Fostered", cls: "bg-brand-orange text-white" } };
   }
   if (cat.is_adoptable) {
-    return {
-      rail: "bg-brand-orange",
-      chip: {
-        label: "Adoptable",
-        cls: "bg-brand-orange/15 text-brand-orange",
-      },
-    };
+    return { rail: "bg-brand-green", chip: { label: "Adoptable", cls: "bg-brand-green text-white" } };
   }
   return { rail: "bg-brand-green", chip: null };
 }
@@ -212,40 +188,36 @@ export function CatCard({
             </span>
           ) : null}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1 px-3 pb-2.5 pt-0.5 pl-3.5">
-          <div className="flex items-start justify-between gap-1.5">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <h3 className="font-heading text-base font-bold leading-tight tracking-tight text-brand-dark truncate">
-                  {cat.name || "Unnamed"}
-                </h3>
-                {sex ? (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-green/15 px-1 text-[10px] font-bold text-brand-green">
-                    {sex}
-                  </span>
-                ) : null}
+        <div className="flex min-w-0 flex-1 flex-col justify-between px-3 pb-2.5 pt-1 pl-3.5">
+          <div>
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <h3 className="truncate font-heading text-base font-bold leading-tight tracking-tight text-brand-dark">
+                    {cat.name || "Unnamed"}
+                  </h3>
+                  {sex ? (
+                    <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-brand-green/15 px-1 text-[10px] font-bold text-brand-green">
+                      {sex}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-brand-dark/60">
+                  {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
+                </p>
               </div>
-              <p className="mt-0.5 text-[11px] font-medium text-brand-dark/60 truncate">
-                {[cat.color, cat.age].filter(Boolean).join(" · ") || "Unknown"}
-              </p>
+              {action !== "none" ? <ActionAffordance type={action} /> : null}
             </div>
-            {action !== "none" ? (
-              <ActionAffordance type={action} />
+            {extraChips ? (
+              <div className="mt-1 flex flex-wrap gap-1">{extraChips}</div>
             ) : null}
           </div>
-          {extraChips ? (
-            <div className="flex flex-wrap gap-1">{extraChips}</div>
-          ) : null}
-          <p className="mt-0.5 flex min-w-0 items-baseline gap-1 truncate text-[10px]">
-            <span className="font-semibold uppercase tracking-wider text-brand-green/80">
+          <p className="flex min-w-0 items-baseline gap-1 text-[10px]">
+            <span className="shrink-0 font-semibold uppercase tracking-wider text-brand-green/80">
               Region
             </span>
             <span className="truncate font-medium text-brand-dark/75">
               {region_name || "—"}
-            </span>
-            <span className="text-brand-dark/30">·</span>
-            <span className="font-medium tabular-nums text-brand-dark/55">
-              {dateLabel ?? formatDate(cat.last_updated_at)}
             </span>
           </p>
         </div>
