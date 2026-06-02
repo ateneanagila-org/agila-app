@@ -1,17 +1,55 @@
-import { REGION_NAME_VALUES } from "../db/enums";
 import * as regionsRepo from "../repo/regions.repo";
+import {
+  createRegionSheetTab,
+  renameRegionSheetTab,
+  provisionRegionSheets,
+} from "./helper.service";
+import { AppError } from "../error/app-error";
+import type { RegionColor } from "../db/enums";
 
-/**
- * Refreshes the regions table from the REGION_NAME_VALUES enum: inserts any
- * enum members that don't yet have a row. Idempotent (existing names skipped via
- * the unique `name` constraint) and additive — it never deletes a region, since
- * regions are FK-referenced by cats and sessions. Colors are left null for the
- * admin to edit afterward.
- */
-export const syncRegionsFromEnum = async () => {
-  const inserted = await regionsRepo.insertMissingRegions(REGION_NAME_VALUES);
-  return {
-    inserted: inserted.length,
-    names: inserted.map((r) => r.name),
-  };
+export const createRegion = async (data: {
+  name: string;
+  color: RegionColor | null;
+}) => {
+  const existing = await regionsRepo.findRegionByName(data.name);
+  if (existing) throw new AppError(`Region "${data.name}" already exists.`);
+
+  const [region] = await regionsRepo.insertRegion({
+    name: data.name,
+    color: data.color ?? null,
+  });
+
+  // Create + provision the sheet tab (headers, protections, _config!B2).
+  await createRegionSheetTab(data.name);
+  await provisionRegionSheets();
+
+  return region;
+};
+
+export const renameRegion = async (data: { id: string; name: string }) => {
+  const region = await regionsRepo.findRegionById(data.id);
+  if (!region) throw new AppError("Region not found.");
+  if (region.name === data.name) return region;
+
+  const clash = await regionsRepo.findRegionByName(data.name);
+  if (clash) throw new AppError(`Region "${data.name}" already exists.`);
+
+  const oldName = region.name;
+  const [updated] = await regionsRepo.updateRegionName(data.id, data.name);
+
+  // Rename the sheet tab to keep sync (which matches tabs by name) working,
+  // then refresh _config!B2.
+  await renameRegionSheetTab(oldName, data.name);
+  await provisionRegionSheets();
+
+  return updated;
+};
+
+export const setRegionArchived = async (id: string, archived: boolean) => {
+  const region = await regionsRepo.findRegionById(id);
+  if (!region) throw new AppError("Region not found.");
+  const [updated] = await regionsRepo.setRegionArchived(id, archived);
+  // Archiving leaves the sheet tab in place (history preserved); refresh B2 so
+  // the list reflects active regions if downstream consumers care.
+  return updated;
 };
