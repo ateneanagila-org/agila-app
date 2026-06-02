@@ -162,7 +162,7 @@ export function CatalogScreen() {
                 region_name={cat.region_name}
                 href={`/catalog/${cat.id}`}
                 variant="default"
-                action="chevron"
+                action="none"
                 hideAdoptableChip
               />
             ))}
