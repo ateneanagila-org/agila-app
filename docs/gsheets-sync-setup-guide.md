@@ -5,18 +5,20 @@ production setup (cutover), adding a region, ongoing operations, and the current
 legacy/dead code. Written 2026-06-02 from a live read of the code.
 
 > Convention note: region names are the single source of truth in the **app DB**
-> (`regions` table, constrained by the `REGION_NAME_VALUES` enum). Google Sheets
+> (`regions` table, `name` is a free-text `NOT NULL UNIQUE` column). Google Sheets
 > and `_config!B2` are mirrors. Everything below follows from that.
+> `REGION_NAME_VALUES` in `lib/db/enums.ts` is now a plain constant retained for
+> seed/initial data only — it is no longer a Postgres enum or a runtime constraint.
 
 ---
 
 ## 1. Architecture at a glance
 
 ```
-REGION_NAME_VALUES enum (lib/db/enums.ts)        ← vocabulary (compile-time + pg enum)
-        │  regions.name is enum-typed, NOT NULL
-        ▼
+REGION_NAME_VALUES const (lib/db/enums.ts)        ← seed/initial data only (plain TS const)
+
 DB `regions` table                               ← SOURCE OF TRUTH (which regions exist)
+        │  regions.name is text NOT NULL UNIQUE (managed in-app, Admin → Edit Regions)
         │
         ├──► reverse sync & forward sync read DB regions DIRECTLY (not B2)
         │
@@ -100,8 +102,9 @@ Use this when pointing the system at the **real** spreadsheet for the first time
 - App deployed (or local) with env set: `CATALOG_SPREADSHEET_ID`,
   `SERVICE_ACCOUNT_CREDENTIALS`, `DATABASE_URL`, the Supabase keys, optionally
   `DISCORD_WEBHOOK_URL`.
-- DB `regions` table seeded from `REGION_NAME_VALUES` — run the **`syncRegions()`**
-  admin action to populate it, then edit colors. Verify:
+- DB `regions` table must have the live regions. For a fresh deploy the initial
+  37 regions were seeded by `pnpm drizzle-kit push` (they carry over from the old
+  enum). Add new regions in-app (Admin → Edit Regions). Verify:
   `SELECT name FROM regions ORDER BY name`.
 - Every region has a sheet tab named **exactly** as its DB name. A hidden
   `_config` tab exists.
@@ -157,21 +160,20 @@ the real sheet should be the canonical source and the current DB holds test data
 
 ## 5. Adding a new region (after go-live)
 
-Regions are enum-defined, so this is a **developer + deploy** task (by design —
-see §7). Runbook:
+Adding a region is now **fully self-serve** — no code changes or deployment needed.
 
-1. Add the name to `REGION_NAME_VALUES` in `lib/db/enums.ts`.
-2. `pnpm drizzle-kit push` (alters the pg enum).
-3. Run the **`syncRegions()`** admin action (`app/actions/system.ts` →
-   `syncRegionsFromEnum`) — inserts any enum names missing from the `regions`
-   table (idempotent, additive, never deletes; color left null). Edit the
-   region's color afterward.
-4. Run the **`refreshRegionSheetConfig()`** admin action (refreshes `_config!B2`).
-5. Create the sheet tab named exactly as the region.
-6. Apps Script → run **`setupRegionSheets()`** (headers + UUID seed + protections).
+**In-app flow (Admin → Edit Regions):**
+1. Type the region name + pick a color → **Add region**.
+   This inserts the DB row, creates the Google Sheet tab (duplicated from an
+   existing region tab, data rows cleared), applies W/X/Y headers, col-A and
+   W–Y protections, and refreshes `_config!B2`. One click.
+2. Done. The `onEdit` trigger is column-index based — the new tab is automatically
+   covered for W/X/Y on human edits.
 
-The `onEdit` trigger is column-index based, so the new tab is automatically
-covered for W/X/Y on human edits — no per-tab trigger work.
+**Rename / Archive / Delete** are in the same section. Renaming a region also
+renames its sheet tab (keeps sync working). Deleting a non-empty region requires
+typing the region name to confirm; orphaned cats (no sessions elsewhere, no
+override to another region) are deleted with it.
 
 ---
 
@@ -192,10 +194,12 @@ covered for W/X/Y on human edits — no per-tab trigger work.
 - **Provisioning is manual Apps Script, never cron.** New regions are rare; running
   idempotent setup every cron tick wastes Sheets API quota (tight headroom) and
   Vercel compute. Apps Script runs as sheet owner, free quota, zero API cost.
-- **Regions are an enum, no runtime "add region" feature.** Ateneo is a static
-  campus (~1–2 new zones/year). The enum's `RegionName` type guards filters,
-  reverse-sync validation, and sheet mapping; free-text regions would risk
-  typo/junk names that silently break sync. Revisit only if regions start churning.
+- **Regions are now data-driven (text column), self-serve from the Admin tab.**
+  The `regions.name` pg enum was dropped (2026-06-02) because the owner is
+  handing off to non-technical stewards who can't do deploys. `REGION_NAME_VALUES`
+  is retained as a plain TS const for initial seeding and filter dropdowns only.
+  Free-text names are accepted; a `NOT NULL UNIQUE` DB constraint prevents blanks
+  and duplicates.
 - **B2-driven protection path is canonical.** `setupRegionSheets()` (Apps Script)
   reads `_config!B2`. The app keeps B2 in sync from the DB via
   `refreshRegionSheetConfig()`.
