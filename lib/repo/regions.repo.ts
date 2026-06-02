@@ -1,22 +1,100 @@
-import { db } from "../db";
-import { regions } from "../db/schema";
-import type { RegionName } from "../db/enums";
+import { eq, isNull, sql } from "drizzle-orm";
+import { db, type Transaction } from "@/lib/db";
+import { regions, sessions, sessionCats } from "@/lib/db/schema";
+import type { RegionColor } from "@/lib/db/enums";
+
+type DB = typeof db | Transaction;
+
+/** All regions (id, name, color, archived_at). */
 export const findRegions = () =>
-  db.select({ id: regions.id, name: regions.name }).from(regions);
+  db
+    .select({
+      id: regions.id,
+      name: regions.name,
+      color: regions.color,
+      archived_at: regions.archived_at,
+    })
+    .from(regions);
+
+/** Active (non-archived) regions only. */
+export const findActiveRegions = () =>
+  db
+    .select({ id: regions.id, name: regions.name, color: regions.color })
+    .from(regions)
+    .where(isNull(regions.archived_at));
+
+export const findRegionById = (id: string, client: DB = db) =>
+  client.query.regions.findFirst({ where: (r, { eq }) => eq(r.id, id) });
+
+export const findRegionByName = (name: string, client: DB = db) =>
+  client.query.regions.findFirst({ where: (r, { eq }) => eq(r.name, name) });
+
+export const insertRegion = (
+  data: { name: string; color: RegionColor | null },
+  client: DB = db,
+) => client.insert(regions).values(data).returning();
+
+export const updateRegionName = (id: string, name: string, client: DB = db) =>
+  client.update(regions).set({ name }).where(eq(regions.id, id)).returning();
+
+export const setRegionArchived = (
+  id: string,
+  archived: boolean,
+  client: DB = db,
+) =>
+  client
+    .update(regions)
+    .set({ archived_at: archived ? new Date() : null })
+    .where(eq(regions.id, id))
+    .returning();
+
+export const deleteRegion = (id: string, client: DB = db) =>
+  client.delete(regions).where(eq(regions.id, id)).returning();
 
 /**
- * Inserts the given region names, skipping any that already exist (unique
- * `name` constraint). Additive only — never deletes. `id` is auto-generated and
- * `color` is left null for manual editing. Returns the rows actually inserted.
+ * Usage of a region: number of sessions in it, and number of cats that have
+ * sessions in it. Used to decide empty vs populated and to show delete impact.
  */
-export const insertMissingRegions = (names: readonly RegionName[]) =>
-  db
-    .insert(regions)
-    .values(names.map((name) => ({ name })))
-    .onConflictDoNothing({ target: regions.name })
-    .returning({ id: regions.id, name: regions.name });
+export const getRegionUsage = async (
+  id: string,
+  client: DB = db,
+): Promise<{ sessionCount: number; catCount: number }> => {
+  const [sessionRow] = await client
+    .select({ count: sql<number>`count(*)::int` })
+    .from(sessions)
+    .where(eq(sessions.region_id, id));
 
-export const findRegionById = (id: string) =>
-  db.query.regions.findFirst({ where: (r, { eq }) => eq(r.id, id) });
+  const [catRow] = await client
+    .select({ count: sql<number>`count(distinct ${sessionCats.cat_id})::int` })
+    .from(sessionCats)
+    .innerJoin(sessions, eq(sessionCats.session_id, sessions.id))
+    .where(eq(sessions.region_id, id));
 
-export type RegionOption = Awaited<ReturnType<typeof findRegions>>[number];
+  return {
+    sessionCount: sessionRow?.count ?? 0,
+    catCount: catRow?.count ?? 0,
+  };
+};
+
+/**
+ * Cat IDs that would be fully orphaned by deleting this region: they have at
+ * least one session in this region, NO sessions in any other region, and no
+ * manual region_id override pointing elsewhere. These are deleted alongside a
+ * forced delete of a populated region.
+ */
+export const findCatsOnlyInRegion = async (
+  id: string,
+  client: DB = db,
+): Promise<string[]> => {
+  const rows = await client.execute(sql`
+    SELECT sc.cat_id AS id
+    FROM ${sessionCats} sc
+    JOIN ${sessions} s ON s.id = sc.session_id
+    WHERE s.region_id = ${id}
+    GROUP BY sc.cat_id
+    HAVING COUNT(*) FILTER (WHERE s.region_id <> ${id}) = 0
+  `);
+  return (rows as { id: string }[]).map((r) => r.id);
+};
+
+export type RegionOption = Awaited<ReturnType<typeof findActiveRegions>>[number];
