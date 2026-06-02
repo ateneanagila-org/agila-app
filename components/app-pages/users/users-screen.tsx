@@ -27,10 +27,11 @@ import type { AuthRole } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { SyncControls } from "./sync-controls";
+import { SheetSetupControls } from "./sheet-setup-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
-type UsersScreenProps = {
+type AdminScreenProps = {
   initialUsers: AllowedEmailEntry[];
   initialSyncStatus: {
     frozen: boolean | null;
@@ -38,10 +39,10 @@ type UsersScreenProps = {
   };
 };
 
-export function UsersScreen({
+export function AdminScreen({
   initialUsers,
   initialSyncStatus,
-}: UsersScreenProps) {
+}: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -187,9 +188,10 @@ export function UsersScreen({
       <div className="relative flex min-h-screen flex-col tablet:hidden">
         <div className="flex-1 overflow-auto px-4 py-4">
           <div className="mb-4">
-            <p className="font-heading text-2xl font-bold text-brand-green">User Control</p>
+            <p className="font-heading text-2xl font-bold text-brand-green">Admin</p>
           </div>
-          <div className="mb-4">
+          <div className="mb-4 space-y-3">
+            <SheetSetupControls />
             <SyncControls initialStatus={initialSyncStatus} />
           </div>
           {/* Search, Filter, Sort */}
@@ -278,7 +280,7 @@ export function UsersScreen({
         <div className="flex items-end justify-between">
           <div>
             <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-dark">
-              User Control
+              Admin
             </h1>
             <p className="mt-1 text-xs font-semibold text-brand-green">
               {searchedUsers.length} allowed users
@@ -294,7 +296,8 @@ export function UsersScreen({
           </button>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <SheetSetupControls />
           <SyncControls initialStatus={initialSyncStatus} />
         </div>
 

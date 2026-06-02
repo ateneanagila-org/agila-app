@@ -39,6 +39,8 @@
  *     B2 is populated (the app writes B2 from the DB).
  * - setupSystemColProtection() / clearSystemColProtections() — lower-level
  *     protection-only helpers, kept for manual control.
+ * - seedMissingUuids(getRegionSheetNames()) — backfill col-Y UUIDs for existing
+ *     rows (also runs inside setupRegionSheets). Use standalone only if needed.
  *
  * STATIC_TABS below lists non-region tabs to ignore in the mismatch check.
  */
@@ -110,16 +112,62 @@ function ensureSystemHeaders(names) {
 }
 
 /**
+ * Bulk-assigns a UUID to col Y for every DATA row (row 3+) that has content but
+ * no UUID yet. The onEdit trigger only seeds a row when a human edits it, so a
+ * freshly onboarded sheet full of existing rows needs this one-time backfill —
+ * reverse-sync skips UUID-less rows, so without it that data never imports.
+ *
+ * Idempotent: only fills blanks, never overwrites an existing UUID. A row counts
+ * as "content" if any A–V cell is non-empty (so empty trailing rows are left
+ * alone and don't become phantom cats). Batched read/write per sheet.
+ */
+function seedMissingUuids(names) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var DATA_START_ROW = 3;
+  var DATA_COLS = 22; // A–V
+  var UUID_COL = 25; // Y
+  var seeded = 0;
+
+  names.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var lastRow = sheet.getLastRow();
+    if (lastRow < DATA_START_ROW) return;
+
+    var n = lastRow - DATA_START_ROW + 1;
+    var yRange = sheet.getRange(DATA_START_ROW, UUID_COL, n, 1);
+    var yVals = yRange.getValues();
+    var dataVals = sheet.getRange(DATA_START_ROW, 1, n, DATA_COLS).getValues();
+
+    var changed = false;
+    for (var i = 0; i < n; i++) {
+      var hasContent = dataVals[i].some(function (c) {
+        return c !== "" && c !== null;
+      });
+      if (hasContent && !String(yVals[i][0]).trim()) {
+        yVals[i][0] = Utilities.getUuid();
+        seeded++;
+        changed = true;
+      }
+    }
+    if (changed) yRange.setValues(yVals);
+  });
+
+  Logger.log("seedMissingUuids: assigned " + seeded + " UUID(s).");
+}
+
+/**
  * ONE-SHOT region setup (run from the Apps Script editor). Idempotent — safe to
  * re-run after adding a new region tab. Steps:
  *   1. Read the region list from _config!B2 (app-owned mirror of the DB)
  *   2. Warn on any tab/list mismatch (does not act on it)
  *   3. Ensure W/X/Y header labels
- *   4. Clear then (re)apply the A + W–Y protections
+ *   4. Seed col-Y UUIDs for existing rows that lack one (so they can import)
+ *   5. Clear then (re)apply the A + W–Y protections
  *
- * PRECONDITION: the region already exists in the app and B2 is populated (the
- * app writes B2 from the DB via syncRegionSheetNames). If B2 is empty, add the
- * region in the app first, then re-run.
+ * PRECONDITION: the region already exists in the app and B2 is populated. The
+ * app writes B2 from the DB via the admin "refresh region sheet config" action
+ * (syncRegionSheetNames). If B2 is empty, run that first, then re-run this.
  *
  * The onEdit trigger (Code.gs) is column-index based, so new tabs are already
  * covered for W/X/Y timestamping — no per-tab trigger setup needed.
@@ -128,13 +176,14 @@ function setupRegionSheets() {
   var names = getRegionSheetNames();
   if (names.length === 0) {
     Logger.log(
-      "_config!B2 is empty. Add the region in the app first (it writes the DB region list to B2), then re-run.",
+      "_config!B2 is empty. Run the app's 'refresh region sheet config' admin action first (it writes the DB region list to B2), then re-run.",
     );
     return;
   }
 
   warnTabMismatch(names);
   ensureSystemHeaders(names);
+  seedMissingUuids(names);
 
   // Clear first so re-runs don't stack duplicate protection objects.
   clearSystemColProtections();

@@ -1,4 +1,5 @@
-﻿import { google } from "googleapis";
+﻿import { randomUUID } from "crypto";
+import { google } from "googleapis";
 import {
   wrapSheetsClient,
   type WrappedSheetsClient,
@@ -911,6 +912,94 @@ export async function syncRegionSheetNames(): Promise<void> {
     valueInputOption: "RAW",
     requestBody: { values: [[names.join(",")]] },
   });
+}
+
+/**
+ * Writes the system-column header labels (W2/X2/Y2) on every region sheet.
+ * Idempotent — overwrites with the same values. Row 2 = headers, data row 3+.
+ */
+export async function ensureRegionSheetHeaders(): Promise<void> {
+  const regions = await regionsRepo.findRegions();
+  const { glAuth, glSheets } = await connectToSheets();
+
+  for (const region of regions) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      range: `'${region.name}'!W2:Y2`,
+      valueInputOption: "RAW",
+      requestBody: { values: [["last_edited_at", "edited_by", "uuid"]] },
+    });
+  }
+}
+
+/**
+ * Bulk-assigns a UUID to col Y for every data row (row 3+) that has content but
+ * no UUID yet, across all region sheets. Mirrors the Apps Script seedMissingUuids
+ * but runs server-side via the service account. Idempotent: only fills blanks
+ * (a row counts as content if any A–V cell is non-empty), never overwrites.
+ * Needed at cutover — reverse-sync skips UUID-less rows.
+ */
+export async function seedMissingUuidsAllRegions(): Promise<{
+  seeded: number;
+  perRegion: Record<string, number>;
+}> {
+  const regions = await regionsRepo.findRegions();
+  const { glAuth, glSheets } = await connectToSheets();
+
+  let seeded = 0;
+  const perRegion: Record<string, number> = {};
+
+  for (const region of regions) {
+    const response = await glSheets.spreadsheets.values.get({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      range: `'${region.name}'!A3:Y`,
+    });
+    const rows = response.data.values ?? [];
+    if (rows.length === 0) continue;
+
+    let regionSeeded = 0;
+    const yColumn = rows.map((row) => {
+      const existing = String(row[24] ?? "").trim();
+      const hasContent = row
+        .slice(0, 22)
+        .some((c) => c != null && String(c).trim() !== "");
+      if (hasContent && !existing) {
+        regionSeeded++;
+        return [randomUUID()];
+      }
+      return [existing];
+    });
+
+    if (regionSeeded > 0) {
+      await glSheets.spreadsheets.values.update({
+        auth: glAuth,
+        spreadsheetId: CONFIG_SPREADSHEET_ID,
+        range: `'${region.name}'!Y3:Y${2 + yColumn.length}`,
+        valueInputOption: "RAW",
+        requestBody: { values: yColumn },
+      });
+      seeded += regionSeeded;
+      perRegion[region.name] = regionSeeded;
+    }
+  }
+
+  return { seeded, perRegion };
+}
+
+/**
+ * One-shot region-sheet provisioning (server-side, admin-triggered): ensures
+ * W/X/Y headers, applies the A + W–Y protections (service account owns them),
+ * and refreshes _config!B2 from the DB. Idempotent. Does NOT seed UUIDs — that
+ * is a separate, deliberate action (seedMissingUuidsAllRegions).
+ */
+export async function provisionRegionSheets(): Promise<{ regions: number }> {
+  await ensureRegionSheetHeaders();
+  await setupSystemColProtections();
+  await syncRegionSheetNames();
+  const regions = await regionsRepo.findRegions();
+  return { regions: regions.length };
 }
 
 // ==========================================
