@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Pencil, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   listRegions,
   createRegion,
   renameRegion,
-  setRegionArchived,
   deleteRegion,
 } from "@/app/actions/regions";
 import { REGION_COLOR_VALUES } from "@/lib/db/enums";
@@ -16,14 +15,12 @@ type Region = {
   id: string;
   name: string;
   color: string | null;
-  archived_at: Date | string | null;
 };
 
 const PAGE_SIZE = 5;
 
 export function RegionControls() {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -66,9 +63,7 @@ export function RegionControls() {
     });
   }
 
-  const visible = regions
-    .filter((r) => showArchived || !r.archived_at)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const visible = [...regions].sort((a, b) => a.name.localeCompare(b.name));
 
   const totalPages = Math.ceil(visible.length / PAGE_SIZE);
   const safePage = Math.min(page, Math.max(0, totalPages - 1));
@@ -117,33 +112,18 @@ export function RegionControls() {
             </p>
           )}
 
-          <div className="flex items-center justify-between px-4 py-3">
-            <label className="flex items-center gap-2 text-xs text-brand-dark/60">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => {
-                  setShowArchived(e.target.checked);
-                  setPage(0);
-                }}
-              />
-              Show archived
-            </label>
-            {visible.length > 0 && (
+          {visible.length > 0 && (
+            <div className="flex items-center justify-end px-4 py-3">
               <span className="text-xs text-brand-dark/40">
                 {visible.length} region{visible.length !== 1 ? "s" : ""}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="divide-y divide-border">
             {paged.length === 0 ? (
               <p className="px-4 py-6 text-center text-xs text-brand-dark/40">
-                No regions
-                {showArchived
-                  ? ""
-                  : " — check 'Show archived' to see archived ones"}
-                .
+                No regions yet.
               </p>
             ) : (
               paged.map((r) => (
@@ -186,11 +166,6 @@ export function RegionControls() {
                     <>
                       <span className="flex-1 text-sm font-semibold text-brand-dark">
                         {r.name}
-                        {r.archived_at && (
-                          <span className="ml-2 rounded-full bg-brand-dark/10 px-2 py-0.5 text-[10px] font-bold text-brand-dark/50">
-                            archived
-                          </span>
-                        )}
                       </span>
                       <button
                         type="button"
@@ -202,28 +177,6 @@ export function RegionControls() {
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-brand-dark/40 transition-colors hover:text-brand-dark"
                       >
                         <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        title={r.archived_at ? "Unarchive" : "Archive"}
-                        disabled={isPending}
-                        onClick={() =>
-                          run(async () => {
-                            const res = await setRegionArchived({
-                              id: r.id,
-                              archived: !r.archived_at,
-                            });
-                            if (res?.serverError)
-                              throw new Error(res.serverError);
-                          })
-                        }
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-brand-dark/40 transition-colors hover:text-brand-dark disabled:opacity-40"
-                      >
-                        {r.archived_at ? (
-                          <ArchiveRestore size={14} />
-                        ) : (
-                          <Archive size={14} />
-                        )}
                       </button>
                       <button
                         type="button"

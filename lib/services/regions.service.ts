@@ -48,15 +48,6 @@ export const renameRegion = async (data: { id: string; name: string }) => {
   return updated;
 };
 
-export const setRegionArchived = async (id: string, archived: boolean) => {
-  const region = await regionsRepo.findRegionById(id);
-  if (!region) throw new AppError("Region not found.");
-  const [updated] = await regionsRepo.setRegionArchived(id, archived);
-  // Archiving leaves the sheet tab in place (history preserved); refresh B2 so
-  // the list reflects active regions if downstream consumers care.
-  return updated;
-};
-
 /**
  * Deletes a region. An empty region (no sessions, no cats pinned via override)
  * deletes freely. A non-empty region requires `force: true`; without it, throws

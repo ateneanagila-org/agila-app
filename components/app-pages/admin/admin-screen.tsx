@@ -184,13 +184,8 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
         <div className="flex-1 overflow-auto px-4 py-4">
           <p className="mb-4 font-heading text-2xl font-bold text-brand-green">Admin</p>
 
-          <div className="mb-6 space-y-4">
-            <RegionControls />
-            <GSheetConfigControls initialStatus={initialSyncStatus} />
-          </div>
-
           {/* Users & Access */}
-          <div>
+          <div className="mb-6">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-bold text-brand-dark">Users &amp; Access</h2>
               <button
@@ -257,6 +252,11 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
               </div>
             )}
           </div>
+
+          <div className="space-y-4 pb-20">
+            <GSheetConfigControls initialStatus={initialSyncStatus} />
+            <RegionControls />
+          </div>
         </div>
       </div>
 
@@ -265,9 +265,6 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
         <h1 className="mb-6 font-heading text-3xl font-bold tracking-tight text-brand-dark">Admin</h1>
 
         <div className="space-y-6">
-          <RegionControls />
-          <GSheetConfigControls initialStatus={initialSyncStatus} />
-
           {/* Users & Access */}
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -378,6 +375,8 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
               )}
             </div>
           </div>
+          <GSheetConfigControls initialStatus={initialSyncStatus} />
+          <RegionControls />
         </div>
       </div>
 

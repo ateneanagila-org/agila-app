@@ -1,27 +1,19 @@
-import { eq, isNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, type Transaction } from "@/lib/db";
 import { regions, sessions, sessionCats, cats } from "@/lib/db/schema";
 import type { RegionColor } from "@/lib/db/enums";
 
 type DB = typeof db | Transaction;
 
-/** All regions (id, name, color, archived_at). */
+/** All regions (id, name, color). */
 export const findRegions = () =>
   db
     .select({
       id: regions.id,
       name: regions.name,
       color: regions.color,
-      archived_at: regions.archived_at,
     })
     .from(regions);
-
-/** Active (non-archived) regions only. */
-export const findActiveRegions = () =>
-  db
-    .select({ id: regions.id, name: regions.name, color: regions.color })
-    .from(regions)
-    .where(isNull(regions.archived_at));
 
 export const findRegionById = (id: string, client: DB = db) =>
   client.query.regions.findFirst({ where: (r, { eq }) => eq(r.id, id) });
@@ -36,17 +28,6 @@ export const insertRegion = (
 
 export const updateRegionName = (id: string, name: string, client: DB = db) =>
   client.update(regions).set({ name }).where(eq(regions.id, id)).returning();
-
-export const setRegionArchived = (
-  id: string,
-  archived: boolean,
-  client: DB = db,
-) =>
-  client
-    .update(regions)
-    .set({ archived_at: archived ? new Date() : null })
-    .where(eq(regions.id, id))
-    .returning();
 
 export const deleteRegion = (id: string, client: DB = db) =>
   client.delete(regions).where(eq(regions.id, id)).returning();
@@ -111,4 +92,4 @@ export const findCatsOnlyInRegion = async (
   return rows.map((r) => String(r.id));
 };
 
-export type RegionOption = Awaited<ReturnType<typeof findActiveRegions>>[number];
+export type RegionOption = Awaited<ReturnType<typeof findRegions>>[number];

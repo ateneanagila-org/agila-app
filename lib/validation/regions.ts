@@ -21,8 +21,6 @@ export const renameRegionSchema = z.object({
   name: regionName,
 });
 
-export const regionIdSchema = z.object({ id: z.string().uuid() });
-
 export const deleteRegionSchema = z.object({
   id: z.string().uuid(),
   /** Required to delete a populated region; ignored for empty ones. */

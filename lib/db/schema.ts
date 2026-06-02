@@ -61,7 +61,6 @@ export const regions = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     color: regionColorEnum("color"),
-    archived_at: timestamp("archived_at"),
   },
   (t) => [unique().on(t.name)],
 );
