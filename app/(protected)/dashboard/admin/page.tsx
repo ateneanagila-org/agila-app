@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminScreen } from "@/components/app-pages/users/users-screen";
+import { AdminScreen } from "@/components/app-pages/admin/admin-screen";
 import { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
 import {
   getSyncFreezeReason,
@@ -37,10 +37,5 @@ export default async function AdminPage() {
     ),
   ]);
 
-  return (
-    <AdminScreen
-      initialUsers={users}
-      initialSyncStatus={syncStatus}
-    />
-  );
+  return <AdminScreen initialUsers={users} initialSyncStatus={syncStatus} />;
 }
