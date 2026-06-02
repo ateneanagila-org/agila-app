@@ -1,9 +1,12 @@
 import * as regionsRepo from "../repo/regions.repo";
+import * as catsRepo from "../repo/cats.repo";
 import {
   createRegionSheetTab,
   renameRegionSheetTab,
+  deleteRegionSheetTab,
   provisionRegionSheets,
 } from "./helper.service";
+import { db } from "../db";
 import { AppError } from "../error/app-error";
 import type { RegionColor } from "../db/enums";
 
@@ -52,4 +55,38 @@ export const setRegionArchived = async (id: string, archived: boolean) => {
   // Archiving leaves the sheet tab in place (history preserved); refresh B2 so
   // the list reflects active regions if downstream consumers care.
   return updated;
+};
+
+/**
+ * Deletes a region. An empty region (no sessions, no cats pinned via override)
+ * deletes freely. A non-empty region requires `force: true`; without it, throws
+ * a plain-language warning for the UI to surface in a typed-confirm dialog.
+ * With force: deletes the region (cascading its sessions + session_cats), then
+ * deletes the cats that would be fully orphaned by that removal (see
+ * findCatsOnlyInRegion — override-aware), then removes the sheet tab. FK cascade
+ * is NOT used for cats — cats associate to regions via sessions and can span
+ * regions, so orphaning is resolved in app logic.
+ */
+export const deleteRegion = async (data: { id: string; force?: boolean }) => {
+  const region = await regionsRepo.findRegionById(data.id);
+  if (!region) throw new AppError("Region not found.");
+
+  const empty = await regionsRepo.isRegionEmpty(data.id);
+  if (!empty && !data.force) {
+    throw new AppError(
+      `Region "${region.name}" is not empty. Deleting it permanently removes the region, all of its sessions, and any cats that exist only in this zone. This cannot be undone.`,
+    );
+  }
+
+  const orphanIds = empty ? [] : await regionsRepo.findCatsOnlyInRegion(data.id);
+
+  await db.transaction(async (tx) => {
+    // Deleting the region cascades its sessions + session_cats (schema FKs).
+    await regionsRepo.deleteRegion(data.id, tx);
+    if (orphanIds.length > 0) await catsRepo.deleteCatsByIds(orphanIds, tx);
+  });
+
+  await deleteRegionSheetTab(region.name);
+
+  return { deletedRegion: region.name, deletedCats: orphanIds.length };
 };

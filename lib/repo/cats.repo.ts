@@ -64,6 +64,11 @@ export const findCatsByIds = (ids: string[]): Promise<SelectCat[]> =>
     ? Promise.resolve([])
     : db.select().from(cats).where(inArray(cats.id, ids));
 
+export const deleteCatsByIds = (ids: string[], client: DB = db) =>
+  ids.length === 0
+    ? Promise.resolve([])
+    : client.delete(cats).where(inArray(cats.id, ids)).returning({ id: cats.id });
+
 export const findAdoptableCats = (
   filters: Partial<SelectCat>,
 ): Promise<CatWithRegion[]> => {
