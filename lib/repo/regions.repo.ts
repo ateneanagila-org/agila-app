@@ -86,15 +86,15 @@ export const findCatsOnlyInRegion = async (
   id: string,
   client: DB = db,
 ): Promise<string[]> => {
-  const rows = await client.execute(sql`
+  const rows = (await client.execute(sql`
     SELECT sc.cat_id AS id
     FROM ${sessionCats} sc
     JOIN ${sessions} s ON s.id = sc.session_id
     WHERE s.region_id = ${id}
     GROUP BY sc.cat_id
     HAVING COUNT(*) FILTER (WHERE s.region_id <> ${id}) = 0
-  `);
-  return rows.map((r) => String((r as Record<string, unknown>).id));
+  `)) as unknown as Array<Record<string, unknown>>;
+  return rows.map((r) => String(r.id));
 };
 
 export type RegionOption = Awaited<ReturnType<typeof findActiveRegions>>[number];
