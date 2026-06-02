@@ -1002,6 +1002,98 @@ export async function provisionRegionSheets(): Promise<{ regions: number }> {
   return { regions: regions.length };
 }
 
+const NON_TEMPLATE_TABS = new Set(["_config", "For RI", "For FA", "UNKNOWN"]);
+
+/** Picks a standard region tab to use as the structural template. */
+async function findTemplateSheetId(
+  glSheets: WrappedSheetsClient,
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+): Promise<number> {
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const template = sheets.find(
+    (s) =>
+      s.properties?.title &&
+      !NON_TEMPLATE_TABS.has(s.properties.title) &&
+      s.properties.sheetId != null,
+  );
+  if (template?.properties?.sheetId == null) {
+    throw new Error("No existing region tab to use as a template.");
+  }
+  return template.properties.sheetId;
+}
+
+/** Creates a region tab by duplicating a template tab, renaming it, clearing data rows (3+). */
+export async function createRegionSheetTab(name: string): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  // Refuse if a tab with this name already exists.
+  const existing = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  if (existing.some((s) => s.properties?.title === name)) return;
+
+  const templateId = await findTemplateSheetId(glSheets, glAuth);
+
+  const dup = await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: {
+      requests: [{ duplicateSheet: { sourceSheetId: templateId, newSheetName: name } }],
+    },
+  });
+
+  const newSheetId =
+    dup.data.replies?.[0]?.duplicateSheet?.properties?.sheetId ?? null;
+  if (newSheetId == null) throw new Error("Failed to create region tab.");
+
+  // Clear data rows (row 3 down) on the new tab; keep header rows 1–2.
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `'${name}'!A3:Z`,
+  });
+}
+
+/** Renames a region tab (used when a region is renamed in the DB). No-op if missing. */
+export async function renameRegionSheetTab(
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const target = sheets.find((s) => s.properties?.title === oldName);
+  const sheetId = target?.properties?.sheetId;
+  if (sheetId == null) return;
+
+  await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: {
+      requests: [
+        {
+          updateSheetProperties: {
+            properties: { sheetId, title: newName },
+            fields: "title",
+          },
+        },
+      ],
+    },
+  });
+}
+
+/** Deletes a region tab. No-op if missing. */
+export async function deleteRegionSheetTab(name: string): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const target = sheets.find((s) => s.properties?.title === name);
+  const sheetId = target?.properties?.sheetId;
+  if (sheetId == null) return;
+
+  await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: { requests: [{ deleteSheet: { sheetId } }] },
+  });
+}
+
 // ==========================================
 // 7. REVERSE SYNC (Reading GSheet State)
 // ==========================================
