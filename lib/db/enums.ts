@@ -79,9 +79,9 @@ export const REGION_NAME_VALUES = [
   "AGS",
   "UNKNOWN",
 ] as const;
-export const regionNameEnum = pgEnum("region_name", REGION_NAME_VALUES);
-export const RegionNameEnum = z.enum(REGION_NAME_VALUES);
-export type RegionName = z.infer<typeof RegionNameEnum>;
+// Region names are now stored as free text in the regions table (the table is
+// the source of truth). REGION_NAME_VALUES is retained only as seed/initial data.
+export type RegionName = string;
 
 // Cat Color
 export const CAT_COLOR_VALUES = [

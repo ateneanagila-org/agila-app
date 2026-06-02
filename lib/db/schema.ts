@@ -13,7 +13,6 @@ import {
 import {
   authRoleEnum,
   regionColorEnum,
-  regionNameEnum,
   catEntryStatusEnum,
   catColorEnum,
   catAgeEnum,
@@ -60,8 +59,9 @@ export const regions = pgTable(
   "regions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: regionNameEnum("name").default("UNKNOWN").notNull(),
+    name: text("name").notNull(),
     color: regionColorEnum("color"),
+    archived_at: timestamp("archived_at"),
   },
   (t) => [unique().on(t.name)],
 );
