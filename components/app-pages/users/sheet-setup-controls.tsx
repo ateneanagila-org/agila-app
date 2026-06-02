@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { syncRegions, provisionSheets, seedSheetUuids } from "@/app/actions/system";
+import { provisionSheets, seedSheetUuids } from "@/app/actions/system";
 
 type ActionResult = { ok: boolean; text: string };
 
@@ -49,24 +49,6 @@ export function SheetSetupControls() {
       </p>
 
       <div className="space-y-3">
-        {/* Sync regions from enum */}
-        <ActionRow
-          title="Sync regions from enum"
-          desc="Insert any region names missing from the database. Edit colors after."
-          buttonLabel="Sync regions"
-          busy={busy("regions")}
-          disabled={isPending}
-          result={results.regions}
-          onClick={() =>
-            run("regions", async () => {
-              const r = await syncRegions();
-              return r.inserted === 0
-                ? "No new regions — table already in sync."
-                : `Inserted ${r.inserted}: ${r.names.join(", ")}`;
-            })
-          }
-        />
-
         {/* Provision sheets */}
         <ActionRow
           title="Provision region sheets"

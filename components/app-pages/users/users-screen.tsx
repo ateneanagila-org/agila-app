@@ -28,6 +28,7 @@ import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { SyncControls } from "./sync-controls";
 import { SheetSetupControls } from "./sheet-setup-controls";
+import { RegionControls } from "./region-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
@@ -191,6 +192,7 @@ export function AdminScreen({
             <p className="font-heading text-2xl font-bold text-brand-green">Admin</p>
           </div>
           <div className="mb-4 space-y-3">
+            <RegionControls />
             <SheetSetupControls />
             <SyncControls initialStatus={initialSyncStatus} />
           </div>
@@ -296,7 +298,8 @@ export function AdminScreen({
           </button>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="mt-5 space-y-4">
+          <RegionControls />
           <SheetSetupControls />
           <SyncControls initialStatus={initialSyncStatus} />
         </div>

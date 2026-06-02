@@ -9,7 +9,6 @@ import {
   provisionRegionSheets,
   seedMissingUuidsAllRegions,
 } from "@/lib/services/helper.service";
-import { syncRegionsFromEnum } from "@/lib/services/regions.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
 import {
   requireAuth,
@@ -23,17 +22,6 @@ export async function unfreezeSync() {
   await setSyncFrozen(false);
   await sendSyncAlert("Sync manually unfrozen by admin. System resumed.");
   return { frozen: false, reverseSyncResult };
-}
-
-/**
- * Seeds the regions table from the REGION_NAME_VALUES enum — inserts any names
- * that don't have a row yet (idempotent, additive, never deletes). Colors are
- * left null to edit afterward. Run after adding a name to the enum + pushing
- * schema, then follow with provisionSheets().
- */
-export async function syncRegions() {
-  await requireRole(...ADMIN_ONLY);
-  return await syncRegionsFromEnum();
 }
 
 /**
