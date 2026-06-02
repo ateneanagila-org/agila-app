@@ -303,3 +303,89 @@ function setupSystemColProtection() {
 
   Logger.log("System columns (A, W–Y) protected on: " + regionNames.join(", "));
 }
+
+/**
+ * Installable onChange trigger — flags region tabs created BY HAND (outside the
+ * app). Sync only ever touches tabs whose name matches a DB region (mirrored to
+ * _config!B2); a tab made directly in the spreadsheet is invisible to sync, so
+ * anything typed into it is silently lost. This catches that at creation time.
+ *
+ * Fires on every structural change; acts only on INSERT_GRID (a new tab). Any
+ * present tab whose name is neither a STATIC_TAB nor in _config!B2 is treated as
+ * a hand-made orphan: a red warning banner is dropped into its first row and a
+ * toast is shown to whoever is currently viewing.
+ *
+ * App-created region tabs are NOT flagged: createRegion (app side) writes the
+ * new name to _config!B2 BEFORE creating the tab, so by the time this fires the
+ * name is already in B2 and the tab is recognized.
+ *
+ * HOW TO DEPLOY (one-time, like the onEdit trigger):
+ *   Triggers (clock icon) -> + Add Trigger
+ *     - Function: onSheetChange
+ *     - Event source: From spreadsheet
+ *     - Event type: On change
+ *     - Failure notification: Notify daily
+ */
+function onSheetChange(e) {
+  if (!e || e.changeType !== "INSERT_GRID") return;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Allowlist = static tabs + DB regions (from _config!B2, app-owned mirror).
+  var allowed = {};
+  STATIC_TABS.forEach(function (n) {
+    allowed[n] = true;
+  });
+  getRegionSheetNames().forEach(function (n) {
+    allowed[n] = true;
+  });
+
+  var orphans = ss.getSheets().filter(function (s) {
+    return !allowed[s.getName()];
+  });
+  if (orphans.length === 0) return;
+
+  orphans.forEach(function (sheet) {
+    warnOrphanTab(sheet);
+  });
+
+  var names = orphans
+    .map(function (s) {
+      return '"' + s.getName() + '"';
+    })
+    .join(", ");
+  try {
+    ss.toast(
+      "Tab " +
+        names +
+        " was not created through the app and will NOT sync. Delete it and add " +
+        "the region via the app (Admin > Edit Regions).",
+      "⚠️ This tab won't sync",
+      30,
+    );
+  } catch (err) {
+    // toast needs a UI context it may not have here — the banner already covers it.
+  }
+}
+
+/**
+ * Drops a persistent red warning banner into row 1 of an orphan tab so the
+ * caution survives regardless of who opens the sheet later. Idempotent — skips
+ * a tab already flagged (so repeated onChange fires don't stack banners). A
+ * freshly inserted tab is blank, so writing A1 clobbers nothing.
+ */
+function warnOrphanTab(sheet) {
+  var a1 = sheet.getRange("A1");
+  if (String(a1.getValue()).indexOf("will NOT sync") !== -1) return;
+
+  sheet.getRange(1, 1, 1, 12).merge(); // banner across A1:L1
+  a1 = sheet.getRange(1, 1);
+  a1.setValue(
+    "⚠️ This tab was created by hand and will NOT sync — anything entered " +
+      "here is lost. To add a region, use the app (Admin > Edit Regions), then delete this tab.",
+  );
+  a1.setBackground("#cc0000");
+  a1.setFontColor("#ffffff");
+  a1.setFontWeight("bold");
+  a1.setWrap(true);
+}

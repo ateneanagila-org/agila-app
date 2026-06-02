@@ -5,6 +5,7 @@ import {
   renameRegionSheetTab,
   deleteRegionSheetTab,
   provisionRegionSheets,
+  syncRegionSheetNames,
 } from "./helper.service";
 import { db } from "../db";
 import { AppError } from "../error/app-error";
@@ -22,7 +23,12 @@ export const createRegion = async (data: {
     color: data.color ?? null,
   });
 
-  // Create + provision the sheet tab (headers, protections, _config!B2).
+  // Mirror the new region into _config!B2 from the DB BEFORE creating the tab,
+  // so the Apps Script onChange guard (onSheetChange) sees the tab we're about
+  // to create as a known region and does NOT flag it as a hand-made orphan.
+  await syncRegionSheetNames();
+
+  // Create + provision the sheet tab (headers, protections, refreshes B2 again).
   await createRegionSheetTab(data.name);
   await provisionRegionSheets();
 

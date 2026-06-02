@@ -114,13 +114,20 @@ Use this when pointing the system at the **real** spreadsheet for the first time
 2. Paste the repo contents of `workers/apps-script/Code.gs`, `Protection.gs`,
    `WebApp.gs` into matching files. **Save**.
 
-### 4.2 Install the onEdit installable trigger (not optional)
-Pasting `Code.gs` does **not** install the trigger. In the Apps Script editor →
-**Triggers** (clock icon) → **+ Add Trigger**:
-- Function: `onEditInstallable` · Event source: From spreadsheet · Event type: On edit
-- Save and authorize.
+### 4.2 Install the installable triggers (not optional)
+Pasting the script files does **not** install triggers. In the Apps Script editor →
+**Triggers** (clock icon) → **+ Add Trigger**, add **both**:
 
-Without this, W/X timestamps and col-Y UUIDs for *future* human edits never fire.
+1. Function: `onEditInstallable` · From spreadsheet · On edit
+   — without it, W/X timestamps and col-Y UUIDs for future human edits never fire.
+2. Function: `onSheetChange` · From spreadsheet · **On change**
+   — flags region tabs created by hand (outside the app). A tab not created via
+   the app is invisible to sync, so data typed into it is silently lost; this
+   drops a red "won't sync" banner into the new tab + toasts the creator. App-made
+   tabs aren't flagged (the app writes the name to `_config!B2` before creating
+   the tab). **Never add region tabs by hand — always use Admin → Edit Regions.**
+
+Save and authorize each.
 
 ### 4.3 Point the app at the real sheet
 Set `CATALOG_SPREADSHEET_ID` to the real spreadsheet ID and redeploy / restart.
