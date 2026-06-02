@@ -77,10 +77,10 @@ export const getRegionUsage = async (
 };
 
 /**
- * Cat IDs that would be fully orphaned by deleting this region: they have at
- * least one session in this region, NO sessions in any other region, and no
- * manual region_id override pointing elsewhere. These are deleted alongside a
- * forced delete of a populated region.
+ * Cat IDs that would be fully orphaned by deleting this region: they appear in
+ * at least one session in this region but have NO sessions in any other region.
+ * Determined by session membership only — cats.region_id is a nullable FK with
+ * onDelete: "set null" and is handled automatically by the cascade.
  */
 export const findCatsOnlyInRegion = async (
   id: string,
@@ -94,7 +94,7 @@ export const findCatsOnlyInRegion = async (
     GROUP BY sc.cat_id
     HAVING COUNT(*) FILTER (WHERE s.region_id <> ${id}) = 0
   `);
-  return (rows as { id: string }[]).map((r) => r.id);
+  return rows.map((r) => String((r as Record<string, unknown>).id));
 };
 
 export type RegionOption = Awaited<ReturnType<typeof findActiveRegions>>[number];
