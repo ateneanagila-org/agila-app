@@ -68,10 +68,24 @@ export const insertSessionUser = (data: InsertSessionUser, client: DB = db) =>
 export const deleteSessionUser = (id: string) =>
   db.delete(sessionUsers).where(eq(sessionUsers.id, id));
 
-export async function findCatRegionByLatestSession(
-  catId: string,
-  client: DB = db,
-) {
+/**
+ * Resolves a cat's effective region with the same precedence as the app read
+ * path (regionSubquery in cats.repo.ts): the manual `cats.region_id` override
+ * wins; otherwise fall back to the most recent session's region.
+ * Returns the region row (id, name, ...) or undefined when the cat has neither.
+ */
+export async function resolveCatRegion(catId: string, client: DB = db) {
+  const cat = await client.query.cats.findFirst({
+    where: (c, { eq }) => eq(c.id, catId),
+    columns: { region_id: true },
+  });
+
+  if (cat?.region_id) {
+    return client.query.regions.findFirst({
+      where: (r, { eq }) => eq(r.id, cat.region_id!),
+    });
+  }
+
   const latestSession = await client.query.sessions.findFirst({
     where: (sessions, { exists }) =>
       exists(
@@ -86,9 +100,7 @@ export async function findCatRegionByLatestSession(
           ),
       ),
     orderBy: [desc(sessions.created_at)],
-    with: {
-      region: true,
-    },
+    with: { region: true },
   });
 
   return latestSession?.region;
