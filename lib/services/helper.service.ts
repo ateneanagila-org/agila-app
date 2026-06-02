@@ -61,7 +61,7 @@ export async function connectToSheets(): Promise<{
  * More reliable than Drive API files.export for service accounts.
  * ZIP contains one HTML file per sheet tab + an images/ directory.
  * Image bytes in the HTML reference images/imageN.png by filename.
- * Google resamples pasted images to cell display size on export â€”
+ * Google resamples pasted images to cell display size on export â€"
  * output images are already reduced from their original resolution.
  */
 export async function exportSpreadsheetAsZip(
@@ -121,7 +121,7 @@ function getInterventionDisplayStatus(
   return "Will not have intervention";
 }
 /**
- * Maps DB records to a 22-element array (cols Aâ€“V, indices 0â€“21).
+ * Maps DB records to a 22-element array (cols Aâ€"V, indices 0â€"21).
  * Col A = catalog number + status suffix (provided by caller; sheet is source of truth).
  * UUID is written to col Y separately.
  */
@@ -177,7 +177,7 @@ export function mapCatToSheetRow(
  * Maps DB records to a 22-element array for the UNKNOWN region sheet.
  * Col layout: A=CatalogID, B=PossibleLoc, C=PawsId, D=Color, E=Age,
  * F=Sex, G=Neutered, H=Tame, I=Sick, J=Injured, K=Adoptable,
- * L=DateOfKapon, M=DateOfVaccination, Nâ€“V=empty.
+ * L=DateOfKapon, M=DateOfVaccination, Nâ€"V=empty.
  * UUID is written to col Y separately.
  */
 export function mapUnknownCatToSheetRow(
@@ -213,7 +213,7 @@ export function mapUnknownCatToSheetRow(
     "",
     "",
     "",
-    "", // 13â€“21 (Nâ€“V) empty
+    "", // 13â€"21 (Nâ€"V) empty
   ];
 }
 
@@ -237,12 +237,12 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
     },
   });
 
-  if (!cat) return;
+  if (!cat) return undefined;
 
-  const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
-  if (!region) return;
+  const region = await sessionsRepo.resolveCatRegion(catId, tx);
+  if (!region) return undefined;
 
-  // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
+  // catalogDisplay defaults to "" — safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
   const rowData =
@@ -256,6 +256,8 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
     regionId: region.id,
     payload: rowData,
   });
+
+  return region;
 }
 
 // ==========================================
@@ -273,7 +275,7 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
 export async function syncAndCompactRegion(regionId: string) {
   const frozen = await isSyncFrozen();
   if (frozen) {
-    console.log(`[Sync] Frozen â€” skipping region ${regionId}`);
+    console.log(`[Sync] Frozen â€" skipping region ${regionId}`);
     return;
   }
 
@@ -322,7 +324,7 @@ export async function syncAndCompactRegion(regionId: string) {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
         if (idx === -1) {
-          // New cat â€” assign catalog number from sheet (not stored in DB)
+          // New cat â€" assign catalog number from sheet (not stored in DB)
           const cat = await db.query.cats.findFirst({
             where: (c, { eq }) => eq(c.id, task.entityId),
           });
@@ -348,7 +350,7 @@ export async function syncAndCompactRegion(regionId: string) {
                 );
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
-          // Update existing row â€” recompute col A to keep the number but refresh the status suffix
+          // Update existing row â€" recompute col A to keep the number but refresh the status suffix
           const existingNum = parseCatalogId(currentRows[idx][0] ?? "");
           const updatedRow = [...taskPayload];
           if (existingNum !== null && region.name !== "UNKNOWN") {
@@ -369,7 +371,7 @@ export async function syncAndCompactRegion(regionId: string) {
       .filter((row) => row[24] && String(row[24]).trim() !== "")
       .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
 
-    // 4. WRITE data cols A3:V (never touch W, X â€” Apps Script owns those)
+    // 4. WRITE data cols A3:V (never touch W, X â€" Apps Script owns those)
     const dataOnly = finalData.map((r) => r.slice(0, 22));
     await glSheets.spreadsheets.values.clear({
       auth: glAuth,
@@ -386,7 +388,7 @@ export async function syncAndCompactRegion(regionId: string) {
       });
     }
 
-    // 5. WRITE UUIDs to col Y â€” separate call, never clears W/X
+    // 5. WRITE UUIDs to col Y â€" separate call, never clears W/X
     const uuidColumn = finalData.map((r) => [r[24] ?? ""]);
     if (uuidColumn.length > 0) {
       await glSheets.spreadsheets.values.update({
@@ -790,8 +792,8 @@ const CONFIG_SHEET = "_config";
 const REGION_SHEET_NAMES_CELL = "B2";
 
 // System column indices (0-based, exclusive end for GridRange)
-// Col A  (catalog ID):               0â€“1
-// Cols Wâ€“Y (timestamp, editor, UUID): 22â€“25
+// Col A  (catalog ID):               0â€"1
+// Cols Wâ€"Y (timestamp, editor, UUID): 22â€"25
 // Data starts at row 3 (0-indexed = 2)
 const SYS_DATA_START_ROW = 2;
 const SYS_COL_A_START = 0;
@@ -800,7 +802,7 @@ const SYS_COL_WY_START = 22;
 const SYS_COL_WY_END = 25;
 
 /**
- * One-time setup: protect system-managed columns (A and Wâ€“Y) on all region
+ * One-time setup: protect system-managed columns (A and Wâ€"Y) on all region
  * sheets so only the service account can edit them directly.
  *
  * - Col A: Catalog ID (written by forward sync)
@@ -809,7 +811,7 @@ const SYS_COL_WY_END = 25;
  * - Col Y: UUID (written by forward sync)
  *
  * The service account is extracted from SERVICE_ACCOUNT_CREDENTIALS so it
- * cannot accidentally lock itself out. Existing A / Wâ€“Y protections are
+ * cannot accidentally lock itself out. Existing A / Wâ€"Y protections are
  * cleared first to prevent stacking.
  */
 export async function setupSystemColProtections(): Promise<void> {
@@ -836,7 +838,7 @@ export async function setupSystemColProtections(): Promise<void> {
     const sheetId = sheet.properties?.sheetId;
     if (sheetId === undefined) continue;
 
-    // Clear existing A and Wâ€“Y protections to avoid stacking
+    // Clear existing A and Wâ€"Y protections to avoid stacking
     for (const pr of sheet.protectedRanges ?? []) {
       const range = pr.range;
       const isColA =
@@ -862,13 +864,13 @@ export async function setupSystemColProtections(): Promise<void> {
             startColumnIndex: SYS_COL_A_START,
             endColumnIndex: SYS_COL_A_END,
           },
-          description: "Catalog ID â€” service account only",
+          description: "Catalog ID — service account only",
           editors: { users: [serviceAccountEmail] },
         },
       },
     });
 
-    // Protect cols Wâ€“Y (timestamp, editor email, UUID)
+    // Protect cols Wâ€"Y (timestamp, editor email, UUID)
     requests.push({
       addProtectedRange: {
         protectedRange: {
@@ -878,7 +880,7 @@ export async function setupSystemColProtections(): Promise<void> {
             startColumnIndex: SYS_COL_WY_START,
             endColumnIndex: SYS_COL_WY_END,
           },
-          description: "System columns (timestamp, editor, UUID) â€” service account only",
+          description: "System columns (timestamp, editor, UUID) — service account only",
           editors: { users: [serviceAccountEmail] },
         },
       },
@@ -1123,7 +1125,7 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   });
   if (!region) return [];
 
-  // Read A3:Y â€” col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
+  // Read A3:Y â€" col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
@@ -1149,7 +1151,7 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
  * spaces calls automatically, so for N regions this takes roughly N * 1.2s.
  *
  * Per-region failures (after the wrapper's retries are exhausted) are logged
- * and the region maps to an empty array â€” the cron should make progress on
+ * and the region maps to an empty array â€" the cron should make progress on
  * healthy regions even if one is broken.
  */
 export async function readAllRegionSheetStates(
@@ -1234,7 +1236,7 @@ export async function clearSheetEditTimestamps(
 
   let positional: Array<{ rowIndex: number }>;
   if (typeof arg[0] === "string") {
-    // Legacy path â€” must read col Y to find positions
+    // Legacy path â€" must read col Y to find positions
     const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
@@ -1250,7 +1252,7 @@ export async function clearSheetEditTimestamps(
       positional.push({ rowIndex: rowIdx + 3 });
     }
   } else {
-    // Filter out entries with no snapshot W (nothing to clear â€” user may have
+    // Filter out entries with no snapshot W (nothing to clear â€" user may have
     // added a W timestamp since the snapshot, which we must preserve).
     const verifyable = (
       arg as Array<{
@@ -1263,7 +1265,7 @@ export async function clearSheetEditTimestamps(
     if (verifyable.length === 0) return;
 
     // Re-read col W for the region. Skip clear for rows whose W has changed
-    // since the snapshot â€” those represent edits made during the cron tick that
+    // since the snapshot â€" those represent edits made during the cron tick that
     // the next tick must process.
     const wResponse = await glSheets.spreadsheets.values.get({
       auth: glAuth,
@@ -1286,7 +1288,7 @@ export async function clearSheetEditTimestamps(
 
     if (skippedDueToChange > 0) {
       console.log(
-        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows â€” W changed since snapshot (re-edited during cron tick)`,
+        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows â€" W changed since snapshot (re-edited during cron tick)`,
       );
     }
   }
@@ -1313,7 +1315,7 @@ export async function clearSheetEditTimestamps(
  *
  * Note: operates on the pre-sync snapshot. Rows added by volunteers mid-tick
  * (after readAllRegionSheetStates ran) will be caught on the next cron tick.
- * This is acceptable â€” Apps Script already has the UUID; the cat is in DB;
+ * This is acceptable â€" Apps Script already has the UUID; the cat is in DB;
  * only col A is blank for one tick.
  *
  * Returns how many rows were backfilled.
