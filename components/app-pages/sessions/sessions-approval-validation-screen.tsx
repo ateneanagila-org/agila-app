@@ -13,6 +13,7 @@ import { CloseIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import { normalizeCatField } from "@/lib/utils";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useRegions } from "@/lib/hooks/use-regions";
 import {
@@ -30,7 +31,6 @@ import type {
   CatStatus,
   CatEntryStatus,
 } from "@/lib/db/enums";
-
 
 export function SessionsApprovalValidationScreen() {
   const router = useRouter();
@@ -60,12 +60,17 @@ export function SessionsApprovalValidationScreen() {
 
   const regions = useRegions();
 
+  const crossRefHref = catId
+    ? `/dashboard/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
+    : "/dashboard/sessions/approval/cross-ref";
+  const backHref = "/dashboard/sessions/manager";
+
   const populateForm = useCallback((catData: CatWithRegion) => {
-    setColor(catData.color ?? "");
-    setAge(catData.age ?? "");
-    setSex(catData.sex ?? "");
-    setSociability(catData.sociability ?? "");
-    setCatStatus(catData.cat_status ?? "");
+    setColor(catData.color ?? "Unknown");
+    setAge(catData.age ?? "Unknown");
+    setSex(catData.sex ?? "Unknown");
+    setSociability(catData.sociability ?? "Unknown");
+    setCatStatus(catData.cat_status ?? "Unknown");
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
@@ -111,11 +116,11 @@ export function SessionsApprovalValidationScreen() {
     try {
       const result = await editCat({
         id: catId,
-        color: (color || undefined) as CatColor | undefined,
-        age: (age || undefined) as CatAge | undefined,
-        sex: (sex || undefined) as CatSex | undefined,
-        sociability: (sociability || undefined) as CatSociability | undefined,
-        cat_status: (catStatus || undefined) as CatStatus | undefined,
+        color: normalizeCatField<CatColor>(color),
+        age: normalizeCatField<CatAge>(age),
+        sex: normalizeCatField<CatSex>(sex),
+        sociability: normalizeCatField<CatSociability>(sociability),
+        cat_status: normalizeCatField<CatStatus>(catStatus),
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
@@ -135,6 +140,90 @@ export function SessionsApprovalValidationScreen() {
     }
   }, [
     catId,
+    color,
+    age,
+    sex,
+    sociability,
+    catStatus,
+    caretaker,
+    notes,
+    spotLastSeen,
+    regionId,
+    router,
+  ]);
+
+  /**
+   * Has the manager changed anything vs the loaded cat? Gates the save-on-Next
+   * so clicking through an untouched entry doesn't churn the GSheet sync queue.
+   */
+  const isDirty = useCallback(() => {
+    if (!cat) return false;
+    return (
+      normalizeCatField<CatColor>(color) !== (cat.color ?? null) ||
+      normalizeCatField<CatAge>(age) !== (cat.age ?? null) ||
+      normalizeCatField<CatSex>(sex) !== (cat.sex ?? null) ||
+      normalizeCatField<CatSociability>(sociability) !==
+        (cat.sociability ?? null) ||
+      normalizeCatField<CatStatus>(catStatus) !== (cat.cat_status ?? null) ||
+      (caretaker || "") !== (cat.caretaker ?? "") ||
+      (notes || "") !== (cat.notes ?? "") ||
+      (spotLastSeen || "") !== (cat.spot_last_seen ?? "") ||
+      (regionId ?? null) !== (cat.region_id ?? null)
+    );
+  }, [
+    cat,
+    color,
+    age,
+    sex,
+    sociability,
+    catStatus,
+    caretaker,
+    notes,
+    spotLastSeen,
+    regionId,
+  ]);
+
+  /**
+   * Next: persist the validation edits (keeping entry_status unchanged so the
+   * cat stays in the review queue), then go to cross-ref. Without this, edits
+   * live only in local state and the cross-ref screen re-fetches stale data —
+   * breaking the region badge, region filter, and merge diff.
+   */
+  const handleNext = useCallback(async () => {
+    if (!catId) return;
+    if (!isDirty()) {
+      router.push(crossRefHref);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await editCat({
+        id: catId,
+        color: normalizeCatField<CatColor>(color),
+        age: normalizeCatField<CatAge>(age),
+        sex: normalizeCatField<CatSex>(sex),
+        sociability: normalizeCatField<CatSociability>(sociability),
+        cat_status: normalizeCatField<CatStatus>(catStatus),
+        caretaker: caretaker || undefined,
+        notes: notes || undefined,
+        spot_last_seen: spotLastSeen || undefined,
+        region_id: regionId,
+      });
+      if (result?.serverError) {
+        setError(result.serverError);
+        return;
+      }
+      router.push(crossRefHref);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    catId,
+    isDirty,
+    crossRefHref,
     color,
     age,
     sex,
@@ -190,11 +279,6 @@ export function SessionsApprovalValidationScreen() {
     );
   }
 
-  const crossRefHref = catId
-    ? `/dashboard/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
-    : "/dashboard/sessions/approval/cross-ref";
-  const backHref = "/dashboard/sessions/manager";
-
   return (
     <>
       <div className="tablet:hidden">
@@ -238,12 +322,14 @@ export function SessionsApprovalValidationScreen() {
             <p className="font-heading text-xl font-bold text-brand-green">
               Info Validation
             </p>
-            <Link
-              href={crossRefHref}
-              className="flex items-center gap-1 rounded-xl bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80"
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={saving}
+              className="flex items-center gap-1 rounded-xl bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
             >
               Next ›
-            </Link>
+            </button>
           </div>
 
           {/* Green form card */}
@@ -268,31 +354,31 @@ export function SessionsApprovalValidationScreen() {
                 [
                   {
                     label: "Color",
-                    options: CAT_COLOR_VALUES,
+                    options: ["Unknown", ...CAT_COLOR_VALUES],
                     value: color,
                     onChange: setColor,
                   },
                   {
                     label: "Size/Age",
-                    options: CAT_AGE_VALUES,
+                    options: ["Unknown", ...CAT_AGE_VALUES],
                     value: age,
                     onChange: setAge,
                   },
                   {
                     label: "Sex",
-                    options: CAT_SEX_VALUES,
+                    options: ["Unknown", ...CAT_SEX_VALUES],
                     value: sex,
                     onChange: setSex,
                   },
                   {
                     label: "Sociability",
-                    options: CAT_SOCIABILITY_VALUES,
+                    options: ["Unknown", ...CAT_SOCIABILITY_VALUES],
                     value: sociability,
                     onChange: setSociability,
                   },
                   {
                     label: "Status",
-                    options: CAT_STATUS_VALUES,
+                    options: ["Unknown", ...CAT_STATUS_VALUES],
                     value: catStatus,
                     onChange: setCatStatus,
                   },
@@ -314,12 +400,21 @@ export function SessionsApprovalValidationScreen() {
               ))}
 
               <div>
-                <label className="text-xs font-bold text-brand-yellow">Region (override)</label>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Region (override)
+                </label>
                 <div className="mt-1.5">
                   <CustomSelect
                     options={regions.map((r) => r.name)}
-                    value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
-                    onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+                    value={
+                      regions.find((r) => r.id === regionId)?.name ??
+                      regionFallbackName
+                    }
+                    onChange={(name) =>
+                      setRegionId(
+                        regions.find((r) => r.name === name)?.id ?? null,
+                      )
+                    }
                     variant="cream"
                   />
                 </div>
@@ -357,12 +452,14 @@ export function SessionsApprovalValidationScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
-            <Link
-              href={crossRefHref}
-              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-80"
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
             >
               Next <span>&#8250;</span>
-            </Link>
+            </button>
             <Link
               href={backHref}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-dark/15 bg-white text-brand-dark transition-colors hover:border-brand-dark/40 hover:bg-brand-cream-dark/40"
@@ -425,12 +522,11 @@ export function SessionsApprovalValidationScreen() {
                     {formatDate(cat?.last_updated_at)}
                   </p>
                 </div>
-
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-brand-dark/15 pb-1 text-base font-semibold text-brand-dark">
-                  For Validation
+                <p className="font-heading text-xl font-bold text-brand-green">
+                  Info Validation
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -454,23 +550,60 @@ export function SessionsApprovalValidationScreen() {
               <div className="mt-3 grid grid-cols-2 gap-3">
                 {(
                   [
-                    { label: "Color", options: CAT_COLOR_VALUES, value: color, onChange: setColor },
-                    { label: "Size/Age", options: CAT_AGE_VALUES, value: age, onChange: setAge },
-                    { label: "Sex", options: CAT_SEX_VALUES, value: sex, onChange: setSex },
-                    { label: "Sociability", options: CAT_SOCIABILITY_VALUES, value: sociability, onChange: setSociability },
-                    { label: "Status", options: CAT_STATUS_VALUES, value: catStatus, onChange: setCatStatus },
+                    {
+                      label: "Color",
+                      options: ["Unknown", ...CAT_COLOR_VALUES],
+                      value: color,
+                      onChange: setColor,
+                    },
+                    {
+                      label: "Size/Age",
+                      options: ["Unknown", ...CAT_AGE_VALUES],
+                      value: age,
+                      onChange: setAge,
+                    },
+                    {
+                      label: "Sex",
+                      options: ["Unknown", ...CAT_SEX_VALUES],
+                      value: sex,
+                      onChange: setSex,
+                    },
+                    {
+                      label: "Sociability",
+                      options: ["Unknown", ...CAT_SOCIABILITY_VALUES],
+                      value: sociability,
+                      onChange: setSociability,
+                    },
+                    {
+                      label: "Status",
+                      options: ["Unknown", ...CAT_STATUS_VALUES],
+                      value: catStatus,
+                      onChange: setCatStatus,
+                    },
                     {
                       label: "Region (override)",
                       options: regions.map((r) => r.name),
-                      value: regions.find((r) => r.id === regionId)?.name ?? regionFallbackName,
-                      onChange: (name: string) => setRegionId(regions.find((r) => r.name === name)?.id ?? null),
+                      value:
+                        regions.find((r) => r.id === regionId)?.name ??
+                        regionFallbackName,
+                      onChange: (name: string) =>
+                        setRegionId(
+                          regions.find((r) => r.name === name)?.id ?? null,
+                        ),
                     },
                   ] as const
                 ).map(({ label, options, value, onChange }) => (
                   <div key={label}>
-                    <label className="text-xs font-medium text-brand-dark/50">{label}</label>
+                    <label className="text-xs font-medium text-brand-dark/50">
+                      {label}
+                    </label>
                     <div className="mt-1">
-                      <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+                      <CustomSelect
+                        options={options}
+                        value={value}
+                        onChange={onChange}
+                        variant="white"
+                      />
                     </div>
                   </div>
                 ))}
