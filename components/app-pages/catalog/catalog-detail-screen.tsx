@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
@@ -93,7 +94,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+        <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
       </div>
     );
   }

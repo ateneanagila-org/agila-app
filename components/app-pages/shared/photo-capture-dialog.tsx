@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   CameraIcon,
   CloseIcon,
@@ -192,7 +193,7 @@ export function PhotoCaptureDialog({
               />
               {starting ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="h-7 w-7 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <Loader2 className="h-7 w-7 animate-spin text-white" />
                 </div>
               ) : null}
             </>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText, Eye } from "lucide-react";
+import { FileText, Eye, Loader2 } from "lucide-react";
 import {
   ChevronDownIcon,
   TrashIcon,
@@ -184,7 +184,7 @@ export function SessionsScreen({
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
     </div>
   );
 

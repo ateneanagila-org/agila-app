@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Loader2, ExternalLink } from "lucide-react";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
 import type { FilterableCat } from "@/components/app-pages/shared/cat-filter-toolbar";
@@ -12,6 +13,7 @@ import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useAuth } from "@/contexts/auth-context";
+import { REFERRAL_SHEET_URL } from "@/lib/constants";
 
 function groupByCatId<T extends { cat_id: string }>(items: T[] | undefined) {
   const grouped = new Map<string, T[]>();
@@ -100,7 +102,11 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
             ? interventionsResult.value?.data
             : undefined;
         setCats((currentCats) =>
-          addMedicalAndInterventionInfo(currentCats, healthRecords, interventions),
+          addMedicalAndInterventionInfo(
+            currentCats,
+            healthRecords,
+            interventions,
+          ),
         );
       } catch {
         // enrichment is best-effort; filters still work on base fields
@@ -137,7 +143,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
     </div>
   );
 
@@ -154,9 +160,23 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
     <>
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 space-y-3 px-4 py-4">
-          <div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">Database</h1>
-            <p className="mt-0.5 text-xs font-semibold text-brand-green">{cats.length} cats on record</p>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
+                Database
+              </h1>
+              <p className="mt-0.5 text-xs font-semibold text-brand-green">
+                {cats.length} cats on record
+              </p>
+            </div>
+            <a
+              href={REFERRAL_SHEET_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-dark px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Sheets <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
 
           <CatFilterToolbar
@@ -225,16 +245,27 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
               {cats.length} cats on record
             </p>
           </div>
-          {canManage ? (
-            <button
-              type="button"
-              onClick={() => setShowAdd(true)}
+          <div className="flex items-center gap-2">
+            <a
+              href={REFERRAL_SHEET_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Add entry
-              <PlusIcon className="h-4 w-4" />
-            </button>
-          ) : null}
+              Referral Sheet
+              <ExternalLink className="h-4 w-4" />
+            </a>
+            {canManage ? (
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              >
+                Add entry
+                <PlusIcon className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-5">
