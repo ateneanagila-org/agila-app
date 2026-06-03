@@ -8,7 +8,8 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import { ChevronDownIcon, CatIcon } from "@/components/app-pages/shared/icons";
+import { CloseIcon } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
@@ -29,63 +30,6 @@ import type {
   CatEntryStatus,
 } from "@/lib/db/enums";
 
-function DropdownField({
-  label,
-  options,
-  value,
-  onChange,
-  isMobile,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string;
-  onChange: (val: string) => void;
-  isMobile?: boolean;
-}) {
-  if (isMobile) {
-    return (
-      <div>
-        <label className="text-sm text-slate-700">{label}</label>
-        <div className="relative mt-1 rounded-lg border border-slate-200 bg-white">
-          <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="h-9 w-full appearance-none rounded-lg bg-white px-3 pr-10 text-sm text-slate-900"
-          >
-            <option value="">&mdash;</option>
-            {options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <label className="text-xs font-bold text-brand-yellow">{label}</label>
-      <div className="relative mt-1 rounded-lg border border-white/20 bg-white/15">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full appearance-none rounded-lg bg-white/15 px-3 pr-10 text-sm text-white"
-        >
-          <option value="">&mdash;</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/70" />
-      </div>
-    </div>
-  );
-}
 
 export function SessionsApprovalValidationScreen() {
   const router = useRouter();
@@ -265,17 +209,17 @@ export function SessionsApprovalValidationScreen() {
             <button
               type="button"
               onClick={() => setShowDiscardConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange/5"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Discard <span className="text-sm">🗑️</span>
+              Discard <span>✕</span>
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => setShowSaveConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Approve Instantly <span className="text-sm">✓</span>
+              Approve Instantly <span>✓</span>
             </button>
           </div>
 
@@ -368,13 +312,17 @@ export function SessionsApprovalValidationScreen() {
                 </div>
               ))}
 
-              <DropdownField
-                label="Region (override)"
-                options={regions.map((r) => r.name)}
-                value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
-                onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
-                isMobile
-              />
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">Region (override)</label>
+                <div className="mt-1.5">
+                  <CustomSelect
+                    options={regions.map((r) => r.name)}
+                    value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
+                    onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
+                    variant="cream"
+                  />
+                </div>
+              </div>
 
               <div>
                 <label className="text-xs font-bold text-brand-yellow">
@@ -409,10 +357,17 @@ export function SessionsApprovalValidationScreen() {
           </h1>
           <div className="flex items-center gap-2">
             <Link
-              href={backHref}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              href={crossRefHref}
+              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-80"
             >
-              Back <span className="ml-1">&#8249;</span>
+              Next <span>&#8250;</span>
+            </Link>
+            <Link
+              href={backHref}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-dark/15 bg-white text-brand-dark transition-colors hover:border-brand-dark/40 hover:bg-brand-cream-dark/40"
+              aria-label="Back"
+            >
+              <CloseIcon className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -423,17 +378,22 @@ export function SessionsApprovalValidationScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
+        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <CatIcon className="h-9 w-9 text-white/50" />
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-brand-cream-dark">
+              <CatPhoto
+                photoUrl={cat?.photo_url}
+                name={cat?.name}
+                className="h-full w-full object-cover"
+                iconClassName="h-9 w-9 text-brand-dark/30"
+              />
             </div>
 
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-heading text-xl font-bold tracking-tight text-white">
+                    <h3 className="font-heading text-xl font-bold tracking-tight text-foreground">
                       {cat?.name || "Unnamed"}
                     </h3>
                     {sexSymbol(cat?.sex) ? (
@@ -444,37 +404,31 @@ export function SessionsApprovalValidationScreen() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {cat?.color ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-cream-dark px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.color}
                       </span>
                     ) : null}
                     {cat?.age ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-cream-dark px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.age}
                       </span>
                     ) : null}
                     {cat?.region_name ? (
-                      <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-dark/10 px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.region_name}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm text-white/70">
+                  <p className="mt-3 text-sm text-brand-dark/60">
                     Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
                     {formatDate(cat?.last_updated_at)}
                   </p>
                 </div>
 
-                <Link
-                  href={crossRefHref}
-                  className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                >
-                  Next <span className="ml-1">&#8250;</span>
-                </Link>
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-white/30 pb-1 text-base font-semibold text-white">
+                <p className="inline-block border-b border-brand-dark/15 pb-1 text-base font-semibold text-brand-dark">
                   For Validation
                 </p>
                 <div className="flex gap-2">
@@ -482,88 +436,74 @@ export function SessionsApprovalValidationScreen() {
                     type="button"
                     disabled={saving}
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
-                    Cancel <span className="ml-1">&#10005;</span>
+                    Discard <span className="ml-1">&#10005;</span>
                   </button>
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <DropdownField
-                  label="Color"
-                  options={CAT_COLOR_VALUES}
-                  value={color}
-                  onChange={setColor}
-                />
-                <DropdownField
-                  label="Size/Age"
-                  options={CAT_AGE_VALUES}
-                  value={age}
-                  onChange={setAge}
-                />
-                <DropdownField
-                  label="Sex"
-                  options={CAT_SEX_VALUES}
-                  value={sex}
-                  onChange={setSex}
-                />
-                <DropdownField
-                  label="Sociability"
-                  options={CAT_SOCIABILITY_VALUES}
-                  value={sociability}
-                  onChange={setSociability}
-                />
-                <DropdownField
-                  label="Status"
-                  options={CAT_STATUS_VALUES}
-                  value={catStatus}
-                  onChange={setCatStatus}
-                />
-                <DropdownField
-                  label="Region (override)"
-                  options={regions.map((r) => r.name)}
-                  value={regions.find((r) => r.id === regionId)?.name ?? regionFallbackName}
-                  onChange={(name) => setRegionId(regions.find((r) => r.name === name)?.id ?? null)}
-                />
+                {(
+                  [
+                    { label: "Color", options: CAT_COLOR_VALUES, value: color, onChange: setColor },
+                    { label: "Size/Age", options: CAT_AGE_VALUES, value: age, onChange: setAge },
+                    { label: "Sex", options: CAT_SEX_VALUES, value: sex, onChange: setSex },
+                    { label: "Sociability", options: CAT_SOCIABILITY_VALUES, value: sociability, onChange: setSociability },
+                    { label: "Status", options: CAT_STATUS_VALUES, value: catStatus, onChange: setCatStatus },
+                    {
+                      label: "Region (override)",
+                      options: regions.map((r) => r.name),
+                      value: regions.find((r) => r.id === regionId)?.name ?? regionFallbackName,
+                      onChange: (name: string) => setRegionId(regions.find((r) => r.name === name)?.id ?? null),
+                    },
+                  ] as const
+                ).map(({ label, options, value, onChange }) => (
+                  <div key={label}>
+                    <label className="text-xs font-medium text-brand-dark/50">{label}</label>
+                    <div className="mt-1">
+                      <CustomSelect options={options} value={value} onChange={onChange} variant="white" />
+                    </div>
+                  </div>
+                ))}
                 <div>
-                  <label className="text-xs font-bold text-brand-yellow">
+                  <label className="text-xs font-medium text-brand-dark/50">
                     Caretaker
                   </label>
                   <input
                     value={caretaker}
                     onChange={(e) => setCaretaker(e.target.value)}
-                    className="mt-1 h-9 w-full rounded-lg border border-white/20 bg-white/15 px-3 text-sm text-white outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
+                    className="mt-1 h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-brand-dark outline-none focus:border-gray-300"
                   />
                 </div>
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-bold text-brand-yellow">
+                <label className="text-xs font-medium text-brand-dark/50">
                   Specific Location
                 </label>
                 <input
                   value={spotLastSeen}
                   onChange={(e) => setSpotLastSeen(e.target.value)}
-                  className="mt-1 h-9 w-full rounded-lg border border-white/20 bg-white/15 px-3 text-sm text-white outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
+                  className="mt-1 h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-brand-dark outline-none focus:border-gray-300"
                 />
               </div>
 
               <div className="mt-3">
-                <label className="text-xs font-bold text-brand-yellow">
+                <label className="text-xs font-medium text-brand-dark/50">
                   Notes
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="mt-1 h-24 w-full resize-none rounded-lg border border-white/20 bg-white/15 px-3 py-2 text-sm text-white outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
+                  className="mt-1 h-24 w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-brand-dark outline-none focus:border-gray-300"
                 />
               </div>
             </div>

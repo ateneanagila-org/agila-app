@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { UsersScreen } from "@/components/app-pages/users/users-screen";
+import { AdminScreen } from "@/components/app-pages/admin/admin-screen";
 import { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
 import {
   getSyncFreezeReason,
@@ -10,7 +10,7 @@ import { loadData } from "@/lib/safe-initial-data";
 export const maxDuration = 120;
 
 export const metadata: Metadata = {
-  title: "User Control",
+  title: "Admin",
 };
 
 type InitialSyncStatus = {
@@ -18,7 +18,7 @@ type InitialSyncStatus = {
   reason: string | null;
 };
 
-export default async function UsersPage() {
+export default async function AdminPage() {
   const [users, syncStatus] = await Promise.all([
     loadData("Users initial load", () => findAllowedEmailsWithProfile(), []),
     loadData<InitialSyncStatus>(
@@ -37,10 +37,5 @@ export default async function UsersPage() {
     ),
   ]);
 
-  return (
-    <UsersScreen
-      initialUsers={users}
-      initialSyncStatus={syncStatus}
-    />
-  );
+  return <AdminScreen initialUsers={users} initialSyncStatus={syncStatus} />;
 }

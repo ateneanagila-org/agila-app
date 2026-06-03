@@ -38,7 +38,7 @@ function sexGlyph(s: string | null | undefined): string | null {
 
 function StatusPill({ status }: { status: string | null | undefined }) {
   const cls =
-    status === "Completed"
+    status === "Finished"
       ? "bg-brand-green/12 text-brand-green"
       : status === "Cancelled"
         ? "bg-brand-dark/8 text-brand-dark/60"
@@ -228,7 +228,7 @@ export function DatabaseInterventionsScreen() {
             </div>
           </div>
 
-          <div className="border-t border-brand-dark/8 px-5 tablet:px-6">
+          <div className="border-t border-brand-dark/8 px-5 pt-2 tablet:px-6">
             <TopTabs active="Interventions" />
           </div>
         </div>
@@ -295,7 +295,9 @@ export function DatabaseInterventionsScreen() {
                     ) : null}
                   </div>
 
-                  <div className={`w-full tablet:w-40${!canManage ? " pointer-events-none opacity-60" : ""}`}>
+                  <div
+                    className={`w-full tablet:w-40${!canManage ? " pointer-events-none opacity-60" : ""}`}
+                  >
                     <CustomSelect
                       options={INTERVENTION_STATUS_VALUES}
                       value={item.status ?? "Pending"}
@@ -321,20 +323,6 @@ export function DatabaseInterventionsScreen() {
           </button>
         </div>
       </PageContent>
-
-      {/* FAB (mobile) */}
-      {canManage ? (
-        <div className="pointer-events-none fixed bottom-20 right-4 z-10 tablet:hidden">
-          <button
-            type="button"
-            onClick={() => setShowIntervention(true)}
-            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange p-0 leading-none shadow-lg transition-opacity hover:opacity-90"
-            aria-label="New intervention"
-          >
-            <PlusIcon className="h-6 w-6 text-white" />
-          </button>
-        </div>
-      ) : null}
 
       <DatabaseFiltersDialog
         open={openDialog === "filter"}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getRegions } from "@/app/actions/regions";
+import { listRegions } from "@/app/actions/regions";
 import type { RegionOption } from "@/lib/repo/regions.repo";
 
 export function useRegions() {
@@ -9,10 +9,13 @@ export function useRegions() {
 
   useEffect(() => {
     let cancelled = false;
-    getRegions().then((res) => {
-      if (!cancelled) setRegions(res?.data ?? []);
+    listRegions({}).then((res) => {
+      if (!cancelled)
+        setRegions((res?.data as RegionOption[] | undefined) ?? []);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return regions;

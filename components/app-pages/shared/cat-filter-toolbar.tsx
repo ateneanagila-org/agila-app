@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useDebounce } from "use-debounce";
 import {
   DatabaseFiltersDialog,
   DatabaseSortByDialog,
@@ -39,6 +40,7 @@ export function CatFilterToolbar({
   children,
 }: CatFilterToolbarProps) {
   const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch] = useDebounce(searchInput, 500);
   const [openingFilter, setOpeningFilter] = useState(false);
 
   const {
@@ -53,8 +55,6 @@ export function CatFilterToolbar({
     openFilterDialog,
     openSortDialog,
     closeDialog,
-    search,
-    setSearch,
   } = useFilterSort<FilterableCat>(
     cats,
     config,
@@ -77,11 +77,6 @@ export function CatFilterToolbar({
     (cat) => !cat.name?.trim(),
   );
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput), 250);
-    return () => window.clearTimeout(timer);
-  }, [searchInput, setSearch]);
-
   const handleOpenFilter = async () => {
     if (!onBeforeOpenFilter) {
       openFilterDialog();
@@ -97,9 +92,9 @@ export function CatFilterToolbar({
     }
   };
 
-  const filteredCats = search
+  const filteredCats = debouncedSearch
     ? filtered.filter((cat) => {
-        const q = search.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         return searchFields.some((field) => {
           const val = cat[field as keyof SelectCat];
           return typeof val === "string" && val.toLowerCase().includes(q);
@@ -118,7 +113,7 @@ export function CatFilterToolbar({
               placeholder="Search by name"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+              className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
           <div className="mt-2 flex gap-2 tablet:mt-0">

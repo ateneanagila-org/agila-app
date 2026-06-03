@@ -64,7 +64,7 @@ export default function NotOnboardedPage() {
               Access restricted
             </p>
             <h1 className="mt-2 font-heading text-4xl font-bold tracking-tight text-brand-dark tablet:text-5xl">
-              Not onboarded yet
+              Not onboarded
             </h1>
             <p className="mt-3 text-sm text-brand-dark/70">
               Your account hasn&apos;t been added to the catalog system. Contact

@@ -49,8 +49,8 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
-        source: "/users",
-        destination: "/dashboard/users",
+        source: "/admin",
+        destination: "/dashboard/admin",
         permanent: false,
       },
     ];
@@ -80,10 +80,6 @@ const nextConfig: NextConfig = {
       {
         source: "/dashboard/sessions/:path*",
         destination: "/sessions/:path*",
-      },
-      {
-        source: "/dashboard/users",
-        destination: "/users",
       },
     ];
   },

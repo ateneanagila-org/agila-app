@@ -110,11 +110,6 @@ export function SessionsCreateScreen() {
     }
   }, [existingSessionId, hydrateExistingSession]);
 
-  const handleSave = useCallback(() => {
-    // Session row + cats already persisted incrementally; "Save" just exits.
-    window.location.href = "/dashboard/sessions";
-  }, []);
-
   const handleDiscard = useCallback(async () => {
     if (!sessionId) {
       window.location.href = "/dashboard/sessions";
@@ -226,16 +221,10 @@ export function SessionsCreateScreen() {
                 <button
                   type="button"
                   onClick={() => setShowDiscard(true)}
-                  className="flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-opacity hover:opacity-80"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-500"
+                  aria-label="Delete session"
                 >
-                  Discard
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="flex items-center gap-1 rounded-full border border-brand-green bg-white px-3 py-1.5 text-xs font-semibold text-brand-green transition-opacity hover:opacity-80"
-                >
-                  Save 💾
+                  <TrashIcon className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -335,6 +324,16 @@ export function SessionsCreateScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
+            {sessionId ? (
+              <button
+                type="button"
+                onClick={() => setShowDiscard(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-500"
+                aria-label="Delete session"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            ) : null}
             <Link
               href="/dashboard/sessions"
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"

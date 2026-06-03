@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/app-pages/shared/brand-logo";
 
 type NavItem = {
-  label: "Overview" | "TNVR" | "Database" | "Sessions" | "Users";
+  label: "Overview" | "TNVR" | "Database" | "Sessions" | "Admin";
   href: string;
 };
 
@@ -17,7 +17,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { label: "TNVR", href: "/dashboard/tnvr" },
   { label: "Database", href: "/dashboard/database" },
   { label: "Sessions", href: "/dashboard/sessions" },
-  { label: "Users", href: "/dashboard/users" },
+  { label: "Admin", href: "/dashboard/admin" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -145,7 +145,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
     () =>
       isAdmin
         ? BASE_NAV_ITEMS
-        : BASE_NAV_ITEMS.filter((item) => item.label !== "Users"),
+        : BASE_NAV_ITEMS.filter((item) => item.label !== "Admin"),
     [isAdmin],
   );
 
@@ -181,7 +181,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                     active ? "bg-white/10" : "bg-transparent"
                   }`}
                 >
-                  {item.label === "Users" ? (
+                  {item.label === "Admin" ? (
                     <UsersIcon active={active} />
                   ) : (
                     <NavIcon label={item.label} active={active} />
@@ -230,7 +230,7 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
                             : "text-white/50 group-hover:text-white"
                         }
                       >
-                        {item.label === "Users" ? (
+                        {item.label === "Admin" ? (
                           <UsersIcon active={active} />
                         ) : (
                           <NavIcon label={item.label} active={active} />

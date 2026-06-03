@@ -22,13 +22,175 @@
  *
  * SETUP:
  * - Create a hidden, protected sheet tab named "_config" in the spreadsheet
- * - The app will write region sheet names as a comma-separated list to cell B2
- * - Run setupSystemColProtection() once after initial spreadsheet setup,
- *   or after adding a new region sheet
+ * - Run setupRegionSheets() once after initial setup, AND after adding any new
+ *   region sheet. It is the single entry point — see USAGE below.
+ *
+ * SOURCE OF TRUTH: region names live in the app DB `regions` table (constrained
+ * by the REGION_NAME_VALUES enum). The app mirrors that list into _config!B2 on
+ * region create/delete (syncRegionSheetNames). Apps Script only READS B2 — it
+ * never derives region names from tab titles, so a stray/typo'd tab can't become
+ * a "region" and corrupt the sync.
  *
  * USAGE (manual, run from Apps Script editor only):
- * - Run clearSystemColProtections() then setupSystemColProtection() to reset protections
+ * - setupRegionSheets()  — RECOMMENDED. Idempotent one-shot: reads the region
+ *     list from _config!B2, warns on any tab/list mismatch, ensures the W/X/Y
+ *     header labels, and (re)applies the A + W–Y protections. Run after creating
+ *     a new region tab. PRECONDITION: the region already exists in the app and
+ *     B2 is populated (the app writes B2 from the DB).
+ * - setupSystemColProtection() / clearSystemColProtections() — lower-level
+ *     protection-only helpers, kept for manual control.
+ * - seedMissingUuids(getRegionSheetNames()) — backfill col-Y UUIDs for existing
+ *     rows (also runs inside setupRegionSheets). Use standalone only if needed.
+ *
+ * STATIC_TABS below lists non-region tabs to ignore in the mismatch check.
  */
+
+// Non-region tabs to ignore when cross-checking tabs against the B2 region list.
+// UNKNOWN is intentionally NOT here — it is a synced region sheet with UUIDs.
+var STATIC_TABS = ["_config", "For RI", "For FA"];
+
+/**
+ * Consistency check (warns only, never acts). The region list is owned by the
+ * app DB and mirrored to _config!B2 — this never derives names from tabs. It
+ * just surfaces drift between the actual tabs and B2 so a typo'd or missing tab
+ * is caught before it silently breaks sync.
+ */
+function warnTabMismatch(names) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var skip = {};
+  STATIC_TABS.forEach(function (n) {
+    skip[n] = true;
+  });
+  var tabs = ss
+    .getSheets()
+    .map(function (s) {
+      return s.getName();
+    })
+    .filter(function (n) {
+      return !skip[n];
+    });
+
+  var inList = {};
+  names.forEach(function (n) {
+    inList[n] = true;
+  });
+  var inTabs = {};
+  tabs.forEach(function (n) {
+    inTabs[n] = true;
+  });
+
+  tabs.forEach(function (t) {
+    if (!inList[t]) {
+      Logger.log(
+        "WARN: tab '" +
+          t +
+          "' is not in _config!B2 — skipped. Fix the tab name to match a region, or add the region in the app first.",
+      );
+    }
+  });
+  names.forEach(function (n) {
+    if (!inTabs[n]) {
+      Logger.log("WARN: region '" + n + "' has no matching sheet tab yet.");
+    }
+  });
+}
+
+/**
+ * Ensures the system-column header labels exist on each region sheet (row 2;
+ * data starts row 3). Idempotent — overwrites with the same values each run.
+ *   W2 = last_edited_at, X2 = edited_by, Y2 = uuid
+ */
+function ensureSystemHeaders(names) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  names.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    sheet.getRange("W2").setValue("last_edited_at");
+    sheet.getRange("X2").setValue("edited_by");
+    sheet.getRange("Y2").setValue("uuid");
+  });
+}
+
+/**
+ * Bulk-assigns a UUID to col Y for every DATA row (row 3+) that has content but
+ * no UUID yet. The onEdit trigger only seeds a row when a human edits it, so a
+ * freshly onboarded sheet full of existing rows needs this one-time backfill —
+ * reverse-sync skips UUID-less rows, so without it that data never imports.
+ *
+ * Idempotent: only fills blanks, never overwrites an existing UUID. A row counts
+ * as "content" if any A–V cell is non-empty (so empty trailing rows are left
+ * alone and don't become phantom cats). Batched read/write per sheet.
+ */
+function seedMissingUuids(names) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var DATA_START_ROW = 3;
+  var DATA_COLS = 22; // A–V
+  var UUID_COL = 25; // Y
+  var seeded = 0;
+
+  names.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var lastRow = sheet.getLastRow();
+    if (lastRow < DATA_START_ROW) return;
+
+    var n = lastRow - DATA_START_ROW + 1;
+    var yRange = sheet.getRange(DATA_START_ROW, UUID_COL, n, 1);
+    var yVals = yRange.getValues();
+    var dataVals = sheet.getRange(DATA_START_ROW, 1, n, DATA_COLS).getValues();
+
+    var changed = false;
+    for (var i = 0; i < n; i++) {
+      var hasContent = dataVals[i].some(function (c) {
+        return c !== "" && c !== null;
+      });
+      if (hasContent && !String(yVals[i][0]).trim()) {
+        yVals[i][0] = Utilities.getUuid();
+        seeded++;
+        changed = true;
+      }
+    }
+    if (changed) yRange.setValues(yVals);
+  });
+
+  Logger.log("seedMissingUuids: assigned " + seeded + " UUID(s).");
+}
+
+/**
+ * ONE-SHOT region setup (run from the Apps Script editor). Idempotent — safe to
+ * re-run after adding a new region tab. Steps:
+ *   1. Read the region list from _config!B2 (app-owned mirror of the DB)
+ *   2. Warn on any tab/list mismatch (does not act on it)
+ *   3. Ensure W/X/Y header labels
+ *   4. Seed col-Y UUIDs for existing rows that lack one (so they can import)
+ *   5. Clear then (re)apply the A + W–Y protections
+ *
+ * PRECONDITION: the region already exists in the app and B2 is populated. The
+ * app writes B2 from the DB via the admin "refresh region sheet config" action
+ * (syncRegionSheetNames). If B2 is empty, run that first, then re-run this.
+ *
+ * The onEdit trigger (Code.gs) is column-index based, so new tabs are already
+ * covered for W/X/Y timestamping — no per-tab trigger setup needed.
+ */
+function setupRegionSheets() {
+  var names = getRegionSheetNames();
+  if (names.length === 0) {
+    Logger.log(
+      "_config!B2 is empty. Run the app's 'refresh region sheet config' admin action first (it writes the DB region list to B2), then re-run.",
+    );
+    return;
+  }
+
+  warnTabMismatch(names);
+  ensureSystemHeaders(names);
+  seedMissingUuids(names);
+
+  // Clear first so re-runs don't stack duplicate protection objects.
+  clearSystemColProtections();
+  setupSystemColProtection();
+
+  Logger.log("setupRegionSheets complete for: " + names.join(", "));
+}
 
 /**
  * Reads region sheet names from the _config sheet (cell B2).
@@ -140,4 +302,90 @@ function setupSystemColProtection() {
   });
 
   Logger.log("System columns (A, W–Y) protected on: " + regionNames.join(", "));
+}
+
+/**
+ * Installable onChange trigger — flags region tabs created BY HAND (outside the
+ * app). Sync only ever touches tabs whose name matches a DB region (mirrored to
+ * _config!B2); a tab made directly in the spreadsheet is invisible to sync, so
+ * anything typed into it is silently lost. This catches that at creation time.
+ *
+ * Fires on every structural change; acts only on INSERT_GRID (a new tab). Any
+ * present tab whose name is neither a STATIC_TAB nor in _config!B2 is treated as
+ * a hand-made orphan: a red warning banner is dropped into its first row and a
+ * toast is shown to whoever is currently viewing.
+ *
+ * App-created region tabs are NOT flagged: createRegion (app side) writes the
+ * new name to _config!B2 BEFORE creating the tab, so by the time this fires the
+ * name is already in B2 and the tab is recognized.
+ *
+ * HOW TO DEPLOY (one-time, like the onEdit trigger):
+ *   Triggers (clock icon) -> + Add Trigger
+ *     - Function: onSheetChange
+ *     - Event source: From spreadsheet
+ *     - Event type: On change
+ *     - Failure notification: Notify daily
+ */
+function onSheetChange(e) {
+  if (!e || e.changeType !== "INSERT_GRID") return;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Allowlist = static tabs + DB regions (from _config!B2, app-owned mirror).
+  var allowed = {};
+  STATIC_TABS.forEach(function (n) {
+    allowed[n] = true;
+  });
+  getRegionSheetNames().forEach(function (n) {
+    allowed[n] = true;
+  });
+
+  var orphans = ss.getSheets().filter(function (s) {
+    return !allowed[s.getName()];
+  });
+  if (orphans.length === 0) return;
+
+  orphans.forEach(function (sheet) {
+    warnOrphanTab(sheet);
+  });
+
+  var names = orphans
+    .map(function (s) {
+      return '"' + s.getName() + '"';
+    })
+    .join(", ");
+  try {
+    ss.toast(
+      "Tab " +
+        names +
+        " was not created through the app and will NOT sync. Delete it and add " +
+        "the region via the app (Admin > Edit Regions).",
+      "⚠️ This tab won't sync",
+      30,
+    );
+  } catch (err) {
+    // toast needs a UI context it may not have here — the banner already covers it.
+  }
+}
+
+/**
+ * Drops a persistent red warning banner into row 1 of an orphan tab so the
+ * caution survives regardless of who opens the sheet later. Idempotent — skips
+ * a tab already flagged (so repeated onChange fires don't stack banners). A
+ * freshly inserted tab is blank, so writing A1 clobbers nothing.
+ */
+function warnOrphanTab(sheet) {
+  var a1 = sheet.getRange("A1");
+  if (String(a1.getValue()).indexOf("will NOT sync") !== -1) return;
+
+  sheet.getRange(1, 1, 1, 12).merge(); // banner across A1:L1
+  a1 = sheet.getRange(1, 1);
+  a1.setValue(
+    "⚠️ This tab was created by hand and will NOT sync — anything entered " +
+      "here is lost. To add a region, use the app (Admin > Edit Regions), then delete this tab.",
+  );
+  a1.setBackground("#cc0000");
+  a1.setFontColor("#ffffff");
+  a1.setFontWeight("bold");
+  a1.setWrap(true);
 }

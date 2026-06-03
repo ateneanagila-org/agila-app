@@ -115,7 +115,7 @@ export function CatalogScreen() {
               placeholder="Search by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+              className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
           <button
@@ -162,7 +162,7 @@ export function CatalogScreen() {
                 region_name={cat.region_name}
                 href={`/catalog/${cat.id}`}
                 variant="default"
-                action="chevron"
+                action="none"
                 hideAdoptableChip
               />
             ))}

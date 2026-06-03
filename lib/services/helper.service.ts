@@ -1,4 +1,5 @@
-﻿import { google } from "googleapis";
+﻿﻿import { randomUUID } from "crypto";
+import { google } from "googleapis";
 import {
   wrapSheetsClient,
   type WrappedSheetsClient,
@@ -60,7 +61,7 @@ export async function connectToSheets(): Promise<{
  * More reliable than Drive API files.export for service accounts.
  * ZIP contains one HTML file per sheet tab + an images/ directory.
  * Image bytes in the HTML reference images/imageN.png by filename.
- * Google resamples pasted images to cell display size on export â€”
+ * Google resamples pasted images to cell display size on export â€"
  * output images are already reduced from their original resolution.
  */
 export async function exportSpreadsheetAsZip(
@@ -120,7 +121,7 @@ function getInterventionDisplayStatus(
   return "Will not have intervention";
 }
 /**
- * Maps DB records to a 22-element array (cols Aâ€“V, indices 0â€“21).
+ * Maps DB records to a 22-element array (cols Aâ€"V, indices 0â€"21).
  * Col A = catalog number + status suffix (provided by caller; sheet is source of truth).
  * UUID is written to col Y separately.
  */
@@ -176,7 +177,7 @@ export function mapCatToSheetRow(
  * Maps DB records to a 22-element array for the UNKNOWN region sheet.
  * Col layout: A=CatalogID, B=PossibleLoc, C=PawsId, D=Color, E=Age,
  * F=Sex, G=Neutered, H=Tame, I=Sick, J=Injured, K=Adoptable,
- * L=DateOfKapon, M=DateOfVaccination, Nâ€“V=empty.
+ * L=DateOfKapon, M=DateOfVaccination, Nâ€"V=empty.
  * UUID is written to col Y separately.
  */
 export function mapUnknownCatToSheetRow(
@@ -212,7 +213,7 @@ export function mapUnknownCatToSheetRow(
     "",
     "",
     "",
-    "", // 13â€“21 (Nâ€“V) empty
+    "", // 13â€"21 (Nâ€"V) empty
   ];
 }
 
@@ -236,10 +237,10 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
     },
   });
 
-  if (!cat) return;
+  if (!cat) return undefined;
 
-  const region = await sessionsRepo.findCatRegionByLatestSession(catId, tx);
-  if (!region) return;
+  const region = await sessionsRepo.resolveCatRegion(catId, tx);
+  if (!region) return undefined;
 
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
@@ -255,6 +256,8 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
     regionId: region.id,
     payload: rowData,
   });
+
+  return region;
 }
 
 // ==========================================
@@ -272,7 +275,7 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
 export async function syncAndCompactRegion(regionId: string) {
   const frozen = await isSyncFrozen();
   if (frozen) {
-    console.log(`[Sync] Frozen â€” skipping region ${regionId}`);
+    console.log(`[Sync] Frozen â€" skipping region ${regionId}`);
     return;
   }
 
@@ -321,7 +324,7 @@ export async function syncAndCompactRegion(regionId: string) {
         if (idx !== -1) currentRows.splice(idx, 1);
       } else {
         if (idx === -1) {
-          // New cat â€” assign catalog number from sheet (not stored in DB)
+          // New cat â€" assign catalog number from sheet (not stored in DB)
           const cat = await db.query.cats.findFirst({
             where: (c, { eq }) => eq(c.id, task.entityId),
           });
@@ -347,7 +350,7 @@ export async function syncAndCompactRegion(regionId: string) {
                 );
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
-          // Update existing row â€” recompute col A to keep the number but refresh the status suffix
+          // Update existing row â€" recompute col A to keep the number but refresh the status suffix
           const existingNum = parseCatalogId(currentRows[idx][0] ?? "");
           const updatedRow = [...taskPayload];
           if (existingNum !== null && region.name !== "UNKNOWN") {
@@ -368,7 +371,7 @@ export async function syncAndCompactRegion(regionId: string) {
       .filter((row) => row[24] && String(row[24]).trim() !== "")
       .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
 
-    // 4. WRITE data cols A3:V (never touch W, X â€” Apps Script owns those)
+    // 4. WRITE data cols A3:V (never touch W, X â€" Apps Script owns those)
     const dataOnly = finalData.map((r) => r.slice(0, 22));
     await glSheets.spreadsheets.values.clear({
       auth: glAuth,
@@ -385,7 +388,7 @@ export async function syncAndCompactRegion(regionId: string) {
       });
     }
 
-    // 5. WRITE UUIDs to col Y â€” separate call, never clears W/X
+    // 5. WRITE UUIDs to col Y â€" separate call, never clears W/X
     const uuidColumn = finalData.map((r) => [r[24] ?? ""]);
     if (uuidColumn.length > 0) {
       await glSheets.spreadsheets.values.update({
@@ -548,18 +551,24 @@ export async function generateForRiSheet(
           orderBy: (i, { desc }) => [desc(i.requested_at)],
         },
       },
-      where: (c, { exists, eq, and }) =>
-        exists(
-          db
-            .select()
-            .from(sessionCats)
-            .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-            .where(
-              and(
-                eq(sessions.region_id, region.id),
-                eq(sessionCats.cat_id, c.id),
-              ),
+      where: (c, { exists, eq, and, or, isNull }) =>
+        or(
+          eq(c.region_id, region.id),
+          and(
+            isNull(c.region_id),
+            exists(
+              db
+                .select()
+                .from(sessionCats)
+                .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+                .where(
+                  and(
+                    eq(sessions.region_id, region.id),
+                    eq(sessionCats.cat_id, c.id),
+                  ),
+                ),
             ),
+          ),
         ),
     });
 
@@ -674,20 +683,27 @@ export async function generateForFaSheet(
   for (const region of sortedRegions) {
     const adoptableCats = await db.query.cats.findMany({
       with: { catHealthRecords: true },
-      where: (c, { eq, and, exists, isNull }) =>
+      where: (c, { eq, and, or, exists, isNull }) =>
         and(
-          and(eq(c.is_adoptable, true), isNull(c.cat_status)),
-          exists(
-            db
-              .select()
-              .from(sessionCats)
-              .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-              .where(
-                and(
-                  eq(sessions.region_id, region.id),
-                  eq(sessionCats.cat_id, c.id),
-                ),
+          eq(c.is_adoptable, true),
+          isNull(c.cat_status),
+          or(
+            eq(c.region_id, region.id),
+            and(
+              isNull(c.region_id),
+              exists(
+                db
+                  .select()
+                  .from(sessionCats)
+                  .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+                  .where(
+                    and(
+                      eq(sessions.region_id, region.id),
+                      eq(sessionCats.cat_id, c.id),
+                    ),
+                  ),
               ),
+            ),
           ),
         ),
     });
@@ -789,8 +805,8 @@ const CONFIG_SHEET = "_config";
 const REGION_SHEET_NAMES_CELL = "B2";
 
 // System column indices (0-based, exclusive end for GridRange)
-// Col A  (catalog ID):               0â€“1
-// Cols Wâ€“Y (timestamp, editor, UUID): 22â€“25
+// Col A  (catalog ID):               0â€"1
+// Cols Wâ€"Y (timestamp, editor, UUID): 22â€"25
 // Data starts at row 3 (0-indexed = 2)
 const SYS_DATA_START_ROW = 2;
 const SYS_COL_A_START = 0;
@@ -799,7 +815,7 @@ const SYS_COL_WY_START = 22;
 const SYS_COL_WY_END = 25;
 
 /**
- * One-time setup: protect system-managed columns (A and Wâ€“Y) on all region
+ * One-time setup: protect system-managed columns (A and Wâ€"Y) on all region
  * sheets so only the service account can edit them directly.
  *
  * - Col A: Catalog ID (written by forward sync)
@@ -808,7 +824,7 @@ const SYS_COL_WY_END = 25;
  * - Col Y: UUID (written by forward sync)
  *
  * The service account is extracted from SERVICE_ACCOUNT_CREDENTIALS so it
- * cannot accidentally lock itself out. Existing A / Wâ€“Y protections are
+ * cannot accidentally lock itself out. Existing A / Wâ€"Y protections are
  * cleared first to prevent stacking.
  */
 export async function setupSystemColProtections(): Promise<void> {
@@ -835,7 +851,7 @@ export async function setupSystemColProtections(): Promise<void> {
     const sheetId = sheet.properties?.sheetId;
     if (sheetId === undefined) continue;
 
-    // Clear existing A and Wâ€“Y protections to avoid stacking
+    // Clear existing A and Wâ€"Y protections to avoid stacking
     for (const pr of sheet.protectedRanges ?? []) {
       const range = pr.range;
       const isColA =
@@ -861,13 +877,13 @@ export async function setupSystemColProtections(): Promise<void> {
             startColumnIndex: SYS_COL_A_START,
             endColumnIndex: SYS_COL_A_END,
           },
-          description: "Catalog ID â€” service account only",
+          description: "Catalog ID — service account only",
           editors: { users: [serviceAccountEmail] },
         },
       },
     });
 
-    // Protect cols Wâ€“Y (timestamp, editor email, UUID)
+    // Protect cols Wâ€"Y (timestamp, editor email, UUID)
     requests.push({
       addProtectedRange: {
         protectedRange: {
@@ -877,7 +893,7 @@ export async function setupSystemColProtections(): Promise<void> {
             startColumnIndex: SYS_COL_WY_START,
             endColumnIndex: SYS_COL_WY_END,
           },
-          description: "System columns (timestamp, editor, UUID) â€” service account only",
+          description: "System columns (timestamp, editor, UUID) — service account only",
           editors: { users: [serviceAccountEmail] },
         },
       },
@@ -913,6 +929,186 @@ export async function syncRegionSheetNames(): Promise<void> {
   });
 }
 
+/**
+ * Writes the system-column header labels (W2/X2/Y2) on every region sheet.
+ * Idempotent — overwrites with the same values. Row 2 = headers, data row 3+.
+ */
+export async function ensureRegionSheetHeaders(): Promise<void> {
+  const regions = await regionsRepo.findRegions();
+  const { glAuth, glSheets } = await connectToSheets();
+
+  for (const region of regions) {
+    await glSheets.spreadsheets.values.update({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      range: `'${region.name}'!W2:Y2`,
+      valueInputOption: "RAW",
+      requestBody: { values: [["last_edited_at", "edited_by", "uuid"]] },
+    });
+  }
+}
+
+/**
+ * Bulk-assigns a UUID to col Y for every data row (row 3+) that has content but
+ * no UUID yet, across all region sheets. Mirrors the Apps Script seedMissingUuids
+ * but runs server-side via the service account. Idempotent: only fills blanks
+ * (a row counts as content if any A–V cell is non-empty), never overwrites.
+ * Needed at cutover — reverse-sync skips UUID-less rows.
+ */
+export async function seedMissingUuidsAllRegions(): Promise<{
+  seeded: number;
+  perRegion: Record<string, number>;
+}> {
+  const regions = await regionsRepo.findRegions();
+  const { glAuth, glSheets } = await connectToSheets();
+
+  let seeded = 0;
+  const perRegion: Record<string, number> = {};
+
+  for (const region of regions) {
+    const response = await glSheets.spreadsheets.values.get({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      range: `'${region.name}'!A3:Y`,
+    });
+    const rows = response.data.values ?? [];
+    if (rows.length === 0) continue;
+
+    let regionSeeded = 0;
+    const yColumn = rows.map((row) => {
+      const existing = String(row[24] ?? "").trim();
+      const hasContent = row
+        .slice(0, 22)
+        .some((c) => c != null && String(c).trim() !== "");
+      if (hasContent && !existing) {
+        regionSeeded++;
+        return [randomUUID()];
+      }
+      return [existing];
+    });
+
+    if (regionSeeded > 0) {
+      await glSheets.spreadsheets.values.update({
+        auth: glAuth,
+        spreadsheetId: CONFIG_SPREADSHEET_ID,
+        range: `'${region.name}'!Y3:Y${2 + yColumn.length}`,
+        valueInputOption: "RAW",
+        requestBody: { values: yColumn },
+      });
+      seeded += regionSeeded;
+      perRegion[region.name] = regionSeeded;
+    }
+  }
+
+  return { seeded, perRegion };
+}
+
+/**
+ * One-shot region-sheet provisioning (server-side, admin-triggered): ensures
+ * W/X/Y headers, applies the A + W–Y protections (service account owns them),
+ * and refreshes _config!B2 from the DB. Idempotent. Does NOT seed UUIDs — that
+ * is a separate, deliberate action (seedMissingUuidsAllRegions).
+ */
+export async function provisionRegionSheets(): Promise<{ regions: number }> {
+  await ensureRegionSheetHeaders();
+  await setupSystemColProtections();
+  await syncRegionSheetNames();
+  const regions = await regionsRepo.findRegions();
+  return { regions: regions.length };
+}
+
+const NON_TEMPLATE_TABS = new Set(["_config", "For RI", "For FA", "UNKNOWN"]);
+
+/** Picks a standard region tab to use as the structural template. */
+async function findTemplateSheetId(
+  glSheets: WrappedSheetsClient,
+  glAuth: InstanceType<typeof google.auth.GoogleAuth>,
+): Promise<number> {
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const template = sheets.find(
+    (s) =>
+      s.properties?.title &&
+      !NON_TEMPLATE_TABS.has(s.properties.title) &&
+      s.properties.sheetId != null,
+  );
+  if (template?.properties?.sheetId == null) {
+    throw new Error("No existing region tab to use as a template.");
+  }
+  return template.properties.sheetId;
+}
+
+/** Creates a region tab by duplicating a template tab, renaming it, clearing data rows (3+). */
+export async function createRegionSheetTab(name: string): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+
+  // Refuse if a tab with this name already exists.
+  const existing = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  if (existing.some((s) => s.properties?.title === name)) return;
+
+  const templateId = await findTemplateSheetId(glSheets, glAuth);
+
+  const dup = await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: {
+      requests: [{ duplicateSheet: { sourceSheetId: templateId, newSheetName: name } }],
+    },
+  });
+
+  const newSheetId =
+    dup.data.replies?.[0]?.duplicateSheet?.properties?.sheetId ?? null;
+  if (newSheetId == null) throw new Error("Failed to create region tab.");
+
+  // Clear data rows (row 3 down) on the new tab; keep header rows 1–2.
+  await glSheets.spreadsheets.values.clear({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `'${name}'!A3:Z`,
+  });
+}
+
+/** Renames a region tab (used when a region is renamed in the DB). No-op if missing. */
+export async function renameRegionSheetTab(
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const target = sheets.find((s) => s.properties?.title === oldName);
+  const sheetId = target?.properties?.sheetId;
+  if (sheetId == null) return;
+
+  await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: {
+      requests: [
+        {
+          updateSheetProperties: {
+            properties: { sheetId, title: newName },
+            fields: "title",
+          },
+        },
+      ],
+    },
+  });
+}
+
+/** Deletes a region tab. No-op if missing. */
+export async function deleteRegionSheetTab(name: string): Promise<void> {
+  const { glAuth, glSheets } = await connectToSheets();
+  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const target = sheets.find((s) => s.properties?.title === name);
+  const sheetId = target?.properties?.sheetId;
+  if (sheetId == null) return;
+
+  await glSheets.spreadsheets.batchUpdate({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    requestBody: { requests: [{ deleteSheet: { sheetId } }] },
+  });
+}
+
 // ==========================================
 // 7. REVERSE SYNC (Reading GSheet State)
 // ==========================================
@@ -942,7 +1138,7 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
   });
   if (!region) return [];
 
-  // Read A3:Y â€” col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
+  // Read A3:Y â€" col Y (index 24) is UUID, col W (22) is last_edited_at, col X (23) is edited_by
   const response = await glSheets.spreadsheets.values.get({
     auth: glAuth,
     spreadsheetId,
@@ -968,7 +1164,7 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
  * spaces calls automatically, so for N regions this takes roughly N * 1.2s.
  *
  * Per-region failures (after the wrapper's retries are exhausted) are logged
- * and the region maps to an empty array â€” the cron should make progress on
+ * and the region maps to an empty array â€" the cron should make progress on
  * healthy regions even if one is broken.
  */
 export async function readAllRegionSheetStates(
@@ -1053,7 +1249,7 @@ export async function clearSheetEditTimestamps(
 
   let positional: Array<{ rowIndex: number }>;
   if (typeof arg[0] === "string") {
-    // Legacy path â€” must read col Y to find positions
+    // Legacy path â€" must read col Y to find positions
     const response = await glSheets.spreadsheets.values.get({
       auth: glAuth,
       spreadsheetId,
@@ -1069,7 +1265,7 @@ export async function clearSheetEditTimestamps(
       positional.push({ rowIndex: rowIdx + 3 });
     }
   } else {
-    // Filter out entries with no snapshot W (nothing to clear â€” user may have
+    // Filter out entries with no snapshot W (nothing to clear â€" user may have
     // added a W timestamp since the snapshot, which we must preserve).
     const verifyable = (
       arg as Array<{
@@ -1082,7 +1278,7 @@ export async function clearSheetEditTimestamps(
     if (verifyable.length === 0) return;
 
     // Re-read col W for the region. Skip clear for rows whose W has changed
-    // since the snapshot â€” those represent edits made during the cron tick that
+    // since the snapshot â€" those represent edits made during the cron tick that
     // the next tick must process.
     const wResponse = await glSheets.spreadsheets.values.get({
       auth: glAuth,
@@ -1105,7 +1301,7 @@ export async function clearSheetEditTimestamps(
 
     if (skippedDueToChange > 0) {
       console.log(
-        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows â€” W changed since snapshot (re-edited during cron tick)`,
+        `[ClearTimestamps] region=${region.name} skipped ${skippedDueToChange} rows â€" W changed since snapshot (re-edited during cron tick)`,
       );
     }
   }
@@ -1132,7 +1328,7 @@ export async function clearSheetEditTimestamps(
  *
  * Note: operates on the pre-sync snapshot. Rows added by volunteers mid-tick
  * (after readAllRegionSheetStates ran) will be caught on the next cron tick.
- * This is acceptable â€” Apps Script already has the UUID; the cat is in DB;
+ * This is acceptable â€" Apps Script already has the UUID; the cat is in DB;
  * only col A is blank for one tick.
  *
  * Returns how many rows were backfilled.

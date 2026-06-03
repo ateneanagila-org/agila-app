@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import { PieChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 import { computeTnvrStats } from "@/lib/stats/census-stats";
@@ -128,9 +127,7 @@ export function TnvrScreen({
     return allCats.filter(
       (c) =>
         c.spot_last_seen &&
-        c.spot_last_seen
-          .toUpperCase()
-          .includes(desktopLocation.toUpperCase()),
+        c.spot_last_seen.toUpperCase().includes(desktopLocation.toUpperCase()),
     );
   }, [allCats, desktopLocation]);
 
@@ -148,7 +145,11 @@ export function TnvrScreen({
     { label: "Neutered Unknown", value: s.neuteredUnknown, color: "#a8d4a5" },
     { label: "Unneutered Male", value: s.unneuteredMale, color: "#c94f1f" },
     { label: "Unneutered Female", value: s.unneuteredFemale, color: "#eb8a4e" },
-    { label: "Unneutered Unknown", value: s.unneuteredUnknown, color: "#f5c17e" },
+    {
+      label: "Unneutered Unknown",
+      value: s.unneuteredUnknown,
+      color: "#f5c17e",
+    },
   ];
   const mobilePieData = buildPieData(mobileStats);
   const desktopPieData = buildPieData(desktopStats);
@@ -177,25 +178,11 @@ export function TnvrScreen({
               variant="pill"
             />
 
-            {/* Category dropdown — outlined */}
-            <div className="relative">
-              <select
-                className="h-10 w-full appearance-none rounded-xl border border-brand-pink bg-white px-3.5 pr-9 text-sm font-medium text-foreground"
-                aria-label="Category"
-                defaultValue="all"
-              >
-                <option value="all">All Categories</option>
-                <option value="neutered">Neutered / Spayed</option>
-                <option value="unneutered">Unneutered</option>
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-orange" />
-            </div>
-
             {/* TNVR Pie chart */}
             <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-border">
               <div className="flex items-center justify-between px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-widest text-brand-green">
-                  TNVR Statistics
+                  Statistics Breakdown
                 </p>
               </div>
               <div className="h-72 px-3 pb-4">
@@ -304,13 +291,18 @@ export function TnvrScreen({
             </h1>
             <p className="mt-1 text-xs font-semibold text-brand-green">
               Updated{" "}
-              <span className="font-medium text-brand-dark/70">{lastUpdated}</span>
+              <span className="font-medium text-brand-dark/70">
+                {lastUpdated}
+              </span>
             </p>
           </div>
           <div className="w-full max-w-72">
             <LocationPicker
               value={desktopLocation}
-              options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+              options={[
+                "Overall",
+                ...LOCATIONS.filter((l) => l !== "All Locations"),
+              ]}
               onChange={setDesktopLocation}
               label="Location"
             />
@@ -342,7 +334,7 @@ export function TnvrScreen({
         <section className="rounded-2xl bg-white p-5 ring-1 ring-border">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="font-heading text-lg font-bold text-brand-dark">
-              TNVR Statistics
+              Statistics Breakdown
             </p>
           </div>
           <div className="h-80">
