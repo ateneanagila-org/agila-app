@@ -252,7 +252,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Referral Sheet
+              Sheets
               <ExternalLink className="h-4 w-4" />
             </a>
             {canManage ? (

@@ -65,7 +65,7 @@ export default function ErrorPage({
               rel="noopener noreferrer"
               className="flex w-full items-center justify-center rounded-2xl bg-brand-orange px-6 py-3.5 text-sm font-bold text-brand-orange-foreground shadow-sm transition-opacity hover:opacity-90"
             >
-              Referral Sheet
+              Sheets (Backup)
             </a>
           ) : null}
         </div>
