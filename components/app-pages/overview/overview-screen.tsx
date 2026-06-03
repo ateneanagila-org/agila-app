@@ -3,14 +3,11 @@
 import { useMemo, useState } from "react";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import {
-  HorizontalBarChart,
-  VerticalBarChart,
-} from "@/components/app-pages/shared/charts";
+import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 import { computeCensusStats } from "@/lib/stats/census-stats";
 
-const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
+const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")];
 
 type OverviewScreenProps = {
   initialCats: SelectCat[];
@@ -362,8 +359,8 @@ export function OverviewScreen({
         {/* Full-width population chart — only shown for Overall */}
         {dashboardMode === "Overall" ? (
           <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
-            <div className="h-96 rounded-xl bg-brand-cream p-4">
-              <VerticalBarChart
+            <div className="h-[900px] rounded-xl bg-white p-4">
+              <HorizontalBarChart
                 data={populationByLocation}
                 title="Catenean Population Summary"
               />
