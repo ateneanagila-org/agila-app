@@ -8,7 +8,8 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import { ChevronDownIcon, CatIcon } from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
@@ -265,17 +266,17 @@ export function SessionsApprovalValidationScreen() {
             <button
               type="button"
               onClick={() => setShowDiscardConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange/5"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Discard <span className="text-sm">🗑️</span>
+              Discard <span>✕</span>
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={() => setShowSaveConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Approve Instantly <span className="text-sm">✓</span>
+              Approve Instantly <span>✓</span>
             </button>
           </div>
 
@@ -425,8 +426,13 @@ export function SessionsApprovalValidationScreen() {
 
         <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-              <CatIcon className="h-9 w-9 text-white/50" />
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/15">
+              <CatPhoto
+                photoUrl={cat?.photo_url}
+                name={cat?.name}
+                className="h-full w-full object-cover"
+                iconClassName="h-9 w-9 text-white/50"
+              />
             </div>
 
             <div className="flex-1">
@@ -482,16 +488,16 @@ export function SessionsApprovalValidationScreen() {
                     type="button"
                     disabled={saving}
                     onClick={() => setShowSaveConfirm(true)}
-                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     New cat, Approve <span className="ml-1">&#10003;</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDiscardConfirm(true)}
-                    className="rounded-xl bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                    className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                   >
-                    Cancel <span className="ml-1">&#10005;</span>
+                    Discard <span className="ml-1">&#10005;</span>
                   </button>
                 </div>
               </div>

@@ -247,7 +247,7 @@ export function DatabaseMedicalScreen() {
           </div>
         </div>
 
-        <div className="border-t border-brand-dark/8 px-5 tablet:px-6">
+        <div className="border-t border-brand-dark/8 px-5 pt-2 tablet:px-6">
           <TopTabs active="Medical" />
         </div>
       </div>

@@ -25,14 +25,20 @@ import {
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
-import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { CROSSREF_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useRegions } from "@/lib/hooks/use-regions";
+
+function neuteredLabel(v: boolean | null | undefined): string {
+  return v === true ? "Yes" : v === false ? "No" : "Unknown";
+}
 
 function buildMergeDiff(
   newCat: CatWithRegion,
   targetCat: CatWithRegion,
   newCondition: string | null,
   targetCondition: string | null,
+  newNeutered: boolean | null | undefined,
+  targetNeutered: boolean | null | undefined,
 ): { diffFields: MergeFieldDef[]; autoMergedCount: number } {
   const candidates: MergeFieldDef[] = [
     {
@@ -82,6 +88,13 @@ function buildMergeDiff(
       fieldKey: "condition",
       currentValue: targetCondition,
       newValue: newCondition,
+      inputType: "pill",
+    },
+    {
+      label: "Neutered",
+      fieldKey: "is_neutered",
+      currentValue: neuteredLabel(targetNeutered),
+      newValue: neuteredLabel(newNeutered),
       inputType: "pill",
     },
     {
@@ -210,13 +223,17 @@ export function SessionsApprovalCrossRefScreen() {
         getCatHealthRecords({ cat_id: catId }),
         getCatHealthRecords({ cat_id: targetId }),
       ]);
-      const newCondition = newHRResult?.data?.[0]?.condition ?? null;
-      const targetCondition = targetHRResult?.data?.[0]?.condition ?? null;
+      const newHR = newHRResult?.data?.[0];
+      const targetHR = targetHRResult?.data?.[0];
+      const newCondition = newHR?.condition ?? null;
+      const targetCondition = targetHR?.condition ?? null;
       const { diffFields, autoMergedCount } = buildMergeDiff(
         cat,
         target,
         newCondition,
         targetCondition,
+        newHR?.is_neutered,
+        targetHR?.is_neutered,
       );
       setMergeDiffFields(diffFields);
       setMergeAutoMergedCount(autoMergedCount);
@@ -262,6 +279,14 @@ export function SessionsApprovalCrossRefScreen() {
             (resolved.photo_url as SelectCat["photo_url"]) ?? undefined;
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;
+        if (resolved.is_neutered !== undefined) {
+          updatePayload.is_neutered =
+            resolved.is_neutered === "Yes"
+              ? true
+              : resolved.is_neutered === "No"
+                ? false
+                : null;
+        }
         if (resolved.region_name !== undefined) {
           updatePayload.region_id =
             regions.find((r) => r.name === resolved.region_name)?.id ?? null;
@@ -373,7 +398,7 @@ export function SessionsApprovalCrossRefScreen() {
             <button
               type="button"
               onClick={() => setShowDiscardConfirm(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-brand-orange px-4 py-2.5 text-sm font-bold text-brand-orange transition-colors hover:bg-brand-orange hover:text-white"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Discard <span>✕</span>
             </button>
@@ -415,7 +440,7 @@ export function SessionsApprovalCrossRefScreen() {
 
           <CatFilterToolbar
             cats={allCats}
-            config={DATABASE_LIST_CONFIG}
+            config={CROSSREF_LIST_CONFIG}
             initialFilters={defaultRegionFilter}
           >
             {(filteredCats) =>
@@ -496,6 +521,12 @@ export function SessionsApprovalCrossRefScreen() {
             Sessions
           </h1>
           <div className="flex items-center gap-2">
+            <Link
+              href={validationHref}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              <span className="mr-1">&#8249;</span> Previous
+            </Link>
             <Link
               href={backHref}
               className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -589,7 +620,7 @@ export function SessionsApprovalCrossRefScreen() {
               <div className="mt-3">
                 <CatFilterToolbar
                   cats={allCats}
-                  config={DATABASE_LIST_CONFIG}
+                  config={CROSSREF_LIST_CONFIG}
                   initialFilters={defaultRegionFilter}
                 >
                   {(filteredCats) =>

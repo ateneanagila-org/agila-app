@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { LOCATIONS } from "@/components/app-pages/shared/constants";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
 import {
   HorizontalBarChart,
   VerticalBarChart,
@@ -12,8 +11,6 @@ import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 import { computeCensusStats } from "@/lib/stats/census-stats";
 
 const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS];
-const OVERALL_PERIODS = ["Current", "Month", "Year"];
-const LOCATION_PERIODS = ["Current", "2025", "2024", "2023"];
 
 type OverviewScreenProps = {
   initialCats: SelectCat[];
@@ -33,23 +30,15 @@ function formatLatestUpdate(cats: SelectCat[]) {
   return `${String(latest.getMonth() + 1).padStart(2, "0")}/${String(latest.getDate()).padStart(2, "0")}/${latest.getFullYear()}`;
 }
 
-
 export function OverviewScreen({
   initialCats,
   initialHealthRecords,
 }: OverviewScreenProps) {
   const [dashboardMode, setDashboardMode] = useState(DASHBOARD_MODE_OPTIONS[0]);
-  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const [location, setLocation] = useState("Overall");
   const allCats = initialCats;
   const allHealthRecords = initialHealthRecords;
   const lastUpdated = useMemo(() => formatLatestUpdate(allCats), [allCats]);
-
-  const isOverall = dashboardMode === "Overall";
-  const activePeriods = useMemo(
-    () => (isOverall ? OVERALL_PERIODS : LOCATION_PERIODS),
-    [isOverall],
-  );
 
   const filteredCats = useMemo(() => {
     if (location === "Overall") return allCats;
@@ -133,22 +122,21 @@ export function OverviewScreen({
           <div className="space-y-0.5">
             <p className="text-xs font-semibold text-brand-green">
               Last update:{" "}
-              <span className="font-medium text-foreground">
-                {lastUpdated}
-              </span>
+              <span className="font-medium text-foreground">{lastUpdated}</span>
             </p>
             <p className="text-xs font-semibold text-brand-green">
               Last PAWS update:{" "}
-              <span className="font-medium text-foreground">
-                {lastUpdated}
-              </span>
+              <span className="font-medium text-foreground">{lastUpdated}</span>
             </p>
           </div>
 
           {/* Location picker */}
           <LocationPicker
             value={location}
-            options={["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")]}
+            options={[
+              "Overall",
+              ...LOCATIONS.filter((l) => l !== "All Locations"),
+            ]}
             onChange={setLocation}
             variant="pill"
           />
@@ -196,49 +184,19 @@ export function OverviewScreen({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading text-2xl font-bold text-brand-green">
-              Population
-            </h2>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white"
-            >
-              Sort By <ChevronDownIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Population bar chart */}
-          <div className="relative rounded-xl bg-white p-3 ring-1 ring-border">
-            <button
-              type="button"
-              onClick={() => setShowPeriodMenu((v) => !v)}
-              className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-brand-dark text-xs font-bold text-white"
-              aria-label="Chart options"
-            >
-              <span className="-mt-1 leading-none">...</span>
-            </button>
-            {showPeriodMenu && (
-              <div className="absolute right-3 top-12 z-20 min-w-28 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg">
-                {activePeriods.map((period) => (
-                  <button
-                    key={period}
-                    type="button"
-                    onClick={() => setShowPeriodMenu(false)}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-white hover:bg-white/10"
-                  >
-                    {period}
-                  </button>
-                ))}
+          {location === "Overall" ? (
+            <>
+              {/* Population bar chart */}
+              <div className="rounded-xl bg-white p-3 ring-1 ring-border">
+                <div className="h-80">
+                  <HorizontalBarChart
+                    data={populationByLocation}
+                    title="Catenean Population Summary"
+                  />
+                </div>
               </div>
-            )}
-            <div className="h-80">
-              <HorizontalBarChart
-                data={populationByLocation}
-                title="Catenean Population Summary"
-              />
-            </div>
-          </div>
+            </>
+          ) : null}
 
           {/* Sociability stats */}
           <div className="space-y-2">
@@ -291,7 +249,9 @@ export function OverviewScreen({
             <div className="overflow-hidden rounded-xl bg-brand-green">
               <div className="grid grid-cols-2 divide-x divide-white/20">
                 <div className="px-4 py-3">
-                  <p className="text-sm font-semibold text-brand-yellow">Untracked</p>
+                  <p className="text-sm font-semibold text-brand-yellow">
+                    Untracked
+                  </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
                     {stats.offCensusTotal}
                   </p>
@@ -359,10 +319,7 @@ export function OverviewScreen({
             <LocationPicker
               value={dashboardMode}
               options={DASHBOARD_MODE_OPTIONS}
-              onChange={(v) => {
-                setDashboardMode(v);
-                setShowPeriodMenu(false);
-              }}
+              onChange={setDashboardMode}
               label="Location"
             />
           </div>
@@ -402,54 +359,17 @@ export function OverviewScreen({
           ))}
         </div>
 
-        {/* Full-width population chart */}
-        <section className="relative mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <p className="font-heading text-lg font-bold text-brand-dark">
-                Population
-              </p>
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Sort by <ChevronDownIcon className="h-3 w-3" />
-              </button>
+        {/* Full-width population chart — only shown for Overall */}
+        {dashboardMode === "Overall" ? (
+          <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
+            <div className="h-96 rounded-xl bg-brand-cream p-4">
+              <VerticalBarChart
+                data={populationByLocation}
+                title="Catenean Population Summary"
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => setShowPeriodMenu((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white transition-opacity hover:opacity-90"
-              aria-label="Open period menu"
-              aria-expanded={showPeriodMenu}
-            >
-              <span className="-mt-1 text-base font-bold leading-none">...</span>
-            </button>
-          </div>
-
-          {showPeriodMenu && (
-            <div className="absolute right-5 top-14 z-10 w-32 overflow-hidden rounded-xl bg-brand-dark p-1.5 shadow-lg ring-1 ring-brand-dark/10">
-              {activePeriods.map((period) => (
-                <button
-                  key={period}
-                  type="button"
-                  onClick={() => setShowPeriodMenu(false)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
-                >
-                  <span>{period}</span>
-                  <span className="text-sm leading-none text-white/70">&#8250;</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="h-96 rounded-xl bg-brand-cream p-4">
-            <VerticalBarChart
-              data={populationByLocation}
-              title="Catenean Population Summary"
-            />
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         {/* Off-census parity row */}
         <div className="mt-6">

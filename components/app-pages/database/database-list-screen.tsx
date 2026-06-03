@@ -82,34 +82,30 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
     }
   }, []);
 
-  const loadFilterData = useCallback(async () => {
+  const loadFilterData = useCallback(() => {
     if (filterDataLoaded || cats.length === 0) return;
-
-    try {
-      const [healthResult, interventionsResult] = await Promise.allSettled([
-        getCatHealthRecords({}),
-        getInterventions({}),
-      ]);
-
-      const healthRecords =
-        healthResult.status === "fulfilled"
-          ? healthResult.value?.data
-          : undefined;
-      const interventions =
-        interventionsResult.status === "fulfilled"
-          ? interventionsResult.value?.data
-          : undefined;
-
-      setCats((currentCats) =>
-        addMedicalAndInterventionInfo(
-          currentCats,
-          healthRecords,
-          interventions,
-        ),
-      );
-    } finally {
-      setFilterDataLoaded(true);
-    }
+    setFilterDataLoaded(true);
+    void (async () => {
+      try {
+        const [healthResult, interventionsResult] = await Promise.allSettled([
+          getCatHealthRecords({}),
+          getInterventions({}),
+        ]);
+        const healthRecords =
+          healthResult.status === "fulfilled"
+            ? healthResult.value?.data
+            : undefined;
+        const interventions =
+          interventionsResult.status === "fulfilled"
+            ? interventionsResult.value?.data
+            : undefined;
+        setCats((currentCats) =>
+          addMedicalAndInterventionInfo(currentCats, healthRecords, interventions),
+        );
+      } catch {
+        // enrichment is best-effort; filters still work on base fields
+      }
+    })();
   }, [cats.length, filterDataLoaded]);
 
   const handleSave = useCallback(() => {

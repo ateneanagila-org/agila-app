@@ -45,6 +45,13 @@ DB `regions` table                               ← SOURCE OF TRUTH (which regi
 reverse sync reads it to match rows to DB cats. A row with a blank col Y is
 **skipped** by reverse sync.
 
+**Region routing rule:** A cat's sheet tab is determined by its *effective region* —
+`COALESCE(cats.region_id override, most-recent session's region)`. The same rule the
+app display uses. If a manager changes a cat's region on the General tab (writes
+`cats.region_id`), the cat automatically routes to the new tab and the old-tab row is
+deleted on the next cron tick. A brief one-tick duplication across two tabs is expected
+and self-heals.
+
 ---
 
 ## 2. Components
@@ -193,6 +200,10 @@ override to another region) are deleted with it.
 - **Protections drift / new tab:** re-run `setupRegionSheets()` (idempotent).
 - **A UUID got cleared on a row:** forward sync rewrites it on the next pass; if a
   wrong UUID was typed, reverse-sync may create a duplicate — check `sync_audit_log`.
+- **Cat appears in two tabs:** the region routing rule was recently applied to sync
+  (2026-06-03). Pre-existing stale rows from before that date won't self-clean unless
+  the cat is edited again. Manually delete the stale row, or just re-save the cat from
+  the General tab to trigger the cleanup.
 
 ---
 
