@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
@@ -269,7 +270,7 @@ export function SessionsManagerScreen({
                       href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
                       className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
                     >
-                      Review <span className="ml-1">&#9998;</span>
+                      Review <Pencil size={13} className="ml-1 inline" />
                     </Link>
                   </div>
                 </div>

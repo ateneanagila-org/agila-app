@@ -113,7 +113,7 @@ export function CatFilterToolbar({
               placeholder="Search by name"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+              className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
             />
           </div>
           <div className="mt-2 flex gap-2 tablet:mt-0">

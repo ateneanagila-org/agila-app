@@ -288,7 +288,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
                     placeholder="Search by name or email"
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setUserPage(0); }}
-                    className="h-9 w-full rounded-xl bg-brand-cream pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
+                    className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-brand-dark outline-none placeholder:text-brand-dark/40"
                   />
                 </div>
                 <button

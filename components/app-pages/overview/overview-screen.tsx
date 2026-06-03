@@ -7,7 +7,10 @@ import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 import { computeCensusStats } from "@/lib/stats/census-stats";
 
-const DASHBOARD_MODE_OPTIONS = ["Overall", ...LOCATIONS.filter((l) => l !== "All Locations")];
+const DASHBOARD_MODE_OPTIONS = [
+  "Overall",
+  ...LOCATIONS.filter((l) => l !== "All Locations"),
+];
 
 type OverviewScreenProps = {
   initialCats: SelectCat[];

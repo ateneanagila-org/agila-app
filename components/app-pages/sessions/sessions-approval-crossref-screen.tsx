@@ -456,55 +456,49 @@ export function SessionsApprovalCrossRefScreen() {
                       key={c.id}
                       className="overflow-hidden rounded-2xl bg-brand-green"
                     >
-                      <div className="flex items-stretch gap-0">
-                        {/* Full-height image column */}
-                        <div className="flex w-28 shrink-0 items-center justify-center bg-white/10">
+                      <div className="flex h-36 gap-0">
+                        <div className="relative aspect-square h-full shrink-0 overflow-hidden bg-white/10">
                           <CatPhoto
                             photoUrl={c.photo_url}
                             name={c.name}
-                            className="h-full w-full object-cover"
+                            fit="cover"
+                            className="absolute inset-0 h-full w-full"
                             iconClassName="h-8 w-8 text-white/40"
                           />
                         </div>
-                        {/* Info */}
-                        <div className="flex min-w-0 flex-1 flex-col justify-between px-3.5 py-3 min-h-25">
-                          <div>
-                            <div className="flex items-center gap-1">
+                        <div className="flex min-w-0 flex-1 flex-col px-3.5 py-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-1">
                               <span className="font-heading text-2xl font-bold leading-tight text-brand-yellow truncate">
                                 {c.name || "Unnamed"}
                               </span>
                               {sexSymbol(c.sex) ? (
-                                <span className="text-white text-lg leading-none ml-1">
+                                <span className="text-white text-lg leading-none">
                                   {sexSymbol(c.sex)}
                                 </span>
                               ) : null}
                             </div>
-                            <p className="mt-1 text-sm font-bold text-white truncate">
-                              {c.color || "—"}
-                              {c.age ? ` ${c.age}` : ""}
-                            </p>
-                            {c.region_name ? (
-                              <span className="mt-1 inline-block rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
-                                {c.region_name}
-                              </span>
-                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => handleSelectTarget(c.id)}
+                              className="shrink-0 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                            >
+                              Merge ›
+                            </button>
                           </div>
-
-                          <div>
-                            <p className="mt-3 text-sm font-bold text-white truncate">
-                              {c.spot_last_seen || "—"} -{" "}
-                              {formatDate(c.last_updated_at)}
-                            </p>
-                            <div className="mt-2 flex items-center justify-between">
-                              <button
-                                type="button"
-                                onClick={() => handleSelectTarget(c.id)}
-                                className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                              >
-                                Merge ›
-                              </button>
-                            </div>
-                          </div>
+                          <p className="mt-1 text-sm font-bold text-white truncate">
+                            {c.color || "—"}
+                            {c.age ? ` ${c.age}` : ""}
+                          </p>
+                          {c.region_name ? (
+                            <span className="mt-1 w-fit rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                              {c.region_name}
+                            </span>
+                          ) : null}
+                          <p className="mt-2 text-sm font-bold text-white truncate">
+                            {c.spot_last_seen || "—"} ·{" "}
+                            {formatDate(c.last_updated_at)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -544,14 +538,14 @@ export function SessionsApprovalCrossRefScreen() {
           </div>
         ) : null}
 
-        <section className="mt-4 rounded-2xl bg-brand-green p-5 ring-1 ring-brand-green">
+        <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
           <div className="flex items-start gap-4">
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/15">
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-cream-dark">
               <CatPhoto
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
                 className="h-28 w-28 shrink-0 object-cover"
-                iconClassName="h-10 w-10 text-white/40"
+                iconClassName="h-10 w-10 text-brand-dark/30"
               />
             </div>
 
@@ -559,7 +553,7 @@ export function SessionsApprovalCrossRefScreen() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-heading text-xl font-bold tracking-tight text-white">
+                    <h3 className="font-heading text-xl font-bold tracking-tight text-foreground">
                       {cat?.name || "Unnamed"}
                     </h3>
                     {sexSymbol(cat?.sex) ? (
@@ -570,22 +564,22 @@ export function SessionsApprovalCrossRefScreen() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {cat?.color ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-cream-dark px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.color}
                       </span>
                     ) : null}
                     {cat?.age ? (
-                      <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-cream-dark px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.age}
                       </span>
                     ) : null}
                     {cat?.region_name ? (
-                      <span className="rounded-full bg-brand-dark/50 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      <span className="rounded-full bg-brand-dark/10 px-2.5 py-0.5 text-xs font-semibold text-brand-dark/70">
                         {cat.region_name}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-3 text-sm text-white/70">
+                  <p className="mt-3 text-sm text-brand-dark/60">
                     Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
                     {formatDate(cat?.last_updated_at)}
                   </p>
@@ -593,8 +587,8 @@ export function SessionsApprovalCrossRefScreen() {
               </div>
 
               <div className="mt-5 flex items-center justify-between">
-                <p className="inline-block border-b border-white/30 pb-1 text-base font-semibold text-white">
-                  Cross Reference
+                <p className="font-heading text-xl font-bold text-brand-green">
+                  Cross-Reference
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -615,7 +609,7 @@ export function SessionsApprovalCrossRefScreen() {
                 </div>
               </div>
 
-              <p className="mt-3 text-sm text-white/70">
+              <p className="mt-3 text-sm text-brand-dark/60">
                 Does this cat match an existing entry? If so, merge.
               </p>
 
@@ -627,52 +621,61 @@ export function SessionsApprovalCrossRefScreen() {
                 >
                   {(filteredCats) =>
                     filteredCats.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-white/50">
+                      <div className="py-6 mt-2 text-center text-sm text-brand-dark/40">
                         No matches.
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-2">
                         {filteredCats.map((c) => (
                           <div
                             key={`desktop-${c.id}`}
-                            className="flex items-center justify-between rounded-xl bg-white/10 p-3"
+                            className="overflow-hidden rounded-2xl bg-brand-green"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15">
+                            <div className="flex h-36 gap-0">
+                              <div className="relative aspect-square h-full shrink-0 overflow-hidden bg-white/10">
                                 <CatPhoto
                                   photoUrl={c.photo_url}
                                   name={c.name}
-                                  className="h-full w-full object-cover"
-                                  iconClassName="h-8 w-8 text-white/40"
+                                  fit="cover"
+                                  className="absolute inset-0 h-full w-full"
+                                  iconClassName="h-7 w-7 text-white/40"
                                 />
                               </div>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-heading text-sm font-bold tracking-tight text-brand-yellow">
-                                    {c.name || "Unnamed"}
-                                  </span>
-                                  {sexSymbol(c.sex) ? (
-                                    <span
-                                      className={`text-sm ${sexColor(c.sex)}`}
-                                    >
-                                      {sexSymbol(c.sex)}
+                              <div className="flex min-w-0 flex-1 flex-col px-3.5 py-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex min-w-0 items-center gap-1">
+                                    <span className="truncate font-heading text-lg font-bold leading-tight text-brand-yellow">
+                                      {c.name || "Unnamed"}
                                     </span>
-                                  ) : null}
+                                    {sexSymbol(c.sex) ? (
+                                      <span className="text-base leading-none text-white">
+                                        {sexSymbol(c.sex)}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectTarget(c.id)}
+                                    className="shrink-0 rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                                  >
+                                    Merge ›
+                                  </button>
                                 </div>
-                                <p className="mt-0.5 text-xs text-white/70">
-                                  {c.color || "—"} · {c.age || "—"} ·{" "}
-                                  {c.spot_last_seen || "—"}
-                                  {c.region_name ? ` · ${c.region_name}` : ""}
+                                <p className="mt-0.5 text-sm font-bold text-white truncate">
+                                  {c.color || "—"}
+                                  {c.age ? ` ${c.age}` : ""}
+                                </p>
+                                {c.region_name ? (
+                                  <span className="mt-1 w-fit rounded-full bg-brand-dark/60 px-2 py-0.5 text-xs font-semibold text-white/80">
+                                    {c.region_name}
+                                  </span>
+                                ) : null}
+                                <p className="mt-2 text-sm font-bold text-white truncate">
+                                  {c.spot_last_seen || "—"} ·{" "}
+                                  {formatDate(c.last_updated_at)}
                                 </p>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleSelectTarget(c.id)}
-                              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                            >
-                              Merge <span className="ml-1">&#8618;</span>
-                            </button>
                           </div>
                         ))}
                       </div>
