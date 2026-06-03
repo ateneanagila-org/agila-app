@@ -105,7 +105,7 @@ export const editCat = async (data: EditCatSchema) => {
 
 export const removeCat = async (data: RemoveCatSchema) => {
   return await db.transaction(async (tx) => {
-    const region = await sessionsRepo.findCatRegionByLatestSession(data.id, tx);
+    const region = await sessionsRepo.resolveCatRegion(data.id, tx);
 
     await catsRepo.deleteCat(data.id, tx);
 

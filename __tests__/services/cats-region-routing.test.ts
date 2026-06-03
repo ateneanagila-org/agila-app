@@ -38,6 +38,20 @@ beforeEach(() => {
 
 const baseEdit = { id: "c1", region_id: "R-NEW" } as never;
 
+describe("removeCat routing", () => {
+  it("DELETE routes to the cat's effective (override) region", async () => {
+    mockCats.deleteCat.mockResolvedValue([{ id: "c1" }] as never);
+    resolveRegion.mockResolvedValueOnce({ id: "R-OVERRIDE", name: "Override" });
+
+    await removeCat({ id: "c1" } as never);
+
+    const valuesFn = tx.insert.mock.results[0].value.values as jest.Mock;
+    expect(valuesFn).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "DELETE", entityId: "c1", regionId: "R-OVERRIDE" }),
+    );
+  });
+});
+
 describe("editCat move-cleanup", () => {
   it("region changed: cancels old-region pending tasks and queues DELETE to old region", async () => {
     resolveRegion.mockResolvedValueOnce({ id: "R-OLD", name: "Old" }); // pre-update
