@@ -8,7 +8,7 @@ import {
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
-import { ChevronDownIcon } from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, CloseIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
@@ -410,10 +410,17 @@ export function SessionsApprovalValidationScreen() {
           </h1>
           <div className="flex items-center gap-2">
             <Link
-              href={backHref}
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              href={crossRefHref}
+              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-80"
             >
-              Back <span className="ml-1">&#8249;</span>
+              Next <span>&#8250;</span>
+            </Link>
+            <Link
+              href={backHref}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brand-dark/15 bg-white text-brand-dark transition-colors hover:border-brand-dark/40 hover:bg-brand-cream-dark/40"
+              aria-label="Back"
+            >
+              <CloseIcon className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -471,12 +478,6 @@ export function SessionsApprovalValidationScreen() {
                   </p>
                 </div>
 
-                <Link
-                  href={crossRefHref}
-                  className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-                >
-                  Next <span className="ml-1">&#8250;</span>
-                </Link>
               </div>
 
               <div className="mt-5 flex items-center justify-between">
