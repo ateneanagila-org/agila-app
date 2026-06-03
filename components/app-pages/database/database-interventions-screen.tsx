@@ -274,7 +274,7 @@ export function DatabaseInterventionsScreen() {
               {filteredInterventions.map((item, index) => (
                 <li
                   key={item.id}
-                  className="@container flex flex-col gap-3 p-4 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-6"
+                  className="flex flex-col gap-3 p-4 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-6"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export function DatabaseInterventionsScreen() {
                     ) : null}
                   </div>
 
-                  <div className={`w-full shrink-0 @md:w-40${!canManage ? " pointer-events-none opacity-60" : ""}`}>
+                  <div className={`w-full tablet:w-40 tablet:shrink-0${!canManage ? " pointer-events-none opacity-60" : ""}`}>
                     <CustomSelect
                       options={INTERVENTION_STATUS_VALUES}
                       value={item.status ?? "Pending"}
