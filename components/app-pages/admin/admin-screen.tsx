@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import { SearchDialog } from "@/components/app-pages/shared/dialogs";
 import {
   AddUserDialog,
@@ -160,7 +161,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
     </div>
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PlusIcon, TrashIcon } from "@/components/app-pages/shared/icons";
@@ -245,7 +246,7 @@ export function SessionsCreateScreen() {
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+              <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
             </div>
           ) : cats.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-400">
@@ -386,7 +387,7 @@ export function SessionsCreateScreen() {
 
         {loading ? (
           <div className="mt-4 flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+            <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
           </div>
         ) : !sessionId ? (
           <div className="mt-4 rounded-2xl bg-white p-8 text-center text-sm text-muted-foreground ring-1 ring-border">

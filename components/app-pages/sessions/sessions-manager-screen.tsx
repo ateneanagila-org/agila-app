@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Loader2, Check } from "lucide-react";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
@@ -66,7 +66,7 @@ export function SessionsManagerScreen({
 
   const LoadingIndicator = () => (
     <div className="flex items-center justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green/30 border-t-brand-green" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
     </div>
   );
 
@@ -151,19 +151,21 @@ export function SessionsManagerScreen({
                             </span>
                           ) : null}
                         </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-2">
                           <button
                             type="button"
                             onClick={() => setApprovingItem(item)}
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white shadow-sm transition-opacity hover:opacity-80"
+                            aria-label={`Approve ${item.cat.name || "cat"}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-orange text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
                           >
-                            <span className="text-sm font-bold">✓</span>
+                            <Check size={18} strokeWidth={3} />
                           </button>
                           <Link
                             href={`/dashboard/sessions/approval/validation?catId=${item.cat.id}&sessionId=${item.sessionId}&sessionCatId=${item.sessionCatId}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm"
+                            aria-label={`Review ${item.cat.name || "cat"}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-dark text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
                           >
-                            <span className="text-sm font-bold">›</span>
+                            <Pencil size={15} />
                           </Link>
                         </div>
                       </div>

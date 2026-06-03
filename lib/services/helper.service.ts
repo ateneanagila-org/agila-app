@@ -1,4 +1,4 @@
-﻿﻿import { randomUUID } from "crypto";
+﻿import { randomUUID } from "crypto";
 import { google } from "googleapis";
 import {
   wrapSheetsClient,
@@ -25,6 +25,7 @@ import {
 } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
+import { NON_REGION_TABS } from "@/lib/constants";
 
 const MAX_RETRIES = 3;
 
@@ -482,12 +483,7 @@ function headerFormatRequest(
  * 4 columns: TNVR catalog_id, TNVR status, Vet catalog_id, Vet status.
  * Grouped by region. Default section height 20 rows; expands with 3-row spacer if overflow.
  */
-const SUMMARY_EXCLUDED_TABS = new Set([
-  "_config",
-  "For RI",
-  "For FA",
-  "UNKNOWN",
-]);
+const SUMMARY_EXCLUDED_TABS = NON_REGION_TABS;
 
 async function getSpreadsheetSheets(
   glSheets: WrappedSheetsClient,
@@ -1017,8 +1013,6 @@ export async function provisionRegionSheets(): Promise<{ regions: number }> {
   return { regions: regions.length };
 }
 
-const NON_TEMPLATE_TABS = new Set(["_config", "For RI", "For FA", "UNKNOWN"]);
-
 /** Picks a standard region tab to use as the structural template. */
 async function findTemplateSheetId(
   glSheets: WrappedSheetsClient,
@@ -1028,7 +1022,7 @@ async function findTemplateSheetId(
   const template = sheets.find(
     (s) =>
       s.properties?.title &&
-      !NON_TEMPLATE_TABS.has(s.properties.title) &&
+      !NON_REGION_TABS.has(s.properties.title) &&
       s.properties.sheetId != null,
   );
   if (template?.properties?.sheetId == null) {

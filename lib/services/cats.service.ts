@@ -47,14 +47,8 @@ export const createCat = async (
 
 export const editCat = async (data: EditCatSchema) => {
   return await db.transaction(async (tx) => {
-    const {
-      id,
-      condition,
-      is_neutered,
-      neuter_date,
-      vaccination_date,
-      ...catFields
-    } = data;
+    const { id, condition, is_neutered, neuter_date, vaccination_date, ...catFields } =
+      data;
 
     // Capture the cat's effective region BEFORE the update so we can detect a
     // region move (override changed/cleared) and clean up the old sheet tab.
