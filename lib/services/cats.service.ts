@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as catsRepo from "../repo/cats.repo";
 import * as sessionsRepo from "../repo/sessions.repo";
@@ -49,6 +50,10 @@ export const editCat = async (data: EditCatSchema) => {
     const { id, condition, is_neutered, neuter_date, vaccination_date, ...catFields } =
       data;
 
+    // Capture the cat's effective region BEFORE the update so we can detect a
+    // region move (override changed/cleared) and clean up the old sheet tab.
+    const oldRegion = await sessionsRepo.resolveCatRegion(id, tx);
+
     const [updatedCat] = await catsRepo.updateCat(id, catFields, tx);
     await catsRepo.updateCatHealthRecord(
       id,
@@ -65,7 +70,34 @@ export const editCat = async (data: EditCatSchema) => {
 
     // CRITICAL FIX: We fetch the full state (including interventions)
     // before queueing, so we don't wipe out Columns S and T in the sheet.
-    await refreshCatInSyncQueue(id, tx);
+    // refreshCatInSyncQueue queues the UPDATE to the NEW effective region and
+    // returns it.
+    const newRegion = await refreshCatInSyncQueue(id, tx);
+
+    // Region move detected: clean up the old region's queue and sheet tab.
+    if (oldRegion && oldRegion.id !== newRegion?.id) {
+      // Cancel any PENDING tasks for this cat in the old region — they are now
+      // superseded (UPDATEs would write stale data; a prior DELETE is replaced
+      // by the new one below). Same pattern as GSheet-wins in reverse-sync.
+      await tx
+        .update(gsheetSyncQueue)
+        .set({ status: "COMPLETED", lastError: "Superseded by region move" })
+        .where(
+          and(
+            eq(gsheetSyncQueue.entityId, id),
+            eq(gsheetSyncQueue.regionId, oldRegion.id),
+            eq(gsheetSyncQueue.status, "PENDING"),
+          ),
+        );
+
+      // Queue DELETE so the row is removed from the old region's sheet tab.
+      await tx.insert(gsheetSyncQueue).values({
+        action: "DELETE",
+        entityId: id,
+        regionId: oldRegion.id,
+        payload: [],
+      });
+    }
 
     return updatedCat;
   });
