@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
 import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
-import { createSessionCat } from "@/app/actions/sessions";
+import { createSessionCat, editSessionCat } from "@/app/actions/sessions";
 import { useRegions } from "@/lib/hooks/use-regions";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
@@ -179,9 +179,11 @@ export function CatEntryForm({
     setError(null);
     setPhotoWarning(null);
     try {
-      // Edit mode: update existing cat
+      // Edit mode: update existing cat. Inside a session (volunteer workflow)
+      // use the auth-gated editSessionCat; elsewhere editCat (Manager/Admin).
       if (initialCat) {
-        const result = await editCat({
+        const editAction = sessionId ? editSessionCat : editCat;
+        const result = await editAction({
           id: initialCat.id,
           condition: normalizeCatField<CatHealthRecordCondition>(condition),
           is_neutered: neuteredToValue(neutered),

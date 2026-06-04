@@ -44,6 +44,7 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
       key: "cat_status",
       options: [...CAT_STATUS_VALUES, "Unknown"],
     },
+    { label: "Adoptable", key: "is_adoptable", options: ["Yes", "No"] },
     {
       label: "Medical Condition",
       key: "condition",

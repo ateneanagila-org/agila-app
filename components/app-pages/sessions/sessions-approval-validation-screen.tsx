@@ -47,6 +47,7 @@ export function SessionsApprovalValidationScreen() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   // Form state
+  const [name, setName] = useState("");
   const [color, setColor] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -66,6 +67,7 @@ export function SessionsApprovalValidationScreen() {
   const backHref = "/dashboard/sessions/manager";
 
   const populateForm = useCallback((catData: CatWithRegion) => {
+    setName(catData.name ?? "");
     setColor(catData.color ?? "Unknown");
     setAge(catData.age ?? "Unknown");
     setSex(catData.sex ?? "Unknown");
@@ -116,6 +118,7 @@ export function SessionsApprovalValidationScreen() {
     try {
       const result = await editCat({
         id: catId,
+        name: name || undefined,
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
@@ -140,6 +143,7 @@ export function SessionsApprovalValidationScreen() {
     }
   }, [
     catId,
+    name,
     color,
     age,
     sex,
@@ -159,6 +163,7 @@ export function SessionsApprovalValidationScreen() {
   const isDirty = useCallback(() => {
     if (!cat) return false;
     return (
+      (name || "") !== (cat.name ?? "") ||
       normalizeCatField<CatColor>(color) !== (cat.color ?? null) ||
       normalizeCatField<CatAge>(age) !== (cat.age ?? null) ||
       normalizeCatField<CatSex>(sex) !== (cat.sex ?? null) ||
@@ -172,6 +177,7 @@ export function SessionsApprovalValidationScreen() {
     );
   }, [
     cat,
+    name,
     color,
     age,
     sex,
@@ -200,6 +206,7 @@ export function SessionsApprovalValidationScreen() {
     try {
       const result = await editCat({
         id: catId,
+        name: name || undefined,
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
@@ -224,6 +231,7 @@ export function SessionsApprovalValidationScreen() {
     catId,
     isDirty,
     crossRefHref,
+    name,
     color,
     age,
     sex,
@@ -348,6 +356,18 @@ export function SessionsApprovalValidationScreen() {
                     {cat.region_name}
                   </span>
                 ) : null}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Name
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Unnamed"
+                  className="mt-1.5 w-full rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                />
               </div>
 
               {(
@@ -545,6 +565,18 @@ export function SessionsApprovalValidationScreen() {
                     Discard <span className="ml-1">&#10005;</span>
                   </button>
                 </div>
+              </div>
+
+              <div className="mt-3">
+                <label className="text-xs font-medium text-brand-dark/50">
+                  Name
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Unnamed"
+                  className="mt-1 h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-brand-dark outline-none focus:border-gray-300"
+                />
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">

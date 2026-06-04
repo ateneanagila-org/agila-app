@@ -66,6 +66,7 @@ export function CatFilterToolbar({
     enrichedConfig,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
+      if (key === "is_adoptable") return cat.is_adoptable ? "Yes" : "No";
       const val = cat[key as keyof FilterableCat];
       if (Array.isArray(val)) return val.length > 0 ? val : ["Unknown"];
       if (val == null) return "Unknown";

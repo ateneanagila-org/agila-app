@@ -10,7 +10,6 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { CENSUS_REPORT_URL } from "@/lib/constants";
 import {
-  SessionFiltersDialog,
   SessionSortByDialog,
   CreateSessionDialog,
   DeleteSessionDialog,
@@ -76,24 +75,16 @@ export function SessionsScreen({
 
   const {
     filtered: filteredSessions,
-    activeFilters,
-    activeFilterCount,
     sortKey,
     sortOrder,
     openDialog,
-    openFilterDialog,
     openSortDialog,
     closeDialog,
-    applyFilters,
     applySort,
-    clearFilters,
   } = useFilterSort<SelectSession>(
     sessions,
     SESSIONS_CONFIG,
-    (session, key) => {
-      if (key === "status") return sessionStatus(session);
-      return null;
-    },
+    () => null,
     (session, key) => {
       if (key === "created_at") return new Date(session.created_at);
       if (key === "location") return regionMap[session.region_id] ?? "";
@@ -232,15 +223,8 @@ export function SessionsScreen({
             {/* Pink separator */}
             <div className="h-px bg-pink-200" />
 
-            {/* Search / Filter / Sort pills */}
+            {/* Sort pill */}
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => openFilterDialog()}
-                className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Filter <ChevronDownIcon className="h-3.5 w-3.5" />
-              </button>
               <button
                 type="button"
                 onClick={() => openSortDialog()}
@@ -583,14 +567,6 @@ export function SessionsScreen({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => openFilterDialog()}
-                  className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
-                >
-                  Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
-                  <ChevronDownIcon className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
                   onClick={() => openSortDialog()}
                   className="flex items-center gap-1 rounded-full bg-brand-cream-dark px-3.5 py-1.5 text-xs font-semibold text-brand-dark transition-colors hover:bg-brand-mint"
                 >
@@ -618,7 +594,7 @@ export function SessionsScreen({
               <LoadingIndicator />
             ) : filteredSessions.length === 0 ? (
               <div className="py-10 text-center text-sm text-brand-dark/50">
-                No sessions match the current filters.
+                No sessions found.
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -872,14 +848,6 @@ export function SessionsScreen({
         )}
       </div>
 
-      <SessionFiltersDialog
-        open={openDialog === "filter"}
-        onClose={closeDialog}
-        categories={SESSIONS_CONFIG.filters}
-        activeFilters={activeFilters}
-        onClear={clearFilters}
-        onApply={applyFilters}
-      />
       <SessionSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}

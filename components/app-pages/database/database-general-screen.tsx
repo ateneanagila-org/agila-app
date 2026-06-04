@@ -99,6 +99,7 @@ export function DatabaseGeneralScreen() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Form state
+  const [name, setName] = useState("");
   const [color, setColor] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -115,6 +116,7 @@ export function DatabaseGeneralScreen() {
   const regions = useRegions();
 
   const populateForm = useCallback((catData: CatWithRegion) => {
+    setName(catData.name ?? "");
     setColor(catData.color ?? "");
     setAge(catData.age ?? "");
     setSex(catData.sex ?? "");
@@ -152,6 +154,7 @@ export function DatabaseGeneralScreen() {
     try {
       const result = await editCat({
         id: catId,
+        name: name || undefined,
         color: (color || undefined) as CatColor | undefined,
         age: (age || undefined) as CatAge | undefined,
         sex: (sex || undefined) as CatSex | undefined,
@@ -175,6 +178,7 @@ export function DatabaseGeneralScreen() {
     }
   }, [
     catId,
+    name,
     color,
     age,
     sex,
@@ -396,6 +400,15 @@ export function DatabaseGeneralScreen() {
         {/* Form card */}
         <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
           <div className={`grid grid-cols-1 gap-5 tablet:grid-cols-2 tablet:gap-x-6${!canManage ? " pointer-events-none opacity-60" : ""}`}>
+            <div className="tablet:col-span-2">
+              <FieldLabel>Name</FieldLabel>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Unnamed"
+                className="mt-1.5 h-11 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
+              />
+            </div>
             <FormSelect
               label="Color"
               options={CAT_COLOR_VALUES}
