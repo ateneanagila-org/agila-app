@@ -60,6 +60,7 @@ and self-heals.
 | Component                   | Where                                               | Responsibility                                                                                                                               |
 | --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                   |
+| Cron scheduler              | `workers/sync-cron/` (Cloudflare Worker)            | Fires every 20 min (`*/20 * * * *`): health-checks `/api/health`, then POSTs `/api/cron/sync` with `CRON_SECRET`. Skips + Discord-alerts if the app is unhealthy. The app, not the worker, holds the sync logic. |
 | Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece. |
 | Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                         |
 | Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                |
@@ -232,7 +233,7 @@ Adding a region is now **fully self-serve** — no code changes or deployment ne
 2. Done. The `onEdit` trigger is column-index based — the new tab is automatically
    covered for W/X/Y on human edits.
 
-**Rename / Archive / Delete** are in the same section. Renaming a region also
+**Rename / Delete** are in the same section. Renaming a region also
 renames its sheet tab (keeps sync working). Deleting a non-empty region requires
 typing the region name to confirm; orphaned cats (no sessions elsewhere, no
 override to another region) are deleted with it.
@@ -241,8 +242,12 @@ override to another region) are deleted with it.
 
 ## 6. Ongoing operations
 
-- **Forward sync** runs automatically on the cron schedule (`app/api/cron/sync`).
-  No manual action.
+- **Scheduler:** a Cloudflare Worker (`workers/sync-cron/`) fires every 20 minutes,
+  health-checks `/api/health`, then POSTs `/api/cron/sync`. **Forward sync** runs from
+  there automatically (drains the queue) — no manual action.
+- **Auto-freeze on failure:** if a sync tick throws, the cron route freezes sync
+  (`setSyncFrozen`) and fires a Discord alert. Clear it from Admin → GSheet Config →
+  **Unfreeze** after resolving the cause (unfreeze also runs a full reverse sync).
 - **Reverse sync / recovery:** the admin **unfreeze** action runs `fullReverseSync`.
 - **Freeze status:** `getSyncStatus` / `setSyncFrozen` gate sync via `system_config`.
 - **Protections drift / new tab:** re-run **Admin → GSheet Config → Provision
