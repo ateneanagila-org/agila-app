@@ -57,14 +57,14 @@ and self-heals.
 
 ## 2. Components
 
-| Component                   | Where                                               | Responsibility                                                                                                                               |
-| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                   |
+| Component                   | Where                                               | Responsibility                                                                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                                                                                       |
 | Cron scheduler              | `workers/sync-cron/` (Cloudflare Worker)            | Fires every 20 min (`*/20 * * * *`): health-checks `/api/health`, then POSTs `/api/cron/sync` with `CRON_SECRET`. Skips + Discord-alerts if the app is unhealthy. The app, not the worker, holds the sync logic. |
-| Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece. |
-| Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                         |
-| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                |
-| Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                              |
+| Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece.                                    |
+| Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                                                            |
+| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                                                                                    |
+| Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                                                                                                  |
 
 ---
 
@@ -207,7 +207,7 @@ the current set, zero orphans. It's safe because photos are sourced from the she
 xlsx and fully rebuilt by the import.
 
 > **Full reintegration is the only case that warrants it.** It's gated behind the
-> flag on purpose: the wipe forces a re-download of *every* photo from the sheet,
+> flag on purpose: the wipe forces a re-download of _every_ photo from the sheet,
 > which is slow and occasionally flaky. For routine reruns (stable UUIDs) leave it
 > off — upsert handles overwrites and you skip the expensive re-download. Only at a
 > fresh-UUID cutover does the orphan cleanup justify the cost.
@@ -258,6 +258,9 @@ override to another region) are deleted with it.
   (2026-06-03). Pre-existing stale rows from before that date won't self-clean unless
   the cat is edited again. Manually delete the stale row, or just re-save the cat from
   the General tab to trigger the cleanup.
+- **HOME totals don't match the app's counts:** expected and usually harmless — the
+  HOME tab and the app count cats differently. See §10 for which one to trust and how
+  to reconcile.
 
 ---
 
@@ -321,3 +324,76 @@ override to another region) are deleted with it.
 Apps Script script properties (Project Settings → Script Properties), if using the
 photo WebApp: `PHOTO_IMPORT_SECRET` (and historically `EMERGENCY_SECRET` for the
 now-dead freeze endpoints).
+
+---
+
+## 10. Data integrity: why HOME can disagree with the app — and which to trust
+
+**Short answer: trust the app (the database). The HOME tab is a convenience
+summary built from spreadsheet formulas, and it can drift. The app's numbers are
+computed from the actual cat records.**
+
+This is not a bug you can permanently "fix" — it's a built-in consequence of the
+spreadsheet being editable by many hands. Expect HOME and the app to disagree by a
+few cats from time to time. Here's the plain-language version of why.
+
+### The two count cats differently
+
+Every region tab stores each cat's status in **two places**:
+
+- **Column A** — the catalog number, with a letter suffix for non-active cats:
+  `m` = MIA, `d` = Deceased, `a` = Adopted, `f` = Fostered. An active cat is just a
+  plain number (e.g. `30`); a deceased one is `30d`.
+- **Column L** — the status spelled out (`Adopted`, `Deceased`, `MIA`, …).
+
+The **HOME tab counts "active" cats by Column A** (it counts the cells that are a
+plain number). The **app counts status from Column L** (the real record). As long as
+those two agree, HOME and the app match. The moment someone edits one without the
+other, they drift.
+
+### How the drift happens
+
+When a volunteer changes a cat's status **in the sheet** — say, types `Deceased` in
+Column L — the app picks that up correctly on the next sync. But **Column A is not
+rewritten** by that path, so it still shows the plain number `30` instead of `30d`.
+Now:
+
+- HOME sees `30` (a plain number) and counts the cat as **active**.
+- HOME _also_ sees `Deceased` in Column L and counts it under **Deceased**.
+- The same cat is counted **twice**, inflating HOME's overall total.
+
+The reverse can also happen (Column A says `26m` but Column L says the cat is active),
+which makes HOME count the cat in _neither_ bucket and _under_-count. The net of these
+is why HOME's "OVERALL TOTAL" can sit a few above or below the app's true count.
+
+> Worked example (June 2026): the app held **551** cats; HOME showed **555**. The
+> import was perfect — every one of the 551 sheet rows became exactly one cat, no
+> duplicates, no drops. The 4-cat gap was entirely **8 rows double-counted** minus
+> **4 rows missed** by HOME's Column-A method. The database was right; HOME was inflated.
+
+### Which number to trust
+
+- **For any real decision (census, reporting, adoptions): trust the app.** Its counts
+  come straight from the cat records and are validated on the way in.
+- **Treat HOME as an at-a-glance dashboard**, not an authoritative tally. It's only as
+  accurate as the Column-A suffixes, which humans can leave stale.
+
+### How to reconcile HOME back to the app
+
+A **forward sync** (the normal cron, or after editing the affected cats in the app)
+rewrites Column A from the database's status, so the suffixes correct themselves and
+HOME snaps back to the true numbers. Concretely:
+
+- Re-save each drifted cat from the app's General tab, **or**
+- Let the scheduled forward sync run — it re-stamps Column A on every row it touches.
+
+To _find_ the drifted rows, run `pnpm tsx scripts/find-suffix-drift.ts` (lists every
+row where the Column-A suffix disagrees with Column L).
+
+### One thing to actually be careful about
+
+A cat only exists to the database once its row has a **UUID in Column Y** (§4.5,
+"Seed UUIDs"). A row with a blank Column Y is **silently skipped** on import while
+HOME still counts it — a real (not cosmetic) discrepancy. Today every row is seeded,
+but the rule to remember: **always run Admin → GSheet Config → Seed UUIDs before a
+reset/reimport**, so no freshly-added row is left behind.
