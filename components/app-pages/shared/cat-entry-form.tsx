@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
 import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
 import { createSessionCat } from "@/app/actions/sessions";
-import { createClient } from "@/lib/supabase/client";
+import { useRegions } from "@/lib/hooks/use-regions";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
 import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
@@ -31,10 +31,6 @@ import type {
 import type { SelectCat } from "@/lib/validation/cats";
 import { normalizeCatField } from "@/lib/utils";
 
-type RegionOption = {
-  id: string;
-  name: string;
-};
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
 
@@ -135,8 +131,7 @@ export function CatEntryForm({
   const [notes, setNotes] = useState(initialCat?.notes ?? "");
   const [name, setName] = useState(initialCat?.name ?? "");
   const [selectedRegion, setSelectedRegion] = useState("");
-  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
-  const [regionsLoading, setRegionsLoading] = useState(false);
+  const regionOptions = useRegions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoWarning, setPhotoWarning] = useState<string | null>(null);
@@ -175,38 +170,6 @@ export function CatEntryForm({
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const loadRegions = async () => {
-      setRegionsLoading(true);
-      try {
-        const supabase = createClient();
-        const { data, error: fetchError } = await supabase
-          .from("regions")
-          .select("id,name");
-
-        if (fetchError) {
-          setError(fetchError.message);
-          return;
-        }
-
-        const options = (data ?? [])
-          .filter((row): row is { id: string; name: string } =>
-            Boolean(row?.id && row?.name),
-          )
-          .sort((a, b) => a.name.localeCompare(b.name));
-
-        setRegionOptions(options);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load regions.",
-        );
-      } finally {
-        setRegionsLoading(false);
-      }
-    };
-
-    loadRegions();
-  }, []);
 
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
@@ -548,7 +511,7 @@ export function CatEntryForm({
                     const found = regionOptions.find((r) => r.name === name);
                     if (found) setSelectedRegion(found.id);
                   }}
-                  placeholder={regionsLoading ? "Loading..." : "—"}
+                  placeholder="—"
                   variant="white"
                 />
               </div>
