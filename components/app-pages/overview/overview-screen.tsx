@@ -1,23 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LOCATIONS } from "@/components/app-pages/shared/constants";
-import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
+import { useRegions } from "@/lib/hooks/use-regions";
 import { computeCensusStats } from "@/lib/stats/census-stats";
 
-const DASHBOARD_MODE_OPTIONS = [
-  "Overall",
-  ...LOCATIONS.filter((l) => l !== "All Locations"),
-];
-
 type OverviewScreenProps = {
-  initialCats: SelectCat[];
+  initialCats: CatWithRegion[];
   initialHealthRecords: SelectCatHealthRecord[];
 };
 
-function formatLatestUpdate(cats: SelectCat[]) {
+function formatLatestUpdate(cats: CatWithRegion[]) {
   const dates = cats
     .map((cat) => cat.last_updated_at)
     .filter(Boolean)
@@ -34,7 +30,12 @@ export function OverviewScreen({
   initialCats,
   initialHealthRecords,
 }: OverviewScreenProps) {
-  const [dashboardMode, setDashboardMode] = useState(DASHBOARD_MODE_OPTIONS[0]);
+  const regions = useRegions();
+  const regionNames = useMemo(
+    () => regions.map((r) => r.name).sort((a, b) => a.localeCompare(b)),
+    [regions],
+  );
+  const [dashboardMode, setDashboardMode] = useState("Overall");
   const [location, setLocation] = useState("Overall");
   const allCats = initialCats;
   const allHealthRecords = initialHealthRecords;
@@ -42,9 +43,7 @@ export function OverviewScreen({
 
   const filteredCats = useMemo(() => {
     if (location === "Overall") return allCats;
-    return allCats.filter((c) =>
-      c.spot_last_seen?.toUpperCase().includes(location.toUpperCase()),
-    );
+    return allCats.filter((c) => c.region_name === location);
   }, [allCats, location]);
 
   const stats = useMemo(
@@ -54,9 +53,7 @@ export function OverviewScreen({
 
   const desktopCats = useMemo(() => {
     if (dashboardMode === "Overall") return allCats;
-    return allCats.filter((c) =>
-      c.spot_last_seen?.toUpperCase().includes(dashboardMode.toUpperCase()),
-    );
+    return allCats.filter((c) => c.region_name === dashboardMode);
   }, [allCats, dashboardMode]);
 
   const desktopStats = useMemo(
@@ -76,30 +73,18 @@ export function OverviewScreen({
 
   const populationByLocation = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const loc of LOCATIONS) {
-      if (loc === "All Locations") continue;
-      counts.set(loc, 0);
+    for (const name of regionNames) {
+      counts.set(name, 0);
     }
     for (const cat of allCats) {
-      const spot = (cat.spot_last_seen ?? "").toUpperCase();
-      if (!spot) continue;
-      let matched = false;
-      for (const loc of counts.keys()) {
-        if (spot.includes(loc.toUpperCase())) {
-          counts.set(loc, (counts.get(loc) ?? 0) + 1);
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        counts.set("UNKNOWN", (counts.get("UNKNOWN") ?? 0) + 1);
-      }
+      const key = cat.region_name ?? "UNKNOWN";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return Array.from(counts.entries()).map(([label, value]) => ({
       label,
       value,
     }));
-  }, [allCats]);
+  }, [allCats, regionNames]);
 
   const desktopStatusStats = useMemo(
     () => [
@@ -124,19 +109,12 @@ export function OverviewScreen({
               Last update:{" "}
               <span className="font-medium text-foreground">{lastUpdated}</span>
             </p>
-            <p className="text-xs font-semibold text-brand-green">
-              Last PAWS update:{" "}
-              <span className="font-medium text-foreground">{lastUpdated}</span>
-            </p>
           </div>
 
           {/* Location picker */}
           <LocationPicker
             value={location}
-            options={[
-              "Overall",
-              ...LOCATIONS.filter((l) => l !== "All Locations"),
-            ]}
+            options={["Overall", ...regionNames]}
             onChange={setLocation}
             variant="pill"
           />
@@ -318,7 +296,7 @@ export function OverviewScreen({
           <div className="w-full max-w-80">
             <LocationPicker
               value={dashboardMode}
-              options={DASHBOARD_MODE_OPTIONS}
+              options={["Overall", ...regionNames]}
               onChange={setDashboardMode}
               label="Location"
             />

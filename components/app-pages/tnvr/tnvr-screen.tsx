@@ -2,18 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { PageContent } from "@/components/app-pages/shared/page-frame";
-import { LOCATIONS } from "@/components/app-pages/shared/constants";
-import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { PieChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
+import { useRegions } from "@/lib/hooks/use-regions";
 import { computeTnvrStats } from "@/lib/stats/census-stats";
 
 type TnvrScreenProps = {
-  initialCats: SelectCat[];
+  initialCats: CatWithRegion[];
   initialHealthRecords: SelectCatHealthRecord[];
 };
 
-function formatLatestUpdate(cats: SelectCat[]) {
+function formatLatestUpdate(cats: CatWithRegion[]) {
   const dates = cats
     .map((cat) => cat.last_updated_at)
     .filter(Boolean)
@@ -100,6 +101,11 @@ export function TnvrScreen({
   initialCats,
   initialHealthRecords,
 }: TnvrScreenProps) {
+  const regions = useRegions();
+  const regionNames = useMemo(
+    () => regions.map((r) => r.name).sort((a, b) => a.localeCompare(b)),
+    [regions],
+  );
   const allCats = initialCats;
   const allHealthRecords = initialHealthRecords;
   const [location, setLocation] = useState("All Locations");
@@ -109,11 +115,7 @@ export function TnvrScreen({
   // Mobile: filter by location
   const mobileCats = useMemo(() => {
     if (location === "All Locations") return allCats;
-    return allCats.filter(
-      (c) =>
-        c.spot_last_seen &&
-        c.spot_last_seen.toUpperCase().includes(location.toUpperCase()),
-    );
+    return allCats.filter((c) => c.region_name === location);
   }, [allCats, location]);
 
   const mobileStats = useMemo(
@@ -124,11 +126,7 @@ export function TnvrScreen({
   // Desktop: filter by location
   const desktopCats = useMemo(() => {
     if (desktopLocation === "Overall") return allCats;
-    return allCats.filter(
-      (c) =>
-        c.spot_last_seen &&
-        c.spot_last_seen.toUpperCase().includes(desktopLocation.toUpperCase()),
-    );
+    return allCats.filter((c) => c.region_name === desktopLocation);
   }, [allCats, desktopLocation]);
 
   const desktopStats = useMemo(
@@ -173,7 +171,7 @@ export function TnvrScreen({
             {/* Location picker */}
             <LocationPicker
               value={location}
-              options={LOCATIONS}
+              options={["All Locations", ...regionNames]}
               onChange={setLocation}
               variant="pill"
             />
@@ -299,10 +297,7 @@ export function TnvrScreen({
           <div className="w-full max-w-72">
             <LocationPicker
               value={desktopLocation}
-              options={[
-                "Overall",
-                ...LOCATIONS.filter((l) => l !== "All Locations"),
-              ]}
+              options={["Overall", ...regionNames]}
               onChange={setDesktopLocation}
               label="Location"
             />

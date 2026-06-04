@@ -19,7 +19,7 @@ import {
   removeSessionCat,
 } from "@/app/actions/sessions";
 import { getCats, removeCat } from "@/app/actions/cats";
-import { createClient } from "@/lib/supabase/client";
+import { listRegions } from "@/app/actions/regions";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { SelectSessionCat } from "@/lib/validation/sessions";
 
@@ -75,10 +75,9 @@ export function SessionsCreateScreen() {
       setLoading(true);
       setError(null);
       try {
-        const supabase = createClient();
         const [sessionResult, regionsResult] = await Promise.all([
           getSessions({ id: sid }),
-          supabase.from("regions").select("id,name"),
+          listRegions({}),
         ]);
         const existing = sessionResult?.data?.[0];
         if (!existing) {
@@ -89,7 +88,7 @@ export function SessionsCreateScreen() {
         setCensusNo(existing.census_no);
         setSelectedRegionId(existing.region_id);
         const regionName =
-          (regionsResult.data ?? []).find((r) => r.id === existing.region_id)
+          (regionsResult?.data ?? []).find((r) => r.id === existing.region_id)
             ?.name ?? "Unknown Location";
         setSelectedRegionName(regionName);
         await fetchSessionCats(existing.id);

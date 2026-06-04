@@ -22,7 +22,8 @@ DB `regions` table                               ← SOURCE OF TRUTH (which regi
         │
         ├──► reverse sync & forward sync read DB regions DIRECTLY (not B2)
         │
-        └──► refreshRegionSheetConfig() admin action → writes _config!B2 (mirror)
+        └──► provisionSheets() admin action (Admin → GSheet Config → Provision Sheets)
+                     │        → writes _config!B2 (mirror) as part of provisioning
                      │
                      ▼
              _config!B2 (comma list)             ← consumed ONLY by Apps Script
@@ -45,7 +46,7 @@ DB `regions` table                               ← SOURCE OF TRUTH (which regi
 reverse sync reads it to match rows to DB cats. A row with a blank col Y is
 **skipped** by reverse sync.
 
-**Region routing rule:** A cat's sheet tab is determined by its *effective region* —
+**Region routing rule:** A cat's sheet tab is determined by its _effective region_ —
 `COALESCE(cats.region_id override, most-recent session's region)`. The same rule the
 app display uses. If a manager changes a cat's region on the General tab (writes
 `cats.region_id`), the cat automatically routes to the new tab and the old-tab row is
@@ -56,13 +57,13 @@ and self-heals.
 
 ## 2. Components
 
-| Component | Where | Responsibility |
-|-----------|-------|----------------|
-| App (Next.js) | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions |
-| Apps Script `Code.gs` | bound to the spreadsheet | `onEdit` installable trigger: writes W/X timestamps + **generates col-Y UUID on first human edit**. The only load-bearing Apps Script piece. |
-| Apps Script `Protection.gs` | bound to the spreadsheet | Manual admin functions: `setupRegionSheets()` (headers + UUID seed + protections), plus lower-level helpers |
-| Apps Script `WebApp.gs` | bound to the spreadsheet | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**. |
-| Service account | `SERVICE_ACCOUNT_CREDENTIALS` | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets |
+| Component                   | Where                                               | Responsibility                                                                                                                               |
+| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                   |
+| Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece. |
+| Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                         |
+| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                |
+| Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                              |
 
 ---
 
@@ -71,27 +72,27 @@ and self-heals.
 Header row = **row 2**. Data starts at **row 3**. Region tabs (all except the
 UNKNOWN tab) use this layout — see `mapCatToSheetRow` in `lib/services/helper.service.ts`:
 
-| Col | Idx | Field | | Col | Idx | Field |
-|-----|-----|-------|-|-----|-----|-------|
-| A | 0 | Catalog ID (+status suffix) | | L | 11 | Cat status |
-| B | 1 | Photo (`=IMAGE(url)`) | | M | 12 | Caretaker |
-| C | 2 | Name | | N | 13 | Date updated |
-| D | 3 | Color | | O | 14 | Spot last seen |
-| E | 4 | Age | | P | 15 | Neuter date |
-| F | 5 | Sex | | Q | 16 | Vaccination date |
-| G | 6 | **Neutered** (YES/NO/???) | | R | 17 | Notes |
-| H | 7 | Sociability | | S | 18 | (separator) |
-| I | 8 | Sick (YES/NO) | | T | 19 | TNVR status |
-| J | 9 | Injured (YES/NO) | | U | 20 | Vet status |
-| K | 10 | Adoptable (YES/NO) | | V | 21 | For-FA status |
+| Col | Idx | Field                       |     | Col | Idx | Field            |
+| --- | --- | --------------------------- | --- | --- | --- | ---------------- |
+| A   | 0   | Catalog ID (+status suffix) |     | L   | 11  | Cat status       |
+| B   | 1   | Photo (`=IMAGE(url)`)       |     | M   | 12  | Caretaker        |
+| C   | 2   | Name                        |     | N   | 13  | Date updated     |
+| D   | 3   | Color                       |     | O   | 14  | Spot last seen   |
+| E   | 4   | Age                         |     | P   | 15  | Neuter date      |
+| F   | 5   | Sex                         |     | Q   | 16  | Vaccination date |
+| G   | 6   | **Neutered** (YES/NO/???)   |     | R   | 17  | Notes            |
+| H   | 7   | Sociability                 |     | S   | 18  | (separator)      |
+| I   | 8   | Sick (YES/NO)               |     | T   | 19  | TNVR status      |
+| J   | 9   | Injured (YES/NO)            |     | U   | 20  | Vet status       |
+| K   | 10  | Adoptable (YES/NO)          |     | V   | 21  | For-FA status    |
 
 **System columns (service-account / Apps Script only — protected from humans):**
 
-| Col | Idx | Field | Writer |
-|-----|-----|-------|--------|
-| W | 22 | `last_edited_at` | Apps Script `onEdit` |
-| X | 23 | `edited_by` | Apps Script `onEdit` |
-| Y | 24 | `uuid` | `onEdit` (new rows) / `seedMissingUuids` (bulk) / forward sync |
+| Col | Idx | Field            | Writer                                                         |
+| --- | --- | ---------------- | -------------------------------------------------------------- |
+| W   | 22  | `last_edited_at` | Apps Script `onEdit`                                           |
+| X   | 23  | `edited_by`      | Apps Script `onEdit`                                           |
+| Y   | 24  | `uuid`           | `onEdit` (new rows) / `seedMissingUuids` (bulk) / forward sync |
 
 > The **UNKNOWN** tab uses a different layout (`mapUnknownCatToSheetRow`):
 > A=Catalog, B=Possible Loc, C=PAWS ID, D=Color, E=Age, F=Sex, G=Neutered,
@@ -106,6 +107,7 @@ Use this when pointing the system at the **real** spreadsheet for the first time
 (rows exist, but W/X/Y do not).
 
 ### 4.0 Prerequisites
+
 - App deployed (or local) with env set: `CATALOG_SPREADSHEET_ID`,
   `SERVICE_ACCOUNT_CREDENTIALS`, `DATABASE_URL`, the Supabase keys, optionally
   `DISCORD_WEBHOOK_URL`.
@@ -117,11 +119,13 @@ Use this when pointing the system at the **real** spreadsheet for the first time
   `_config` tab exists.
 
 ### 4.1 Install the Apps Script files
+
 1. Spreadsheet → **Extensions → Apps Script**.
 2. Paste the repo contents of `workers/apps-script/Code.gs`, `Protection.gs`,
    `WebApp.gs` into matching files. **Save**.
 
 ### 4.2 Install the installable triggers (not optional)
+
 Pasting the script files does **not** install triggers. In the Apps Script editor →
 **Triggers** (clock icon) → **+ Add Trigger**, add **both**:
 
@@ -137,35 +141,78 @@ Pasting the script files does **not** install triggers. In the Apps Script edito
 Save and authorize each.
 
 ### 4.3 Point the app at the real sheet
+
 Set `CATALOG_SPREADSHEET_ID` to the real spreadsheet ID and redeploy / restart.
 
-### 4.4 Populate `_config!B2`
-Run the **`refreshRegionSheetConfig()`** admin action (writes the DB region list
-to B2). Apps Script reads B2, so this must happen before §4.5.
+### 4.4 Provision the region sheets (admin UI)
 
-### 4.5 Run `setupRegionSheets()` once
-Apps Script editor → Run → `setupRegionSheets`. It will, idempotently:
-1. read the region list from `_config!B2`,
-2. warn (in the log) on any tab/B2 mismatch,
-3. ensure the W2/X2/Y2 header labels,
-4. **seed col-Y UUIDs for every existing data row that lacks one**
-   (`seedMissingUuids`) — this is what makes the pre-existing rows importable,
-5. clear + (re)apply the A and W–Y protections.
+Run **Admin → GSheet Config → Provision Sheets** (`provisionSheets()` server
+action). Running as the **service account**, this idempotently:
 
-Check **View → Logs** for `seedMissingUuids: assigned N UUID(s)` and the completion line.
+1. widens every region grid to 25 columns so W/X/Y are addressable
+   (`ensureRegionSheetWidth`),
+2. writes the W2/X2/Y2 header labels (`ensureRegionSheetHeaders`),
+3. applies **and owns** the A and W–Y protections, granting the service account
+   itself as editor so its sync writes succeed (`setupSystemColProtections`),
+4. mirrors the DB region list to `_config!B2` (`syncRegionSheetNames`).
+
+This is structure-only and safe to re-run anytime (drift repair, protection fix).
+It deliberately does **not** mint UUIDs — that's the separate, identity-affecting
+§4.5 action.
+
+> **Apps Script is no longer used for setup** — the admin UI does everything
+> `setupRegionSheets()` did. The lone exception is a **one-time cutover cleanup**:
+> if protections were ever applied via the Apps Script `setupRegionSheets()` /
+> `setupSystemColProtection()`, the service account **cannot** delete them (a
+> protected range is removable only by its creator). Run Apps Script →
+> `clearSystemColProtections()` **once as the owner** first, then Provision Sheets.
+> On a clean sheet (no prior protections) skip this. After this, the service
+> account owns all protections and re-provisioning is fully self-serve forever.
+
+### 4.5 Seed col-Y UUIDs (admin UI)
+
+Run **Admin → GSheet Config → Seed UUIDs** (`seedSheetUuids()` →
+`seedMissingUuidsAllRegions()`). Assigns a UUID to every existing data row that
+has content but no col-Y UUID — this is what makes the pre-existing rows
+importable (reverse sync **skips UUID-less rows**). Idempotent: only fills blanks,
+never overwrites. The result reports how many were newly assigned (rows that
+already had a UUID are not re-counted).
+
+> Kept separate from Provision (§4.4) on purpose: this mints **permanent cat
+> identity** and is a **once-at-cutover** act, whereas Provision is safe structural
+> repair you may click anytime. After go-live the `onEdit` trigger mints UUIDs for
+> new rows automatically — this button should essentially never run again.
 
 ### 4.6 Import the sheet data into the DB
-With col Y now populated, import. The full-reset path:
+
+With col Y now populated, import. The full-reset path — **at cutover, pass
+`--wipe-photos`** (see below for why):
 
 ```bash
-pnpm tsx scripts/reset-and-reimport.ts
+pnpm tsx scripts/reset-and-reimport.ts --wipe-photos
 ```
 
 This wipes cat data, runs `fullReverseSync` (recreates cats by col-Y UUID), and
 bulk-imports photos. ⚠️ It **deletes all existing cats first** — only use it when
 the real sheet should be the canonical source and the current DB holds test data.
 
+**`--wipe-photos` (opt-in storage wipe):** photos are stored at
+`${uuid}/photo.jpg` and uploaded with `upsert`, so a rerun with **stable** UUIDs
+overwrites each photo in place — no flag needed. But a **full reintegration**
+re-seeds **fresh** col-Y UUIDs (§4.5), which re-keys every photo path and orphans
+all prior objects (the old `${oldUuid}/photo.jpg` files are never overwritten or
+deleted). `--wipe-photos` empties the bucket first so storage ends with exactly
+the current set, zero orphans. It's safe because photos are sourced from the sheet
+xlsx and fully rebuilt by the import.
+
+> **Full reintegration is the only case that warrants it.** It's gated behind the
+> flag on purpose: the wipe forces a re-download of *every* photo from the sheet,
+> which is slow and occasionally flaky. For routine reruns (stable UUIDs) leave it
+> off — upsert handles overwrites and you skip the expensive re-download. Only at a
+> fresh-UUID cutover does the orphan cleanup justify the cost.
+
 ### 4.7 Verify
+
 - `For RI` / `For FA` tabs appear/refresh after the next forward-sync tick.
 - Edit any cell in a fresh row → col Y gets a UUID, W a timestamp, X your email.
 - `SELECT count(*) FROM cats` matches the sheet row count (minus skipped/blank).
@@ -177,6 +224,7 @@ the real sheet should be the canonical source and the current DB holds test data
 Adding a region is now **fully self-serve** — no code changes or deployment needed.
 
 **In-app flow (Admin → Edit Regions):**
+
 1. Type the region name + pick a color → **Add region**.
    This inserts the DB row, creates the Google Sheet tab (duplicated from an
    existing region tab, data rows cleared), applies W/X/Y headers, col-A and
@@ -197,7 +245,8 @@ override to another region) are deleted with it.
   No manual action.
 - **Reverse sync / recovery:** the admin **unfreeze** action runs `fullReverseSync`.
 - **Freeze status:** `getSyncStatus` / `setSyncFrozen` gate sync via `system_config`.
-- **Protections drift / new tab:** re-run `setupRegionSheets()` (idempotent).
+- **Protections drift / new tab:** re-run **Admin → GSheet Config → Provision
+  Sheets** (idempotent). Runs as the service account; no Apps Script needed.
 - **A UUID got cleared on a row:** forward sync rewrites it on the next pass; if a
   wrong UUID was typed, reverse-sync may create a duplicate — check `sync_audit_log`.
 - **Cat appears in two tabs:** the region routing rule was recently applied to sync
@@ -209,18 +258,29 @@ override to another region) are deleted with it.
 
 ## 7. Design decisions (why it's built this way)
 
-- **Provisioning is manual Apps Script, never cron.** New regions are rare; running
+- **Provisioning is admin-triggered, never cron.** New regions are rare; running
   idempotent setup every cron tick wastes Sheets API quota (tight headroom) and
-  Vercel compute. Apps Script runs as sheet owner, free quota, zero API cost.
-- **Regions are now data-driven (text column), self-serve from the Admin tab.**
-  The `regions.name` pg enum was dropped (2026-06-02) because the owner is
-  handing off to non-technical stewards who can't do deploys. `REGION_NAME_VALUES`
-  is retained as a plain TS const for initial seeding and filter dropdowns only.
+  Vercel compute. The admin **Provision Sheets** button runs it on demand.
+- **Setup is server-side (admin UI), not Apps Script.** `provisionSheets()` runs
+  as the service account and does the whole structural setup — grid width, W/X/Y
+  headers, A + W–Y protections (granting itself as editor), and the `_config!B2`
+  mirror. This is the canonical path. It supersedes the Apps Script
+  `setupRegionSheets()` (see §8), which is retained only for the one-time cutover
+  `clearSystemColProtections()` cleanup. Reason for moving off Apps Script: the
+  owner is handing off to non-technical stewards who can't open the script editor,
+  so anything operationally necessary must be a button. The earlier Apps Script
+  protection path also had a service-account-lockout bug (it stripped all editors
+  and never re-added the service account), which the server path avoids by design.
+- **Provision and Seed UUIDs are deliberately two buttons.** Provision is
+  structure-only and safe to re-run anytime. Seed UUIDs mints **permanent cat
+  identity** and is a once-at-cutover act. Folding them would risk minting a
+  permanent UUID on a transient half-typed row during a routine provision, so they
+  stay separate. See §4.4 / §4.5.
+- **Regions are data-driven (text column), self-serve from the Admin tab.**
+  The `regions.name` pg enum was dropped (2026-06-02). `REGION_NAME_VALUES` is
+  retained as a plain TS const for initial seeding and filter dropdowns only.
   Free-text names are accepted; a `NOT NULL UNIQUE` DB constraint prevents blanks
   and duplicates.
-- **B2-driven protection path is canonical.** `setupRegionSheets()` (Apps Script)
-  reads `_config!B2`. The app keeps B2 in sync from the DB via
-  `refreshRegionSheetConfig()`.
 
 ---
 
@@ -229,9 +289,13 @@ override to another region) are deleted with it.
 - **`WebApp.gs` `doGet` freeze/unfreeze/status** — calls `freezeMode` /
   `unfreezeMode` / `getAuthorizedEmails`, which no longer exist. Dead; freeze is
   now app-side (`system_config`).
-- **`lib/services/helper.service.ts` `setupSystemColProtections()`** — a server-side,
-  DB-driven twin of the Apps Script protection path. **Not wired to any caller.**
-  Superseded by the chosen Apps Script B2-driven path; candidate for removal.
+- **Apps Script `setupRegionSheets()` / `setupSystemColProtection()` /
+  `seedMissingUuids()`** — the original owner-run setup path. **Superseded by the
+  admin UI** (Provision Sheets + Seed UUIDs), which runs as the service account.
+  Retained runnable only for the **one-time cutover** `clearSystemColProtections()`
+  (the service account can't delete owner-created protections). Do not use them for
+  routine setup — they create owner-owned protections that lock the service account
+  out of its own A / W–Y writes.
 - **`WebApp.gs` `doPost` photo import** — the base64/getCellImage path. Photo import
   is now done server-side via xlsx/zip export (`bulkImportAllNullPhotos`,
   `photo-import.service.ts`). Verify before relying on the WebApp path.
@@ -240,14 +304,14 @@ override to another region) are deleted with it.
 
 ## 9. Environment variables
 
-| Var | Used for |
-|-----|----------|
-| `CATALOG_SPREADSHEET_ID` | Target spreadsheet |
-| `SERVICE_ACCOUNT_CREDENTIALS` | Google service-account JSON (sheet read/write identity) |
-| `DATABASE_URL` | Postgres |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client |
-| `NEXT_SUPABASE_SERVICE_ROLE_KEY` | Server-side Supabase |
-| `DISCORD_WEBHOOK_URL` | Sync alerts (optional) |
+| Var                                                          | Used for                                                |
+| ------------------------------------------------------------ | ------------------------------------------------------- |
+| `CATALOG_SPREADSHEET_ID`                                     | Target spreadsheet                                      |
+| `SERVICE_ACCOUNT_CREDENTIALS`                                | Google service-account JSON (sheet read/write identity) |
+| `DATABASE_URL`                                               | Postgres                                                |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client                                         |
+| `NEXT_SUPABASE_SERVICE_ROLE_KEY`                             | Server-side Supabase                                    |
+| `DISCORD_WEBHOOK_URL`                                        | Sync alerts (optional)                                  |
 
 Apps Script script properties (Project Settings → Script Properties), if using the
 photo WebApp: `PHOTO_IMPORT_SECRET` (and historically `EMERGENCY_SECRET` for the

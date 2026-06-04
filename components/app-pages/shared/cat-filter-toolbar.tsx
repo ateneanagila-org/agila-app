@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import {
   DatabaseFiltersDialog,
@@ -13,6 +13,7 @@ import {
 } from "@/components/app-pages/shared/icons";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import type { FilterSortConfig } from "@/lib/hooks/use-filter-sort";
+import { withCatRegionOptions } from "@/lib/hooks/filter-sort-configs";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { SelectCat } from "@/lib/validation/cats";
 
@@ -43,6 +44,11 @@ export function CatFilterToolbar({
   const [debouncedSearch] = useDebounce(searchInput, 500);
   const [openingFilter, setOpeningFilter] = useState(false);
 
+  const enrichedConfig = useMemo(
+    () => withCatRegionOptions(config, cats),
+    [config, cats],
+  );
+
   const {
     filtered,
     activeFilters,
@@ -57,7 +63,7 @@ export function CatFilterToolbar({
     closeDialog,
   } = useFilterSort<FilterableCat>(
     cats,
-    config,
+    enrichedConfig,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof FilterableCat];
@@ -142,7 +148,7 @@ export function CatFilterToolbar({
       <DatabaseFiltersDialog
         open={openDialog === "filter"}
         onClose={closeDialog}
-        categories={config.filters}
+        categories={enrichedConfig.filters}
         activeFilters={activeFilters}
         onClear={clearFilters}
         onApply={applyFilters}
@@ -150,7 +156,7 @@ export function CatFilterToolbar({
       <DatabaseSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}
-        options={config.sortOptions}
+        options={enrichedConfig.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
         onApply={applySort}

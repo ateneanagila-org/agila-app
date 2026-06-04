@@ -2,10 +2,28 @@ import "dotenv/config";
 import { db } from "@/lib/db";
 import { cats, gsheetSyncQueue, syncAuditLog } from "@/lib/db/schema";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
-import { bulkImportAllNullPhotos } from "@/lib/services/photo-import.service";
+import {
+  bulkImportAllNullPhotos,
+  wipeAllPhotos,
+} from "@/lib/services/photo-import.service";
 
 async function main() {
   console.log("[Reset] Starting full reset and reimport...");
+
+  // Step 0 (opt-in): Wipe the photo bucket. Re-seeding fresh col-Y UUIDs re-keys
+  // every photo path, so prior objects would orphan (upsert only overwrites the
+  // same path). Photos rebuild from the sheet xlsx in Step 4, so this is safe.
+  // Gated behind --wipe-photos so routine reruns don't nuke a populated bucket;
+  // pass it at cutover (new UUIDs) for a clean, orphan-free storage state.
+  if (process.argv.includes("--wipe-photos")) {
+    console.log("[Reset] --wipe-photos set — wiping photo bucket...");
+    const { removed } = await wipeAllPhotos();
+    console.log(`[Reset] Removed ${removed} photo object(s) from storage`);
+  } else {
+    console.log(
+      "[Reset] Skipping photo-bucket wipe (pass --wipe-photos at cutover to clear orphans).",
+    );
+  }
 
   // Step 1: Wipe all cat data (cascades to catHealthRecords, interventions, sessionCats)
   console.log("[Reset] Deleting all cats...");

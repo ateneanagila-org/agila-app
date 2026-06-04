@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { SlidersHorizontal, Loader2 } from "lucide-react";
 import {
   ChevronDownIcon,
@@ -16,12 +16,18 @@ import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
-import { PUBLIC_CATALOG_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { PUBLIC_CATALOG_CONFIG, withCatRegionOptions } from "@/lib/hooks/filter-sort-configs";
 import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 export function CatalogScreen() {
   const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const enrichedConfig = useMemo(
+    () => withCatRegionOptions(PUBLIC_CATALOG_CONFIG, cats),
+    [cats],
+  );
+
   const {
     filtered: filteredCats,
     activeFilters,
@@ -39,7 +45,7 @@ export function CatalogScreen() {
     setSearch,
   } = useFilterSort<CatWithRegion>(
     cats,
-    PUBLIC_CATALOG_CONFIG,
+    enrichedConfig,
     (cat, key) => {
       if (key === "region_name") return cat.region_name ?? null;
       const val = cat[key as keyof SelectCat];
@@ -173,7 +179,7 @@ export function CatalogScreen() {
       <DatabaseFiltersDialog
         open={openDialog === "filter"}
         onClose={closeDialog}
-        categories={PUBLIC_CATALOG_CONFIG.filters}
+        categories={enrichedConfig.filters}
         activeFilters={activeFilters}
         onClear={clearFilters}
         onApply={applyFilters}
@@ -181,7 +187,7 @@ export function CatalogScreen() {
       <DatabaseSortByDialog
         open={openDialog === "sort"}
         onClose={closeDialog}
-        options={PUBLIC_CATALOG_CONFIG.sortOptions}
+        options={enrichedConfig.sortOptions}
         activeKey={sortKey}
         order={sortOrder}
         onApply={applySort}

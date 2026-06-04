@@ -9,14 +9,28 @@ import {
   INTERVENTION_TYPE_VALUES,
   INTERVENTION_STATUS_VALUES,
   AUTH_ROLE_VALUES,
-  REGION_NAME_VALUES,
 } from "@/lib/db/enums";
+import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
-const REGION_FILTER_OPTIONS = REGION_NAME_VALUES.filter((r) => r !== "UNKNOWN");
+/** Returns a copy of `config` with the `region_name` filter options derived from the loaded cats. */
+export function withCatRegionOptions(
+  config: FilterSortConfig,
+  cats: CatWithRegion[],
+): FilterSortConfig {
+  const names = Array.from(
+    new Set(cats.map((c) => c.region_name).filter((n): n is string => n != null)),
+  ).sort((a, b) => a.localeCompare(b));
+  return {
+    ...config,
+    filters: config.filters.map((f) =>
+      f.key === "region_name" ? { ...f, options: names } : f,
+    ),
+  };
+}
 
 export const DATABASE_LIST_CONFIG: FilterSortConfig = {
   filters: [
-    { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
+    { label: "Region", key: "region_name", options: [] },
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
@@ -57,7 +71,7 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
 
 export const PUBLIC_CATALOG_CONFIG: FilterSortConfig = {
   filters: [
-    { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
+    { label: "Region", key: "region_name", options: [] },
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
@@ -112,7 +126,7 @@ export const INTERVENTIONS_CONFIG: FilterSortConfig = {
 
 export const CROSSREF_LIST_CONFIG: FilterSortConfig = {
   filters: [
-    { label: "Region", key: "region_name", options: REGION_FILTER_OPTIONS },
+    { label: "Region", key: "region_name", options: [] },
     { label: "Color", key: "color", options: [...CAT_COLOR_VALUES, "Unknown"] },
     { label: "Age", key: "age", options: [...CAT_AGE_VALUES, "Unknown"] },
     { label: "Sex", key: "sex", options: [...CAT_SEX_VALUES, "Unknown"] },
