@@ -253,6 +253,9 @@ override to another region) are deleted with it.
   (2026-06-03). Pre-existing stale rows from before that date won't self-clean unless
   the cat is edited again. Manually delete the stale row, or just re-save the cat from
   the General tab to trigger the cleanup.
+- **HOME totals don't match the app's counts:** expected and usually harmless — the
+  HOME tab and the app count cats differently. See §10 for which one to trust and how
+  to reconcile.
 
 ---
 
@@ -316,3 +319,76 @@ override to another region) are deleted with it.
 Apps Script script properties (Project Settings → Script Properties), if using the
 photo WebApp: `PHOTO_IMPORT_SECRET` (and historically `EMERGENCY_SECRET` for the
 now-dead freeze endpoints).
+
+---
+
+## 10. Data integrity: why HOME can disagree with the app — and which to trust
+
+**Short answer: trust the app (the database). The HOME tab is a convenience
+summary built from spreadsheet formulas, and it can drift. The app's numbers are
+computed from the actual cat records.**
+
+This is not a bug you can permanently "fix" — it's a built-in consequence of the
+spreadsheet being editable by many hands. Expect HOME and the app to disagree by a
+few cats from time to time. Here's the plain-language version of why.
+
+### The two count cats differently
+
+Every region tab stores each cat's status in **two places**:
+
+- **Column A** — the catalog number, with a letter suffix for non-active cats:
+  `m` = MIA, `d` = Deceased, `a` = Adopted, `f` = Fostered. An active cat is just a
+  plain number (e.g. `30`); a deceased one is `30d`.
+- **Column L** — the status spelled out (`Adopted`, `Deceased`, `MIA`, …).
+
+The **HOME tab counts "active" cats by Column A** (it counts the cells that are a
+plain number). The **app counts status from Column L** (the real record). As long as
+those two agree, HOME and the app match. The moment someone edits one without the
+other, they drift.
+
+### How the drift happens
+
+When a volunteer changes a cat's status **in the sheet** — say, types `Deceased` in
+Column L — the app picks that up correctly on the next sync. But **Column A is not
+rewritten** by that path, so it still shows the plain number `30` instead of `30d`.
+Now:
+
+- HOME sees `30` (a plain number) and counts the cat as **active**.
+- HOME *also* sees `Deceased` in Column L and counts it under **Deceased**.
+- The same cat is counted **twice**, inflating HOME's overall total.
+
+The reverse can also happen (Column A says `26m` but Column L says the cat is active),
+which makes HOME count the cat in *neither* bucket and *under*-count. The net of these
+is why HOME's "OVERALL TOTAL" can sit a few above or below the app's true count.
+
+> Worked example (June 2026): the app held **551** cats; HOME showed **555**. The
+> import was perfect — every one of the 551 sheet rows became exactly one cat, no
+> duplicates, no drops. The 4-cat gap was entirely **8 rows double-counted** minus
+> **4 rows missed** by HOME's Column-A method. The database was right; HOME was inflated.
+
+### Which number to trust
+
+- **For any real decision (census, reporting, adoptions): trust the app.** Its counts
+  come straight from the cat records and are validated on the way in.
+- **Treat HOME as an at-a-glance dashboard**, not an authoritative tally. It's only as
+  accurate as the Column-A suffixes, which humans can leave stale.
+
+### How to reconcile HOME back to the app
+
+A **forward sync** (the normal cron, or after editing the affected cats in the app)
+rewrites Column A from the database's status, so the suffixes correct themselves and
+HOME snaps back to the true numbers. Concretely:
+
+- Re-save each drifted cat from the app's General tab, **or**
+- Let the scheduled forward sync run — it re-stamps Column A on every row it touches.
+
+To *find* the drifted rows, run `pnpm tsx scripts/find-suffix-drift.ts` (lists every
+row where the Column-A suffix disagrees with Column L).
+
+### One thing to actually be careful about
+
+A cat only exists to the database once its row has a **UUID in Column Y** (§4.5,
+"Seed UUIDs"). A row with a blank Column Y is **silently skipped** on import while
+HOME still counts it — a real (not cosmetic) discrepancy. Today every row is seeded,
+but the rule to remember: **always run Admin → GSheet Config → Seed UUIDs before a
+reset/reimport**, so no freshly-added row is left behind.
