@@ -57,13 +57,14 @@ and self-heals.
 
 ## 2. Components
 
-| Component                   | Where                                               | Responsibility                                                                                                                               |
-| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                   |
-| Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece. |
-| Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                         |
-| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                |
-| Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                              |
+| Component                   | Where                                               | Responsibility                                                                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App (Next.js)               | `lib/services/*`, `app/actions/*`, `app/api/cron/*` | All sync logic, queue, reverse/forward sync, admin actions                                                                                                                                                       |
+| Cron scheduler              | `workers/sync-cron/` (Cloudflare Worker)            | Fires every 20 min (`*/20 * * * *`): health-checks `/api/health`, then POSTs `/api/cron/sync` with `CRON_SECRET`. Skips + Discord-alerts if the app is unhealthy. The app, not the worker, holds the sync logic. |
+| Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece.                                    |
+| Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                                                            |
+| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                                                                                    |
+| Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                                                                                                  |
 
 ---
 
@@ -206,7 +207,7 @@ the current set, zero orphans. It's safe because photos are sourced from the she
 xlsx and fully rebuilt by the import.
 
 > **Full reintegration is the only case that warrants it.** It's gated behind the
-> flag on purpose: the wipe forces a re-download of *every* photo from the sheet,
+> flag on purpose: the wipe forces a re-download of _every_ photo from the sheet,
 > which is slow and occasionally flaky. For routine reruns (stable UUIDs) leave it
 > off — upsert handles overwrites and you skip the expensive re-download. Only at a
 > fresh-UUID cutover does the orphan cleanup justify the cost.
@@ -232,7 +233,7 @@ Adding a region is now **fully self-serve** — no code changes or deployment ne
 2. Done. The `onEdit` trigger is column-index based — the new tab is automatically
    covered for W/X/Y on human edits.
 
-**Rename / Archive / Delete** are in the same section. Renaming a region also
+**Rename / Delete** are in the same section. Renaming a region also
 renames its sheet tab (keeps sync working). Deleting a non-empty region requires
 typing the region name to confirm; orphaned cats (no sessions elsewhere, no
 override to another region) are deleted with it.
@@ -241,8 +242,12 @@ override to another region) are deleted with it.
 
 ## 6. Ongoing operations
 
-- **Forward sync** runs automatically on the cron schedule (`app/api/cron/sync`).
-  No manual action.
+- **Scheduler:** a Cloudflare Worker (`workers/sync-cron/`) fires every 20 minutes,
+  health-checks `/api/health`, then POSTs `/api/cron/sync`. **Forward sync** runs from
+  there automatically (drains the queue) — no manual action.
+- **Auto-freeze on failure:** if a sync tick throws, the cron route freezes sync
+  (`setSyncFrozen`) and fires a Discord alert. Clear it from Admin → GSheet Config →
+  **Unfreeze** after resolving the cause (unfreeze also runs a full reverse sync).
 - **Reverse sync / recovery:** the admin **unfreeze** action runs `fullReverseSync`.
 - **Freeze status:** `getSyncStatus` / `setSyncFrozen` gate sync via `system_config`.
 - **Protections drift / new tab:** re-run **Admin → GSheet Config → Provision
@@ -354,11 +359,11 @@ rewritten** by that path, so it still shows the plain number `30` instead of `30
 Now:
 
 - HOME sees `30` (a plain number) and counts the cat as **active**.
-- HOME *also* sees `Deceased` in Column L and counts it under **Deceased**.
+- HOME _also_ sees `Deceased` in Column L and counts it under **Deceased**.
 - The same cat is counted **twice**, inflating HOME's overall total.
 
 The reverse can also happen (Column A says `26m` but Column L says the cat is active),
-which makes HOME count the cat in *neither* bucket and *under*-count. The net of these
+which makes HOME count the cat in _neither_ bucket and _under_-count. The net of these
 is why HOME's "OVERALL TOTAL" can sit a few above or below the app's true count.
 
 > Worked example (June 2026): the app held **551** cats; HOME showed **555**. The
@@ -382,7 +387,7 @@ HOME snaps back to the true numbers. Concretely:
 - Re-save each drifted cat from the app's General tab, **or**
 - Let the scheduled forward sync run — it re-stamps Column A on every row it touches.
 
-To *find* the drifted rows, run `pnpm tsx scripts/find-suffix-drift.ts` (lists every
+To _find_ the drifted rows, run `pnpm tsx scripts/find-suffix-drift.ts` (lists every
 row where the Column-A suffix disagrees with Column L).
 
 ### One thing to actually be careful about

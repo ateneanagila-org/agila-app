@@ -243,7 +243,7 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.resolveCatRegion(catId, tx);
   if (!region) return undefined;
 
-  // catalogDisplay defaults to "" — safe because syncAndCompactRegion's UPDATE
+  // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
   const rowData =
