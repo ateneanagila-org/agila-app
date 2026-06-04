@@ -31,19 +31,6 @@ import type {
 import type { SelectCat } from "@/lib/validation/cats";
 import { normalizeCatField } from "@/lib/utils";
 
-
-const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
-
-/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
-function neuteredToLabel(b: boolean | null | undefined): string {
-  return b === true ? "Yes" : b === false ? "No" : "Unknown";
-}
-// Unknown is a real tri-state value here (sheet col G "???"), so it persists as
-// null rather than being omitted — selecting Unknown actually resets the field.
-function neuteredToValue(s: string): boolean | null {
-  return s === "Yes" ? true : s === "No" ? false : null;
-}
-
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
 
 /** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
@@ -181,7 +168,6 @@ export function CatEntryForm({
       setNeutered(neuteredToLabel(rec?.is_neutered));
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
 
   const handleSave = useCallback(async () => {
     const effectiveRegionId = regionId ?? selectedRegion;
