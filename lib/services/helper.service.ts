@@ -810,6 +810,11 @@ const SYS_COL_A_END = 1;
 const SYS_COL_WY_START = 22;
 const SYS_COL_WY_END = 25;
 
+// Minimum grid width a region sheet needs so W/X/Y (cols 23â€"25) are addressable.
+// Applies to every region tab, UNKNOWN included â€" UNKNOWN keeps its A-V row
+// mapping but W/X/Y live at the same fixed position; the gap before W stays empty.
+const SYS_MIN_COLUMN_COUNT = SYS_COL_WY_END; // 25 (col Y)
+
 /**
  * One-time setup: protect system-managed columns (A and Wâ€"Y) on all region
  * sheets so only the service account can edit them directly.
@@ -926,6 +931,54 @@ export async function syncRegionSheetNames(): Promise<void> {
 }
 
 /**
+ * Widens every region sheet to at least SYS_MIN_COLUMN_COUNT (25) columns so the
+ * W/X/Y system columns are addressable. Region grids are created narrower (e.g.
+ * stopping at col W), which makes W2:Y2 header writes and Y3 UUID writes fail with
+ * "exceeds grid limits". One batched pass; idempotent (sheets already wide enough
+ * are skipped). Run before ensureRegionSheetHeaders / forward sync writes.
+ */
+export async function ensureRegionSheetWidth(): Promise<void> {
+  const regions = await regionsRepo.findRegions();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+  const { glAuth, glSheets } = await connectToSheets();
+
+  const spreadsheet = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    fields: "sheets(properties(sheetId,title,gridProperties.columnCount))",
+  });
+
+  const requests: object[] = [];
+  for (const sheet of spreadsheet.data.sheets ?? []) {
+    const title = sheet.properties?.title ?? "";
+    if (!regionNames.has(title)) continue;
+
+    const sheetId = sheet.properties?.sheetId;
+    const columnCount = sheet.properties?.gridProperties?.columnCount;
+    if (sheetId === undefined || columnCount == null) continue;
+    if (columnCount >= SYS_MIN_COLUMN_COUNT) continue;
+
+    requests.push({
+      updateSheetProperties: {
+        properties: {
+          sheetId,
+          gridProperties: { columnCount: SYS_MIN_COLUMN_COUNT },
+        },
+        fields: "gridProperties.columnCount",
+      },
+    });
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      requestBody: { requests },
+    });
+  }
+}
+
+/**
  * Writes the system-column header labels (W2/X2/Y2) on every region sheet.
  * Idempotent — overwrites with the same values. Row 2 = headers, data row 3+.
  */
@@ -1006,6 +1059,7 @@ export async function seedMissingUuidsAllRegions(): Promise<{
  * is a separate, deliberate action (seedMissingUuidsAllRegions).
  */
 export async function provisionRegionSheets(): Promise<{ regions: number }> {
+  await ensureRegionSheetWidth();
   await ensureRegionSheetHeaders();
   await setupSystemColProtections();
   await syncRegionSheetNames();

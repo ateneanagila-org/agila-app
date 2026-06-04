@@ -469,6 +469,49 @@ export async function importPhotosIfNeeded(
 }
 
 /**
+ * Deletes EVERY object in the cat-photos bucket. ONE-TIME CUTOVER USE ONLY —
+ * called by reset-and-reimport before re-importing. When the sheet is re-seeded
+ * with fresh col-Y UUIDs, every photo path (`${uuid}/photo.jpg`) is re-keyed, so
+ * the prior objects are orphaned (upsert only overwrites the SAME path, never the
+ * old one). Photos are sourced from the sheet xlsx, so wiping is safe —
+ * bulkImportAllNullPhotos rebuilds the whole set from the sheet afterward.
+ *
+ * Files live one level deep under per-UUID prefixes, so this lists the root
+ * prefixes, then lists + removes each prefix's objects in batches. Returns the
+ * number of objects removed.
+ */
+export async function wipeAllPhotos(): Promise<{ removed: number }> {
+  const supabase = await createAdminClient();
+  const LIST_LIMIT = 100_000;
+  const REMOVE_BATCH = 1000;
+
+  const { data: prefixes, error: listErr } = await supabase.storage
+    .from(BUCKET)
+    .list("", { limit: LIST_LIMIT });
+  if (listErr) throw new Error(`bucket list failed: ${listErr.message}`);
+  if (!prefixes || prefixes.length === 0) return { removed: 0 };
+
+  const paths: string[] = [];
+  for (const prefix of prefixes) {
+    const { data: files, error: subErr } = await supabase.storage
+      .from(BUCKET)
+      .list(prefix.name, { limit: LIST_LIMIT });
+    if (subErr) throw new Error(`list '${prefix.name}' failed: ${subErr.message}`);
+    for (const f of files ?? []) paths.push(`${prefix.name}/${f.name}`);
+  }
+
+  let removed = 0;
+  for (let i = 0; i < paths.length; i += REMOVE_BATCH) {
+    const slice = paths.slice(i, i + REMOVE_BATCH);
+    const { error: rmErr } = await supabase.storage.from(BUCKET).remove(slice);
+    if (rmErr) throw new Error(`remove batch failed: ${rmErr.message}`);
+    removed += slice.length;
+  }
+
+  return { removed };
+}
+
+/**
  * Bulk import for the local script only. Targets all cats with photo_url IS NULL
  * regardless of sheet edit state — covers cats whose pasted photos predate
  * the lastEditedAt tracking system.

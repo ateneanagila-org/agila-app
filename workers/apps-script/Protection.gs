@@ -112,6 +112,10 @@ function ensureSystemHeaders(names) {
 }
 
 /**
+ * DEPRECATED — use Admin → GSheet Config → Seed UUIDs (seedMissingUuidsAllRegions),
+ * which runs server-side as the service account. This Apps Script twin is retained
+ * only as a fallback. See setup guide §4.5 / §8.
+ *
  * Bulk-assigns a UUID to col Y for every DATA row (row 3+) that has content but
  * no UUID yet. The onEdit trigger only seeds a row when a human edits it, so a
  * freshly onboarded sheet full of existing rows needs this one-time backfill —
@@ -157,6 +161,16 @@ function seedMissingUuids(names) {
 }
 
 /**
+ * DEPRECATED — superseded by the admin UI (Admin → GSheet Config → Provision
+ * Sheets + Seed UUIDs), which runs server-side as the service account. DO NOT use
+ * this for routine setup: it creates OWNER-OWNED protections that lock the service
+ * account out of its own col-A / col-Y writes (forward sync + backfillCatalogIds
+ * fail with "trying to edit a protected cell"). The server path grants the service
+ * account as editor and avoids this entirely. See the setup guide §4 / §7 / §8.
+ *
+ * Kept only so the one-time cutover cleanup (clearSystemColProtections, which only
+ * the owner can run on owner-created protections) remains available.
+ *
  * ONE-SHOT region setup (run from the Apps Script editor). Idempotent — safe to
  * re-run after adding a new region tab. Steps:
  *   1. Read the region list from _config!B2 (app-owned mirror of the DB)
@@ -166,7 +180,7 @@ function seedMissingUuids(names) {
  *   5. Clear then (re)apply the A + W–Y protections
  *
  * PRECONDITION: the region already exists in the app and B2 is populated. The
- * app writes B2 from the DB via the admin "refresh region sheet config" action
+ * app writes B2 from the DB via Admin → GSheet Config → Provision Sheets
  * (syncRegionSheetNames). If B2 is empty, run that first, then re-run this.
  *
  * The onEdit trigger (Code.gs) is column-index based, so new tabs are already
@@ -219,10 +233,13 @@ var CATALOG_COL_NOTATION = "A3:A"; // catalog number (A) — assigned by system
 var SYSTEM_COLS_NOTATION = "W3:Y"; // edited_at (W), editor email (X), UUID (Y)
 
 /**
- * Removes all W:Y system column protections on region sheets.
- * Must be run from GAS (as the spreadsheet owner) because the service account
- * cannot delete protections it didn't create.
- * Run this before setupSystemColProtection() to reset cleanly.
+ * STILL REQUIRED at cutover (not deprecated). Removes all A / W–Y protections on
+ * region sheets. Must run from GAS as the spreadsheet OWNER because the service
+ * account cannot delete protections it didn't create — so any OWNER-owned
+ * protections left by the deprecated setupSystemColProtection() can only be
+ * cleared here. Run this ONCE, then switch to the admin UI (Provision Sheets),
+ * which re-applies protections owned by the service account and is self-serve
+ * thereafter. See setup guide §4.4.
  */
 function clearSystemColProtections() {
   var regionNames = getRegionSheetNames();
@@ -253,12 +270,18 @@ function clearSystemColProtections() {
 }
 
 /**
+ * DEPRECATED — use Admin → GSheet Config → Provision Sheets instead. This creates
+ * protections OWNED BY THE OWNER and does NOT add the service account as an editor,
+ * so the service account (a file-level Editor only) is locked out of cols A and
+ * W–Y and its sync writes fail. The server-side setupSystemColProtections() grants
+ * the service account as editor and is the canonical path. See setup guide §8.
+ *
  * SETUP (run once): Permanently protect cols A and W–Y on all region sheets.
  *   A — catalog number, assigned by the system on each cron tick
  *   W–Y — edited_at, editor email, UUID (managed by trigger + service account)
  * No human should manually edit these. Script-level writes bypass protection.
  *
- * Region sheets are read from _config!B2. Run after initial setup or after adding a new region sheet.
+ * Region sheets are read from _config!B2.
  */
 function setupSystemColProtection() {
   var regionNames = getRegionSheetNames();
