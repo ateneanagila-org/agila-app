@@ -92,3 +92,24 @@ describe("editCat move-cleanup", () => {
     );
   });
 });
+
+describe("editCat merge handling", () => {
+  it("entry_status Merged: cancels pending tasks and queues DELETE, skips the UPDATE refresh", async () => {
+    resolveRegion.mockResolvedValueOnce({ id: "R-MERGE", name: "MergeRegion" }); // pre-update region
+    mockCats.updateCat.mockResolvedValueOnce([
+      { id: "c1", entry_status: "Merged" },
+    ] as never);
+
+    await editCat({ id: "c1", merged_into_id: "target", entry_status: "Merged" } as never);
+
+    // No UPDATE-style forward sync for a merged duplicate.
+    expect(refreshQueue).not.toHaveBeenCalled();
+    // Pending tasks cancelled (tx.update) and a DELETE queued (tx.insert).
+    expect(tx.update).toHaveBeenCalledTimes(1);
+    expect(tx.insert).toHaveBeenCalledTimes(1);
+    const valuesFn = tx.insert.mock.results[0].value.values as jest.Mock;
+    expect(valuesFn).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "DELETE", entityId: "c1", regionId: "R-MERGE" }),
+    );
+  });
+});
