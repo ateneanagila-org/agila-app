@@ -729,3 +729,21 @@ git commit -m "fix(sync): reverse before photo import; stop photo bump; merge fo
 
 **Deferred (memory-pinned):** photo-import candidate detection treats `=IMAGE()` cells as empty (can cause one wasted xlsx download on re-edit) — acceptable; future optimization via a FORMULA read of col B.
 ```
+
+---
+
+## Follow-ups (added 2026-06-06, after review)
+
+These shipped on the same branch after the original 6 tasks, addressing gaps surfaced during review of the cat lifecycle.
+
+### Follow-up 1 — In-app photo upload/remove queue a forward sync
+`commit 33761e1` — `app/actions/cat-photo.ts`. `uploadCatPhoto`/`removeCatPhoto` only wrote `cats.photo_url`; they never queued a sync, so in-app-only photo changes (the DB detail-screen photo button) never reached the sheet until the region synced for another reason. Fix: wrap each in `db.transaction` + `refreshCatInSyncQueue(catId, tx)`, and drop the `last_updated_at` bump (photo is an app-owned column; bumping it would suppress reverse-sync of concurrent sheet text edits — same reasoning as Task F).
+
+### Follow-up 2 — `editCat` queues DELETE for merged cats
+`commit 6ff82a9` — `lib/services/cats.service.ts`. Merge (`editCat({entry_status:"Merged", merged_into_id})`) queued a normal UPDATE; with no entry_status gate in forward sync, the absorbed duplicate was CREATEd onto the sheet with its own catalog number. Fix: when `updatedCat.entry_status === "Merged"`, cancel the cat's PENDING tasks and queue a DELETE for its region instead of an UPDATE; return early (skip `refreshCatInSyncQueue`).
+
+### Follow-up 3 — Original-only sync gate
+`commit ed17116` — `lib/services/helper.service.ts` + `lib/services/cats.service.ts`. Editing a not-yet-approved cat (Unsubmitted via `editSessionCat`, or Unreviewed via validation "Next") queued a task that forward sync pushed to the sheet prematurely (with a burned catalog number). Fix: in `refreshCatInSyncQueue`, after resolving the region, `if (cat.entry_status !== "Original") return region;` — skip the queue INSERT but still return the region so `editCat`'s region-move detection works. Approval (`→ Original`) becomes the first sync. The Follow-up-2 merge-DELETE is now a safety net for the only case the gate can't cover (an already-synced Original cat being merged, or legacy rows). Comment on the merge branch updated to say so.
+
+### Known remaining gap (not yet implemented)
+- **Summary sheets (For RI / For FA) include non-Original cats.** `generateForRiSheet`/`generateForFaSheet` query cats by region without an `entry_status` filter. With the Original-gate keeping unreviewed cats off the region tabs, such cats now appear in the summaries as blank-catalog-ID rows. Fix: add `eq(c.entry_status, "Original")` to both summary cat queries (matches the census/TNVR stats, which already filter Original-only).
