@@ -105,3 +105,35 @@ export async function resolveCatRegion(catId: string, client: DB = db) {
 
   return latestSession?.region;
 }
+
+/**
+ * Latest *census* session date the cat appears in (via session_cats).
+ * Used as the sheet's "Date Last Seen" (col N). System (anchor) sessions are
+ * excluded — they are not real sightings. Returns null when the cat has no
+ * census session.
+ */
+export async function findLatestSessionDateForCat(
+  catId: string,
+  client: DB = db,
+): Promise<Date | null> {
+  const latest = await client.query.sessions.findFirst({
+    where: (s, { exists }) =>
+      and(
+        eq(s.is_system, false),
+        exists(
+          db
+            .select()
+            .from(sessionCats)
+            .where(
+              and(
+                eq(sessionCats.session_id, s.id),
+                eq(sessionCats.cat_id, catId),
+              ),
+            ),
+        ),
+      ),
+    orderBy: [desc(sessions.created_at)],
+    columns: { created_at: true },
+  });
+  return latest?.created_at ?? null;
+}

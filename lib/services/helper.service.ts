@@ -131,6 +131,7 @@ export function mapCatToSheetRow(
   health: SelectCatHealthRecord | null,
   interventions: SelectIntervention[] = [],
   catalogDisplay = "",
+  lastSeenDate: Date | null = null,
 ): string[] {
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
@@ -162,7 +163,7 @@ export function mapCatToSheetRow(
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
     catStatus || "None of the above", // 11 (L)
     cat.caretaker ?? "N/A", // 12 (M)
-    new Date().toLocaleDateString("en-US"), // 13 (N)
+    lastSeenDate ? lastSeenDate.toLocaleDateString("en-US") : "N/A", // 13 (N) date last seen
     cat.spot_last_seen ?? "N/A", // 14 (O)
     health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 15 (P)
     health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 16 (Q)
@@ -246,10 +247,14 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
+  const lastSeenDate =
+    region.name === "UNKNOWN"
+      ? null
+      : await sessionsRepo.findLatestSessionDateForCat(catId, tx);
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
-      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
+      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions, "", lastSeenDate);
 
   await tx.insert(gsheetSyncQueue).values({
     action: "UPDATE",
@@ -340,6 +345,10 @@ export async function syncAndCompactRegion(regionId: string) {
             where: (i, { eq }) => eq(i.cat_id, cat.id),
             orderBy: (i, { desc }) => [desc(i.requested_at)],
           });
+          const lastSeenDate =
+            region.name === "UNKNOWN"
+              ? null
+              : await sessionsRepo.findLatestSessionDateForCat(cat.id);
           const newPayload =
             region.name === "UNKNOWN"
               ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
@@ -348,6 +357,7 @@ export async function syncAndCompactRegion(regionId: string) {
                   health ?? null,
                   interventionsList,
                   catalogDisplay,
+                  lastSeenDate,
                 );
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {

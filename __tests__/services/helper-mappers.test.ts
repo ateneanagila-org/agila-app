@@ -134,6 +134,13 @@ describe("mapCatToSheetRow", () => {
     });
   });
 
+  it("col N (date last seen, index 13) uses the provided last-seen date, N/A when null", () => {
+    expect(
+      mapCatToSheetRow(makeCat(), null, [], "", new Date(2025, 7, 18))[13],
+    ).toBe("8/18/2025");
+    expect(mapCatToSheetRow(makeCat(), null)[13]).toBe("N/A");
+  });
+
   it("formats dates in en-US (cols P[15]/Q[16]) and 'N/A' when absent", () => {
     const health = makeHealth({
       neuter_date: new Date(2024, 0, 15),

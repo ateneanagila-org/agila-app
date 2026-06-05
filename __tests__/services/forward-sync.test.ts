@@ -26,6 +26,10 @@ jest.mock("@/lib/db", () => ({ db: {}, Transaction: class {} }));
 jest.mock("@/lib/services/system.service", () => ({ isSyncFrozen: jest.fn() }));
 jest.mock("@/lib/repo/cats.repo", () => ({ findCatsByIds: jest.fn() }));
 jest.mock("@/lib/repo/regions.repo", () => ({ findRegionById: jest.fn() }));
+jest.mock("@/lib/repo/sessions.repo", () => ({
+  resolveCatRegion: jest.fn(),
+  findLatestSessionDateForCat: jest.fn().mockResolvedValue(null),
+}));
 
 import {
   syncAndCompactRegion,
