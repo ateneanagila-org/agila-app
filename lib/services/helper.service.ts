@@ -367,10 +367,18 @@ export async function syncAndCompactRegion(regionId: string) {
       }
     }
 
-    // 3. COMPACT & SORT by Nickname (col C, index 2)
+    // 3. COMPACT & SORT by catalog number (col A, index 0). Matches the order
+    // the GSheet is kept in. Unnumbered rows sink to the bottom.
     const finalData = currentRows
       .filter((row) => row[24] && String(row[24]).trim() !== "")
-      .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
+      .sort((a, b) => {
+        const na = parseCatalogId(String(a[0] ?? ""));
+        const nb = parseCatalogId(String(b[0] ?? ""));
+        if (na === null && nb === null) return 0;
+        if (na === null) return 1;
+        if (nb === null) return -1;
+        return na - nb;
+      });
 
     // 3b. Rebuild col B (photo) from DB photo_url for every surviving row.
     // The A3:Y read returns "" for =IMAGE() cells under FORMATTED_VALUE, so

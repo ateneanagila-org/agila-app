@@ -204,9 +204,10 @@ describe("syncAndCompactRegion", () => {
       (c) => String(c[0].range).endsWith("!A3"),
     )!;
     const written = dataUpdate[0].requestBody.values as string[][];
-    // Sorted by name (col C): "Aaa" (new) before "Zoe" (existing).
-    expect(written[0][0]).toBe("4"); // 3 + 1
-    expect(written[0][2]).toBe("Aaa");
+    // Sorted by catalog number: existing "3" (Zoe) before new "4" (Aaa).
+    expect(written[0][0]).toBe("3");
+    expect(written[1][0]).toBe("4"); // 3 + 1
+    expect(written[1][2]).toBe("Aaa");
   });
 
   it("DELETE removes the row and writes only the survivors", async () => {
@@ -242,7 +243,7 @@ describe("syncAndCompactRegion", () => {
     expect(uuidUpdate[0].requestBody.values).toEqual([["u2"]]);
   });
 
-  it("compacts blank-UUID rows out and sorts the rest by nickname", async () => {
+  it("compacts blank-UUID rows out and sorts the rest by catalog number", async () => {
     (
       dbm.query as { regions: { findFirst: jest.Mock } }
     ).regions.findFirst.mockResolvedValue(REGION);
