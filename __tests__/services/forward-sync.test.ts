@@ -333,6 +333,37 @@ describe("syncAndCompactRegion", () => {
     expect(written[1][1]).toBe(""); // u-other has no photo
   });
 
+  it("returns the post-write region state for snapshot merge", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: { values: [row({ 0: "5", 2: "Bella", 24: "u1" })] },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u1", payload: row({ 0: "x", 2: "Bella", 24: "u1" }) }),
+    ]);
+
+    const result = await syncAndCompactRegion("r1");
+
+    expect(result).not.toBeNull();
+    expect(result!.map((r) => r.entityId)).toEqual(["u1"]);
+    expect(result![0].raw[0]).toBe("5"); // col A preserved
+    expect(result![0].rowIndex).toBe(3);
+  });
+
+  it("returns null when there are no pending tasks", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([]);
+    expect(await syncAndCompactRegion("r1")).toBeNull();
+  });
+
   it("on a sheet read failure, increments retryCount and still writes an audit log", async () => {
     (
       dbm.query as { regions: { findFirst: jest.Mock } }

@@ -278,11 +278,13 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
  * Reads A3:Y (col Y = UUID at index 24). Matches rows by UUID (col Y).
  * Writes data to A3:V, then UUIDs separately to Y3:Y.
  */
-export async function syncAndCompactRegion(regionId: string) {
+export async function syncAndCompactRegion(
+  regionId: string,
+): Promise<SheetRow[] | null> {
   const frozen = await isSyncFrozen();
   if (frozen) {
     console.log(`[Sync] Frozen â€" skipping region ${regionId}`);
-    return;
+    return null;
   }
 
   const startedAt = new Date();
@@ -293,7 +295,7 @@ export async function syncAndCompactRegion(regionId: string) {
   const region = await db.query.regions.findFirst({
     where: eq(regions.id, regionId),
   });
-  if (!region) return;
+  if (!region) return null;
 
   const tasks = await db.query.gsheetSyncQueue.findMany({
     where: (q, { and, eq, lt }) =>
@@ -305,7 +307,7 @@ export async function syncAndCompactRegion(regionId: string) {
     orderBy: (q, { asc }) => [asc(q.createdAt)],
   });
 
-  if (tasks.length === 0) return;
+  if (tasks.length === 0) return null;
 
   try {
     const { glAuth, glSheets } = await connectToSheets();
@@ -435,6 +437,16 @@ export async function syncAndCompactRegion(regionId: string) {
       });
     }
 
+    // Build the post-write snapshot for this region so the caller can merge it
+    // into sheetStates before summary regen (fresh catalog numbers this tick).
+    const finalState: SheetRow[] = finalData.map((r, i) => ({
+      raw: r,
+      entityId: String(r[24] ?? "").trim(),
+      lastEditedAt: null,
+      editedBy: null,
+      rowIndex: i + 3,
+    }));
+
     // 6. FINISH: Mark all processed tasks as COMPLETED
     tasksProcessed = tasks.length;
     await db
@@ -446,6 +458,8 @@ export async function syncAndCompactRegion(regionId: string) {
           tasks.map((t) => t.id),
         ),
       );
+
+    return finalState;
   } catch (error) {
     const errMsg =
       error instanceof Error ? error.message : "Unknown sync error";
@@ -478,6 +492,8 @@ export async function syncAndCompactRegion(regionId: string) {
       completedAt: new Date(),
     });
   }
+
+  return null;
 }
 
 // ==========================================
