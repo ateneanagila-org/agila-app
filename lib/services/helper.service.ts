@@ -372,6 +372,22 @@ export async function syncAndCompactRegion(regionId: string) {
       .filter((row) => row[24] && String(row[24]).trim() !== "")
       .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
 
+    // 3b. Rebuild col B (photo) from DB photo_url for every surviving row.
+    // The A3:Y read returns "" for =IMAGE() cells under FORMATTED_VALUE, so
+    // echoing unchanged rows back would null their photos. DB owns photos.
+    // Skip UNKNOWN — its col B is "Possible Location" text, not a photo.
+    if (region.name !== "UNKNOWN") {
+      const survivorIds = finalData
+        .map((r) => String(r[24] ?? "").trim())
+        .filter((id) => id !== "");
+      const survivorCats = await catsRepo.findCatsByIds(survivorIds);
+      const photoById = new Map(survivorCats.map((c) => [c.id, c.photo_url]));
+      for (const r of finalData) {
+        const url = photoById.get(String(r[24] ?? "").trim());
+        r[1] = url ? `=IMAGE("${url.replace(/"/g, "")}")` : "";
+      }
+    }
+
     // 4. WRITE data cols A3:V (never touch W, X â€" Apps Script owns those)
     const dataOnly = finalData.map((r) => r.slice(0, 22));
     await glSheets.spreadsheets.values.clear({

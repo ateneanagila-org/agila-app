@@ -104,6 +104,7 @@ beforeEach(() => {
     fakeSheets;
 
   frozenMock.mockResolvedValue(false);
+  findCatsByIdsMock.mockResolvedValue([]);
 
   dbm.query = {
     regions: { findFirst: jest.fn() },
@@ -290,6 +291,41 @@ describe("syncAndCompactRegion", () => {
       (c) => c[0].range,
     );
     expect(writtenRanges.some((r: string) => /![WX]/.test(r))).toBe(false);
+  });
+
+  it("preserves an untouched row's photo by rebuilding col B from DB", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    // Sheet read returns col B = "" for the photo row (=IMAGE() flattens under
+    // FORMATTED_VALUE). u-photo is NOT in the task list — only u-other is.
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "1", 2: "Bella", 24: "u-photo" }),
+          row({ 0: "2", 2: "Max", 24: "u-other" }),
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u-other", payload: row({ 0: "x", 2: "Max", 24: "u-other" }) }),
+    ]);
+    findCatsByIdsMock.mockResolvedValue([
+      { id: "u-photo", photo_url: "http://p/cat.jpg" },
+      { id: "u-other", photo_url: null },
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    // Sorted by catalog number: u-photo (1) first, u-other (2) second.
+    expect(written[0][1]).toBe('=IMAGE("http://p/cat.jpg")'); // rebuilt from DB
+    expect(written[1][1]).toBe(""); // u-other has no photo
   });
 
   it("on a sheet read failure, increments retryCount and still writes an audit log", async () => {
