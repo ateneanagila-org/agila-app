@@ -69,8 +69,10 @@ export const editCat = async (data: EditCatSchema) => {
     if (!updatedCat) throw new AppError("Cat not found");
 
     // Merged duplicates must not appear on the sheet. Cancel any pending pushes
-    // and queue a DELETE for the cat's region instead of an UPDATE — forward
-    // sync would otherwise CREATE the absorbed duplicate as a new sheet row.
+    // and queue a DELETE for the cat's region. With the Original-only gate in
+    // refreshCatInSyncQueue, a freshly-merged Unreviewed entry was never synced,
+    // so this is mainly a safety net for merging an already-synced (Original)
+    // cat or cleaning up legacy rows — DELETE is a no-op when no row exists.
     if (updatedCat.entry_status === "Merged") {
       await tx
         .update(gsheetSyncQueue)

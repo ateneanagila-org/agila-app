@@ -244,6 +244,11 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.resolveCatRegion(catId, tx);
   if (!region) return undefined;
 
+  // Only Original (approved) cats belong on the regional sheet. Unsubmitted /
+  // Unreviewed entries and Merged duplicates must not be pushed - skip the queue
+  // INSERT but still return the region so callers' region-move detection works.
+  if (cat.entry_status !== "Original") return region;
+
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
