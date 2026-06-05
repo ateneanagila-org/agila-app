@@ -121,7 +121,7 @@ export async function findLatestSessionDateForCat(
       and(
         eq(s.is_system, false),
         exists(
-          db
+          client
             .select()
             .from(sessionCats)
             .where(
