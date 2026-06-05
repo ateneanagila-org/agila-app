@@ -332,7 +332,7 @@ async function uploadAndQueue(
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
-      .set({ photo_url: publicUrl, last_updated_at: new Date() })
+      .set({ photo_url: publicUrl })
       .where(eq(cats.id, uuid));
     await refreshCatInSyncQueue(uuid, tx);
   });
