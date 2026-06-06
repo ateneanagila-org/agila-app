@@ -1,7 +1,9 @@
 # AGILA CATalog
 
+![Dashboard](public/catalog-dashboard-showcase.png)
+
 The **AGILA CATalog** is a campus cat census and management web app built for **AGILA**
-(*Ateneans Guided and Inspired by their Love for Animals*) — the Ateneo de Manila University
+(_Ateneans Guided and Inspired by their Love for Animals_) — the Ateneo de Manila University
 student organization that runs the cat Census (CATalog) project alongside the TNVR
 (Trap-Neuter-Vaccinate-Return) program.
 
@@ -43,25 +45,25 @@ access to the sheets, while managers/admins retain edit access as an emergency f
 
 ## Tech Stack
 
-| Layer            | Technology                                          |
-| ---------------- | --------------------------------------------------- |
-| Framework        | Next.js 16 (App Router, React 19)                   |
-| Language         | TypeScript (strict)                                 |
-| Styling          | Tailwind CSS 4                                       |
-| UI Primitives    | Radix UI + custom components                        |
-| Data Fetching    | TanStack Query 4                                     |
-| Server Actions   | `next-safe-action` 8                                |
-| Validation       | Zod 4                                               |
-| ORM              | Drizzle ORM + Drizzle Kit                           |
-| Database         | PostgreSQL (via Supabase)                           |
-| Auth             | Supabase Auth + Google OAuth (SSR)                  |
-| Storage          | Supabase Storage (photos)                           |
-| Google APIs      | Sheets API, Drive API                               |
+| Layer            | Technology                                         |
+| ---------------- | -------------------------------------------------- |
+| Framework        | Next.js 16 (App Router, React 19)                  |
+| Language         | TypeScript (strict)                                |
+| Styling          | Tailwind CSS 4                                     |
+| UI Primitives    | Radix UI + custom components                       |
+| Data Fetching    | TanStack Query 4                                   |
+| Server Actions   | `next-safe-action` 8                               |
+| Validation       | Zod 4                                              |
+| ORM              | Drizzle ORM + Drizzle Kit                          |
+| Database         | PostgreSQL (via Supabase)                          |
+| Auth             | Supabase Auth + Google OAuth (SSR)                 |
+| Storage          | Supabase Storage (photos)                          |
+| Google APIs      | Sheets API, Drive API                              |
 | Image Processing | Sharp (server), browser-image-compression (client) |
-| Scheduled Jobs   | Cloudflare Workers (sync cron)                      |
-| Alerts           | Discord Webhooks                                    |
-| Charts           | Recharts                                            |
-| Testing          | Jest + Testing Library                              |
+| Scheduled Jobs   | Cloudflare Workers (sync cron)                     |
+| Alerts           | Discord Webhooks                                   |
+| Charts           | Recharts                                           |
+| Testing          | Jest + Testing Library                             |
 
 ---
 
@@ -176,11 +178,11 @@ Administrators manage accounts through an **allowlist** (`allowed_emails`): only
 emails can sign in with Google. Roles are assignable before signup and carried onto the
 profile at signup.
 
-| Role          | Capabilities                                                                          |
-| ------------- | ------------------------------------------------------------------------------------- |
-| Volunteer     | Run census sessions (full create/edit inside session forms); view-only elsewhere      |
-| Manager       | All of the above + review/approve sessions, full cat-database CRUD, Census Report      |
-| Administrator | All of the above + the Admin tab (users & roles, regions, GSheet config)               |
+| Role          | Capabilities                                                                      |
+| ------------- | --------------------------------------------------------------------------------- |
+| Volunteer     | Run census sessions (full create/edit inside session forms); view-only elsewhere  |
+| Manager       | All of the above + review/approve sessions, full cat-database CRUD, Census Report |
+| Administrator | All of the above + the Admin tab (users & roles, regions, GSheet config)          |
 
 Access is enforced at the server-action level via RBAC helpers (`requireRole(...)`).
 
@@ -213,20 +215,20 @@ Administrator-only, organized like a settings page with three sections:
 
 Core tables:
 
-| Table                | Purpose                                                                |
-| -------------------- | ---------------------------------------------------------------------- |
-| `cats`               | Cat records (identity, status, region override, photo, `paws_id`)      |
-| `cat_health_records` | One-to-one health record per cat (condition, neuter, vaccination)      |
+| Table                | Purpose                                                                    |
+| -------------------- | -------------------------------------------------------------------------- |
+| `cats`               | Cat records (identity, status, region override, photo, `paws_id`)          |
+| `cat_health_records` | One-to-one health record per cat (condition, neuter, vaccination)          |
 | `regions`            | Campus locations — `name` is free text (`NOT NULL UNIQUE`), managed in-app |
-| `sessions`           | Census sessions scoped to a region (`census_no`, finished flag)        |
-| `session_users`      | Volunteers assigned to a session                                       |
-| `session_cats`       | Cats logged in a session                                               |
-| `interventions`      | Per-cat interventions (type, status, notes)                            |
-| `profiles`           | User profiles linked to Supabase auth (carries `auth_role`)            |
-| `allowed_emails`     | Registration allowlist with role assignment                           |
-| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                       |
-| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)                |
-| `system_config`      | Key-value config store (e.g. `sync_frozen`)                            |
+| `sessions`           | Census sessions scoped to a region (`census_no`, finished flag)            |
+| `session_users`      | Volunteers assigned to a session                                           |
+| `session_cats`       | Cats logged in a session                                                   |
+| `interventions`      | Per-cat interventions (type, status, notes)                                |
+| `profiles`           | User profiles linked to Supabase auth (carries `auth_role`)                |
+| `allowed_emails`     | Registration allowlist with role assignment                                |
+| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                           |
+| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)                    |
+| `system_config`      | Key-value config store (e.g. `sync_frozen`)                                |
 
 > Regions were migrated from a Postgres enum to a free-text column so they can be managed
 > self-serve from the Admin tab. `REGION_NAME_VALUES` in `lib/db/enums.ts` is now only seed
@@ -343,18 +345,18 @@ pnpm jest __tests__     # run the suite
 pnpm tsc --noEmit       # type-check (or `pnpm build`, which also checks types)
 ```
 
-| Area covered                                       | Suite                                       |
-| -------------------------------------------------- | ------------------------------------------- |
-| Catalog ID parsing / next-ID / status suffix       | `services/catalog.service.test.ts`          |
-| Reverse-sync row parsing & validation              | `validation/reverse-sync.test.ts`           |
-| Cat → sheet-row mapping                             | `services/helper-mappers.test.ts`           |
-| Sheets API client (retry / pacing)                 | `services/sheets-client.test.ts`            |
-| Forward sync + compaction + ID backfill            | `services/forward-sync.test.ts`             |
-| Region delete (empty / non-empty / force)          | `services/regions-delete.test.ts`           |
-| Effective-region resolution (override vs session)  | `repo/resolve-cat-region.test.ts`           |
-| Region-move routing & queue cleanup                | `services/cats-region-routing.test.ts`      |
-| Census / TNVR statistics                           | `stats/census-stats.test.ts`                |
-| Cat & session actions                              | `actions/cats.test.ts`, `actions/sessions.test.ts` |
+| Area covered                                      | Suite                                              |
+| ------------------------------------------------- | -------------------------------------------------- |
+| Catalog ID parsing / next-ID / status suffix      | `services/catalog.service.test.ts`                 |
+| Reverse-sync row parsing & validation             | `validation/reverse-sync.test.ts`                  |
+| Cat → sheet-row mapping                           | `services/helper-mappers.test.ts`                  |
+| Sheets API client (retry / pacing)                | `services/sheets-client.test.ts`                   |
+| Forward sync + compaction + ID backfill           | `services/forward-sync.test.ts`                    |
+| Region delete (empty / non-empty / force)         | `services/regions-delete.test.ts`                  |
+| Effective-region resolution (override vs session) | `repo/resolve-cat-region.test.ts`                  |
+| Region-move routing & queue cleanup               | `services/cats-region-routing.test.ts`             |
+| Census / TNVR statistics                          | `stats/census-stats.test.ts`                       |
+| Cat & session actions                             | `actions/cats.test.ts`, `actions/sessions.test.ts` |
 
 The database and Google APIs are mocked per file, so the suite runs offline — no live
 spreadsheet or database required.
