@@ -17,6 +17,9 @@ The app is designed as a non-disruptive **overhead layer** over AGILA's existing
 Workspace tools: the regional Google Sheets stay in **two-way sync** with the app's database,
 so members keep a familiar, always-current fallback if the app is ever unavailable.
 
+> **Visiting the app:**
+> [Live Link](https://ateneanagila.vercel.app/)
+>
 > **Using the app (non-technical guide):** see the
 > [User Manual](docs/handbook/AGILA-User-Manual.md) — split by role (Volunteer / Manager /
 > Administrator).
