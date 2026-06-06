@@ -2,6 +2,7 @@
 import { actionClient } from "@/lib/error/actions-handler";
 import * as repo from "@/lib/repo/sessions.repo";
 import * as service from "@/lib/services/sessions.service";
+import * as catsService from "@/lib/services/cats.service";
 import {
   requireAuth,
   requireRole,
@@ -18,6 +19,7 @@ import {
   getSessionsSchema,
   getSessionUsersSchema,
 } from "@/lib/validation/sessions";
+import { editCatSchema } from "@/lib/validation/cats";
 import { z } from "zod";
 
 // SESSIONS
@@ -71,6 +73,16 @@ export const createSessionCat = actionClient
   .action(async ({ parsedInput }) => {
     await requireAuth();
     return await service.createSessionCat(parsedInput);
+  });
+
+// Volunteers edit cats they captured while a session is still being built — that
+// workflow is theirs, so this mirrors editCat but gates on auth instead of role
+// (the database/review editCat stays Manager/Admin-only).
+export const editSessionCat = actionClient
+  .schema(editCatSchema)
+  .action(async ({ parsedInput }) => {
+    await requireAuth();
+    return await catsService.editCat(parsedInput);
   });
 
 export const getSessionCats = actionClient

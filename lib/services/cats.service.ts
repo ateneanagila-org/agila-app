@@ -68,6 +68,34 @@ export const editCat = async (data: EditCatSchema) => {
 
     if (!updatedCat) throw new AppError("Cat not found");
 
+    // Merged duplicates must not appear on the sheet. Cancel any pending pushes
+    // and queue a DELETE for the cat's region. With the Original-only gate in
+    // refreshCatInSyncQueue, a freshly-merged Unreviewed entry was never synced,
+    // so this is mainly a safety net for merging an already-synced (Original)
+    // cat or cleaning up legacy rows — DELETE is a no-op when no row exists.
+    if (updatedCat.entry_status === "Merged") {
+      await tx
+        .update(gsheetSyncQueue)
+        .set({ status: "COMPLETED", lastError: "Superseded by merge" })
+        .where(
+          and(
+            eq(gsheetSyncQueue.entityId, id),
+            eq(gsheetSyncQueue.status, "PENDING"),
+          ),
+        );
+
+      if (oldRegion) {
+        await tx.insert(gsheetSyncQueue).values({
+          action: "DELETE",
+          entityId: id,
+          regionId: oldRegion.id,
+          payload: [],
+        });
+      }
+
+      return updatedCat;
+    }
+
     // CRITICAL FIX: We fetch the full state (including interventions)
     // before queueing, so we don't wipe out Columns S and T in the sheet.
     // refreshCatInSyncQueue queues the UPDATE to the NEW effective region and

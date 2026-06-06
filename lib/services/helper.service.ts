@@ -131,6 +131,7 @@ export function mapCatToSheetRow(
   health: SelectCatHealthRecord | null,
   interventions: SelectIntervention[] = [],
   catalogDisplay = "",
+  lastSeenDate: Date | null = null,
 ): string[] {
   const condition = (health?.condition ?? "") as string;
   const catStatus = (cat.cat_status ?? "") as string;
@@ -162,7 +163,7 @@ export function mapCatToSheetRow(
     cat.is_adoptable ? "YES" : "NO", // 10 (K)
     catStatus || "None of the above", // 11 (L)
     cat.caretaker ?? "N/A", // 12 (M)
-    new Date().toLocaleDateString("en-US"), // 13 (N)
+    lastSeenDate ? lastSeenDate.toLocaleDateString("en-US") : "N/A", // 13 (N) date last seen
     cat.spot_last_seen ?? "N/A", // 14 (O)
     health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 15 (P)
     health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 16 (Q)
@@ -243,13 +244,22 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   const region = await sessionsRepo.resolveCatRegion(catId, tx);
   if (!region) return undefined;
 
+  // Only Original (approved) cats belong on the regional sheet. Unsubmitted /
+  // Unreviewed entries and Merged duplicates must not be pushed - skip the queue
+  // INSERT but still return the region so callers' region-move detection works.
+  if (cat.entry_status !== "Original") return region;
+
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
+  const lastSeenDate =
+    region.name === "UNKNOWN"
+      ? null
+      : await sessionsRepo.findLatestSessionDateForCat(catId, tx);
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
-      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions);
+      : mapCatToSheetRow(cat, cat.catHealthRecords, cat.interventions, "", lastSeenDate);
 
   await tx.insert(gsheetSyncQueue).values({
     action: "UPDATE",
@@ -273,11 +283,13 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
  * Reads A3:Y (col Y = UUID at index 24). Matches rows by UUID (col Y).
  * Writes data to A3:V, then UUIDs separately to Y3:Y.
  */
-export async function syncAndCompactRegion(regionId: string) {
+export async function syncAndCompactRegion(
+  regionId: string,
+): Promise<SheetRow[] | null> {
   const frozen = await isSyncFrozen();
   if (frozen) {
     console.log(`[Sync] Frozen â€" skipping region ${regionId}`);
-    return;
+    return null;
   }
 
   const startedAt = new Date();
@@ -288,7 +300,7 @@ export async function syncAndCompactRegion(regionId: string) {
   const region = await db.query.regions.findFirst({
     where: eq(regions.id, regionId),
   });
-  if (!region) return;
+  if (!region) return null;
 
   const tasks = await db.query.gsheetSyncQueue.findMany({
     where: (q, { and, eq, lt }) =>
@@ -300,7 +312,7 @@ export async function syncAndCompactRegion(regionId: string) {
     orderBy: (q, { asc }) => [asc(q.createdAt)],
   });
 
-  if (tasks.length === 0) return;
+  if (tasks.length === 0) return null;
 
   try {
     const { glAuth, glSheets } = await connectToSheets();
@@ -340,6 +352,10 @@ export async function syncAndCompactRegion(regionId: string) {
             where: (i, { eq }) => eq(i.cat_id, cat.id),
             orderBy: (i, { desc }) => [desc(i.requested_at)],
           });
+          const lastSeenDate =
+            region.name === "UNKNOWN"
+              ? null
+              : await sessionsRepo.findLatestSessionDateForCat(cat.id);
           const newPayload =
             region.name === "UNKNOWN"
               ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
@@ -348,6 +364,7 @@ export async function syncAndCompactRegion(regionId: string) {
                   health ?? null,
                   interventionsList,
                   catalogDisplay,
+                  lastSeenDate,
                 );
           currentRows.push([...newPayload, "", "", task.entityId]); // pad cols W, X, then Y
         } else {
@@ -367,10 +384,34 @@ export async function syncAndCompactRegion(regionId: string) {
       }
     }
 
-    // 3. COMPACT & SORT by Nickname (col C, index 2)
+    // 3. COMPACT & SORT by catalog number (col A, index 0). Matches the order
+    // the GSheet is kept in. Unnumbered rows sink to the bottom.
     const finalData = currentRows
       .filter((row) => row[24] && String(row[24]).trim() !== "")
-      .sort((a, b) => String(a[2] ?? "").localeCompare(String(b[2] ?? "")));
+      .sort((a, b) => {
+        const na = parseCatalogId(String(a[0] ?? ""));
+        const nb = parseCatalogId(String(b[0] ?? ""));
+        if (na === null && nb === null) return 0;
+        if (na === null) return 1;
+        if (nb === null) return -1;
+        return na - nb;
+      });
+
+    // 3b. Rebuild col B (photo) from DB photo_url for every surviving row.
+    // The A3:Y read returns "" for =IMAGE() cells under FORMATTED_VALUE, so
+    // echoing unchanged rows back would null their photos. DB owns photos.
+    // Skip UNKNOWN — its col B is "Possible Location" text, not a photo.
+    if (region.name !== "UNKNOWN") {
+      const survivorIds = finalData
+        .map((r) => String(r[24] ?? "").trim())
+        .filter((id) => id !== "");
+      const survivorCats = await catsRepo.findCatsByIds(survivorIds);
+      const photoById = new Map(survivorCats.map((c) => [c.id, c.photo_url]));
+      for (const r of finalData) {
+        const url = photoById.get(String(r[24] ?? "").trim());
+        r[1] = url ? `=IMAGE("${url.replace(/"/g, "")}")` : "";
+      }
+    }
 
     // 4. WRITE data cols A3:V (never touch W, X â€" Apps Script owns those)
     const dataOnly = finalData.map((r) => r.slice(0, 22));
@@ -401,6 +442,16 @@ export async function syncAndCompactRegion(regionId: string) {
       });
     }
 
+    // Build the post-write snapshot for this region so the caller can merge it
+    // into sheetStates before summary regen (fresh catalog numbers this tick).
+    const finalState: SheetRow[] = finalData.map((r, i) => ({
+      raw: r,
+      entityId: String(r[24] ?? "").trim(),
+      lastEditedAt: null,
+      editedBy: null,
+      rowIndex: i + 3,
+    }));
+
     // 6. FINISH: Mark all processed tasks as COMPLETED
     tasksProcessed = tasks.length;
     await db
@@ -412,6 +463,8 @@ export async function syncAndCompactRegion(regionId: string) {
           tasks.map((t) => t.id),
         ),
       );
+
+    return finalState;
   } catch (error) {
     const errMsg =
       error instanceof Error ? error.message : "Unknown sync error";
@@ -444,6 +497,8 @@ export async function syncAndCompactRegion(regionId: string) {
       completedAt: new Date(),
     });
   }
+
+  return null;
 }
 
 // ==========================================
@@ -547,22 +602,29 @@ export async function generateForRiSheet(
           orderBy: (i, { desc }) => [desc(i.requested_at)],
         },
       },
-      where: (c, { exists, eq, and, or, isNull }) =>
-        or(
-          eq(c.region_id, region.id),
-          and(
-            isNull(c.region_id),
-            exists(
-              db
-                .select()
-                .from(sessionCats)
-                .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-                .where(
-                  and(
-                    eq(sessions.region_id, region.id),
-                    eq(sessionCats.cat_id, c.id),
+      where: (c, { exists, eq, and, or, isNull, notInArray }) =>
+        and(
+          eq(c.entry_status, "Original"),
+          or(
+            isNull(c.cat_status),
+            notInArray(c.cat_status, ["Adopted", "Deceased", "MIA"]),
+          ),
+          or(
+            eq(c.region_id, region.id),
+            and(
+              isNull(c.region_id),
+              exists(
+                db
+                  .select()
+                  .from(sessionCats)
+                  .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+                  .where(
+                    and(
+                      eq(sessions.region_id, region.id),
+                      eq(sessionCats.cat_id, c.id),
+                    ),
                   ),
-                ),
+              ),
             ),
           ),
         ),
@@ -681,6 +743,7 @@ export async function generateForFaSheet(
       with: { catHealthRecords: true },
       where: (c, { eq, and, or, exists, isNull }) =>
         and(
+          eq(c.entry_status, "Original"),
           eq(c.is_adoptable, true),
           isNull(c.cat_status),
           or(

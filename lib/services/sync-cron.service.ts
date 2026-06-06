@@ -44,11 +44,14 @@ export async function syncAllPendingRegions() {
     return;
   }
 
-  // Phase 1: Photo import — non-fatal; alert Discord on failure.
-  let photoImported = 0;
+  // Phase 1: Reverse sync — only regions with non-empty col W. Runs BEFORE photo
+  // import so cats created from brand-new sheet rows exist in the DB before we
+  // try to attach their imported photo (otherwise the photo orphans).
+  const reverseResult = await reverseSyncRegionsFromState(sheetStates);
+
+  // Phase 2: Photo import — non-fatal; alert Discord on failure.
   try {
-    const result = await importPhotosIfNeeded(allRegions, sheetStates);
-    photoImported = result.imported;
+    await importPhotosIfNeeded(allRegions, sheetStates);
   } catch (error) {
     const msg = errMsg(error);
     console.error("[PhotoImport] Failed:", msg);
@@ -59,17 +62,16 @@ export async function syncAllPendingRegions() {
     }
   }
 
-  // Phase 2: Reverse sync — only regions with non-empty col W.
-  const reverseResult = await reverseSyncRegionsFromState(sheetStates);
-
-  // Phase 3: Forward sync only regions with pending tasks.
+  // Phase 3: Forward sync only regions with pending tasks. Merge each region's
+  // post-write state into the snapshot so summary regen sees this tick's fresh
+  // catalog numbers (e.g. newly assigned IDs).
   for (const task of pendingTasks) {
-    await syncAndCompactRegion(task.regionId);
+    const finalRows = await syncAndCompactRegion(task.regionId);
+    if (finalRows) sheetStates.set(task.regionId, finalRows);
   }
 
   // Phase 4: Regenerate summary sheets only when something materially changed.
-  // Photo-only changes don't affect For RI / For FA contents, so photoImported
-  // is intentionally excluded from the gate.
+  // Photo-only changes don't affect For RI / For FA contents.
   const summariesNeedRegen =
     reverseResult.totalImported > 0 || pendingTasks.length > 0;
   if (!summariesNeedRegen) {

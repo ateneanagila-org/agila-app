@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth, hasRole, MANAGER_OR_ADMIN } from "@/lib/auth/rbac";
 import { AppError } from "@/lib/error/app-error";
 import type { AuthRole } from "@/lib/db/enums";
+import { refreshCatInSyncQueue } from "@/lib/services/helper.service";
 
 const BUCKET = "cat-photos";
 
@@ -75,10 +76,15 @@ export async function uploadCatPhoto(
   // cache-bust since upsert reuses the same path
   const bustedUrl = `${publicUrl}?v=${Date.now()}`;
 
-  await db
-    .update(cats)
-    .set({ photo_url: bustedUrl, last_updated_at: new Date() })
-    .where(eq(cats.id, catId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(cats)
+      .set({ photo_url: bustedUrl })
+      .where(eq(cats.id, catId));
+    // Queue a forward sync so the new photo reaches the sheet. No last_updated_at
+    // bump: photo is app-owned and must not suppress reverse-sync of text edits.
+    await refreshCatInSyncQueue(catId, tx);
+  });
 
   return { photo_url: bustedUrl };
 }
@@ -106,8 +112,13 @@ export async function removeCatPhoto(catId: string): Promise<void> {
   // Storage delete is best-effort — orphaned blob is acceptable.
   await supabase.storage.from(BUCKET).remove([`${catId}/photo.jpg`]);
 
-  await db
-    .update(cats)
-    .set({ photo_url: null, last_updated_at: new Date() })
-    .where(eq(cats.id, catId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(cats)
+      .set({ photo_url: null })
+      .where(eq(cats.id, catId));
+    // Queue a forward sync so the cleared photo reaches the sheet. No
+    // last_updated_at bump (see uploadCatPhoto).
+    await refreshCatInSyncQueue(catId, tx);
+  });
 }

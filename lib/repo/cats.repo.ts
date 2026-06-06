@@ -115,6 +115,15 @@ export const updateCat = (
     .where(eq(cats.id, id))
     .returning();
 
+// Bumps only last_updated_at — used by flows (e.g. interventions) that change a
+// cat's derived sheet state without editing a cats column directly, so reverse-
+// sync's last-edit-wins sees the cat as freshly updated.
+export const touchCat = (id: string, client: DB = db) =>
+  client
+    .update(cats)
+    .set({ last_updated_at: new Date() })
+    .where(eq(cats.id, id));
+
 export const deleteCat = (id: string, client: DB = db) =>
   client.delete(cats).where(eq(cats.id, id)).returning();
 

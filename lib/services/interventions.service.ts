@@ -1,5 +1,6 @@
 import { db } from "../db";
 import * as repo from "../repo/interventions.repo";
+import * as catsRepo from "../repo/cats.repo";
 import { refreshCatInSyncQueue } from "./helper.service";
 import {
   CreateInterventionSchema,
@@ -11,6 +12,7 @@ export const createIntervention = async (data: CreateInterventionSchema) => {
   return await db.transaction(async (tx) => {
     const [newIn] = await repo.insertIntervention(data, tx);
     await refreshCatInSyncQueue(data.cat_id, tx);
+    await catsRepo.touchCat(data.cat_id, tx);
     return newIn;
   });
 };
@@ -22,6 +24,7 @@ export const editIntervention = async (data: EditInterventionSchema) => {
     if (!updated) throw new AppError("Intervention not found");
 
     await refreshCatInSyncQueue(updated.cat_id, tx);
+    await catsRepo.touchCat(updated.cat_id, tx);
     return updated;
   });
 };
@@ -32,6 +35,7 @@ export const removeIntervention = async (id: string) => {
     if (!deleted) throw new AppError("Intervention not found");
 
     await refreshCatInSyncQueue(deleted.cat_id, tx);
+    await catsRepo.touchCat(deleted.cat_id, tx);
     return deleted;
   });
 };

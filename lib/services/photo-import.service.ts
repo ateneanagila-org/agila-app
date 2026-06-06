@@ -332,7 +332,7 @@ async function uploadAndQueue(
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
-      .set({ photo_url: publicUrl, last_updated_at: new Date() })
+      .set({ photo_url: publicUrl })
       .where(eq(cats.id, uuid));
     await refreshCatInSyncQueue(uuid, tx);
   });
@@ -378,7 +378,8 @@ export interface PhotoImportResult {
 }
 
 /**
- * Phase 0 of the sync cycle. Called once per cycle before reverse sync.
+ * Phase 2 of the sync cycle. Called once per cycle after reverse sync (so cats
+ * created from new sheet rows exist in the DB before their photo is attached).
  *
  * Reads sheet state for each region (same data reverse sync needs) and
  * identifies candidate rows: lastEditedAt is set AND col B is "".

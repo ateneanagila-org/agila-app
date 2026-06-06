@@ -336,7 +336,7 @@ export function SessionsCreateScreen() {
             ) : null}
             <Link
               href="/dashboard/sessions"
-              className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Back <span className="ml-1">&#8249;</span>
             </Link>
@@ -496,6 +496,7 @@ export function SessionsCreateScreen() {
             setEditingCat(null);
             handleCatSaved();
           }}
+          sessionId={sessionId ?? undefined}
           regionId={selectedRegionId || undefined}
         />
       ) : null}
