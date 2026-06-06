@@ -21,7 +21,7 @@ so members keep a familiar, always-current fallback if the app is ever unavailab
 > [Live Link](https://ateneanagila.vercel.app/)
 >
 > **Using the app (non-technical guide):** see the
-> [User Manual](docs/handbook/AGILA-User-Manual.md) — split by role (Volunteer / Manager /
+> [User Manual](https://docs.google.com/document/d/1SWO1l1zoXQlZ03wWfUd4xTdMDSRbLVJb7KdZwZ3iqaA/edit?tab=t.0#heading=h.z5cazoveb9r9) — split by role (Volunteer / Manager /
 > Administrator).
 >
 > **Operating the sync system (technical):** see the
