@@ -327,6 +327,11 @@ export async function syncAndCompactRegion(
     const currentRows: string[][] = (response.data.values || []).map(
       (r) => r as string[],
     );
+    // Capture the read length BEFORE any DELETE splices below. col A:V is
+    // cleared before rewrite, but col Y is only update-written — so we must pad
+    // the Y write back out to this length to blank any cells a shrink frees,
+    // otherwise deleted/compacted rows strand their UUID (orphan-UUID bug).
+    const originalRowCount = currentRows.length;
 
     // 2. MODIFY: process tasks, matching rows by col Y (UUID)
     for (const task of tasks) {
@@ -378,6 +383,20 @@ export async function syncAndCompactRegion(
             // UNKNOWN cats: preserve col A as-is (no status suffix in that layout)
             updatedRow[0] = currentRows[idx][0] ?? "";
           }
+          // col N (index 13) = date_last_seen is DERIVED from session data, never
+          // stored on the cat. When the DB has no session for this cat (e.g. the
+          // initial import, before any sessions exist) the payload carries "N/A".
+          // Don't let that clobber a real date the sheet already had — DB wins
+          // only when it actually has one. UNKNOWN has no col N, so skip it.
+          if (region.name !== "UNKNOWN") {
+            const fromDb = updatedRow[13];
+            if (!fromDb || fromDb === "N/A") {
+              const fromSheet = currentRows[idx][13];
+              if (fromSheet && String(fromSheet).trim()) {
+                updatedRow[13] = fromSheet;
+              }
+            }
+          }
           updatedRow[24] = task.entityId;
           currentRows[idx] = updatedRow;
         }
@@ -387,7 +406,16 @@ export async function syncAndCompactRegion(
     // 3. COMPACT & SORT by catalog number (col A, index 0). Matches the order
     // the GSheet is kept in. Unnumbered rows sink to the bottom.
     const finalData = currentRows
-      .filter((row) => row[24] && String(row[24]).trim() !== "")
+      .filter((row) => {
+        // Must have a UUID (col Y) to be a real record.
+        if (!row[24] || String(row[24]).trim() === "") return false;
+        // …and actual A–V content. A row with a UUID but blank A–V is an orphan
+        // ghost left by a prior un-padded write — drop it so it stops being
+        // re-written (legit rows always carry at least an "N/A").
+        return row
+          .slice(0, 22)
+          .some((c) => c != null && String(c).trim() !== "");
+      })
       .sort((a, b) => {
         const na = parseCatalogId(String(a[0] ?? ""));
         const nb = parseCatalogId(String(b[0] ?? ""));
@@ -445,6 +473,11 @@ export async function syncAndCompactRegion(
 
     // 5. WRITE UUIDs to col Y â€" separate call, never clears W/X
     const uuidColumn = finalData.map((r) => [r[24] ?? ""]);
+    // Pad with blanks out to the original read length so any cells freed by a
+    // shrink (delete, merge, dropped orphan) are cleared in this same write —
+    // col Y is never cleared like A:V, so without this the trailing UUID(s)
+    // would be stranded as orphans.
+    while (uuidColumn.length < originalRowCount) uuidColumn.push([""]);
     if (uuidColumn.length > 0) {
       await glSheets.spreadsheets.values.update({
         auth: glAuth,

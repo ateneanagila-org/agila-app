@@ -64,7 +64,7 @@ export const removeSession = actionClient
         throw new AppError("Forbidden: not your session", 403);
       }
     }
-    return await repo.deleteSession(id);
+    return await service.discardSession(id);
   });
 
 // SESSION CAT
@@ -96,7 +96,7 @@ export const removeSessionCat = actionClient
   .bindArgsSchemas([z.string().uuid()])
   .action(async ({ bindArgsClientInputs: [id] }) => {
     await requireAuth();
-    return await repo.deleteSessionCat(id);
+    return await service.removeSessionCat(id);
   });
 
 // SESSION USERS

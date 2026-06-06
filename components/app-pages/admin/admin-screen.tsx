@@ -32,6 +32,34 @@ import { GSheetConfigControls } from "./gsheet-config-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
+function LoadingIndicator() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
+    </div>
+  );
+}
+
+function RoleSelect({
+  user,
+  onRoleChange,
+}: {
+  user: AllowedEmailEntry;
+  onRoleChange: (id: string, role: AuthRole) => void;
+}) {
+  return (
+    <div className="w-36" onClick={(e) => e.stopPropagation()}>
+      <CustomSelect
+        options={AUTH_ROLE_VALUES}
+        value={user.auth_role ?? "Volunteer"}
+        onChange={(v) => onRoleChange(user.id, v as AuthRole)}
+        variant="white"
+        size="sm"
+      />
+    </div>
+  );
+}
+
 type AdminScreenProps = {
   initialUsers: AllowedEmailEntry[];
   initialSyncStatus: { frozen: boolean | null; reason: string | null };
@@ -66,9 +94,9 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
     openFilterDialog,
     openSortDialog,
     closeDialog,
-    applyFilters,
-    applySort,
-    clearFilters,
+    applyFilters: _applyFilters,
+    applySort: _applySort,
+    clearFilters: _clearFilters,
     search,
     setSearch,
   } = useFilterSort<AllowedEmailEntry>(
@@ -81,6 +109,21 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
       return null;
     },
   );
+
+  const applyFilters = useCallback((filters: Record<string, string>) => {
+    setUserPage(0);
+    _applyFilters(filters);
+  }, [_applyFilters]);
+
+  const applySort = useCallback((key: string | null, order: "asc" | "desc") => {
+    setUserPage(0);
+    _applySort(key, order);
+  }, [_applySort]);
+
+  const clearFilters = useCallback(() => {
+    setUserPage(0);
+    _clearFilters();
+  }, [_clearFilters]);
 
   const searchedUsers = search
     ? filteredUsers.filter((u) => {
@@ -159,25 +202,6 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
   }, []);
 
 
-  const LoadingIndicator = () => (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
-    </div>
-  );
-
-  // Inline role selector — stops propagation so row click doesn't fire
-  const RoleSelect = ({ user }: { user: AllowedEmailEntry }) => (
-    <div className="w-36" onClick={(e) => e.stopPropagation()}>
-      <CustomSelect
-        options={AUTH_ROLE_VALUES}
-        value={user.auth_role ?? "Volunteer"}
-        onChange={(v) => handleRoleChange(user.id, v as AuthRole)}
-        variant="white"
-        size="sm"
-      />
-    </div>
-  );
-
   return (
     <>
       {/* ── Mobile ─────────────────────────────────────────────────── */}
@@ -225,20 +249,20 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
             ) : searchedUsers.length === 0 ? (
               <div className="py-8 text-center text-sm text-brand-dark/50">No users found.</div>
             ) : (
-              <div className="space-y-2 pb-20">
+              <div className="space-y-2">
                 {searchedUsers.map((user) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between overflow-hidden rounded-2xl bg-white p-3.5 ring-1 ring-brand-dark/8"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="mb-0.5 font-bold tracking-tight text-brand-dark">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="mb-0.5 truncate font-bold tracking-tight text-brand-dark">
                         {user.profile_name || user.email}
                       </p>
-                      <p className="text-xs font-medium text-brand-dark/65">{user.email}</p>
+                      <p className="truncate text-xs font-medium text-brand-dark/65">{user.email}</p>
                     </div>
                     <div className="ml-2 flex shrink-0 items-center gap-2">
-                      <RoleSelect user={user} />
+                      <RoleSelect user={user} onRoleChange={handleRoleChange} />
                       <button
                         type="button"
                         onClick={() => handleDeleteClick(user.id)}
@@ -335,7 +359,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
                           <p className="min-w-0 truncate text-sm text-brand-dark/70">
                             {user.email}
                           </p>
-                          <RoleSelect user={user} />
+                          <RoleSelect user={user} onRoleChange={handleRoleChange} />
                           <button
                             type="button"
                             onClick={() => handleDeleteClick(user.id)}

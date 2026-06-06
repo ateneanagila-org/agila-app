@@ -22,6 +22,7 @@ import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import { useRegions } from "@/lib/hooks/use-regions";
+import { normalizeCatField } from "@/lib/utils";
 import {
   DiscardChangesDialog,
   SaveChangesDialog,
@@ -117,11 +118,11 @@ export function DatabaseGeneralScreen() {
 
   const populateForm = useCallback((catData: CatWithRegion) => {
     setName(catData.name ?? "");
-    setColor(catData.color ?? "");
-    setAge(catData.age ?? "");
-    setSex(catData.sex ?? "");
-    setSociability(catData.sociability ?? "");
-    setCatStatus(catData.cat_status ?? "");
+    setColor(catData.color ?? "Unknown");
+    setAge(catData.age ?? "Unknown");
+    setSex(catData.sex ?? "Unknown");
+    setSociability(catData.sociability ?? "Unknown");
+    setCatStatus(catData.cat_status ?? "Unknown");
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
@@ -155,11 +156,11 @@ export function DatabaseGeneralScreen() {
       const result = await editCat({
         id: catId,
         name: name || undefined,
-        color: (color || undefined) as CatColor | undefined,
-        age: (age || undefined) as CatAge | undefined,
-        sex: (sex || undefined) as CatSex | undefined,
-        sociability: (sociability || undefined) as CatSociability | undefined,
-        cat_status: (catStatus || undefined) as CatStatus | undefined,
+        color: normalizeCatField<CatColor>(color),
+        age: normalizeCatField<CatAge>(age),
+        sex: normalizeCatField<CatSex>(sex),
+        sociability: normalizeCatField<CatSociability>(sociability),
+        cat_status: normalizeCatField<CatStatus>(catStatus),
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
@@ -411,31 +412,31 @@ export function DatabaseGeneralScreen() {
             </div>
             <FormSelect
               label="Color"
-              options={CAT_COLOR_VALUES}
+              options={["Unknown", ...CAT_COLOR_VALUES]}
               value={color}
               onChange={setColor}
             />
             <FormSelect
               label="Size / Age"
-              options={CAT_AGE_VALUES}
+              options={["Unknown", ...CAT_AGE_VALUES]}
               value={age}
               onChange={setAge}
             />
             <FormSelect
               label="Sex"
-              options={CAT_SEX_VALUES}
+              options={["Unknown", ...CAT_SEX_VALUES]}
               value={sex}
               onChange={setSex}
             />
             <FormSelect
               label="Sociability"
-              options={CAT_SOCIABILITY_VALUES}
+              options={["Unknown", ...CAT_SOCIABILITY_VALUES]}
               value={sociability}
               onChange={setSociability}
             />
             <FormSelect
               label="Status"
-              options={CAT_STATUS_VALUES}
+              options={["Unknown", ...CAT_STATUS_VALUES]}
               value={catStatus}
               onChange={setCatStatus}
             />

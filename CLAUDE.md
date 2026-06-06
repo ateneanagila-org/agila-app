@@ -24,6 +24,14 @@ Super basic. Just know:
 
 See files themselves for specifics. Don't need schema details. When pushing new schema updates, do "pnpm drizzle-kit push", rather than generating and migrating.
 
+## Photo Storage
+
+Cat photos: Supabase `cat-photos` bucket, path `${catId}/photo.jpg` (upsert — re-uploads never orphan). Blobs are NOT FK-linked to rows, so cleanup is manual.
+
+- **Never delete a cat blob by assuming `${catId}/photo.jpg` belongs only to that cat.** A merge can reassign a duplicate's `photo_url` to the surviving target, so a path may still be referenced after its owning row is gone. Always derive the path from `photo_url` and **reference-check** before removing (see `lib/services/cat-photo-storage.ts`, `cats.repo.findCatsReferencingPhotoPaths`).
+- `removeCat` cleans its blob inline (reference-aware). Merges + region/bulk deletes rely on the GC sweep `reconcileCatPhotos` (Admin → GSheet Config → Reclaim orphaned photos).
+- `deleteSession`/`removeSessionCat` go through `sessions.service` (`discardSession`/`removeSessionCat`), which hard-deletes cats this leaves fully orphaned (still `Unsubmitted`, in no other session) via `removeCat` — blob + sheet row cleaned. Only `Unsubmitted` drafts are reclaimed; `Original`/`Merged`/`Unreviewed` and cats shared with another session survive. (FK cascade alone only drops the join row — cats is its parent.)
+
 ## Desktop vs Mobile Layout
 
 **Two-screen strategy** (see `frontend-guide.md` for full context):

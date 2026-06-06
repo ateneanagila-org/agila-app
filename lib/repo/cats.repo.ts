@@ -1,6 +1,6 @@
 import { DB, db } from "../db";
 import { cats, catHealthRecords } from "../db/schema";
-import { eq, notInArray, isNull, and, or, inArray, sql } from "drizzle-orm";
+import { eq, notInArray, isNull, isNotNull, and, or, inArray, like, sql } from "drizzle-orm";
 import {
   InsertCat,
   InsertCatHealthRecord,
@@ -68,6 +68,30 @@ export const deleteCatsByIds = (ids: string[], client: DB = db) =>
   ids.length === 0
     ? Promise.resolve([])
     : client.delete(cats).where(inArray(cats.id, ids)).returning({ id: cats.id });
+
+// Survivors whose photo_url contains any of the given storage paths. Used to
+// keep blob cleanup reference-aware: a merge can reassign a duplicate's photo to
+// the target, so a path may still be referenced after its owning cat is gone.
+export const findCatsReferencingPhotoPaths = (
+  paths: string[],
+  client: DB = db,
+): Promise<{ photo_url: string | null }[]> =>
+  paths.length === 0
+    ? Promise.resolve([])
+    : client
+        .select({ photo_url: cats.photo_url })
+        .from(cats)
+        .where(or(...paths.map((p) => like(cats.photo_url, `%${p}%`))));
+
+// Every non-null photo_url across all cats — the live reference set for storage GC.
+export const findAllReferencedPhotoUrls = (
+  client: DB = db,
+): Promise<string[]> =>
+  client
+    .select({ photo_url: cats.photo_url })
+    .from(cats)
+    .where(isNotNull(cats.photo_url))
+    .then((rows) => rows.map((r) => r.photo_url as string));
 
 export const findAdoptableCats = (
   filters: Partial<SelectCat>,

@@ -2,24 +2,40 @@ jest.mock("@/lib/repo/sessions.repo", () => ({
   insertSession: jest.fn(),
   insertSessionUser: jest.fn(),
   insertSessionCat: jest.fn(),
+  deleteSession: jest.fn(),
+  deleteSessionCat: jest.fn(),
+  findOrphanCatsForSessionDelete: jest.fn(),
+  findOrphanCatForSessionCatDelete: jest.fn(),
 }));
 jest.mock("@/lib/services/cats.service", () => ({
   createCat: jest.fn(),
+  removeCat: jest.fn(),
 }));
 jest.mock("@/lib/db", () => ({
   db: { transaction: jest.fn() },
   Transaction: class {},
 }));
 
-import { createSession, finishSession, createSessionCat } from "@/lib/services/sessions.service";
+import {
+  createSession,
+  finishSession,
+  createSessionCat,
+  discardSession,
+  removeSessionCat,
+} from "@/lib/services/sessions.service";
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
-import { createCat } from "@/lib/services/cats.service";
+import { createCat, removeCat } from "@/lib/services/cats.service";
 import { db } from "@/lib/db";
 
 const mockInsertSession = sessionsRepo.insertSession as jest.Mock;
 const mockInsertSessionUser = sessionsRepo.insertSessionUser as jest.Mock;
 const mockInsertSessionCat = sessionsRepo.insertSessionCat as jest.Mock;
+const mockDeleteSession = sessionsRepo.deleteSession as jest.Mock;
+const mockDeleteSessionCat = sessionsRepo.deleteSessionCat as jest.Mock;
+const mockFindOrphansForSession = sessionsRepo.findOrphanCatsForSessionDelete as jest.Mock;
+const mockFindOrphanForSessionCat = sessionsRepo.findOrphanCatForSessionCatDelete as jest.Mock;
 const mockCreateCat = createCat as jest.Mock;
+const mockRemoveCat = removeCat as jest.Mock;
 const dbTransaction = db.transaction as jest.Mock;
 
 // Builds a fake drizzle tx for finishSession.
@@ -48,6 +64,11 @@ beforeEach(() => {
   mockInsertSessionUser.mockResolvedValue(undefined);
   mockInsertSessionCat.mockResolvedValue(undefined);
   mockCreateCat.mockResolvedValue({ id: "c1", name: "Pesto" });
+  mockDeleteSession.mockResolvedValue(undefined);
+  mockDeleteSessionCat.mockResolvedValue(undefined);
+  mockFindOrphansForSession.mockResolvedValue([]);
+  mockFindOrphanForSessionCat.mockResolvedValue([]);
+  mockRemoveCat.mockResolvedValue({ success: true });
 });
 
 describe("createSession", () => {
@@ -115,5 +136,55 @@ describe("createSessionCat", () => {
       expect.objectContaining({ session_id: "s1", cat_id: "c1" }),
       expect.anything(),
     );
+  });
+});
+
+describe("discardSession", () => {
+  beforeEach(() => {
+    dbTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) => cb({}));
+  });
+
+  it("hard-deletes each orphaned draft via removeCat, then deletes the session", async () => {
+    mockFindOrphansForSession.mockResolvedValueOnce([{ id: "c1" }, { id: "c2" }]);
+
+    const result = await discardSession("s1");
+
+    expect(mockRemoveCat).toHaveBeenCalledTimes(2);
+    expect(mockRemoveCat).toHaveBeenCalledWith({ id: "c1" });
+    expect(mockRemoveCat).toHaveBeenCalledWith({ id: "c2" });
+    expect(mockDeleteSession).toHaveBeenCalledWith("s1");
+    expect(result).toEqual({ success: true, deletedCats: 2 });
+  });
+
+  it("no orphans: deletes only the session, removeCat untouched", async () => {
+    mockFindOrphansForSession.mockResolvedValueOnce([]);
+
+    const result = await discardSession("s1");
+
+    expect(mockRemoveCat).not.toHaveBeenCalled();
+    expect(mockDeleteSession).toHaveBeenCalledWith("s1");
+    expect(result).toEqual({ success: true, deletedCats: 0 });
+  });
+});
+
+describe("removeSessionCat", () => {
+  it("orphaned cat: removeCat (cascades the join), no separate join delete", async () => {
+    mockFindOrphanForSessionCat.mockResolvedValueOnce([{ id: "c1" }]);
+
+    const result = await removeSessionCat("sc1");
+
+    expect(mockRemoveCat).toHaveBeenCalledWith({ id: "c1" });
+    expect(mockDeleteSessionCat).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, deletedCats: 1 });
+  });
+
+  it("non-orphan cat: drops only the join row, cat survives", async () => {
+    mockFindOrphanForSessionCat.mockResolvedValueOnce([]);
+
+    const result = await removeSessionCat("sc1");
+
+    expect(mockRemoveCat).not.toHaveBeenCalled();
+    expect(mockDeleteSessionCat).toHaveBeenCalledWith("sc1");
+    expect(result).toEqual({ success: true, deletedCats: 0 });
   });
 });

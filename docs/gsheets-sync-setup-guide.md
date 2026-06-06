@@ -27,7 +27,7 @@ DB `regions` table                               ← SOURCE OF TRUTH (which regi
                      │
                      ▼
              _config!B2 (comma list)             ← consumed ONLY by Apps Script
-                     │                              (Protection.gs + photo WebApp)
+                     │                              (Protection.gs)
                      ▼
              Google Sheet tabs (one per region)  ← sync read/write target
 ```
@@ -63,7 +63,6 @@ and self-heals.
 | Cron scheduler              | `workers/sync-cron/` (Cloudflare Worker)            | Fires every 20 min (`*/20 * * * *`): health-checks `/api/health`, then POSTs `/api/cron/sync` with `CRON_SECRET`. Skips + Discord-alerts if the app is unhealthy. The app, not the worker, holds the sync logic. |
 | Apps Script `Code.gs`       | bound to the spreadsheet                            | `onEditInstallable` + `onSheetChange` triggers: write W/X timestamps, **generate col-Y UUID on first human edit**, flag orphan tabs. The only load-bearing Apps Script piece.                                    |
 | Apps Script `Protection.gs` | bound to the spreadsheet                            | **Legacy setup** (`setupRegionSheets`, etc.) — superseded by the admin UI (§8). Retained only for the one-time cutover `clearSystemColProtections()`.                                                            |
-| Apps Script `WebApp.gs`     | bound to the spreadsheet                            | Photo-import `doPost` (legacy — see §8). `doGet` freeze/unfreeze is **dead**.                                                                                                                                    |
 | Service account             | `SERVICE_ACCOUNT_CREDENTIALS`                       | `catalog-gsheets-service@agila-catalog-app.iam.gserviceaccount.com` — the API identity that reads/writes sheets                                                                                                  |
 
 ---
@@ -122,8 +121,8 @@ Use this when pointing the system at the **real** spreadsheet for the first time
 ### 4.1 Install the Apps Script files
 
 1. Spreadsheet → **Extensions → Apps Script**.
-2. Paste the repo contents of `workers/apps-script/Code.gs`, `Protection.gs`,
-   `WebApp.gs` into matching files. **Save**.
+2. Paste the repo contents of `workers/apps-script/Code.gs` and `Protection.gs`
+   into matching files. **Save**.
 
 ### 4.2 Install the installable triggers (not optional)
 
@@ -238,6 +237,25 @@ renames its sheet tab (keeps sync working). Deleting a non-empty region requires
 typing the region name to confirm; orphaned cats (no sessions elsewhere, no
 override to another region) are deleted with it.
 
+### Helper (non-region) tabs
+
+Region tabs must **only** ever be made through the app (above) — a tab made by
+hand is invisible to sync and any data typed into it is silently lost. The
+`onSheetChange` Apps Script trigger guards this: a new hand-made tab gets a red
+"won't sync" banner.
+
+But sometimes you legitimately want a **non-region** tab — scratch notes, an extra
+stats view. The opt-out is a **leading underscore**: name the tab so it starts with
+`_` (e.g. `_Notes`, `_Scratch`) and it's treated as an intentional helper tab —
+never flagged, never touched by sync. Same marker as `_config`. If you create a
+helper tab and it gets the red banner, just rename it with a leading `_` and the
+warning stops (clear the red row 1 banner manually).
+
+The fixed set of existing helper tabs (`HOME`, `TEMPLATE`, `TNVR Statistics`,
+`Coat Color and Kitten Breakdown`, `SAMPLE`) is allow-listed explicitly in
+`STATIC_TABS` (Apps Script) / `NON_REGION_TABS` (`lib/constants.ts`) — keep those
+two lists in sync if you add a permanent fixture rather than a `_`-prefixed one.
+
 ---
 
 ## 6. Ongoing operations
@@ -252,6 +270,16 @@ override to another region) are deleted with it.
 - **Freeze status:** `getSyncStatus` / `setSyncFrozen` gate sync via `system_config`.
 - **Protections drift / new tab:** re-run **Admin → GSheet Config → Provision
   Sheets** (idempotent). Runs as the service account; no Apps Script needed.
+- **Orphaned photo storage:** cat photos live at `${catId}/photo.jpg` in the
+  `cat-photos` bucket. Hard cat deletes (`removeCat`) clean their blob inline, but
+  **merges** (a duplicate's photo can be reassigned to the survivor, orphaning the
+  loser's old blob) and **region/bulk deletes** leave blobs behind. Run **Admin →
+  GSheet Config → Reclaim orphaned photos** (`reclaimOrphanedPhotos` →
+  `reconcileCatPhotos`) to GC them: it lists the bucket, diffs against every live
+  `cats.photo_url`, and removes only the unreferenced objects. **Reference-safe** —
+  a blob any surviving cat points at (incl. a merge target) is never removed.
+  Idempotent, confirm-gated, safe to run anytime. Distinct from `--wipe-photos`
+  (§4.6), which nukes the **entire** bucket for a fresh-UUID cutover.
 - **A UUID got cleared on a row:** forward sync rewrites it on the next pass; if a
   wrong UUID was typed, reverse-sync may create a duplicate — check `sync_audit_log`.
 - **Cat appears in two tabs:** the region routing rule was recently applied to sync
@@ -294,9 +322,12 @@ override to another region) are deleted with it.
 
 ## 8. Legacy / dead code (do not rely on)
 
-- **`WebApp.gs` `doGet` freeze/unfreeze/status** — calls `freezeMode` /
-  `unfreezeMode` / `getAuthorizedEmails`, which no longer exist. Dead; freeze is
-  now app-side (`system_config`).
+- **`WebApp.gs` (removed 2026-06-06)** — the entire file was deleted. It held two
+  obsolete endpoints: `doGet` freeze/unfreeze/status (called `freezeMode` /
+  `unfreezeMode` / `getAuthorizedEmails`, which no longer exist — freeze is now
+  app-side via `system_config`) and the `doPost` photo-import path (superseded by
+  the server-side xlsx export, below). Nothing in the app referenced it. If an old
+  WebApp deployment still exists in the Apps Script editor, delete it.
 - **Apps Script `setupRegionSheets()` / `setupSystemColProtection()` /
   `seedMissingUuids()`** — the original owner-run setup path. **Superseded by the
   admin UI** (Provision Sheets + Seed UUIDs), which runs as the service account.
@@ -304,9 +335,9 @@ override to another region) are deleted with it.
   (the service account can't delete owner-created protections). Do not use them for
   routine setup — they create owner-owned protections that lock the service account
   out of its own A / W–Y writes.
-- **`WebApp.gs` `doPost` photo import** — the base64/getCellImage path. Photo import
-  is now done server-side via xlsx/zip export (`bulkImportAllNullPhotos`,
-  `photo-import.service.ts`). Verify before relying on the WebApp path.
+- **`doPost` photo import** (was in the now-deleted `WebApp.gs`) — the
+  base64/getCellImage path. Photo import is now done server-side via xlsx export
+  (`bulkImportAllNullPhotos`, `photo-import.service.ts`).
 
 ---
 
@@ -321,9 +352,8 @@ override to another region) are deleted with it.
 | `NEXT_SUPABASE_SERVICE_ROLE_KEY`                             | Server-side Supabase                                    |
 | `DISCORD_WEBHOOK_URL`                                        | Sync alerts (optional)                                  |
 
-Apps Script script properties (Project Settings → Script Properties), if using the
-photo WebApp: `PHOTO_IMPORT_SECRET` (and historically `EMERGENCY_SECRET` for the
-now-dead freeze endpoints).
+No Apps Script script properties are required. (`PHOTO_IMPORT_SECRET` and
+`EMERGENCY_SECRET` were only used by the deleted `WebApp.gs` — see §8.)
 
 ---
 

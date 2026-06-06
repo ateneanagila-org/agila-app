@@ -92,15 +92,28 @@ async function main() {
     where: (c, { eq }) => eq(c.entry_status, "Original"),
     columns: { id: true },
   });
+  console.log(`[Reset] Enqueuing ${originalCats.length} Original cat(s)...`);
   await db.transaction(async (tx) => {
-    for (const c of originalCats) await refreshCatInSyncQueue(c.id, tx);
+    let i = 0;
+    for (const c of originalCats) {
+      await refreshCatInSyncQueue(c.id, tx);
+      if (++i % 50 === 0)
+        console.log(`[Reset]   enqueued ${i}/${originalCats.length}`);
+    }
   });
+  console.log(`[Reset] Enqueue done. Forward-syncing region tabs (paced ~1.2s/Sheets call)...`);
 
   const allRegions = await db.query.regions.findMany();
   const snapshot = new Map<string, SheetRow[]>();
   let snappedRegions = 0;
   for (const region of allRegions) {
+    const t0 = Date.now();
+    console.log(`[Reset]   snapping '${region.name}'...`);
     const finalRows = await syncAndCompactRegion(region.id);
+    console.log(
+      `[Reset]   '${region.name}' done in ${((Date.now() - t0) / 1000).toFixed(1)}s` +
+        ` (${finalRows ? finalRows.length + " rows" : "no pending tasks"})`,
+    );
     if (finalRows) {
       snapshot.set(region.id, finalRows);
       snappedRegions++;

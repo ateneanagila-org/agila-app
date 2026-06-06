@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
 import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
@@ -156,7 +157,7 @@ export function FinishSessionDialog({ open, onClose, onConfirm, isLoading }: Fin
           disabled={isLoading}
           className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Keep Editing <span>✎</span>
+          Keep Editing <Pencil size={14} />
         </button>
         <button
           type="button"

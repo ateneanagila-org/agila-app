@@ -1,7 +1,9 @@
 # AGILA CATalog
 
+![Dashboard](public/catalog-dashboard-showcase.png)
+
 The **AGILA CATalog** is a campus cat census and management web app built for **AGILA**
-(*Ateneans Guided and Inspired by their Love for Animals*) — the Ateneo de Manila University
+(_Ateneans Guided and Inspired by their Love for Animals_) — the Ateneo de Manila University
 student organization that runs the cat Census (CATalog) project alongside the TNVR
 (Trap-Neuter-Vaccinate-Return) program.
 
@@ -15,6 +17,9 @@ The app is designed as a non-disruptive **overhead layer** over AGILA's existing
 Workspace tools: the regional Google Sheets stay in **two-way sync** with the app's database,
 so members keep a familiar, always-current fallback if the app is ever unavailable.
 
+> **Visiting the app:**
+> [Live Link](https://ateneanagila.vercel.app/)
+>
 > **Using the app (non-technical guide):** see the
 > [User Manual](https://docs.google.com/document/d/1SWO1l1zoXQlZ03wWfUd4xTdMDSRbLVJb7KdZwZ3iqaA/edit?tab=t.0#heading=h.z5cazoveb9r9) — split by role (Volunteer / Manager /
 > Administrator).
@@ -43,25 +48,25 @@ access to the sheets, while managers/admins retain edit access as an emergency f
 
 ## Tech Stack
 
-| Layer            | Technology                                          |
-| ---------------- | --------------------------------------------------- |
-| Framework        | Next.js 16 (App Router, React 19)                   |
-| Language         | TypeScript (strict)                                 |
-| Styling          | Tailwind CSS 4                                       |
-| UI Primitives    | Radix UI + custom components                        |
-| Data Fetching    | TanStack Query 4                                     |
-| Server Actions   | `next-safe-action` 8                                |
-| Validation       | Zod 4                                               |
-| ORM              | Drizzle ORM + Drizzle Kit                           |
-| Database         | PostgreSQL (via Supabase)                           |
-| Auth             | Supabase Auth + Google OAuth (SSR)                  |
-| Storage          | Supabase Storage (photos)                           |
-| Google APIs      | Sheets API, Drive API                               |
+| Layer            | Technology                                         |
+| ---------------- | -------------------------------------------------- |
+| Framework        | Next.js 16 (App Router, React 19)                  |
+| Language         | TypeScript (strict)                                |
+| Styling          | Tailwind CSS 4                                     |
+| UI Primitives    | Radix UI + custom components                       |
+| Data Fetching    | TanStack Query 4                                   |
+| Server Actions   | `next-safe-action` 8                               |
+| Validation       | Zod 4                                              |
+| ORM              | Drizzle ORM + Drizzle Kit                          |
+| Database         | PostgreSQL (via Supabase)                          |
+| Auth             | Supabase Auth + Google OAuth (SSR)                 |
+| Storage          | Supabase Storage (photos)                          |
+| Google APIs      | Sheets API, Drive API                              |
 | Image Processing | Sharp (server), browser-image-compression (client) |
-| Scheduled Jobs   | Cloudflare Workers (sync cron)                      |
-| Alerts           | Discord Webhooks                                    |
-| Charts           | Recharts                                            |
-| Testing          | Jest + Testing Library                              |
+| Scheduled Jobs   | Cloudflare Workers (sync cron)                     |
+| Alerts           | Discord Webhooks                                   |
+| Charts           | Recharts                                           |
+| Testing          | Jest + Testing Library                             |
 
 ---
 
@@ -92,6 +97,12 @@ skipped; a blank UUID (column Y) is also skipped. Conflict resolution is **last-
 export, parses it as OOXML to locate embedded cell images by their row-anchor position,
 matches them to cat UUIDs in column Y, processes the bytes with Sharp, uploads to Supabase
 Storage, and writes the public URL back to the cat record.
+
+**Photo storage cleanup**: photos live at `${catId}/photo.jpg` in the `cat-photos` bucket.
+Deletions are **reference-aware** — a blob is only removed if no surviving `cats.photo_url`
+points at it (a merge can reassign a duplicate's photo to the surviving cat). Deleting a cat
+cleans its blob inline; merges and bulk/region deletes are swept up by the **Reclaim orphaned
+photos** admin action (`reconcileCatPhotos`), which diffs the bucket against live references.
 
 **Effective region** routing: a cat's sheet tab is its `COALESCE(cats.region_id override,
 most-recent session's region)`. The same rule drives the app display, sync routing, and
@@ -170,11 +181,11 @@ Administrators manage accounts through an **allowlist** (`allowed_emails`): only
 emails can sign in with Google. Roles are assignable before signup and carried onto the
 profile at signup.
 
-| Role          | Capabilities                                                                          |
-| ------------- | ------------------------------------------------------------------------------------- |
-| Volunteer     | Run census sessions (full create/edit inside session forms); view-only elsewhere      |
-| Manager       | All of the above + review/approve sessions, full cat-database CRUD, Census Report      |
-| Administrator | All of the above + the Admin tab (users & roles, regions, GSheet config)               |
+| Role          | Capabilities                                                                      |
+| ------------- | --------------------------------------------------------------------------------- |
+| Volunteer     | Run census sessions (full create/edit inside session forms); view-only elsewhere  |
+| Manager       | All of the above + review/approve sessions, full cat-database CRUD, Census Report |
+| Administrator | All of the above + the Admin tab (users & roles, regions, GSheet config)          |
 
 Access is enforced at the server-action level via RBAC helpers (`requireRole(...)`).
 
@@ -198,7 +209,8 @@ Administrator-only, organized like a settings page with three sections:
 - **Users & Access** — invite/remove people and change roles
 - **Regions** — add / rename / delete campus locations (also provisions each region's sheet)
 - **GSheet Config** — sync status + **Unfreeze**, **Provision Sheets** (structural repair),
-  **Seed UUIDs** (one-time cutover)
+  **Seed UUIDs** (one-time cutover), **Reclaim orphaned photos** (storage GC — deletes photo
+  files no cat record references)
 
 ---
 
@@ -206,20 +218,20 @@ Administrator-only, organized like a settings page with three sections:
 
 Core tables:
 
-| Table                | Purpose                                                                |
-| -------------------- | ---------------------------------------------------------------------- |
-| `cats`               | Cat records (identity, status, region override, photo, `paws_id`)      |
-| `cat_health_records` | One-to-one health record per cat (condition, neuter, vaccination)      |
+| Table                | Purpose                                                                    |
+| -------------------- | -------------------------------------------------------------------------- |
+| `cats`               | Cat records (identity, status, region override, photo, `paws_id`)          |
+| `cat_health_records` | One-to-one health record per cat (condition, neuter, vaccination)          |
 | `regions`            | Campus locations — `name` is free text (`NOT NULL UNIQUE`), managed in-app |
-| `sessions`           | Census sessions scoped to a region (`census_no`, finished flag)        |
-| `session_users`      | Volunteers assigned to a session                                       |
-| `session_cats`       | Cats logged in a session                                               |
-| `interventions`      | Per-cat interventions (type, status, notes)                            |
-| `profiles`           | User profiles linked to Supabase auth (carries `auth_role`)            |
-| `allowed_emails`     | Registration allowlist with role assignment                           |
-| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                       |
-| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)                |
-| `system_config`      | Key-value config store (e.g. `sync_frozen`)                            |
+| `sessions`           | Census sessions scoped to a region (`census_no`, finished flag)            |
+| `session_users`      | Volunteers assigned to a session                                           |
+| `session_cats`       | Cats logged in a session                                                   |
+| `interventions`      | Per-cat interventions (type, status, notes)                                |
+| `profiles`           | User profiles linked to Supabase auth (carries `auth_role`)                |
+| `allowed_emails`     | Registration allowlist with role assignment                                |
+| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                           |
+| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)                    |
+| `system_config`      | Key-value config store (e.g. `sync_frozen`)                                |
 
 > Regions were migrated from a Postgres enum to a free-text column so they can be managed
 > self-serve from the Admin tab. `REGION_NAME_VALUES` in `lib/db/enums.ts` is now only seed
@@ -327,7 +339,7 @@ pnpm drizzle-kit push
 
 ## Testing
 
-Tests live in `__tests__/` and run with Jest — **11 suites, 104 tests** at last run, all
+Tests live in `__tests__/` and run with Jest — **14 suites, 127 tests** at last run, all
 green. Coverage is concentrated on the **sync system and its supporting logic** (the riskiest,
 least-visible part of the app); UI is not unit-tested.
 
@@ -336,18 +348,21 @@ pnpm jest __tests__     # run the suite
 pnpm tsc --noEmit       # type-check (or `pnpm build`, which also checks types)
 ```
 
-| Area covered                                       | Suite                                       |
-| -------------------------------------------------- | ------------------------------------------- |
-| Catalog ID parsing / next-ID / status suffix       | `services/catalog.service.test.ts`          |
-| Reverse-sync row parsing & validation              | `validation/reverse-sync.test.ts`           |
-| Cat → sheet-row mapping                             | `services/helper-mappers.test.ts`           |
-| Sheets API client (retry / pacing)                 | `services/sheets-client.test.ts`            |
-| Forward sync + compaction + ID backfill            | `services/forward-sync.test.ts`             |
-| Region delete (empty / non-empty / force)          | `services/regions-delete.test.ts`           |
-| Effective-region resolution (override vs session)  | `repo/resolve-cat-region.test.ts`           |
-| Region-move routing & queue cleanup                | `services/cats-region-routing.test.ts`      |
-| Census / TNVR statistics                           | `stats/census-stats.test.ts`                |
-| Cat & session actions                              | `actions/cats.test.ts`, `actions/sessions.test.ts` |
+| Area covered                                      | Suite                                              |
+| ------------------------------------------------- | -------------------------------------------------- |
+| Catalog ID parsing / next-ID / status suffix      | `services/catalog.service.test.ts`                 |
+| Reverse-sync row parsing & validation             | `validation/reverse-sync.test.ts`                  |
+| Reverse-sync status-change forward re-enqueue      | `services/reverse-sync.test.ts`                    |
+| Cat → sheet-row mapping                           | `services/helper-mappers.test.ts`                  |
+| Sheets API client (retry / pacing)                | `services/sheets-client.test.ts`                   |
+| Forward sync + compaction + ID backfill           | `services/forward-sync.test.ts`                    |
+| Sync-queue refresh (entry_status gate)            | `services/refresh-sync-queue.test.ts`              |
+| Region delete (empty / non-empty / force)         | `services/regions-delete.test.ts`                  |
+| Effective-region resolution (override vs session) | `repo/resolve-cat-region.test.ts`                  |
+| Latest-session-date lookup                        | `repo/sessions-repo.test.ts`                       |
+| Region-move routing & queue cleanup               | `services/cats-region-routing.test.ts`             |
+| Census / TNVR statistics                          | `stats/census-stats.test.ts`                       |
+| Cat & session actions                             | `actions/cats.test.ts`, `actions/sessions.test.ts` |
 
 The database and Google APIs are mocked per file, so the suite runs offline — no live
 spreadsheet or database required.

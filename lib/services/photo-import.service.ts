@@ -12,6 +12,12 @@ import {
   type SheetRow,
 } from "./helper.service";
 import { createAdminClient } from "@/lib/supabase/admin";
+import * as catsRepo from "@/lib/repo/cats.repo";
+import {
+  listAllPhotoPaths,
+  photoStoragePath,
+  removeCatPhotoObjects,
+} from "./cat-photo-storage";
 
 const BUCKET = "cat-photos";
 
@@ -483,23 +489,10 @@ export async function importPhotosIfNeeded(
  */
 export async function wipeAllPhotos(): Promise<{ removed: number }> {
   const supabase = await createAdminClient();
-  const LIST_LIMIT = 100_000;
   const REMOVE_BATCH = 1000;
 
-  const { data: prefixes, error: listErr } = await supabase.storage
-    .from(BUCKET)
-    .list("", { limit: LIST_LIMIT });
-  if (listErr) throw new Error(`bucket list failed: ${listErr.message}`);
-  if (!prefixes || prefixes.length === 0) return { removed: 0 };
-
-  const paths: string[] = [];
-  for (const prefix of prefixes) {
-    const { data: files, error: subErr } = await supabase.storage
-      .from(BUCKET)
-      .list(prefix.name, { limit: LIST_LIMIT });
-    if (subErr) throw new Error(`list '${prefix.name}' failed: ${subErr.message}`);
-    for (const f of files ?? []) paths.push(`${prefix.name}/${f.name}`);
-  }
+  const paths = await listAllPhotoPaths();
+  if (paths.length === 0) return { removed: 0 };
 
   let removed = 0;
   for (let i = 0; i < paths.length; i += REMOVE_BATCH) {
@@ -510,6 +503,37 @@ export async function wipeAllPhotos(): Promise<{ removed: number }> {
   }
 
   return { removed };
+}
+
+/**
+ * Storage garbage collection — the safety net for orphaned cat photos. Lists
+ * every object in the bucket, diffs against the set of paths referenced by a live
+ * `cats.photo_url`, and removes the difference. Reference-aware by construction:
+ * a path kept alive by ANY surviving cat (e.g. a merge target pointing at a
+ * duplicate's photo) is never removed.
+ *
+ * Catches every leak source: hard cat deletes (region/bulk), merge photo
+ * supersession, and anything future. Safe to re-run; idempotent. Best-effort
+ * removal — failures are logged, not thrown.
+ */
+export async function reconcileCatPhotos(): Promise<{
+  scanned: number;
+  referenced: number;
+  removed: number;
+}> {
+  const allPaths = await listAllPhotoPaths();
+  const referencedUrls = await catsRepo.findAllReferencedPhotoUrls();
+
+  const referenced = new Set(
+    referencedUrls
+      .map((u) => photoStoragePath(u))
+      .filter((p): p is string => p !== null),
+  );
+
+  const orphans = allPaths.filter((p) => !referenced.has(p));
+  const removed = await removeCatPhotoObjects(orphans);
+
+  return { scanned: allPaths.length, referenced: referenced.size, removed };
 }
 
 /**

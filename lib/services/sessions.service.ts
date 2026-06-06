@@ -6,7 +6,7 @@ import {
   CreateSessionCatSchema,
   CreateSessionSchema,
 } from "../validation/sessions";
-import { createCat } from "./cats.service";
+import { createCat, removeCat } from "./cats.service";
 
 
 // Logic mainly for handling consecutive table queries
@@ -81,4 +81,43 @@ export const createSessionCat = async (data: CreateSessionCatSchema) => {
 
     return newCat;
   });
+};
+
+/**
+ * Discards a session and reclaims its abandoned drafts. Session delete only
+ * cascades the session_cats/session_users join rows (cats is their parent), so
+ * session-scoped Unsubmitted cats would otherwise dangle forever. We hard-delete
+ * the ones this leaves fully orphaned (Unsubmitted, in no other session) via
+ * removeCat — which also clears their photo blob and any sheet row.
+ * Original/Merged/Unreviewed and shared cats are left intact.
+ */
+export const discardSession = async (sessionId: string) => {
+  const orphans =
+    await sessionsRepo.findOrphanCatsForSessionDelete(sessionId);
+
+  // removeCat cascades each cat's join row; drop the (then cat-less) session after.
+  for (const { id } of orphans) {
+    await removeCat({ id });
+  }
+  await sessionsRepo.deleteSession(sessionId);
+
+  return { success: true, deletedCats: orphans.length };
+};
+
+/**
+ * Removes a cat from a session. If that fully orphans the cat (Unsubmitted, in no
+ * other session) it is hard-deleted via removeCat (which cascades this join row);
+ * otherwise only the join row is dropped. The single-cat analogue of discardSession.
+ */
+export const removeSessionCat = async (sessionCatId: string) => {
+  const orphans =
+    await sessionsRepo.findOrphanCatForSessionCatDelete(sessionCatId);
+
+  if (orphans.length > 0) {
+    await removeCat({ id: orphans[0].id });
+  } else {
+    await sessionsRepo.deleteSessionCat(sessionCatId);
+  }
+
+  return { success: true, deletedCats: orphans.length };
 };
