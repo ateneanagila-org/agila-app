@@ -181,6 +181,54 @@ describe("syncAndCompactRegion", () => {
     expect(written[0][0]).toBe("5m"); // number preserved, suffix recomputed
   });
 
+  it("UPDATE preserves the sheet's date_last_seen (col N) when the payload has no DB date", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    // Sheet already has a valid date in col N (13); DB has no session → payload "N/A".
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: { values: [row({ 0: "5", 2: "Bella", 13: "1/2/2024", 24: "u1" })] },
+    });
+    const payload = row({ 0: "x", 2: "Bella", 13: "N/A", 24: "u1" });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u1", payload }),
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    expect(written[0][13]).toBe("1/2/2024"); // sheet date kept, not blanked to N/A
+  });
+
+  it("UPDATE lets a real DB date_last_seen win over the sheet value", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: { values: [row({ 0: "5", 2: "Bella", 13: "1/2/2024", 24: "u1" })] },
+    });
+    // Payload carries a fresh session-derived date → it should win.
+    const payload = row({ 0: "x", 2: "Bella", 13: "6/1/2026", 24: "u1" });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u1", payload }),
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    expect(written[0][13]).toBe("6/1/2026"); // DB date wins
+  });
+
   it("CREATE (UUID absent from sheet) assigns the next catalog number from col A", async () => {
     (
       dbm.query as { regions: { findFirst: jest.Mock } }

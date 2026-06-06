@@ -47,7 +47,19 @@
 
 // Non-region tabs to ignore when cross-checking tabs against the B2 region list.
 // UNKNOWN is intentionally NOT here — it is a synced region sheet with UUIDs.
-var STATIC_TABS = ["_config", "For RI", "For FA"];
+// KEEP IN SYNC with NON_REGION_TABS in lib/constants.ts (this is the same list
+// minus UNKNOWN). Apps Script can't import the TS const, so it's duplicated;
+// when you add an auxiliary tab there, add it here too.
+var STATIC_TABS = [
+  "_config",
+  "For RI",
+  "For FA",
+  "TEMPLATE",
+  "HOME",
+  "TNVR Statistics",
+  "Coat Color and Kitten Breakdown",
+  "SAMPLE",
+];
 
 /**
  * Consistency check (warns only, never acts). The region list is owned by the
@@ -338,6 +350,11 @@ function setupSystemColProtection() {
  * a hand-made orphan: a red warning banner is dropped into its first row and a
  * toast is shown to whoever is currently viewing.
  *
+ * OPT-OUT: a tab whose name starts with "_" is treated as an intentional
+ * non-region helper tab and is never flagged (same marker as _config). This is
+ * how a non-technical steward keeps a legit notes/stats tab — the banner copy
+ * tells them to rename it with a leading underscore.
+ *
  * App-created region tabs are NOT flagged: createRegion (app side) writes the
  * new name to _config!B2 BEFORE creating the tab, so by the time this fires the
  * name is already in B2 and the tab is recognized.
@@ -364,12 +381,22 @@ function onSheetChange(e) {
   });
 
   var orphans = ss.getSheets().filter(function (s) {
-    return !allowed[s.getName()];
+    var name = s.getName();
+    // "_"-prefixed tabs are intentional non-region helper tabs (same opt-out
+    // marker as _config). Stewards rename a helper tab to start with "_" to
+    // dismiss the orphan warning — see warnOrphanTab banner copy.
+    if (name.charAt(0) === "_") return false;
+    return !allowed[name];
   });
   if (orphans.length === 0) return;
 
   orphans.forEach(function (sheet) {
-    warnOrphanTab(sheet);
+    try {
+      warnOrphanTab(sheet);
+    } catch (err) {
+      // One bad tab must not abort the rest (and the toast below).
+      Logger.log("warnOrphanTab failed for " + sheet.getName() + ": " + err);
+    }
   });
 
   var names = orphans
@@ -382,7 +409,8 @@ function onSheetChange(e) {
       "Tab " +
         names +
         " was not created through the app and will NOT sync. Delete it and add " +
-        "the region via the app (Admin > Edit Regions).",
+        "the region via the app (Admin > Edit Regions) — or, if it's an intentional " +
+        'helper tab, rename it to start with "_".',
       "⚠️ This tab won't sync",
       30,
     );
@@ -401,11 +429,21 @@ function warnOrphanTab(sheet) {
   var a1 = sheet.getRange("A1");
   if (String(a1.getValue()).indexOf("will NOT sync") !== -1) return;
 
-  sheet.getRange(1, 1, 1, 12).merge(); // banner across A1:L1
+  // Cosmetic banner spanning A1:L1. merge() throws "can't merge frozen and
+  // non-frozen columns" when a frozen-column boundary falls inside A1:L1 (e.g. a
+  // tab cloned from one with frozen panes), so guard it — the banner text below
+  // is what actually matters.
+  try {
+    sheet.getRange(1, 1, 1, 12).merge();
+  } catch (err) {
+    Logger.log("banner merge skipped on " + sheet.getName() + ": " + err);
+  }
   a1 = sheet.getRange(1, 1);
   a1.setValue(
-    "⚠️ This tab was created by hand and will NOT sync — anything entered " +
-      "here is lost. To add a region, use the app (Admin > Edit Regions), then delete this tab.",
+    "⚠️ This tab was created by hand and will NOT sync — anything entered here is lost. " +
+      "To add a REGION, use the app (Admin > Edit Regions), then delete this tab. " +
+      'If you meant a HELPER tab (notes/stats, not a region), rename it to start with an ' +
+      'underscore — e.g. "_Notes" — and this warning will stop.',
   );
   a1.setBackground("#cc0000");
   a1.setFontColor("#ffffff");

@@ -237,6 +237,25 @@ renames its sheet tab (keeps sync working). Deleting a non-empty region requires
 typing the region name to confirm; orphaned cats (no sessions elsewhere, no
 override to another region) are deleted with it.
 
+### Helper (non-region) tabs
+
+Region tabs must **only** ever be made through the app (above) — a tab made by
+hand is invisible to sync and any data typed into it is silently lost. The
+`onSheetChange` Apps Script trigger guards this: a new hand-made tab gets a red
+"won't sync" banner.
+
+But sometimes you legitimately want a **non-region** tab — scratch notes, an extra
+stats view. The opt-out is a **leading underscore**: name the tab so it starts with
+`_` (e.g. `_Notes`, `_Scratch`) and it's treated as an intentional helper tab —
+never flagged, never touched by sync. Same marker as `_config`. If you create a
+helper tab and it gets the red banner, just rename it with a leading `_` and the
+warning stops (clear the red row 1 banner manually).
+
+The fixed set of existing helper tabs (`HOME`, `TEMPLATE`, `TNVR Statistics`,
+`Coat Color and Kitten Breakdown`, `SAMPLE`) is allow-listed explicitly in
+`STATIC_TABS` (Apps Script) / `NON_REGION_TABS` (`lib/constants.ts`) — keep those
+two lists in sync if you add a permanent fixture rather than a `_`-prefixed one.
+
 ---
 
 ## 6. Ongoing operations
