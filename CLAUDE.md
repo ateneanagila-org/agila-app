@@ -30,7 +30,7 @@ Cat photos: Supabase `cat-photos` bucket, path `${catId}/photo.jpg` (upsert — 
 
 - **Never delete a cat blob by assuming `${catId}/photo.jpg` belongs only to that cat.** A merge can reassign a duplicate's `photo_url` to the surviving target, so a path may still be referenced after its owning row is gone. Always derive the path from `photo_url` and **reference-check** before removing (see `lib/services/cat-photo-storage.ts`, `cats.repo.findCatsReferencingPhotoPaths`).
 - `removeCat` cleans its blob inline (reference-aware). Merges + region/bulk deletes rely on the GC sweep `reconcileCatPhotos` (Admin → GSheet Config → Reclaim orphaned photos).
-- `deleteSession`/`removeSessionCat` only cascade the `session_cats` join row — the cat row + blob survive (known: session-less Unsubmitted cats accumulate).
+- `deleteSession`/`removeSessionCat` go through `sessions.service` (`discardSession`/`removeSessionCat`), which hard-deletes cats this leaves fully orphaned (still `Unsubmitted`, in no other session) via `removeCat` — blob + sheet row cleaned. Only `Unsubmitted` drafts are reclaimed; `Original`/`Merged`/`Unreviewed` and cats shared with another session survive. (FK cascade alone only drops the join row — cats is its parent.)
 
 ## Desktop vs Mobile Layout
 

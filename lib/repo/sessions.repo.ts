@@ -1,6 +1,7 @@
 import { DB, db } from "../db";
-import { sessions, sessionCats, sessionUsers } from "../db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { sessions, sessionCats, sessionUsers, cats } from "../db/schema";
+import { eq, and, desc, ne, notExists, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { createEQFilters } from "./helper.repo";
 import {
   InsertSession,
@@ -35,8 +36,37 @@ export const updateSession = (id: string, data: Partial<InsertSession>) =>
     .set({ ...data, last_updated_at: new Date() })
     .where(eq(sessions.id, id));
 
-export const deleteSession = (id: string) =>
-  db.delete(sessions).where(eq(sessions.id, id));
+export const deleteSession = (id: string, client: DB = db) =>
+  client.delete(sessions).where(eq(sessions.id, id));
+
+// Cats that would be fully orphaned by deleting this session: linked to it, still
+// Unsubmitted (abandoned drafts), and not present in any OTHER session. These are
+// safe to hard-delete alongside the session (cascade only drops the join rows).
+// Original/Merged/Unreviewed cats and cats shared with another session are excluded.
+export const findOrphanCatsForSessionDelete = (
+  sessionId: string,
+  client: DB = db,
+): Promise<{ id: string }[]> => {
+  const sc2 = alias(sessionCats, "sc2");
+  return client
+    .select({ id: cats.id })
+    .from(cats)
+    .innerJoin(
+      sessionCats,
+      and(eq(sessionCats.cat_id, cats.id), eq(sessionCats.session_id, sessionId)),
+    )
+    .where(
+      and(
+        eq(cats.entry_status, "Unsubmitted"),
+        notExists(
+          client
+            .select({ x: sql`1` })
+            .from(sc2)
+            .where(and(eq(sc2.cat_id, cats.id), ne(sc2.session_id, sessionId))),
+        ),
+      ),
+    );
+};
 
 // SESSION CATS
 export const findSessionCats = (filters: Partial<SelectSessionCat>) =>
@@ -50,8 +80,34 @@ export const findSessionCats = (filters: Partial<SelectSessionCat>) =>
 export const insertSessionCat = (data: InsertSessionCat, client: DB = db) =>
   client.insert(sessionCats).values(data);
 
-export const deleteSessionCat = (id: string) =>
-  db.delete(sessionCats).where(eq(sessionCats.id, id));
+export const deleteSessionCat = (id: string, client: DB = db) =>
+  client.delete(sessionCats).where(eq(sessionCats.id, id));
+
+// The cat behind this join row IF removing it would fully orphan the cat: still
+// Unsubmitted and in no OTHER session (any join row besides this one). Returns
+// 0 or 1 row. Same guard as findOrphanCatsForSessionDelete, scoped to one join.
+export const findOrphanCatForSessionCatDelete = (
+  sessionCatId: string,
+  client: DB = db,
+): Promise<{ id: string }[]> => {
+  const sc2 = alias(sessionCats, "sc2");
+  return client
+    .select({ id: cats.id })
+    .from(sessionCats)
+    .innerJoin(cats, eq(cats.id, sessionCats.cat_id))
+    .where(
+      and(
+        eq(sessionCats.id, sessionCatId),
+        eq(cats.entry_status, "Unsubmitted"),
+        notExists(
+          client
+            .select({ x: sql`1` })
+            .from(sc2)
+            .where(and(eq(sc2.cat_id, cats.id), ne(sc2.id, sessionCatId))),
+        ),
+      ),
+    );
+};
 
 // SESSION USERS
 export const findSessionUsers = (filters: Partial<SelectSessionUser>) =>
