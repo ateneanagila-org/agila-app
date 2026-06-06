@@ -354,9 +354,10 @@ other, they drift.
 ### How the drift happens
 
 When a volunteer changes a cat's status **in the sheet** — say, types `Deceased` in
-Column L — the app picks that up correctly on the next sync. But **Column A is not
-rewritten** by that path, so it still shows the plain number `30` instead of `30d`.
-Now:
+Column L — the app picks that up correctly on the next sync, and (as of 2026-06-06)
+**re-stamps Column A to `30d` automatically** on the following forward-sync tick.
+Historically Column A was *not* rewritten by that path, so a window of drift could
+open between a sheet-side status edit and the next in-app edit. During that window:
 
 - HOME sees `30` (a plain number) and counts the cat as **active**.
 - HOME _also_ sees `Deceased` in Column L and counts it under **Deceased**.
@@ -364,7 +365,10 @@ Now:
 
 The reverse can also happen (Column A says `26m` but Column L says the cat is active),
 which makes HOME count the cat in _neither_ bucket and _under_-count. The net of these
-is why HOME's "OVERALL TOTAL" can sit a few above or below the app's true count.
+is why HOME's "OVERALL TOTAL" can still sit a few above or below the app's true count
+**between sync ticks** — the suffix self-heal is now automatic but not instantaneous
+(it lands on the next 20-min forward tick), and a row whose status was never changed
+through the app *or* sheet is never re-examined.
 
 > Worked example (June 2026): the app held **551** cats; HOME showed **555**. The
 > import was perfect — every one of the 551 sheet rows became exactly one cat, no
@@ -380,15 +384,20 @@ is why HOME's "OVERALL TOTAL" can sit a few above or below the app's true count.
 
 ### How to reconcile HOME back to the app
 
-A **forward sync** (the normal cron, or after editing the affected cats in the app)
-rewrites Column A from the database's status, so the suffixes correct themselves and
-HOME snaps back to the true numbers. Concretely:
+A **forward sync** rewrites Column A from the database's status, so the suffixes
+correct themselves and HOME snaps back to the true numbers. As of 2026-06-06 forward
+sync re-stamps Column A for **every surviving row in any region it syncs** (not just
+the rows with a queued change), and a sheet-side status edit now **enqueues its own
+forward re-stamp** — so any region that sees activity self-heals on the next tick with
+no manual step. To force it sooner:
 
-- Re-save each drifted cat from the app's General tab, **or**
-- Let the scheduled forward sync run — it re-stamps Column A on every row it touches.
+- Re-save any cat in the affected region from the app's General tab (queues a sync), **or**
+- Run a full reset (`scripts/reset-and-reimport.ts`) — its final **global snap** step
+  forward-syncs **every** region from the DB, catching even regions that have seen no
+  activity at all (the one case the per-tick self-heal can't reach).
 
-To _find_ the drifted rows, run `pnpm tsx scripts/find-suffix-drift.ts` (lists every
-row where the Column-A suffix disagrees with Column L).
+To _find_ the drifted rows manually, run `pnpm tsx scripts/find-suffix-drift.ts` (lists
+every row where the Column-A suffix disagrees with Column L).
 
 ### One thing to actually be careful about
 
