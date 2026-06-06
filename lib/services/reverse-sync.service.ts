@@ -217,7 +217,7 @@ async function reverseSyncRegionInternal(
     }
 
     try {
-      await importSheetRowToDB(validation.data);
+      await importSheetRowToDB(validation.data, dbCat.cat_status);
       result.imported++;
       importedIds.push(sheetRow.entityId);
     } catch (error) {
@@ -365,8 +365,20 @@ export async function fullReverseSync(force = false): Promise<{
  * Writes a validated sheet row back to the DB.
  * Updates cats and cat_health_records tables.
  * Cancels any pending forward sync tasks for this cat (GSheet wins — Task 15).
+ *
+ * `prevStatus` is the cat's cat_status BEFORE this import. When it differs from
+ * the imported status, a forward re-stamp task is enqueued so Column A's suffix
+ * snaps to the new status — even in a region with no other pending work (a
+ * sheet-side status edit otherwise never queues a forward task, leaving Col A
+ * stale forever). Not a GSheet-wins violation: forward sync keeps the catalog
+ * number from the sheet and only rewrites the suffix from the value we just
+ * imported. Omit `prevStatus` (legacy / full-recovery callers) to skip the
+ * enqueue entirely.
  */
-async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
+export async function importSheetRowToDB(
+  data: SheetRowParsed,
+  prevStatus?: string | null,
+): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
@@ -456,5 +468,12 @@ async function importSheetRowToDB(data: SheetRowParsed): Promise<void> {
           eq(gsheetSyncQueue.status, "PENDING"),
         ),
       );
+
+    // Status changed via a sheet edit → queue a forward re-stamp so Column A's
+    // suffix is refreshed next tick. Runs AFTER the cancel above so this is the
+    // sole surviving PENDING task. Skipped when prevStatus is omitted.
+    if (prevStatus !== undefined && data.cat_status !== prevStatus) {
+      await refreshCatInSyncQueue(data.id, tx);
+    }
   });
 }

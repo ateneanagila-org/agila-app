@@ -397,19 +397,32 @@ export async function syncAndCompactRegion(
         return na - nb;
       });
 
-    // 3b. Rebuild col B (photo) from DB photo_url for every surviving row.
-    // The A3:Y read returns "" for =IMAGE() cells under FORMATTED_VALUE, so
-    // echoing unchanged rows back would null their photos. DB owns photos.
-    // Skip UNKNOWN — its col B is "Possible Location" text, not a photo.
+    // 3b. Rebuild col B (photo) AND re-stamp col A (status suffix) from the DB
+    // for every surviving row — DB is source of truth for both.
+    //   - col B: the A3:Y read returns "" for =IMAGE() cells under
+    //     FORMATTED_VALUE, so echoing unchanged rows back would null photos.
+    //   - col A: the UPDATE branch only re-stamps tasked rows. Untouched
+    //     survivors keep whatever suffix the sheet had, so a status change that
+    //     arrived via reverse sheet edit (which never queues a forward task)
+    //     leaves col A stale (e.g. "30" for a Deceased cat). Snapping every
+    //     survivor's suffix here self-heals that drift at zero extra cost — the
+    //     findCatsByIds fetch is already happening for the photo rebuild.
+    //     Catalog NUMBER stays from the sheet; only the suffix comes from DB.
+    // Skip UNKNOWN — its col B is "Possible Location" text and its col A has no
+    // status suffix.
     if (region.name !== "UNKNOWN") {
       const survivorIds = finalData
         .map((r) => String(r[24] ?? "").trim())
         .filter((id) => id !== "");
       const survivorCats = await catsRepo.findCatsByIds(survivorIds);
-      const photoById = new Map(survivorCats.map((c) => [c.id, c.photo_url]));
+      const catById = new Map(survivorCats.map((c) => [c.id, c]));
       for (const r of finalData) {
-        const url = photoById.get(String(r[24] ?? "").trim());
-        r[1] = url ? `=IMAGE("${url.replace(/"/g, "")}")` : "";
+        const cat = catById.get(String(r[24] ?? "").trim());
+        r[1] = cat?.photo_url ? `=IMAGE("${cat.photo_url.replace(/"/g, "")}")` : "";
+        const existingNum = parseCatalogId(String(r[0] ?? ""));
+        if (cat && existingNum !== null) {
+          r[0] = `${existingNum}${statusSuffix(cat.cat_status)}`;
+        }
       }
     }
 

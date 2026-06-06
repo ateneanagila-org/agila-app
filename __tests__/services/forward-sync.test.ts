@@ -333,6 +333,106 @@ describe("syncAndCompactRegion", () => {
     expect(written[1][1]).toBe(""); // u-other has no photo
   });
 
+  it("re-stamps an untouched row's col A suffix from DB status (number from sheet)", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    // u-drift is NOT tasked. Sheet col A "5" (plain — looks active); DB says
+    // Deceased. u-task is the only queued row (needed so sync runs at all).
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "5", 2: "Bella", 24: "u-drift" }),
+          row({ 0: "6", 2: "Max", 24: "u-task" }),
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u-task", payload: row({ 0: "x", 2: "Max", 11: "", 24: "u-task" }) }),
+    ]);
+    findCatsByIdsMock.mockResolvedValue([
+      { id: "u-drift", photo_url: null, cat_status: "Deceased" },
+      { id: "u-task", photo_url: null, cat_status: null },
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    // Sorted by catalog number: u-drift (5) first, u-task (6) second.
+    expect(written[0][0]).toBe("5d"); // number kept from sheet, suffix from DB status
+    expect(written[1][0]).toBe("6"); // active stays plain
+  });
+
+  it("leaves col A unchanged for an unnumbered survivor (no '<null>d')", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    // u-blank has a blank col A (no catalog number yet). Must not become "NaNd".
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "", 2: "Ghost", 24: "u-blank" }),
+          row({ 0: "6", 2: "Max", 24: "u-task" }),
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u-task", payload: row({ 0: "x", 2: "Max", 11: "", 24: "u-task" }) }),
+    ]);
+    findCatsByIdsMock.mockResolvedValue([
+      { id: "u-blank", photo_url: null, cat_status: "Deceased" },
+      { id: "u-task", photo_url: null, cat_status: null },
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    // u-task (6) sorts first; unnumbered u-blank sinks to the bottom, col A still "".
+    expect(written[0][0]).toBe("6");
+    expect(written[1][0]).toBe("");
+  });
+
+  it("does not re-stamp col A on UNKNOWN (no suffix layout)", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue({ id: "r-unk", name: "UNKNOWN" });
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "5", 2: "Loc", 24: "u-drift" }),
+          row({ 0: "6", 2: "Loc2", 24: "u-task" }),
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u-task", payload: row({ 0: "x", 24: "u-task" }) }),
+    ]);
+    findCatsByIdsMock.mockResolvedValue([
+      { id: "u-drift", photo_url: null, cat_status: "Deceased" },
+      { id: "u-task", photo_url: null, cat_status: null },
+    ]);
+
+    await syncAndCompactRegion("r-unk");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    expect(written[0][0]).toBe("5"); // untouched, no suffix on UNKNOWN
+  });
+
   it("returns the post-write region state for snapshot merge", async () => {
     (
       dbm.query as { regions: { findFirst: jest.Mock } }
