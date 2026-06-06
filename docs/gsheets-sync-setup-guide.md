@@ -270,6 +270,16 @@ two lists in sync if you add a permanent fixture rather than a `_`-prefixed one.
 - **Freeze status:** `getSyncStatus` / `setSyncFrozen` gate sync via `system_config`.
 - **Protections drift / new tab:** re-run **Admin → GSheet Config → Provision
   Sheets** (idempotent). Runs as the service account; no Apps Script needed.
+- **Orphaned photo storage:** cat photos live at `${catId}/photo.jpg` in the
+  `cat-photos` bucket. Hard cat deletes (`removeCat`) clean their blob inline, but
+  **merges** (a duplicate's photo can be reassigned to the survivor, orphaning the
+  loser's old blob) and **region/bulk deletes** leave blobs behind. Run **Admin →
+  GSheet Config → Reclaim orphaned photos** (`reclaimOrphanedPhotos` →
+  `reconcileCatPhotos`) to GC them: it lists the bucket, diffs against every live
+  `cats.photo_url`, and removes only the unreferenced objects. **Reference-safe** —
+  a blob any surviving cat points at (incl. a merge target) is never removed.
+  Idempotent, confirm-gated, safe to run anytime. Distinct from `--wipe-photos`
+  (§4.6), which nukes the **entire** bucket for a fresh-UUID cutover.
 - **A UUID got cleared on a row:** forward sync rewrites it on the next pass; if a
   wrong UUID was typed, reverse-sync may create a duplicate — check `sync_audit_log`.
 - **Cat appears in two tabs:** the region routing rule was recently applied to sync

@@ -93,6 +93,12 @@ export, parses it as OOXML to locate embedded cell images by their row-anchor po
 matches them to cat UUIDs in column Y, processes the bytes with Sharp, uploads to Supabase
 Storage, and writes the public URL back to the cat record.
 
+**Photo storage cleanup**: photos live at `${catId}/photo.jpg` in the `cat-photos` bucket.
+Deletions are **reference-aware** — a blob is only removed if no surviving `cats.photo_url`
+points at it (a merge can reassign a duplicate's photo to the surviving cat). Deleting a cat
+cleans its blob inline; merges and bulk/region deletes are swept up by the **Reclaim orphaned
+photos** admin action (`reconcileCatPhotos`), which diffs the bucket against live references.
+
 **Effective region** routing: a cat's sheet tab is its `COALESCE(cats.region_id override,
 most-recent session's region)`. The same rule drives the app display, sync routing, and
 summary sheets.
@@ -198,7 +204,8 @@ Administrator-only, organized like a settings page with three sections:
 - **Users & Access** — invite/remove people and change roles
 - **Regions** — add / rename / delete campus locations (also provisions each region's sheet)
 - **GSheet Config** — sync status + **Unfreeze**, **Provision Sheets** (structural repair),
-  **Seed UUIDs** (one-time cutover)
+  **Seed UUIDs** (one-time cutover), **Reclaim orphaned photos** (storage GC — deletes photo
+  files no cat record references)
 
 ---
 

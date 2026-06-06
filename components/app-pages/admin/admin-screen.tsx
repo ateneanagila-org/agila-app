@@ -231,11 +231,11 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
                     key={user.id}
                     className="flex items-center justify-between overflow-hidden rounded-2xl bg-white p-3.5 ring-1 ring-brand-dark/8"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="mb-0.5 font-bold tracking-tight text-brand-dark">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="mb-0.5 truncate font-bold tracking-tight text-brand-dark">
                         {user.profile_name || user.email}
                       </p>
-                      <p className="text-xs font-medium text-brand-dark/65">{user.email}</p>
+                      <p className="truncate text-xs font-medium text-brand-dark/65">{user.email}</p>
                     </div>
                     <div className="ml-2 flex shrink-0 items-center gap-2">
                       <RoleSelect user={user} />

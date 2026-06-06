@@ -258,16 +258,17 @@ export function SessionsCreateScreen() {
                   key={cat.id}
                   className="overflow-hidden rounded-2xl bg-brand-green"
                 >
-                  <div className="flex items-stretch">
+                  <div className="flex h-24 items-stretch">
                     <button
                       type="button"
                       onClick={() => setEditingCat(cat)}
-                      className="flex w-24 shrink-0 items-center justify-center overflow-hidden bg-white/10"
+                      className="relative aspect-square h-full shrink-0 overflow-hidden bg-white/10"
                     >
                       <CatPhoto
                         photoUrl={cat.photo_url}
                         name={cat.name}
-                        className="h-24 w-24 object-cover"
+                        fit="cover"
+                        className="absolute inset-0 h-full w-full"
                         iconClassName="h-10 w-10 text-white/40"
                       />
                     </button>
@@ -403,16 +404,17 @@ export function SessionsCreateScreen() {
                 key={`entry-${cat.id}`}
                 className="overflow-hidden rounded-2xl bg-brand-green ring-1 ring-brand-green"
               >
-                <div className="flex items-stretch">
+                <div className="flex h-24 items-stretch">
                   <button
                     type="button"
                     onClick={() => setEditingCat(cat)}
-                    className="flex w-24 shrink-0 items-center justify-center overflow-hidden bg-white/10"
+                    className="relative aspect-square h-full shrink-0 overflow-hidden bg-white/10"
                   >
                     <CatPhoto
                       photoUrl={cat.photo_url}
                       name={cat.name}
-                      className="h-24 w-24 object-cover"
+                      fit="cover"
+                      className="absolute inset-0 h-full w-full"
                       iconClassName="h-10 w-10 text-white/40"
                     />
                   </button>

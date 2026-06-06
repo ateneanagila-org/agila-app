@@ -423,6 +423,17 @@ identity-related, it asks you to confirm before running.
 > Seed touches cat identity and is a once-at-setup step. When in doubt, only use
 > **Provision**.
 
+### Reclaim orphaned photos
+
+Over time, deleting cats and merging duplicates can leave behind photo files in storage that
+no cat record uses anymore. **Reclaim orphaned photos** finds and deletes those leftover
+files, freeing up storage. It is **safe** — it only removes a photo that **no** cat points to,
+so a photo still shown anywhere in the app is never touched. It doesn't change any cat data.
+Because it deletes files, it asks you to confirm first, then reports how many it cleaned up.
+
+> Run it occasionally for housekeeping — say, after a big round of deletions or merges. There's
+> no harm in running it when there's nothing to clean (it'll just report "no orphans found").
+
 ---
 
 ---

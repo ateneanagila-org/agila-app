@@ -10,6 +10,10 @@ import {
 } from "../validation/cats";
 import { refreshCatInSyncQueue } from "./helper.service"; // Use the helper
 import { linkCatToSystemSession } from "./system-session.service";
+import {
+  photoStoragePath,
+  removeCatPhotoObjects,
+} from "./cat-photo-storage";
 import { AppError } from "../error/app-error";
 
 export const createCat = async (
@@ -132,10 +136,10 @@ export const editCat = async (data: EditCatSchema) => {
 };
 
 export const removeCat = async (data: RemoveCatSchema) => {
-  return await db.transaction(async (tx) => {
+  const deletedPhotoUrl = await db.transaction(async (tx) => {
     const region = await sessionsRepo.resolveCatRegion(data.id, tx);
 
-    await catsRepo.deleteCat(data.id, tx);
+    const [deleted] = await catsRepo.deleteCat(data.id, tx);
 
     if (region) {
       await tx.insert(gsheetSyncQueue).values({
@@ -146,6 +150,18 @@ export const removeCat = async (data: RemoveCatSchema) => {
       });
     }
 
-    return { success: true };
+    return deleted?.photo_url ?? null;
   });
+
+  // Best-effort, reference-aware storage cleanup AFTER commit. A merged cat's
+  // photo may now belong to a surviving target, so only remove an object no
+  // remaining cat references. Never throws — the GC sweep (reconcileCatPhotos)
+  // is the safety net for anything missed here.
+  const path = photoStoragePath(deletedPhotoUrl);
+  if (path) {
+    const stillReferenced = await catsRepo.findCatsReferencingPhotoPaths([path]);
+    if (stillReferenced.length === 0) await removeCatPhotoObjects([path]);
+  }
+
+  return { success: true };
 };

@@ -10,6 +10,7 @@ import {
   seedMissingUuidsAllRegions,
 } from "@/lib/services/helper.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
+import { reconcileCatPhotos } from "@/lib/services/photo-import.service";
 import {
   requireAuth,
   requireRole,
@@ -42,6 +43,16 @@ export async function provisionSheets() {
 export async function seedSheetUuids() {
   await requireRole(...ADMIN_ONLY);
   return await seedMissingUuidsAllRegions();
+}
+
+/**
+ * Storage GC — removes cat-photo blobs no live cats.photo_url references.
+ * Reference-aware (won't touch a photo a merge reassigned to a surviving cat).
+ * Safe to re-run.
+ */
+export async function reclaimOrphanedPhotos() {
+  await requireRole(...ADMIN_ONLY);
+  return await reconcileCatPhotos();
 }
 
 export async function getSyncStatus() {
