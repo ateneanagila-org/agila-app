@@ -292,7 +292,75 @@ describe("syncAndCompactRegion", () => {
     const uuidUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
       (c) => String(c[0].range).endsWith("!Y3"),
     )!;
-    expect(uuidUpdate[0].requestBody.values).toEqual([["u2"]]);
+    // Survivor u2, plus a blank for the slot u1 vacated (read length was 2).
+    expect(uuidUpdate[0].requestBody.values).toEqual([["u2"], [""]]);
+  });
+
+  it("blanks freed col-Y cells on shrink so no orphan UUID is stranded", async () => {
+    // 2 rows; delete the LAST one (u2) — the exact orphan-UUID scenario.
+    // col A:V is cleared before rewrite, but col Y is only update-written, so
+    // the freed Y slot must be padded blank, not left holding u2's UUID.
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "1", 2: "Anna", 24: "u1" }),
+          row({ 0: "2", 2: "Zoe", 24: "u2" }),
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ id: "t3", action: "DELETE", entityId: "u2" }),
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const uuidUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!Y3"),
+    )!;
+    // Survivor u1 plus a blank for the slot u2 vacated (read length was 2).
+    expect(uuidUpdate[0].requestBody.values).toEqual([["u1"], [""]]);
+  });
+
+  it("drops a UUID-only ghost row that has no A–V content (orphan cleanup)", async () => {
+    // A pre-existing orphan: col Y populated but A–V blank (left by the legacy
+    // un-padded write). It must be dropped from the data block AND its col-Y
+    // slot blanked, not re-written.
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({
+      data: {
+        values: [
+          row({ 0: "1", 2: "Anna", 24: "u1" }),
+          row({ 24: "u-orphan" }), // UUID only, no A–V content
+        ],
+      },
+    });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ entityId: "u1", payload: row({ 0: "x", 2: "Anna", 24: "u1" }) }),
+    ]);
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    expect(written).toHaveLength(1); // orphan dropped from data block
+    expect(written[0][2]).toBe("Anna");
+
+    const uuidUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!Y3"),
+    )!;
+    // Only u1 survives; the orphan's slot is blanked (read length was 2).
+    expect(uuidUpdate[0].requestBody.values).toEqual([["u1"], [""]]);
   });
 
   it("compacts blank-UUID rows out and sorts the rest by catalog number", async () => {
@@ -319,7 +387,8 @@ describe("syncAndCompactRegion", () => {
     const uuidUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
       (c) => String(c[0].range).endsWith("!Y3"),
     )!;
-    expect(uuidUpdate[0].requestBody.values).toEqual([["u1"], ["u2"]]); // Anna, then Zoe
+    // Anna, then Zoe; the dropped no-UUID ghost's slot is blanked (read len 3).
+    expect(uuidUpdate[0].requestBody.values).toEqual([["u1"], ["u2"], [""]]);
   });
 
   it("clears A3:V before writing and never writes W/X", async () => {
