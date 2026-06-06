@@ -339,7 +339,7 @@ pnpm drizzle-kit push
 
 ## Testing
 
-Tests live in `__tests__/` and run with Jest — **11 suites, 104 tests** at last run, all
+Tests live in `__tests__/` and run with Jest — **14 suites, 127 tests** at last run, all
 green. Coverage is concentrated on the **sync system and its supporting logic** (the riskiest,
 least-visible part of the app); UI is not unit-tested.
 
@@ -352,11 +352,14 @@ pnpm tsc --noEmit       # type-check (or `pnpm build`, which also checks types)
 | ------------------------------------------------- | -------------------------------------------------- |
 | Catalog ID parsing / next-ID / status suffix      | `services/catalog.service.test.ts`                 |
 | Reverse-sync row parsing & validation             | `validation/reverse-sync.test.ts`                  |
+| Reverse-sync status-change forward re-enqueue      | `services/reverse-sync.test.ts`                    |
 | Cat → sheet-row mapping                           | `services/helper-mappers.test.ts`                  |
 | Sheets API client (retry / pacing)                | `services/sheets-client.test.ts`                   |
 | Forward sync + compaction + ID backfill           | `services/forward-sync.test.ts`                    |
+| Sync-queue refresh (entry_status gate)            | `services/refresh-sync-queue.test.ts`              |
 | Region delete (empty / non-empty / force)         | `services/regions-delete.test.ts`                  |
 | Effective-region resolution (override vs session) | `repo/resolve-cat-region.test.ts`                  |
+| Latest-session-date lookup                        | `repo/sessions-repo.test.ts`                       |
 | Region-move routing & queue cleanup               | `services/cats-region-routing.test.ts`             |
 | Census / TNVR statistics                          | `stats/census-stats.test.ts`                       |
 | Cat & session actions                             | `actions/cats.test.ts`, `actions/sessions.test.ts` |
