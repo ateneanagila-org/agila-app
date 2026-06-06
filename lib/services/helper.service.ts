@@ -602,22 +602,29 @@ export async function generateForRiSheet(
           orderBy: (i, { desc }) => [desc(i.requested_at)],
         },
       },
-      where: (c, { exists, eq, and, or, isNull }) =>
-        or(
-          eq(c.region_id, region.id),
-          and(
-            isNull(c.region_id),
-            exists(
-              db
-                .select()
-                .from(sessionCats)
-                .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
-                .where(
-                  and(
-                    eq(sessions.region_id, region.id),
-                    eq(sessionCats.cat_id, c.id),
+      where: (c, { exists, eq, and, or, isNull, notInArray }) =>
+        and(
+          eq(c.entry_status, "Original"),
+          or(
+            isNull(c.cat_status),
+            notInArray(c.cat_status, ["Adopted", "Deceased", "MIA"]),
+          ),
+          or(
+            eq(c.region_id, region.id),
+            and(
+              isNull(c.region_id),
+              exists(
+                db
+                  .select()
+                  .from(sessionCats)
+                  .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+                  .where(
+                    and(
+                      eq(sessions.region_id, region.id),
+                      eq(sessionCats.cat_id, c.id),
+                    ),
                   ),
-                ),
+              ),
             ),
           ),
         ),
@@ -736,6 +743,7 @@ export async function generateForFaSheet(
       with: { catHealthRecords: true },
       where: (c, { eq, and, or, exists, isNull }) =>
         and(
+          eq(c.entry_status, "Original"),
           eq(c.is_adoptable, true),
           isNull(c.cat_status),
           or(
