@@ -16,7 +16,10 @@ import { getAdoptableCats } from "@/app/actions/cats";
 import type { SelectCat } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
-import { PUBLIC_CATALOG_CONFIG, withCatRegionOptions } from "@/lib/hooks/filter-sort-configs";
+import {
+  PUBLIC_CATALOG_CONFIG,
+  withCatRegionOptions,
+} from "@/lib/hooks/filter-sort-configs";
 import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
 export function CatalogScreen() {
@@ -129,9 +132,9 @@ export function CatalogScreen() {
             onClick={openFilterDialog}
             className="flex shrink-0 items-center gap-1 rounded-xl bg-brand-orange px-3 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90 tablet:gap-1.5 tablet:px-4 tablet:text-sm"
           >
-            {activeFilterCount > 0
-              ? <span className="tablet:hidden">{activeFilterCount}</span>
-              : null}
+            {activeFilterCount > 0 ? (
+              <span className="tablet:hidden">{activeFilterCount}</span>
+            ) : null}
             <SlidersHorizontal className="h-4 w-4 tablet:hidden" />
             <span className="hidden tablet:inline">
               Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
