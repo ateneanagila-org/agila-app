@@ -1,6 +1,7 @@
 "use server";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as repo from "@/lib/repo/cats.repo";
+import * as interventionsRepo from "@/lib/repo/interventions.repo";
 import * as service from "@/lib/services/cats.service";
 import {
   requireAuth,
@@ -29,6 +30,25 @@ export const getCats = actionClient
   .action(async ({ parsedInput }) => {
     await requireAuth();
     return await repo.findCats(parsedInput);
+  });
+
+// Single-call cat detail loader. Authenticates ONCE then fans out the three
+// detail queries in parallel server-side — replaces 3 separate client actions
+// that each re-validated the JWT against the auth server on every navigation.
+export const getCatDetail = actionClient
+  .schema(z.object({ id: z.string().uuid() }))
+  .action(async ({ parsedInput: { id } }) => {
+    await requireAuth();
+    const [catRows, healthRecords, interventions] = await Promise.all([
+      repo.findCats({ id }),
+      repo.findCatHealthRecords({ cat_id: id }),
+      interventionsRepo.findInterventions({ cat_id: id }),
+    ]);
+    return {
+      cat: catRows[0] ?? null,
+      healthRecord: healthRecords[0] ?? null,
+      interventions,
+    };
   });
 
 export const editCat = actionClient

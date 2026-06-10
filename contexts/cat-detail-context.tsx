@@ -9,11 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  getCats,
-  getCatHealthRecords,
-} from "@/app/actions/cats";
-import { getInterventions } from "@/app/actions/interventions";
+import { getCatDetail } from "@/app/actions/cats";
 import type {
   SelectCatHealthRecord,
 } from "@/lib/validation/cats";
@@ -48,21 +44,15 @@ export function CatDetailProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const [catRes, hrRes, intRes] = await Promise.all([
-        getCats({ id }),
-        getCatHealthRecords({ cat_id: id }),
-        getInterventions({ cat_id: id }),
-      ]);
-      if (catRes?.data && catRes.data.length > 0) {
-        setCat(catRes.data[0]);
+      const res = await getCatDetail({ id });
+      if (res?.data?.cat) {
+        setCat(res.data.cat);
       } else {
         setCat(null);
         setError("Cat not found.");
       }
-      setHealthRecord(
-        hrRes?.data && hrRes.data.length > 0 ? hrRes.data[0] : null,
-      );
-      setInterventions(intRes?.data ?? []);
+      setHealthRecord(res?.data?.healthRecord ?? null);
+      setInterventions(res?.data?.interventions ?? []);
     } catch (err) {
       console.error("Failed to load cat detail:", err);
       setError(err instanceof Error ? err.message : "Failed to load cat.");
