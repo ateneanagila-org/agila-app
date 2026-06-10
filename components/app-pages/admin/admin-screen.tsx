@@ -65,7 +65,7 @@ type AdminScreenProps = {
   initialSyncStatus: { frozen: boolean | null; reason: string | null };
 };
 
-const USER_PAGE_SIZE = 5;
+const USER_PAGE_SIZE = 10;
 
 export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
@@ -249,32 +249,57 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
             ) : searchedUsers.length === 0 ? (
               <div className="py-8 text-center text-sm text-brand-dark/50">No users found.</div>
             ) : (
-              <div className="space-y-2">
-                {searchedUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between overflow-hidden rounded-2xl bg-white p-3.5 ring-1 ring-brand-dark/8"
-                  >
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                      <p className="mb-0.5 truncate font-bold tracking-tight text-brand-dark">
-                        {user.profile_name || user.email}
-                      </p>
-                      <p className="truncate text-xs font-medium text-brand-dark/65">{user.email}</p>
+              <>
+                <div className="space-y-2">
+                  {pagedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between overflow-hidden rounded-2xl bg-white p-3.5 ring-1 ring-brand-dark/8"
+                    >
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <p className="mb-0.5 truncate font-bold tracking-tight text-brand-dark">
+                          {user.profile_name || user.email}
+                        </p>
+                        <p className="truncate text-xs font-medium text-brand-dark/65">{user.email}</p>
+                      </div>
+                      <div className="ml-2 flex shrink-0 items-center gap-2">
+                        <RoleSelect user={user} onRoleChange={handleRoleChange} />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(user.id)}
+                          className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm transition-opacity hover:opacity-90"
+                          aria-label="Delete user"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="ml-2 flex shrink-0 items-center gap-2">
-                      <RoleSelect user={user} onRoleChange={handleRoleChange} />
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(user.id)}
-                        className="flex h-7 w-8 items-center justify-center rounded-lg bg-brand-dark text-white shadow-sm transition-opacity hover:opacity-90"
-                        aria-label="Delete user"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+                  ))}
+                </div>
+                {totalUserPages > 1 && (
+                  <div className="mt-3 flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      disabled={safeUserPage === 0}
+                      onClick={() => setUserPage(safeUserPage - 1)}
+                      className="text-xs font-semibold text-brand-dark/60 hover:text-brand-dark disabled:opacity-30"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-xs text-brand-dark/40">
+                      {safeUserPage + 1} / {totalUserPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={safeUserPage >= totalUserPages - 1}
+                      onClick={() => setUserPage(safeUserPage + 1)}
+                      className="text-xs font-semibold text-brand-dark/60 hover:text-brand-dark disabled:opacity-30"
+                    >
+                      Next →
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
 
@@ -440,7 +465,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
         open={showSearch}
         onClose={() => setShowSearch(false)}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => { setSearch(value); setUserPage(0); }}
       />
       <DeleteUserDialog
         open={showDeleteConfirm}
