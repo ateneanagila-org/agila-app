@@ -141,7 +141,12 @@ export const removeCat = async (data: RemoveCatSchema) => {
 
     const [deleted] = await catsRepo.deleteCat(data.id, tx);
 
-    if (region) {
+    // Only Original cats ever reached the regional sheet (see the Original-only
+    // gate in refreshCatInSyncQueue). Queueing a DELETE for a never-synced draft
+    // is a no-op on the sheet but still a PENDING task — and any PENDING task
+    // wakes an otherwise-idle cron into a full sync+compact+summary-regen pass
+    // (see syncAllPendingRegions' early-exit). Gate it to avoid that waste.
+    if (region && deleted?.entry_status === "Original") {
       await tx.insert(gsheetSyncQueue).values({
         action: "DELETE",
         entityId: data.id,
