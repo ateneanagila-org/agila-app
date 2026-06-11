@@ -2,6 +2,7 @@ import { db } from "../db";
 import { cats, sessionCats, sessions } from "../db/schema";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import * as sessionsRepo from "../repo/sessions.repo";
+import * as regionsRepo from "../repo/regions.repo";
 import {
   CreateSessionCatSchema,
   CreateSessionSchema,
@@ -36,6 +37,29 @@ export const createSession = async (data: CreateSessionSchema) => {
 
     return newSession;
   });
+};
+
+/**
+ * Single-round-trip loader for the create form: the session, its region's
+ * display name, and all its cats (region-resolved) shaped as { cat, sessionCatId }.
+ * Returns null when the session is missing. Replaces the client-side
+ * getSessionCats + N×getCats waterfall.
+ */
+export const getSessionWithCats = async (sessionId: string) => {
+  const session = await sessionsRepo.findSessionById(sessionId);
+  if (!session) return null;
+
+  const region = session.region_id
+    ? await regionsRepo.findRegionById(session.region_id)
+    : null;
+
+  const rows = await sessionsRepo.findSessionCatsWithCats(sessionId);
+  const cats = rows.map(({ session_cat_id, ...cat }) => ({
+    cat,
+    sessionCatId: session_cat_id,
+  }));
+
+  return { session, regionName: region?.name ?? null, cats };
 };
 
 /**
@@ -93,7 +117,7 @@ export const createSessionCat = async (data: CreateSessionCatSchema) => {
 
     const newCat = await createCat(newCatData);
 
-    await sessionsRepo.insertSessionCat(
+    const [join] = await sessionsRepo.insertSessionCat(
       {
         session_id: session_id,
         cat_id: newCat.id,
@@ -101,7 +125,7 @@ export const createSessionCat = async (data: CreateSessionCatSchema) => {
       tx,
     );
 
-    return newCat;
+    return { cat: newCat, sessionCatId: join.id };
   });
 };
 

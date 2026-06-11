@@ -3,6 +3,7 @@ import { sessions, sessionCats, sessionUsers, cats } from "../db/schema";
 import { eq, and, desc, ne, notExists, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { createEQFilters } from "./helper.repo";
+import { catReadColumns, regionSubquery, type CatWithRegion } from "./cats.repo";
 import {
   InsertSession,
   InsertSessionCat,
@@ -97,10 +98,28 @@ export const findSessionCats = (filters: Partial<SelectSessionCat>) =>
   });
 
 export const insertSessionCat = (data: InsertSessionCat, client: DB = db) =>
-  client.insert(sessionCats).values(data);
+  client.insert(sessionCats).values(data).returning({ id: sessionCats.id });
 
 export const deleteSessionCat = (id: string, client: DB = db) =>
   client.delete(sessionCats).where(eq(sessionCats.id, id));
+
+export type SessionCatRow = CatWithRegion & { session_cat_id: string };
+
+// All cats in a session, region-resolved, with their join-row id — in one query.
+// Replaces the client's getSessionCats + N×getCats waterfall on the create form.
+export const findSessionCatsWithCats = (
+  sessionId: string,
+  client: DB = db,
+): Promise<SessionCatRow[]> =>
+  client
+    .select({
+      ...catReadColumns,
+      region_name: regionSubquery,
+      session_cat_id: sessionCats.id,
+    })
+    .from(sessionCats)
+    .innerJoin(cats, eq(cats.id, sessionCats.cat_id))
+    .where(eq(sessionCats.session_id, sessionId));
 
 // The cat behind this join row IF removing it would fully orphan the cat: still
 // Unsubmitted and in no OTHER session (any join row besides this one). Returns

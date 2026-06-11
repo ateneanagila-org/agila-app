@@ -66,7 +66,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockInsertSession.mockResolvedValue([{ id: "s1", region_id: "R-1" }]);
   mockInsertSessionUser.mockResolvedValue(undefined);
-  mockInsertSessionCat.mockResolvedValue(undefined);
+  mockInsertSessionCat.mockResolvedValue([{ id: "sc1" }]);
   mockCreateCat.mockResolvedValue({ id: "c1", name: "Pesto" });
   mockDeleteSession.mockResolvedValue(undefined);
   mockDeleteSessionCat.mockResolvedValue(undefined);
@@ -146,9 +146,12 @@ describe("createSessionCat", () => {
     dbTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) => cb({}));
   });
 
-  it("returns the newly created cat", async () => {
+  it("returns the created cat with its session-cat join id", async () => {
     const result = await createSessionCat({ session_id: "s1", name: "Mango" } as never);
-    expect(result).toEqual({ id: "c1", name: "Pesto" });
+    expect(result).toEqual({
+      cat: { id: "c1", name: "Pesto" },
+      sessionCatId: "sc1",
+    });
   });
 
   it("links the cat to the session", async () => {
