@@ -3,6 +3,7 @@ import { sessions, sessionCats, sessionUsers, cats } from "../db/schema";
 import { eq, and, desc, ne, notExists, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { createEQFilters } from "./helper.repo";
+import { catReadColumns, regionSubquery, type CatWithRegion } from "./cats.repo";
 import {
   InsertSession,
   InsertSessionCat,
@@ -29,6 +30,25 @@ export const findSessions = (filters: Partial<SelectSession>) =>
 
 export const insertSession = (data: InsertSession, client: DB = db) =>
   client.insert(sessions).values(data).returning();
+
+export const findSessionById = (id: string, client: DB = db) =>
+  client.query.sessions.findFirst({
+    where: (s, { eq }) => eq(s.id, id),
+  });
+
+// is_finished of the session a given session_cat join row belongs to. Used to
+// reject mutations against an already-submitted (finished) session without a
+// second round-trip beyond this one indexed lookup.
+export const findSessionForSessionCat = (
+  sessionCatId: string,
+  client: DB = db,
+): Promise<{ is_finished: boolean | null } | undefined> =>
+  client
+    .select({ is_finished: sessions.is_finished })
+    .from(sessionCats)
+    .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+    .where(eq(sessionCats.id, sessionCatId))
+    .then((rows) => rows[0]);
 
 export const updateSession = (id: string, data: Partial<InsertSession>) =>
   db
@@ -78,10 +98,28 @@ export const findSessionCats = (filters: Partial<SelectSessionCat>) =>
   });
 
 export const insertSessionCat = (data: InsertSessionCat, client: DB = db) =>
-  client.insert(sessionCats).values(data);
+  client.insert(sessionCats).values(data).returning({ id: sessionCats.id });
 
 export const deleteSessionCat = (id: string, client: DB = db) =>
   client.delete(sessionCats).where(eq(sessionCats.id, id));
+
+export type SessionCatRow = CatWithRegion & { session_cat_id: string };
+
+// All cats in a session, region-resolved, with their join-row id — in one query.
+// Replaces the client's getSessionCats + N×getCats waterfall on the create form.
+export const findSessionCatsWithCats = (
+  sessionId: string,
+  client: DB = db,
+): Promise<SessionCatRow[]> =>
+  client
+    .select({
+      ...catReadColumns,
+      region_name: regionSubquery,
+      session_cat_id: sessionCats.id,
+    })
+    .from(sessionCats)
+    .innerJoin(cats, eq(cats.id, sessionCats.cat_id))
+    .where(eq(sessionCats.session_id, sessionId));
 
 // The cat behind this join row IF removing it would fully orphan the cat: still
 // Unsubmitted and in no OTHER session (any join row besides this one). Returns

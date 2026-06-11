@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Pencil } from "lucide-react";
-import { ChevronDownIcon, TrashIcon } from "@/components/app-pages/shared/icons";
+import { ChevronDownIcon, CloseIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
@@ -238,6 +238,52 @@ export function DeleteSessionDialog({ open, onClose, onConfirm, isLoading }: Del
           className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isLoading ? "Discarding..." : "Discard"} <TrashIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Remove Cat Dialog ────────────────────────────────────────────────────────
+
+type RemoveCatDialogProps = {
+  open: boolean;
+  catName: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+};
+
+export function RemoveCatDialog({
+  open,
+  catName,
+  onClose,
+  onConfirm,
+  isLoading,
+}: RemoveCatDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="Remove cat?" onClose={onClose} />
+      <p className="text-sm text-foreground">
+        {catName ? `“${catName}” will be` : "This entry will be"} permanently
+        removed from the session. This action cannot be undone.
+      </p>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
+          Cancel <CloseIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {isLoading ? "Removing..." : "Remove"} <TrashIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>

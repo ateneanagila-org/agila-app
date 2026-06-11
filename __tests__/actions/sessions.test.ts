@@ -6,6 +6,8 @@ jest.mock("@/lib/repo/sessions.repo", () => ({
   deleteSessionCat: jest.fn(),
   findOrphanCatsForSessionDelete: jest.fn(),
   findOrphanCatForSessionCatDelete: jest.fn(),
+  findSessionById: jest.fn(),
+  findSessionForSessionCat: jest.fn(),
 }));
 jest.mock("@/lib/services/cats.service", () => ({
   createCat: jest.fn(),
@@ -34,6 +36,8 @@ const mockDeleteSession = sessionsRepo.deleteSession as jest.Mock;
 const mockDeleteSessionCat = sessionsRepo.deleteSessionCat as jest.Mock;
 const mockFindOrphansForSession = sessionsRepo.findOrphanCatsForSessionDelete as jest.Mock;
 const mockFindOrphanForSessionCat = sessionsRepo.findOrphanCatForSessionCatDelete as jest.Mock;
+const mockFindSessionById = sessionsRepo.findSessionById as jest.Mock;
+const mockFindSessionForSessionCat = sessionsRepo.findSessionForSessionCat as jest.Mock;
 const mockCreateCat = createCat as jest.Mock;
 const mockRemoveCat = removeCat as jest.Mock;
 const dbTransaction = db.transaction as jest.Mock;
@@ -62,12 +66,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockInsertSession.mockResolvedValue([{ id: "s1", region_id: "R-1" }]);
   mockInsertSessionUser.mockResolvedValue(undefined);
-  mockInsertSessionCat.mockResolvedValue(undefined);
+  mockInsertSessionCat.mockResolvedValue([{ id: "sc1" }]);
   mockCreateCat.mockResolvedValue({ id: "c1", name: "Pesto" });
   mockDeleteSession.mockResolvedValue(undefined);
   mockDeleteSessionCat.mockResolvedValue(undefined);
   mockFindOrphansForSession.mockResolvedValue([]);
   mockFindOrphanForSessionCat.mockResolvedValue([]);
+  mockFindSessionById.mockResolvedValue({ id: "s1", is_finished: false });
+  mockFindSessionForSessionCat.mockResolvedValue({ is_finished: false });
   mockRemoveCat.mockResolvedValue({ success: true });
 });
 
@@ -118,6 +124,21 @@ describe("finishSession", () => {
     // update called once: only sessions mark-finished
     expect(tx.update).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects a re-submit of an already-finished session", async () => {
+    // Conditional UPDATE matches no row (already finished / missing) => [] back.
+    const returningFn = jest.fn().mockResolvedValue([]);
+    const update = jest.fn(() => ({
+      set: jest.fn(() => ({ where: jest.fn(() => ({ returning: returningFn })) })),
+    }));
+    dbTransaction.mockImplementationOnce(async (cb: (tx: unknown) => unknown) =>
+      cb({ update }),
+    );
+
+    await expect(finishSession("s1")).rejects.toThrow(/already submitted/);
+    // Only the mark-finished update ran; the cats flip was never reached.
+    expect(update).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("createSessionCat", () => {
@@ -125,9 +146,12 @@ describe("createSessionCat", () => {
     dbTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) => cb({}));
   });
 
-  it("returns the newly created cat", async () => {
+  it("returns the created cat with its session-cat join id", async () => {
     const result = await createSessionCat({ session_id: "s1", name: "Mango" } as never);
-    expect(result).toEqual({ id: "c1", name: "Pesto" });
+    expect(result).toEqual({
+      cat: { id: "c1", name: "Pesto" },
+      sessionCatId: "sc1",
+    });
   });
 
   it("links the cat to the session", async () => {
@@ -136,6 +160,17 @@ describe("createSessionCat", () => {
       expect.objectContaining({ session_id: "s1", cat_id: "c1" }),
       expect.anything(),
     );
+  });
+
+  it("rejects adding a cat to an already-finished session", async () => {
+    mockFindSessionById.mockResolvedValueOnce({ id: "s1", is_finished: true });
+
+    await expect(
+      createSessionCat({ session_id: "s1", name: "Mango" } as never),
+    ).rejects.toThrow(/already submitted/);
+    // No dangling draft: neither the cat nor the join row was created.
+    expect(mockCreateCat).not.toHaveBeenCalled();
+    expect(mockInsertSessionCat).not.toHaveBeenCalled();
   });
 });
 
@@ -186,5 +221,15 @@ describe("removeSessionCat", () => {
     expect(mockRemoveCat).not.toHaveBeenCalled();
     expect(mockDeleteSessionCat).toHaveBeenCalledWith("sc1");
     expect(result).toEqual({ success: true, deletedCats: 0 });
+  });
+
+  it("rejects removing a cat from an already-finished session", async () => {
+    mockFindSessionForSessionCat.mockResolvedValueOnce({ is_finished: true });
+
+    await expect(removeSessionCat("sc1")).rejects.toThrow(/already submitted/);
+    // Neither the cat nor the join row is touched (the cat is now in review).
+    expect(mockRemoveCat).not.toHaveBeenCalled();
+    expect(mockDeleteSessionCat).not.toHaveBeenCalled();
+    expect(mockFindOrphanForSessionCat).not.toHaveBeenCalled();
   });
 });

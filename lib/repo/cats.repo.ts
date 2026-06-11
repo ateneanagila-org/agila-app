@@ -13,7 +13,7 @@ export type CatWithRegion = SelectCat & { region_name: string | null };
 
 // Region name resolution: cats.region_id (manual override) takes priority,
 // otherwise fall back to the most recent session's region.
-const regionSubquery = sql<string | null>`COALESCE(
+export const regionSubquery = sql<string | null>`COALESCE(
   (SELECT r2.name FROM regions r2 WHERE r2.id = cats.region_id),
   (SELECT r.name FROM regions r
     INNER JOIN sessions s ON s.region_id = r.id
@@ -26,7 +26,7 @@ const regionSubquery = sql<string | null>`COALESCE(
 // Live Supabase may not have the sync-only catalog_id/paws_id columns yet.
 // Keep read queries explicit so user-facing pages do not fail when those
 // optional sync columns are absent.
-const catReadColumns = {
+export const catReadColumns = {
   id: cats.id,
   merged_into_id: cats.merged_into_id,
   region_id: cats.region_id,

@@ -3,40 +3,65 @@
 import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PlusIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
   DeleteSessionDialog,
   FinishSessionDialog,
+  RemoveCatDialog,
 } from "@/components/app-pages/sessions/session-dialogs";
 import {
-  getSessionCats,
-  getSessions,
+  getSessionWithCats,
   editSession,
   removeSession,
   removeSessionCat,
 } from "@/app/actions/sessions";
-import { getCats, removeCat } from "@/app/actions/cats";
-import { listRegions } from "@/app/actions/regions";
 import type { SelectCat } from "@/lib/validation/cats";
-import type { SelectSessionCat } from "@/lib/validation/sessions";
 
 type SessionCatEntry = { cat: SelectCat; sessionCatId: string };
 
-export function SessionsCreateScreen() {
-  const searchParams = useSearchParams();
-  const existingSessionId = searchParams.get("sessionId");
+export type CreateSessionInitialData = {
+  session: {
+    id: string;
+    census_no: number | null;
+    region_id: string;
+    is_finished: boolean | null;
+  };
+  regionName: string | null;
+  cats: SessionCatEntry[];
+} | null;
 
-  const [sessionId, setSessionId] = useState<string | null>(existingSessionId);
-  const [censusNo, setCensusNo] = useState<number | null>(null);
-  const [selectedRegionId, setSelectedRegionId] = useState("");
-  const [selectedRegionName, setSelectedRegionName] = useState("");
-  const [cats, setCats] = useState<SessionCatEntry[]>([]);
+type SessionsCreateScreenProps = {
+  sessionId: string | null;
+  initialData: CreateSessionInitialData;
+};
+
+export function SessionsCreateScreen({
+  sessionId: initialSessionId,
+  initialData,
+}: SessionsCreateScreenProps) {
+  const router = useRouter();
+
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
+  const [censusNo, setCensusNo] = useState<number | null>(
+    initialData?.session.census_no ?? null,
+  );
+  const [selectedRegionId, setSelectedRegionId] = useState(
+    initialData?.session.region_id ?? "",
+  );
+  const [selectedRegionName, setSelectedRegionName] = useState(
+    initialData?.regionName ?? "",
+  );
+  const [cats, setCats] = useState<SessionCatEntry[]>(initialData?.cats ?? []);
   const [removingCatId, setRemovingCatId] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<SessionCatEntry | null>(
+    null,
+  );
   const [editingCat, setEditingCat] = useState<SelectCat | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Full-screen spinner only when nothing was server-seeded.
+  const [loading, setLoading] = useState(!initialData && !!initialSessionId);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
@@ -44,75 +69,58 @@ export function SessionsCreateScreen() {
   const [discarding, setDiscarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Fetch session cats and resolve to full cat objects */
-  const fetchSessionCats = useCallback(async (sid: string) => {
+  /** Single-call (re)load of the whole session: session + region + cats. */
+  const loadSession = useCallback(async (sid: string, showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
-      const scResult = await getSessionCats({ session_id: sid });
-      const sessionCats = scResult?.data ?? [];
-      if (sessionCats.length === 0) {
-        setCats([]);
+      const result = await getSessionWithCats({ session_id: sid });
+      const data = result?.data;
+      if (!data) {
+        setError("Session not found.");
         return;
       }
-      const catPromises = sessionCats.map((sc: SelectSessionCat) =>
-        getCats({ id: sc.cat_id }),
-      );
-      const catResults = await Promise.all(catPromises);
-      const entries: SessionCatEntry[] = catResults
-        .map((r, i) => {
-          const cat = r?.data?.[0] as SelectCat | undefined;
-          if (!cat) return null;
-          return { cat, sessionCatId: sessionCats[i].id };
-        })
-        .filter((e): e is SessionCatEntry => e !== null);
-      setCats(entries);
+      if (data.session.is_finished) {
+        // Submitted sessions are immutable. Bounce back instead of rendering a
+        // stale, editable form (covers the back-button / bfcache return path).
+        window.location.replace("/dashboard/sessions");
+        return;
+      }
+      setError(null);
+      setSessionId(data.session.id);
+      setCensusNo(data.session.census_no);
+      setSelectedRegionId(data.session.region_id);
+      setSelectedRegionName(data.regionName ?? "Unknown Location");
+      setCats(data.cats as SessionCatEntry[]);
     } catch (err) {
-      console.error("Failed to fetch session cats:", err);
+      setError(err instanceof Error ? err.message : "Failed to load session.");
+    } finally {
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
-  const hydrateExistingSession = useCallback(
-    async (sid: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [sessionResult, regionsResult] = await Promise.all([
-          getSessions({ id: sid }),
-          listRegions({}),
-        ]);
-        const existing = sessionResult?.data?.[0];
-        if (!existing) {
-          setError("Session not found.");
-          return;
-        }
-        setSessionId(existing.id);
-        setCensusNo(existing.census_no);
-        setSelectedRegionId(existing.region_id);
-        const regionName =
-          (regionsResult?.data ?? []).find((r) => r.id === existing.region_id)
-            ?.name ?? "Unknown Location";
-        setSelectedRegionName(regionName);
-        await fetchSessionCats(existing.id);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load session.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchSessionCats],
-  );
-
-  /** Load existing session data if we have a sessionId */
+  // First load only when the server did NOT seed data (e.g. soft client nav).
   useEffect(() => {
-    if (existingSessionId) {
-      hydrateExistingSession(existingSessionId);
+    if (initialSessionId && !initialData) {
+      loadSession(initialSessionId, true);
     }
-  }, [existingSessionId, hydrateExistingSession]);
+  }, [initialSessionId, initialData, loadSession]);
+
+  // bfcache: clicking "back" can restore this screen from memory without re-running
+  // the load effect, leaving a stale (possibly now-submitted) form. Re-hydrate on
+  // restore so the is_finished redirect fires.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && initialSessionId) {
+        loadSession(initialSessionId);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [initialSessionId, loadSession]);
 
   const handleDiscard = useCallback(async () => {
     if (!sessionId) {
-      window.location.href = "/dashboard/sessions";
+      router.push("/dashboard/sessions");
       return;
     }
     setDiscarding(true);
@@ -123,7 +131,7 @@ export function SessionsCreateScreen() {
         setError(result.serverError);
         return;
       }
-      window.location.href = "/dashboard/sessions";
+      router.push("/dashboard/sessions");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to discard session.",
@@ -131,7 +139,7 @@ export function SessionsCreateScreen() {
     } finally {
       setDiscarding(false);
     }
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   const handleSubmitSession = useCallback(async () => {
     if (!sessionId) return;
@@ -146,8 +154,7 @@ export function SessionsCreateScreen() {
         setError(result.serverError);
         return;
       }
-      // Navigate back
-      window.location.href = "/dashboard/sessions";
+      router.push("/dashboard/sessions");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to submit session.",
@@ -155,7 +162,16 @@ export function SessionsCreateScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [sessionId]);
+  }, [sessionId, router]);
+
+  // Empty sessions should not land in the manager review queue silently.
+  const handleFinishClick = useCallback(() => {
+    if (cats.length === 0) {
+      setError("Add at least one cat before finishing the session.");
+      return;
+    }
+    setShowFinish(true);
+  }, [cats.length]);
 
   const handleOpenAddForm = useCallback(() => {
     if (!sessionId) {
@@ -165,25 +181,57 @@ export function SessionsCreateScreen() {
     setShowAddForm(true);
   }, [sessionId]);
 
-  const handleCatSaved = useCallback(() => {
-    if (sessionId) {
-      fetchSessionCats(sessionId);
-    }
-  }, [sessionId, fetchSessionCats]);
-
-  const handleRemoveCat = useCallback(
-    async (sessionCatId: string, catId: string) => {
-      setRemovingCatId(sessionCatId);
-      try {
-        await removeSessionCat.bind(null, sessionCatId)();
-        await removeCat({ id: catId });
-        if (sessionId) await fetchSessionCats(sessionId);
-      } finally {
-        setRemovingCatId(null);
+  // Optimistic add: append the returned entry immediately (card shows before the
+  // photo finishes uploading), then reconcile in the background to pick up the
+  // canonical row (incl. photo_url). Edit/no-entry calls just reconcile.
+  const handleCatSaved = useCallback(
+    (added?: SessionCatEntry) => {
+      if (added) {
+        setCats((prev) =>
+          prev.some((c) => c.sessionCatId === added.sessionCatId)
+            ? prev
+            : [...prev, added],
+        );
       }
+      if (sessionId) loadSession(sessionId);
     },
-    [sessionId, fetchSessionCats],
+    [sessionId, loadSession],
   );
+
+  const handleConfirmRemove = useCallback(async () => {
+    const entry = pendingRemove;
+    if (!entry) return;
+    setRemovingCatId(entry.sessionCatId);
+    setError(null);
+    // Optimistic: drop it now; restore on failure.
+    setCats((prev) => prev.filter((c) => c.sessionCatId !== entry.sessionCatId));
+    setPendingRemove(null);
+    try {
+      const result = await removeSessionCat.bind(null, entry.sessionCatId)();
+      if (result?.serverError) {
+        // Guard rejected (e.g. session already submitted) — restore the row.
+        setCats((prev) =>
+          prev.some((c) => c.sessionCatId === entry.sessionCatId)
+            ? prev
+            : [...prev, entry],
+        );
+        setError(result.serverError);
+        return;
+      }
+      // removeSessionCat already hard-deletes the now-orphaned Unsubmitted cat
+      // server-side (blob + sheet row included); no extra removeCat call here.
+      if (sessionId) await loadSession(sessionId);
+    } catch (err) {
+      setCats((prev) =>
+        prev.some((c) => c.sessionCatId === entry.sessionCatId)
+          ? prev
+          : [...prev, entry],
+      );
+      setError(err instanceof Error ? err.message : "Failed to remove cat.");
+    } finally {
+      setRemovingCatId(null);
+    }
+  }, [pendingRemove, sessionId, loadSession]);
 
   const sexSymbol = (s: string | null | undefined): string | null => {
     if (s === "Male") return "♂";
@@ -228,7 +276,7 @@ export function SessionsCreateScreen() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowFinish(true)}
+                  onClick={handleFinishClick}
                   className="flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
                 >
                   Finish ›
@@ -292,7 +340,7 @@ export function SessionsCreateScreen() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleRemoveCat(sessionCatId, cat.id)}
+                      onClick={() => setPendingRemove({ cat, sessionCatId })}
                       disabled={removingCatId === sessionCatId}
                       className="flex w-10 shrink-0 items-center justify-center bg-brand-dark/20 transition-colors hover:bg-red-500/70 disabled:opacity-40"
                       aria-label="Remove cat from session"
@@ -375,7 +423,7 @@ export function SessionsCreateScreen() {
               <button
                 type="button"
                 disabled={submitting}
-                onClick={handleSubmitSession}
+                onClick={handleFinishClick}
                 className="rounded-full bg-brand-orange px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? "Submitting..." : "Submit"}
@@ -453,7 +501,7 @@ export function SessionsCreateScreen() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRemoveCat(sessionCatId, cat.id)}
+                    onClick={() => setPendingRemove({ cat, sessionCatId })}
                     disabled={removingCatId === sessionCatId}
                     className="flex w-12 shrink-0 items-center justify-center bg-brand-dark/20 transition-colors hover:bg-red-500/70 disabled:opacity-40"
                     aria-label="Remove cat from session"
@@ -479,6 +527,14 @@ export function SessionsCreateScreen() {
         onClose={() => setShowDiscard(false)}
         onConfirm={handleDiscard}
         isLoading={discarding}
+      />
+
+      <RemoveCatDialog
+        open={pendingRemove !== null}
+        catName={pendingRemove?.cat.name ?? null}
+        onClose={() => setPendingRemove(null)}
+        onConfirm={handleConfirmRemove}
+        isLoading={removingCatId !== null}
       />
 
       {showAddForm ? (

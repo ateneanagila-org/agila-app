@@ -37,6 +37,15 @@ export const getSessions = actionClient
     return await repo.findSessions(parsedInput);
   });
 
+// Single authed call returning the session, its region name, and all its cats.
+// Replaces getSessionCats + per-cat getCats on the create form (kills the N+1).
+export const getSessionWithCats = actionClient
+  .schema(z.object({ session_id: z.string().uuid() }))
+  .action(async ({ parsedInput }) => {
+    await requireAuth();
+    return await service.getSessionWithCats(parsedInput.session_id);
+  });
+
 export const editSession = actionClient
   .schema(editSessionSchema)
   .bindArgsSchemas([z.string().uuid()])

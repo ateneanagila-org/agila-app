@@ -45,8 +45,9 @@ function neuteredToValue(s: string): boolean | null {
 
 type CatEntryFormProps = {
   onClose: () => void;
-  /** Called after successful save — parent can re-fetch data */
-  onSave?: () => void;
+  /** Called after a successful save. For a NEW session cat, receives the created
+   *  entry so the parent can append it optimistically; undefined otherwise. */
+  onSave?: (added?: { cat: SelectCat; sessionCatId: string }) => void;
   /** Pre-selected region ID. If provided, region dropdown is hidden. */
   regionId?: string;
   /** If provided, entry will be created under this session via createSessionCat. */
@@ -226,6 +227,7 @@ export function CatEntryForm({
       }
 
       let newCatId: string | undefined = savedCatId ?? undefined;
+      let addedEntry: { cat: SelectCat; sessionCatId: string } | undefined;
 
       // Skip cat-create when retrying after a photo-upload failure.
       if (!newCatId) {
@@ -253,7 +255,11 @@ export function CatEntryForm({
             return;
           }
           if (result?.data) {
-            newCatId = result.data.id;
+            newCatId = result.data.cat.id;
+            addedEntry = {
+              cat: result.data.cat as SelectCat,
+              sessionCatId: result.data.sessionCatId,
+            };
           }
         } else {
           const result = await createCat(payload);
@@ -269,7 +275,8 @@ export function CatEntryForm({
 
         if (newCatId) setSavedCatId(newCatId);
         // Refresh parent list so the cat appears even if photo retry fails.
-        onSave?.();
+        // For a session add, hand over the entry for an optimistic insert.
+        onSave?.(addedEntry);
       }
 
       if (photoFile && newCatId) {
