@@ -683,7 +683,6 @@ export function SessionsApprovalValidationScreen() {
         title="Discard changes?"
         description="This cat entry will be permanently deleted."
         confirmLabel="Discard Entry"
-        showAvatar
         onConfirm={handleDiscard}
       />
 
