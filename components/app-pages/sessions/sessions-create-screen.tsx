@@ -84,6 +84,12 @@ export function SessionsCreateScreen() {
           setError("Session not found.");
           return;
         }
+        if (existing.is_finished) {
+          // Submitted sessions are immutable. Bounce back instead of rendering a
+          // stale, editable form (covers the back-button / bfcache return path).
+          window.location.replace("/dashboard/sessions");
+          return;
+        }
         setSessionId(existing.id);
         setCensusNo(existing.census_no);
         setSelectedRegionId(existing.region_id);
@@ -108,6 +114,19 @@ export function SessionsCreateScreen() {
     if (existingSessionId) {
       hydrateExistingSession(existingSessionId);
     }
+  }, [existingSessionId, hydrateExistingSession]);
+
+  // bfcache: clicking "back" can restore this screen from memory without re-running
+  // the load effect above, leaving a stale (possibly now-submitted) form. Re-hydrate
+  // on restore so the is_finished redirect fires.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && existingSessionId) {
+        hydrateExistingSession(existingSessionId);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, [existingSessionId, hydrateExistingSession]);
 
   const handleDiscard = useCallback(async () => {
@@ -175,7 +194,13 @@ export function SessionsCreateScreen() {
     async (sessionCatId: string, catId: string) => {
       setRemovingCatId(sessionCatId);
       try {
-        await removeSessionCat.bind(null, sessionCatId)();
+        const result = await removeSessionCat.bind(null, sessionCatId)();
+        if (result?.serverError) {
+          // Guard rejected (e.g. session already submitted) — stop before the
+          // unconditional removeCat below would delete a cat that's now in review.
+          setError(result.serverError);
+          return;
+        }
         await removeCat({ id: catId });
         if (sessionId) await fetchSessionCats(sessionId);
       } finally {

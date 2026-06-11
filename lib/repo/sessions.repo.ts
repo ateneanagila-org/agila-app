@@ -30,6 +30,25 @@ export const findSessions = (filters: Partial<SelectSession>) =>
 export const insertSession = (data: InsertSession, client: DB = db) =>
   client.insert(sessions).values(data).returning();
 
+export const findSessionById = (id: string, client: DB = db) =>
+  client.query.sessions.findFirst({
+    where: (s, { eq }) => eq(s.id, id),
+  });
+
+// is_finished of the session a given session_cat join row belongs to. Used to
+// reject mutations against an already-submitted (finished) session without a
+// second round-trip beyond this one indexed lookup.
+export const findSessionForSessionCat = (
+  sessionCatId: string,
+  client: DB = db,
+): Promise<{ is_finished: boolean | null } | undefined> =>
+  client
+    .select({ is_finished: sessions.is_finished })
+    .from(sessionCats)
+    .innerJoin(sessions, eq(sessions.id, sessionCats.session_id))
+    .where(eq(sessionCats.id, sessionCatId))
+    .then((rows) => rows[0]);
+
 export const updateSession = (id: string, data: Partial<InsertSession>) =>
   db
     .update(sessions)

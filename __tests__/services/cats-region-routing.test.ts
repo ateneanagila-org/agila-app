@@ -40,7 +40,8 @@ const baseEdit = { id: "c1", region_id: "R-NEW" } as never;
 
 describe("removeCat routing", () => {
   it("DELETE routes to the cat's effective (override) region", async () => {
-    mockCats.deleteCat.mockResolvedValue([{ id: "c1" }] as never);
+    // Only Original cats queue a sheet DELETE (gate in removeCat / commit 7871bfd).
+    mockCats.deleteCat.mockResolvedValue([{ id: "c1", entry_status: "Original" }] as never);
     resolveRegion.mockResolvedValueOnce({ id: "R-OVERRIDE", name: "Override" });
 
     await removeCat({ id: "c1" } as never);
