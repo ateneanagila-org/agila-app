@@ -145,7 +145,7 @@ function MergeListSkeleton() {
   return (
     <div className="space-y-2" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-36 animate-pulse rounded-2xl bg-brand-green/20" />
+        <div key={i} className="h-36 animate-pulse rounded-2xl bg-stone-200" />
       ))}
     </div>
   );
