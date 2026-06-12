@@ -154,6 +154,8 @@ roster of the cats logged.
 
 Cat entry status: `Unsubmitted → Unreviewed → Original` (or `Merged` into another cat).
 
+Priority Locations UI: displays regions ranked by days since their last census.
+
 ### Cat Database
 
 Each cat record includes:
@@ -197,8 +199,7 @@ browse.
 
 ### Overview & TNVR Dashboards
 
-- **Overview**: population stats, regional breakdowns, and **Priority Locations** (regions
-  ranked by days since their last census).
+- **Overview**: population stats, regional breakdowns.
 - **TNVR**: neutering-coverage statistics (the TNVR Score) with a sex/neuter pie breakdown,
   filterable by location.
 
