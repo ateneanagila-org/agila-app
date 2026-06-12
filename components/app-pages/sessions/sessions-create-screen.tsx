@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -69,11 +69,19 @@ export function SessionsCreateScreen({
   const [discarding, setDiscarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Monotonic token so out-of-order reconciles can't clobber newer state. Bumped
+  // on every load AND every optimistic mutation; a resolving load whose token is
+  // stale is dropped (otherwise a slow reconcile from a prior action overwrites an
+  // optimistic add/remove — the "cat flickers back in" bug).
+  const loadSeq = useRef(0);
+
   /** Single-call (re)load of the whole session: session + region + cats. */
   const loadSession = useCallback(async (sid: string, showSpinner = false) => {
+    const seq = ++loadSeq.current;
     if (showSpinner) setLoading(true);
     try {
       const result = await getSessionWithCats({ session_id: sid });
+      if (seq !== loadSeq.current) return; // superseded by a newer load/mutation
       const data = result?.data;
       if (!data) {
         setError("Session not found.");
@@ -187,6 +195,7 @@ export function SessionsCreateScreen({
   const handleCatSaved = useCallback(
     (added?: SessionCatEntry) => {
       if (added) {
+        loadSeq.current++; // invalidate any in-flight reconcile before this insert
         setCats((prev) =>
           prev.some((c) => c.sessionCatId === added.sessionCatId)
             ? prev
@@ -203,7 +212,9 @@ export function SessionsCreateScreen({
     if (!entry) return;
     setRemovingCatId(entry.sessionCatId);
     setError(null);
-    // Optimistic: drop it now; restore on failure.
+    // Optimistic: drop it now; restore on failure. Bump the token first so a
+    // reconcile still in flight from a prior action can't re-add this row.
+    loadSeq.current++;
     setCats((prev) => prev.filter((c) => c.sessionCatId !== entry.sessionCatId));
     setPendingRemove(null);
     try {

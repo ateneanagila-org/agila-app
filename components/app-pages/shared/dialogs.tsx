@@ -231,7 +231,6 @@ type ChangeConfirmDialogProps = {
   description: string;
   confirmLabel: string;
   onConfirm: () => void;
-  showAvatar?: boolean;
 };
 
 export function ChangeConfirmDialog({
@@ -241,7 +240,6 @@ export function ChangeConfirmDialog({
   description,
   confirmLabel,
   onConfirm,
-  showAvatar = false,
 }: ChangeConfirmDialogProps) {
   if (!open) return null;
 
@@ -262,12 +260,6 @@ export function ChangeConfirmDialog({
         >
           &#10005;
         </button>
-
-        {showAvatar && (
-          <div className="absolute -right-1 top-8 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-sky-500 shadow-md">
-            <div className="h-7 w-7 rounded-full bg-slate-200" />
-          </div>
-        )}
 
         <h3 className="font-heading pr-8 text-lg font-bold tracking-tight text-brand-green">{title}</h3>
         <p className="mt-4 text-sm leading-relaxed text-foreground">{description}</p>
