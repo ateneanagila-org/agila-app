@@ -139,6 +139,18 @@ function buildMergeDiff(
   return { diffFields, autoMergedCount };
 }
 
+/** Placeholder cards shown while the (slow) merge-target catalog loads, so the
+ *  cross-ref shell + focused-cat header render instantly instead of a blank spinner. */
+function MergeListSkeleton() {
+  return (
+    <div className="space-y-2" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="h-36 animate-pulse rounded-2xl bg-brand-green/20" />
+      ))}
+    </div>
+  );
+}
+
 export function SessionsApprovalCrossRefScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -149,6 +161,10 @@ export function SessionsApprovalCrossRefScreen() {
   const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [allCats, setAllCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
+  // Separate from `loading`: the focused cat (fast) unblocks the shell, while the
+  // merge-target catalog (slow — whole Original list + per-row region subquery)
+  // streams in behind a skeleton.
+  const [listLoading, setListLoading] = useState(true);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
   const [mergeDiffFields, setMergeDiffFields] = useState<MergeFieldDef[]>([]);
@@ -165,34 +181,42 @@ export function SessionsApprovalCrossRefScreen() {
     if (!catId) {
       setError("Missing cat ID.");
       setLoading(false);
+      setListLoading(false);
       return;
     }
 
     setLoading(true);
+    setListLoading(true);
     setError(null);
-    try {
-      // Only reviewed-original cats are valid merge targets; this also
-      // keeps payload small as the catalog grows.
-      const [catResult, allCatsResult] = await Promise.all([
-        getCats({ id: catId }),
-        getCats({ entry_status: "Original" }),
-      ]);
 
-      if (catResult?.data && catResult.data.length > 0) {
-        setCat(catResult.data[0]);
-      } else {
-        setError("Cat not found.");
-      }
+    // Focused cat — fast (1 row). Resolves on its own so the page shell + header
+    // appear immediately instead of waiting on the slow catalog below.
+    const catPromise = getCats({ id: catId })
+      .then((catResult) => {
+        if (catResult?.data && catResult.data.length > 0) {
+          setCat(catResult.data[0]);
+        } else {
+          setError("Cat not found.");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch cat:", err);
+        setError("Failed to load cat data.");
+      })
+      .finally(() => setLoading(false));
 
-      if (allCatsResult?.data) {
-        setAllCats(allCatsResult.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch data:", err);
-      setError("Failed to load cross-reference data.");
-    } finally {
-      setLoading(false);
-    }
+    // Merge targets — only reviewed-original cats are valid. Slow (whole catalog
+    // + per-row region subquery), so it loads independently behind a skeleton.
+    const listPromise = getCats({ entry_status: "Original" })
+      .then((allCatsResult) => {
+        if (allCatsResult?.data) setAllCats(allCatsResult.data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch merge targets:", err);
+      })
+      .finally(() => setListLoading(false));
+
+    await Promise.allSettled([catPromise, listPromise]);
   }, [catId]);
 
   useEffect(() => {
@@ -440,11 +464,14 @@ export function SessionsApprovalCrossRefScreen() {
             Check if this is a duplicate and merge accordingly.
           </p>
 
-          <CatFilterToolbar
-            cats={allCats}
-            config={CROSSREF_LIST_CONFIG}
-            initialFilters={defaultRegionFilter}
-          >
+          {listLoading ? (
+            <MergeListSkeleton />
+          ) : (
+            <CatFilterToolbar
+              cats={allCats}
+              config={CROSSREF_LIST_CONFIG}
+              initialFilters={defaultRegionFilter}
+            >
             {(filteredCats) =>
               filteredCats.length === 0 ? (
                 <div className="py-6 text-center text-sm text-slate-400">
@@ -507,7 +534,8 @@ export function SessionsApprovalCrossRefScreen() {
                 </div>
               )
             }
-          </CatFilterToolbar>
+            </CatFilterToolbar>
+          )}
         </PageContent>
       </div>
 
@@ -615,11 +643,14 @@ export function SessionsApprovalCrossRefScreen() {
               </p>
 
               <div className="mt-3">
-                <CatFilterToolbar
-                  cats={allCats}
-                  config={CROSSREF_LIST_CONFIG}
-                  initialFilters={defaultRegionFilter}
-                >
+                {listLoading ? (
+                  <MergeListSkeleton />
+                ) : (
+                  <CatFilterToolbar
+                    cats={allCats}
+                    config={CROSSREF_LIST_CONFIG}
+                    initialFilters={defaultRegionFilter}
+                  >
                   {(filteredCats) =>
                     filteredCats.length === 0 ? (
                       <div className="py-6 mt-2 text-center text-sm text-brand-dark/40">
@@ -682,7 +713,8 @@ export function SessionsApprovalCrossRefScreen() {
                       </div>
                     )
                   }
-                </CatFilterToolbar>
+                  </CatFilterToolbar>
+                )}
               </div>
             </div>
           </div>
