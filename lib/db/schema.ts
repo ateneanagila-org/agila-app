@@ -130,6 +130,11 @@ export const cats = pgTable("cats", {
   sociability: catSociabilityEnum("sociability"),
   cat_status: catStatusEnum("cat_status"),
   spot_last_seen: text("spot_last_seen"),
+  // The date the cat was physically last sighted. Plain stored value — NOT
+  // derived from session data (the initial-import session would poison it).
+  // null = genuinely unknown. Fed by session-create, merge auto-advance,
+  // manual edits, reverse-sync col N, and the one-time backfill.
+  date_last_seen: timestamp("date_last_seen"),
   caretaker: text("caretaker"),
   notes: text("notes"),
   is_adoptable: boolean("is_adoptable").default(false),

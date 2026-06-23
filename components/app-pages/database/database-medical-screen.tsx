@@ -9,6 +9,7 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { DateInputRow, parseDateParts, buildDate } from "@/components/ui/date-input";
 import { editCat } from "@/app/actions/cats";
 import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
@@ -16,14 +17,6 @@ import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
 import { normalizeCatField } from "@/lib/utils";
-
-const MONTHS = Array.from({ length: 12 }, (_, i) =>
-  String(i + 1).padStart(2, "0"),
-);
-const DAYS = Array.from({ length: 31 }, (_, i) =>
-  String(i + 1).padStart(2, "0"),
-);
-const YEARS = Array.from({ length: 10 }, (_, i) => String(2020 + i));
 
 function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
@@ -47,46 +40,6 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
       {children}
     </label>
   );
-}
-
-function DateInputRow({
-  month,
-  day,
-  year,
-  onMonthChange,
-  onDayChange,
-  onYearChange,
-}: {
-  month: string;
-  day: string;
-  year: string;
-  onMonthChange: (val: string) => void;
-  onDayChange: (val: string) => void;
-  onYearChange: (val: string) => void;
-}) {
-  return (
-    <div className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(78px,1.15fr)] gap-1.5 tablet:gap-2">
-      <CustomSelect options={MONTHS} value={month} onChange={onMonthChange} placeholder="MM" variant="white" size="sm" />
-      <CustomSelect options={DAYS} value={day} onChange={onDayChange} placeholder="DD" variant="white" size="sm" />
-      <CustomSelect options={YEARS} value={year} onChange={onYearChange} placeholder="YYYY" variant="white" size="sm" />
-    </div>
-  );
-}
-
-function parseDateParts(date: Date | string | null | undefined) {
-  if (!date) return { month: "", day: "", year: "" };
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return { month: "", day: "", year: "" };
-  return {
-    month: String(d.getMonth() + 1).padStart(2, "0"),
-    day: String(d.getDate()).padStart(2, "0"),
-    year: String(d.getFullYear()),
-  };
-}
-
-function buildDate(month: string, day: string, year: string): Date | null {
-  if (!month || !day || !year) return null;
-  return new Date(`${year}-${month}-${day}T00:00:00`);
 }
 
 export function DatabaseMedicalScreen() {

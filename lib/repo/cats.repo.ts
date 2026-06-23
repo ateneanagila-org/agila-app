@@ -40,6 +40,7 @@ export const catReadColumns = {
   sociability: cats.sociability,
   cat_status: cats.cat_status,
   spot_last_seen: cats.spot_last_seen,
+  date_last_seen: cats.date_last_seen,
   caretaker: cats.caretaker,
   notes: cats.notes,
   is_adoptable: cats.is_adoptable,

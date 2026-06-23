@@ -252,10 +252,10 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
-  const lastSeenDate =
-    region.name === "UNKNOWN"
-      ? null
-      : await sessionsRepo.findLatestSessionDateForCat(catId, tx);
+  // date_last_seen is a plain stored value, not derived from sessions. When null
+  // the payload carries "N/A" and the syncAndCompactRegion guard preserves the
+  // sheet's existing col N (protects legacy dates pre-backfill).
+  const lastSeenDate = region.name === "UNKNOWN" ? null : cat.date_last_seen;
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
@@ -357,10 +357,8 @@ export async function syncAndCompactRegion(
             where: (i, { eq }) => eq(i.cat_id, cat.id),
             orderBy: (i, { desc }) => [desc(i.requested_at)],
           });
-          const lastSeenDate =
-            region.name === "UNKNOWN"
-              ? null
-              : await sessionsRepo.findLatestSessionDateForCat(cat.id);
+          // date_last_seen is the stored column, not a session-derived value.
+          const lastSeenDate = region.name === "UNKNOWN" ? null : cat.date_last_seen;
           const newPayload =
             region.name === "UNKNOWN"
               ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)

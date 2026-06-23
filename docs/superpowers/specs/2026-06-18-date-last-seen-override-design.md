@@ -73,16 +73,20 @@ Touches UPDATE (`importSheetRowToDB`) + CREATE (sheet-added cat) paths. UNKNOWN 
 Lift `DateInputRow` + `parseDateParts`/`buildDate` out of `database-medical-screen.tsx` into a shared module;
 widen `YEARS` to reach older legacy dates. All-blank dropdowns = unknown (null).
 
+Rule: **any create** (no `initialCat`) defaults to **today**; **any edit** (`initialCat`) prefills the stored
+date. (DB-add is not special — its `createCat` action runs with `{ systemSession: true }`, so it creates an
+`Original`, system-session-anchored, synced cat just like a recorded sighting.)
+
 | Surface | Mode | Action | Prefill | Edit rights |
 |---|---|---|---|---|
 | cat-entry-form | session create | `createSessionCat` | **today** | Volunteer + mgr |
 | cat-entry-form | session edit | `editSessionCat` | stored (blank if null) | Volunteer + mgr |
-| cat-entry-form | DB add | `createCat` | blank | Manager/admin |
+| cat-entry-form | DB add | `createCat` | **today** | Manager/admin |
 | cat-entry-form | DB edit | `editCat` | stored | Manager/admin |
 | database-general-screen | inline edit | `editCat` | stored | Mgr/admin; volunteer read-only |
 | sessions-approval-crossref | review entry | `editCat` | stored | Manager/admin |
 
-Write: complete date → `date_last_seen = Date`; blank → `null`. Session-create always sends (no dirty-track).
+Write: complete date → `date_last_seen = Date`; blank → `null`. Creates always send today (no dirty-track).
 
 **Read display:** general-screen shows `date_last_seen` (or "Unknown") as the sighting date next to the place,
 replacing the mislabeled `last_updated_at`; catalog-detail shows it next to the place.
