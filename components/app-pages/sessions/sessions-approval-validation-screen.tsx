@@ -12,6 +12,11 @@ import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import { CloseIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
 import { CustomSelect } from "@/components/ui/custom-select";
+import {
+  DateInputRow,
+  parseDateParts,
+  buildDate,
+} from "@/components/ui/date-input";
 import { getCats, editCat, removeCat } from "@/app/actions/cats";
 import { normalizeCatField } from "@/lib/utils";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
@@ -56,6 +61,9 @@ export function SessionsApprovalValidationScreen() {
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState("");
+  const [dlsMonth, setDlsMonth] = useState("");
+  const [dlsDay, setDlsDay] = useState("");
+  const [dlsYear, setDlsYear] = useState("");
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
 
@@ -76,6 +84,10 @@ export function SessionsApprovalValidationScreen() {
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
+    const dls = parseDateParts(catData.date_last_seen);
+    setDlsMonth(dls.month);
+    setDlsDay(dls.day);
+    setDlsYear(dls.year);
     setRegionId(catData.region_id ?? null);
     setRegionFallbackName(catData.region_name ?? "");
   }, []);
@@ -127,6 +139,7 @@ export function SessionsApprovalValidationScreen() {
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
+        date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         entry_status: "Original" as CatEntryStatus,
         region_id: regionId,
       });
@@ -152,6 +165,9 @@ export function SessionsApprovalValidationScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    dlsMonth,
+    dlsDay,
+    dlsYear,
     regionId,
     router,
   ]);
@@ -162,8 +178,12 @@ export function SessionsApprovalValidationScreen() {
    */
   const isDirty = useCallback(() => {
     if (!cat) return false;
+    const od = parseDateParts(cat.date_last_seen);
     return (
       (name || "") !== (cat.name ?? "") ||
+      dlsMonth !== od.month ||
+      dlsDay !== od.day ||
+      dlsYear !== od.year ||
       normalizeCatField<CatColor>(color) !== (cat.color ?? null) ||
       normalizeCatField<CatAge>(age) !== (cat.age ?? null) ||
       normalizeCatField<CatSex>(sex) !== (cat.sex ?? null) ||
@@ -186,6 +206,9 @@ export function SessionsApprovalValidationScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    dlsMonth,
+    dlsDay,
+    dlsYear,
     regionId,
   ]);
 
@@ -215,6 +238,7 @@ export function SessionsApprovalValidationScreen() {
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
+        date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         region_id: regionId,
       });
       if (result?.serverError) {
@@ -240,6 +264,9 @@ export function SessionsApprovalValidationScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    dlsMonth,
+    dlsDay,
+    dlsYear,
     regionId,
     router,
   ]);
@@ -538,8 +565,10 @@ export function SessionsApprovalValidationScreen() {
                     ) : null}
                   </div>
                   <p className="mt-3 text-sm text-brand-dark/60">
-                    Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
-                    {formatDate(cat?.last_updated_at)}
+                    Last seen: {cat?.spot_last_seen || "—"}
+                    {cat?.date_last_seen
+                      ? ` · ${formatDate(cat.date_last_seen)}`
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -659,6 +688,20 @@ export function SessionsApprovalValidationScreen() {
                   value={spotLastSeen}
                   onChange={(e) => setSpotLastSeen(e.target.value)}
                   className="mt-1 h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-brand-dark outline-none focus:border-gray-300"
+                />
+              </div>
+
+              <div className="mt-3">
+                <label className="text-xs font-medium text-brand-dark/50">
+                  Date Last Seen
+                </label>
+                <DateInputRow
+                  month={dlsMonth}
+                  day={dlsDay}
+                  year={dlsYear}
+                  onMonthChange={setDlsMonth}
+                  onDayChange={setDlsDay}
+                  onYearChange={setDlsYear}
                 />
               </div>
 

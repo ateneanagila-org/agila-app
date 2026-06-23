@@ -334,10 +334,12 @@ export function SessionsApprovalCrossRefScreen() {
         }
         // Last seen advances to the most recent sighting across both records —
         // not a manager choice; "last seen" is just the latest known date.
-        updatePayload.date_last_seen = newerDate(
+        // Advance-only: never set (and so never clear) when neither has a date.
+        const advancedLastSeen = newerDate(
           mergeTargetCat?.date_last_seen,
           cat?.date_last_seen,
         );
+        if (advancedLastSeen) updatePayload.date_last_seen = advancedLastSeen;
         const step1 = await editCat(updatePayload);
         if (step1?.serverError) {
           setError(step1.serverError);
