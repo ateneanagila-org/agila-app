@@ -17,6 +17,11 @@ import {
   type PhotoPosition,
 } from "@/components/app-pages/shared/photo-position-editor";
 import { CustomSelect } from "@/components/ui/custom-select";
+import {
+  DateInputRow,
+  parseDateParts,
+  buildDate,
+} from "@/components/ui/date-input";
 import { editCat } from "@/app/actions/cats";
 import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { useAuth } from "@/contexts/auth-context";
@@ -109,6 +114,9 @@ export function DatabaseGeneralScreen() {
   const [caretaker, setCaretaker] = useState("");
   const [notes, setNotes] = useState("");
   const [spotLastSeen, setSpotLastSeen] = useState("");
+  const [dlsMonth, setDlsMonth] = useState("");
+  const [dlsDay, setDlsDay] = useState("");
+  const [dlsYear, setDlsYear] = useState("");
   const [isAdoptable, setIsAdoptable] = useState(false);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
@@ -126,6 +134,10 @@ export function DatabaseGeneralScreen() {
     setCaretaker(catData.caretaker ?? "");
     setNotes(catData.notes ?? "");
     setSpotLastSeen(catData.spot_last_seen ?? "");
+    const dls = parseDateParts(catData.date_last_seen);
+    setDlsMonth(dls.month);
+    setDlsDay(dls.day);
+    setDlsYear(dls.year);
     setIsAdoptable(catData.is_adoptable ?? false);
     setRegionId(catData.region_id ?? null);
     setRegionFallbackName(catData.region_name ?? "");
@@ -164,6 +176,7 @@ export function DatabaseGeneralScreen() {
         caretaker: caretaker || undefined,
         notes: notes || undefined,
         spot_last_seen: spotLastSeen || undefined,
+        date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         is_adoptable: isAdoptable,
         region_id: regionId,
       });
@@ -188,6 +201,9 @@ export function DatabaseGeneralScreen() {
     caretaker,
     notes,
     spotLastSeen,
+    dlsMonth,
+    dlsDay,
+    dlsYear,
     isAdoptable,
     regionId,
     refresh,
@@ -364,10 +380,14 @@ export function DatabaseGeneralScreen() {
                 <span className="font-semibold text-brand-dark/80">
                   {cat?.spot_last_seen || "Unknown"}
                 </span>
-                <span className="text-brand-dark/30">·</span>
-                <span className="tabular-nums">
-                  {formatDate(cat?.last_updated_at)}
-                </span>
+                {cat?.date_last_seen ? (
+                  <>
+                    <span className="text-brand-dark/30">·</span>
+                    <span className="tabular-nums">
+                      {formatDate(cat.date_last_seen)}
+                    </span>
+                  </>
+                ) : null}
               </p>
             </div>
 
@@ -465,6 +485,17 @@ export function DatabaseGeneralScreen() {
                 value={spotLastSeen}
                 onChange={(e) => setSpotLastSeen(e.target.value)}
                 className="mt-1.5 h-11 w-full rounded-full border border-brand-dark/15 bg-white px-4 text-sm text-brand-dark outline-none transition-colors placeholder:text-brand-dark/30 focus:border-brand-orange"
+              />
+            </div>
+            <div>
+              <FieldLabel>Date Last Seen</FieldLabel>
+              <DateInputRow
+                month={dlsMonth}
+                day={dlsDay}
+                year={dlsYear}
+                onMonthChange={setDlsMonth}
+                onDayChange={setDlsDay}
+                onYearChange={setDlsYear}
               />
             </div>
             <div className="tablet:col-span-2">

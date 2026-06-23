@@ -30,6 +30,11 @@ import type {
 } from "@/lib/db/enums";
 import type { SelectCat } from "@/lib/validation/cats";
 import { normalizeCatField } from "@/lib/utils";
+import {
+  DateInputRow,
+  parseDateParts,
+  buildDate,
+} from "@/components/ui/date-input";
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
 
@@ -127,6 +132,14 @@ export function CatEntryForm({
   const [spotLastSeen, setSpotLastSeen] = useState(
     initialCat?.spot_last_seen ?? "",
   );
+  // Edit → prefill the stored sighting date (blank if null). Any create (session
+  // or DB add) → default to today; the recorder confirms or backdates it.
+  const dlsInit = parseDateParts(
+    initialCat ? initialCat.date_last_seen : new Date(),
+  );
+  const [dlsMonth, setDlsMonth] = useState(dlsInit.month);
+  const [dlsDay, setDlsDay] = useState(dlsInit.day);
+  const [dlsYear, setDlsYear] = useState(dlsInit.year);
   const [caretaker, setCaretaker] = useState(initialCat?.caretaker ?? "");
   const [notes, setNotes] = useState(initialCat?.notes ?? "");
   const [name, setName] = useState(initialCat?.name ?? "");
@@ -193,6 +206,7 @@ export function CatEntryForm({
           sex: normalizeCatField<CatSex>(sex),
           sociability: normalizeCatField<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
+          date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
           caretaker: caretaker || undefined,
           notes: notes || undefined,
           name: name || undefined,
@@ -240,6 +254,7 @@ export function CatEntryForm({
           sex: normalizeCatField<CatSex>(sex),
           sociability: normalizeCatField<CatSociability>(sociability),
           spot_last_seen: spotLastSeen || undefined,
+          date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
           caretaker: caretaker || undefined,
           notes: notes || undefined,
           name: name || undefined,
@@ -316,6 +331,9 @@ export function CatEntryForm({
     sex,
     sociability,
     spotLastSeen,
+    dlsMonth,
+    dlsDay,
+    dlsYear,
     caretaker,
     notes,
     name,
@@ -565,6 +583,19 @@ export function CatEntryForm({
             value={spotLastSeen}
             onChange={setSpotLastSeen}
           />
+          <div>
+            <label className="text-sm font-semibold text-brand-orange">
+              Date Last Seen
+            </label>
+            <DateInputRow
+              month={dlsMonth}
+              day={dlsDay}
+              year={dlsYear}
+              onMonthChange={setDlsMonth}
+              onDayChange={setDlsDay}
+              onYearChange={setDlsYear}
+            />
+          </div>
           <TextField
             label="Caretaker"
             value={caretaker}
