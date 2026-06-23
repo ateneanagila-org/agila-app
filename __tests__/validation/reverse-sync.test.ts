@@ -119,6 +119,17 @@ describe("parseSheetRow (standard region layout)", () => {
     });
   });
 
+  describe("date_last_seen (col N[13])", () => {
+    it("reads a real date string from col N", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 13: "1/2/2024" }))?.date_last_seen).toBe("1/2/2024");
+    });
+
+    it("treats blank and 'N/A' as null", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 13: "" }))?.date_last_seen).toBeNull();
+      expect(parseSheetRow(mkRow({ 24: UUID, 13: "N/A" }))?.date_last_seen).toBeNull();
+    });
+  });
+
   describe("intervention signals (col T[19] TNVR, col U[20] Vet)", () => {
     it("maps the exact 'Will have ...' strings to will_have", () => {
       const r = parseSheetRow(

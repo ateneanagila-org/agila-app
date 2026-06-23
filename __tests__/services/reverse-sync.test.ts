@@ -94,3 +94,33 @@ describe("importSheetRowToDB status-change forward enqueue", () => {
     expect(refreshMock).not.toHaveBeenCalled();
   });
 });
+
+describe("importSheetRowToDB date_last_seen (col N import)", () => {
+  let setCalls: Record<string, unknown>[];
+
+  beforeEach(() => {
+    setCalls = [];
+    fakeTx.update = jest.fn(() => ({
+      set: (v: Record<string, unknown>) => {
+        setCalls.push(v);
+        return { where: () => Promise.resolve(undefined) };
+      },
+    }));
+  });
+
+  // The cats table is updated first, so setCalls[0] is the cats payload.
+  it("writes a parsed col-N date into cats.date_last_seen", async () => {
+    await importSheetRowToDB(makeData({ date_last_seen: "1/2/2024" }));
+    expect(setCalls[0]).toMatchObject({ date_last_seen: new Date("1/2/2024") });
+  });
+
+  it("writes null when col N is blank (cleared)", async () => {
+    await importSheetRowToDB(makeData({ date_last_seen: null }));
+    expect(setCalls[0]).toHaveProperty("date_last_seen", null);
+  });
+
+  it("omits date_last_seen entirely when absent (UNKNOWN rows never touch it)", async () => {
+    await importSheetRowToDB(makeData()); // no date_last_seen key
+    expect(setCalls[0]).not.toHaveProperty("date_last_seen");
+  });
+});

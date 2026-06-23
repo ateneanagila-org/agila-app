@@ -262,6 +262,35 @@ describe("syncAndCompactRegion", () => {
     expect(written[1][2]).toBe("Aaa");
   });
 
+  it("CREATE writes cat.date_last_seen into col N (stored value, not session-derived)", async () => {
+    (
+      dbm.query as { regions: { findFirst: jest.Mock } }
+    ).regions.findFirst.mockResolvedValue(REGION);
+    fakeSheets.spreadsheets.values.get.mockResolvedValue({ data: { values: [] } });
+    (
+      dbm.query as { gsheetSyncQueue: { findMany: jest.Mock } }
+    ).gsheetSyncQueue.findMany.mockResolvedValue([
+      task({ id: "t-new", entityId: "u-new", payload: row({}) }),
+    ]);
+    (
+      dbm.query as { cats: { findFirst: jest.Mock } }
+    ).cats.findFirst.mockResolvedValue({
+      id: "u-new",
+      cat_status: null,
+      name: "Aaa",
+      is_adoptable: false,
+      date_last_seen: new Date("2024-01-02T00:00:00"),
+    });
+
+    await syncAndCompactRegion("r1");
+
+    const dataUpdate = fakeSheets.spreadsheets.values.update.mock.calls.find(
+      (c) => String(c[0].range).endsWith("!A3"),
+    )!;
+    const written = dataUpdate[0].requestBody.values as string[][];
+    expect(written[0][13]).toBe("1/2/2024"); // col N from the stored column
+  });
+
   it("DELETE removes the row and writes only the survivors", async () => {
     (
       dbm.query as { regions: { findFirst: jest.Mock } }
