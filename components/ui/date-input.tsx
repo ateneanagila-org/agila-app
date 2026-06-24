@@ -8,11 +8,11 @@ export const MONTHS = Array.from({ length: 12 }, (_, i) =>
 export const DAYS = Array.from({ length: 31 }, (_, i) =>
   String(i + 1).padStart(2, "0"),
 );
-// Span legacy sighting dates through next year. Wide enough for hand-entered
-// historical "date last seen" values; harmless for neuter/vaccination dates.
+// Span legacy sighting dates (from 2010) through 2100. Wide enough for
+// hand-entered historical "date last seen" values; harmless for neuter/vaccination.
 export const YEARS = (() => {
-  const end = new Date().getFullYear() + 1;
   const start = 2010;
+  const end = 2100;
   return Array.from({ length: end - start + 1 }, (_, i) => String(start + i));
 })();
 

@@ -548,7 +548,7 @@ export function SessionsApprovalCrossRefScreen() {
                           ) : null}
                           <p className="mt-2 text-sm font-bold text-white truncate">
                             {c.spot_last_seen || "—"} ·{" "}
-                            {formatDate(c.last_updated_at)}
+                            {formatDate(c.date_last_seen)}
                           </p>
                         </div>
                       </div>
@@ -632,8 +632,10 @@ export function SessionsApprovalCrossRefScreen() {
                     ) : null}
                   </div>
                   <p className="mt-3 text-sm text-brand-dark/60">
-                    Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
-                    {formatDate(cat?.last_updated_at)}
+                    Last seen: {cat?.spot_last_seen || "—"}
+                    {cat?.date_last_seen
+                      ? ` · ${formatDate(cat.date_last_seen)}`
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -727,7 +729,7 @@ export function SessionsApprovalCrossRefScreen() {
                                 ) : null}
                                 <p className="mt-2 text-sm font-bold text-white truncate">
                                   {c.spot_last_seen || "—"} ·{" "}
-                                  {formatDate(c.last_updated_at)}
+                                  {formatDate(c.date_last_seen)}
                                 </p>
                               </div>
                             </div>

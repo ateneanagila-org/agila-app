@@ -171,7 +171,7 @@ export function SessionsManagerScreen({
                       </div>
                       <p className="mt-3 text-sm font-bold text-white truncate">
                         {item.cat.spot_last_seen || "—"} -{" "}
-                        {formatDate(item.cat.last_updated_at)}
+                        {formatDate(item.cat.date_last_seen)}
                       </p>
                     </div>
                   </div>
@@ -257,7 +257,7 @@ export function SessionsManagerScreen({
                     </div>
                     <p className="mt-3 text-sm text-white/70">
                       Last seen: {item.cat.spot_last_seen || "—"} &middot;{" "}
-                      {formatDate(item.cat.last_updated_at)}
+                      {formatDate(item.cat.date_last_seen)}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

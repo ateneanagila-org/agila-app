@@ -21,6 +21,7 @@ type CatCardProps = {
     | "color"
     | "age"
     | "spot_last_seen"
+    | "date_last_seen"
     | "last_updated_at"
     | "photo_url"
     | "cat_status"
@@ -152,7 +153,7 @@ export function CatCard({
                 </span>
                 <span className="text-brand-dark/30">·</span>
                 <span className="font-medium tabular-nums text-brand-dark/60">
-                  {dateLabel ?? formatDate(cat.last_updated_at)}
+                  {dateLabel ?? formatDate(cat.date_last_seen)}
                 </span>
               </p>
               {action !== "none" ? (

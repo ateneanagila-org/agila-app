@@ -375,7 +375,7 @@ export function SessionsApprovalValidationScreen() {
                   Last seen at:
                 </p>
                 <p className="mt-1 text-[15px] font-semibold text-white">
-                  {formatDate(cat?.last_updated_at)} /{" "}
+                  {formatDate(cat?.date_last_seen)} /{" "}
                   {cat?.spot_last_seen || "—"}
                 </p>
                 {cat?.region_name ? (
