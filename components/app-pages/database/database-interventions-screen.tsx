@@ -19,7 +19,8 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@/components/app-pages/shared/icons";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
+import { positionFromCat } from "@/lib/photo-position";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
   createIntervention,
@@ -276,10 +277,14 @@ export function DatabaseInterventionsScreen() {
         <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
           <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
             <div className="h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
-              <CatPhoto
+              <CatPhotoButton
+                catId={catId ?? ""}
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
-                className="h-full w-full overflow-hidden rounded-2xl ring-1 ring-brand-dark/10"
+                position={cat ? positionFromCat(cat) : null}
+                canEdit={canManage}
+                onChanged={refresh}
+                className="h-full w-full rounded-2xl ring-1 ring-brand-dark/10"
                 iconClassName="h-12 w-12 text-brand-green/30"
                 sizes="128px"
               />

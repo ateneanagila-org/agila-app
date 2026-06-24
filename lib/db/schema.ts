@@ -8,6 +8,7 @@ import {
   AnyPgColumn,
   jsonb,
   integer,
+  real,
   unique,
 } from "drizzle-orm/pg-core";
 import {
@@ -123,6 +124,13 @@ export const cats = pgTable("cats", {
     .default("Unsubmitted")
     .notNull(),
   photo_url: text("photo_url"),
+  // Crop-as-metadata: photo_url stores the full normalized original; the crop is
+  // applied at render time via this zoom/offset trio (see lib/photo-position.ts).
+  // Identity (1,0,0) = object-cover, which is exactly how legacy baked crops look.
+  // App-owned, never synced to the sheet (the sheet shows the uncropped original).
+  photo_zoom: real("photo_zoom").default(1).notNull(),
+  photo_offset_x: real("photo_offset_x").default(0).notNull(),
+  photo_offset_y: real("photo_offset_y").default(0).notNull(),
   color: catColorEnum("color"),
   age: catAgeEnum("age"),
   sex: catSexEnum("sex"),

@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { ChevronDownIcon, CloseIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { type PhotoPosition } from "@/lib/photo-position";
 import type { FilterCategory, FilterState, SortOption } from "@/lib/hooks/use-filter-sort";
 
 // ─── Shared shell ─────────────────────────────────────────────────────────────
@@ -458,6 +459,10 @@ export type MergeFieldDef = {
   currentValue: string | null;
   newValue: string | null;
   inputType: "pill" | "image" | "notes";
+  // For image fields: each side's stored crop, so the comparison previews match
+  // what the survivor will actually show.
+  currentPosition?: PhotoPosition | null;
+  newPosition?: PhotoPosition | null;
 };
 
 type MergeDetailsDialogProps = {
@@ -546,6 +551,11 @@ function MergeDetailsDialogContent({
                       <CatPhoto
                         photoUrl={value}
                         name={side === "new" ? newName : targetName}
+                        position={
+                          side === "new"
+                            ? field.newPosition
+                            : field.currentPosition
+                        }
                         className="h-full w-full"
                         iconClassName="h-8 w-8 text-brand-dark/30"
                       />

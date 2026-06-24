@@ -1,59 +1,26 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { CSSProperties, Dispatch, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import {
+  DEFAULT_PHOTO_POSITION,
+  getOffsetBounds,
+  getPhotoTransformStyle,
+  clampPosition,
+  PHOTO_ZOOM_MAX,
+  PHOTO_ZOOM_MIN,
+  type PhotoPosition,
+} from "@/lib/photo-position";
 
-export type PhotoPosition = {
-  zoom: number;
-  offsetX: number;
-  offsetY: number;
-};
+export { DEFAULT_PHOTO_POSITION } from "@/lib/photo-position";
+export type { PhotoPosition } from "@/lib/photo-position";
 
-export const DEFAULT_PHOTO_POSITION: PhotoPosition = {
-  zoom: 1,
-  offsetX: 0,
-  offsetY: 0,
-};
-
-const OUTPUT_SIZE = 1200;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
+const MAX_DIM = 1280;
 
 function photoFilename(file: File) {
   return /\.[^.]+$/.test(file.name)
     ? file.name.replace(/\.[^.]+$/, ".jpg")
     : `${file.name}.jpg`;
-}
-
-function getOffsetBounds(
-  imageSize: { width: number; height: number } | null,
-  zoom: number,
-) {
-  if (!imageSize?.width || !imageSize.height) {
-    return { x: 50, y: 50 };
-  }
-
-  const baseScale = Math.max(1 / imageSize.width, 1 / imageSize.height);
-  const width = imageSize.width * baseScale * zoom;
-  const height = imageSize.height * baseScale * zoom;
-
-  return {
-    x: Math.max(0, ((width - 1) / 2) * 100),
-    y: Math.max(0, ((height - 1) / 2) * 100),
-  };
-}
-
-function clampPosition(
-  position: PhotoPosition,
-  bounds: { x: number; y: number },
-): PhotoPosition {
-  return {
-    zoom: clamp(position.zoom, 1, 3),
-    offsetX: clamp(position.offsetX, -bounds.x, bounds.x),
-    offsetY: clamp(position.offsetY, -bounds.y, bounds.y),
-  };
 }
 
 function loadImage(src: string) {
@@ -65,47 +32,36 @@ function loadImage(src: string) {
   });
 }
 
-export async function createPositionedPhotoFile(
-  file: File,
-  position: PhotoPosition,
-) {
+/**
+ * Downscale to a sane max dimension WITHOUT cropping, so the upload payload stays
+ * small (server-action body limit) while the full frame is preserved. The crop
+ * is stored separately as a PhotoPosition — never baked into pixels. The server
+ * re-normalizes (rotate/resize) defensively.
+ */
+export async function createNormalizedPhotoFile(file: File): Promise<File> {
   const objectUrl = URL.createObjectURL(file);
   try {
     const image = await loadImage(objectUrl);
-    const canvas = document.createElement("canvas");
-    canvas.width = OUTPUT_SIZE;
-    canvas.height = OUTPUT_SIZE;
+    const w = image.naturalWidth;
+    const h = image.naturalHeight;
+    if (!w || !h) return file;
 
+    const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+    const cw = Math.round(w * scale);
+    const ch = Math.round(h * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
     const ctx = canvas.getContext("2d");
     if (!ctx) return file;
-
-    ctx.fillStyle = "#d8fcf2";
-    ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-
-    const bounds = getOffsetBounds(
-      { width: image.naturalWidth, height: image.naturalHeight },
-      position.zoom,
-    );
-    const safePosition = clampPosition(position, bounds);
-    const baseScale = Math.max(
-      OUTPUT_SIZE / image.naturalWidth,
-      OUTPUT_SIZE / image.naturalHeight,
-    );
-    const scale = baseScale * safePosition.zoom;
-    const width = image.naturalWidth * scale;
-    const height = image.naturalHeight * scale;
-    const x =
-      (OUTPUT_SIZE - width) / 2 + (safePosition.offsetX / 100) * OUTPUT_SIZE;
-    const y =
-      (OUTPUT_SIZE - height) / 2 + (safePosition.offsetY / 100) * OUTPUT_SIZE;
-
-    ctx.drawImage(image, x, y, width, height);
+    ctx.drawImage(image, 0, 0, cw, ch);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.92);
+      canvas.toBlob(resolve, "image/jpeg", 0.82);
     });
-
     if (!blob) return file;
+
     return new File([blob], photoFilename(file), {
       type: "image/jpeg",
       lastModified: Date.now(),
@@ -134,33 +90,16 @@ export function PhotoPositionEditor({
     height: number;
   } | null>(null);
   const currentImageSize = imageSize?.src === src ? imageSize : null;
-  const bounds = useMemo(
-    () => getOffsetBounds(currentImageSize, position.zoom),
-    [currentImageSize, position.zoom],
+  const previewStyle = useMemo(
+    () =>
+      getPhotoTransformStyle(
+        currentImageSize
+          ? { width: currentImageSize.width, height: currentImageSize.height }
+          : null,
+        position,
+      ),
+    [currentImageSize, position],
   );
-  const previewPosition = clampPosition(position, bounds);
-  const previewStyle: CSSProperties = currentImageSize
-    ? {
-        left: `calc(50% + ${previewPosition.offsetX}%)`,
-        top: `calc(50% + ${previewPosition.offsetY}%)`,
-        width:
-          currentImageSize.width >= currentImageSize.height
-            ? `${(currentImageSize.width / currentImageSize.height) * 100}%`
-            : "100%",
-        height:
-          currentImageSize.width >= currentImageSize.height
-            ? "100%"
-            : `${(currentImageSize.height / currentImageSize.width) * 100}%`,
-        transform: `translate(-50%, -50%) scale(${previewPosition.zoom})`,
-      }
-    : {
-        left: "50%",
-        top: "50%",
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        transform: `translate(-50%, -50%) scale(${previewPosition.zoom})`,
-      };
 
   return (
     <div className="space-y-2">
@@ -178,7 +117,15 @@ export function PhotoPositionEditor({
           const dy = ((event.clientY - dragRef.current.y) / rect.height) * 100;
           dragRef.current = { x: event.clientX, y: event.clientY };
           onChange((current) => {
-            const nextBounds = getOffsetBounds(currentImageSize, current.zoom);
+            const nextBounds = getOffsetBounds(
+              currentImageSize
+                ? {
+                    width: currentImageSize.width,
+                    height: currentImageSize.height,
+                  }
+                : null,
+              current.zoom,
+            );
             return clampPosition(
               {
                 ...current,
@@ -220,8 +167,8 @@ export function PhotoPositionEditor({
           </span>
           <input
             type="range"
-            min="1"
-            max="3"
+            min={PHOTO_ZOOM_MIN}
+            max={PHOTO_ZOOM_MAX}
             step="0.05"
             value={position.zoom}
             onChange={(event) => {
@@ -229,7 +176,15 @@ export function PhotoPositionEditor({
               onChange((current) =>
                 clampPosition(
                   { ...current, zoom },
-                  getOffsetBounds(currentImageSize, zoom),
+                  getOffsetBounds(
+                    currentImageSize
+                      ? {
+                          width: currentImageSize.width,
+                          height: currentImageSize.height,
+                        }
+                      : null,
+                    zoom,
+                  ),
                 ),
               );
             }}

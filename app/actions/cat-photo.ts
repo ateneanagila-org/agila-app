@@ -11,35 +11,60 @@ import { refreshCatInSyncQueue } from "@/lib/services/helper.service";
 
 const BUCKET = "cat-photos";
 
+/** Auth gate shared by all photo mutations: Manager/Admin for any cat, or a
+ * volunteer who owns a session_cats row joined to a session they belong to. */
+async function assertCanEditCatPhoto(catId: string) {
+  const current = await requireAuth();
+  if (hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
+    return;
+  }
+  const owned = await db
+    .select({ id: sessionCats.id })
+    .from(sessionCats)
+    .innerJoin(sessionUsers, eq(sessionUsers.session_id, sessionCats.session_id))
+    .where(
+      and(
+        eq(sessionCats.cat_id, catId),
+        eq(sessionUsers.user_id, current.user.id),
+      ),
+    )
+    .limit(1);
+  if (owned.length === 0) {
+    throw new AppError("Forbidden: not your cat entry", 403);
+  }
+}
+
+/** Parse + clamp a position from FormData (zoom 1..3, offsets ±100). */
+function readPosition(formData: FormData) {
+  const num = (v: FormDataEntryValue | null, fallback: number) => {
+    const n = typeof v === "string" ? Number(v) : NaN;
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const clamp = (v: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, v));
+  // Offsets are percentages of the frame and legitimately exceed 100 for zoomed
+  // non-square images (bounds grow with aspect × zoom). The renderer re-clamps to
+  // the true per-image bounds, so this is only an abuse guard against absurd values.
+  return {
+    photo_zoom: clamp(num(formData.get("photo_zoom"), 1), 1, 3),
+    photo_offset_x: clamp(num(formData.get("photo_offset_x"), 0), -2000, 2000),
+    photo_offset_y: clamp(num(formData.get("photo_offset_y"), 0), -2000, 2000),
+  };
+}
+
 /**
- * Uploads a cat photo to Supabase storage and updates cats.photo_url.
- * Accepts FormData with field `file` (image).
+ * Uploads a cat photo to Supabase storage and updates cats.photo_url. The blob
+ * is the full normalized original (NOT cropped) — the crop is stored as the
+ * photo_zoom/offset trio applied at render time. Accepts FormData with `file`
+ * (image) and optional `photo_zoom`/`photo_offset_x`/`photo_offset_y`.
  *
- * Auth: Manager/Admin can upload for any cat. Volunteers can only upload
- * for cats linked (via session_cats) to a session they belong to (via
- * session_users) — i.e. their own session entries.
+ * Auth: Manager/Admin for any cat; volunteers only for their own session entries.
  */
 export async function uploadCatPhoto(
   catId: string,
   formData: FormData,
 ): Promise<{ photo_url: string }> {
-  const current = await requireAuth();
-  if (!hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
-    const owned = await db
-      .select({ id: sessionCats.id })
-      .from(sessionCats)
-      .innerJoin(sessionUsers, eq(sessionUsers.session_id, sessionCats.session_id))
-      .where(
-        and(
-          eq(sessionCats.cat_id, catId),
-          eq(sessionUsers.user_id, current.user.id),
-        ),
-      )
-      .limit(1);
-    if (owned.length === 0) {
-      throw new AppError("Forbidden: not your cat entry", 403);
-    }
-  }
+  await assertCanEditCatPhoto(catId);
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
@@ -49,10 +74,13 @@ export async function uploadCatPhoto(
     throw new AppError("File must be an image", 400);
   }
 
+  const position = readPosition(formData);
+
   const raw = Buffer.from(await file.arrayBuffer());
+  // Normalize only — rotate + downscale, never crop. The crop lives in metadata.
   const compressed = await sharp(raw)
     .rotate()
-    .resize({ width: 1200, withoutEnlargement: true })
+    .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 80 })
     .toBuffer();
 
@@ -79,7 +107,7 @@ export async function uploadCatPhoto(
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
-      .set({ photo_url: bustedUrl })
+      .set({ photo_url: bustedUrl, ...position })
       .where(eq(cats.id, catId));
     // Queue a forward sync so the new photo reaches the sheet. No last_updated_at
     // bump: photo is app-owned and must not suppress reverse-sync of text edits.
@@ -89,24 +117,35 @@ export async function uploadCatPhoto(
   return { photo_url: bustedUrl };
 }
 
+/**
+ * Re-crop an existing photo by updating only the position trio. No storage
+ * write, no photo_url change, and no sync queue — position is app-only metadata
+ * that never reaches the sheet (which always shows the uncropped original).
+ * Lossless and instant.
+ */
+export async function editCatPhotoPosition(
+  catId: string,
+  position: { zoom: number; offsetX: number; offsetY: number },
+): Promise<void> {
+  await assertCanEditCatPhoto(catId);
+
+  const clamp = (v: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, Number.isFinite(v) ? v : 0));
+
+  // ±2000 is an abuse guard only; offsets legitimately exceed 100 for zoomed
+  // non-square images and the renderer re-clamps to true per-image bounds.
+  await db
+    .update(cats)
+    .set({
+      photo_zoom: clamp(position.zoom, 1, 3),
+      photo_offset_x: clamp(position.offsetX, -2000, 2000),
+      photo_offset_y: clamp(position.offsetY, -2000, 2000),
+    })
+    .where(eq(cats.id, catId));
+}
+
 export async function removeCatPhoto(catId: string): Promise<void> {
-  const current = await requireAuth();
-  if (!hasRole(current.profile.auth_role as AuthRole, ...MANAGER_OR_ADMIN)) {
-    const owned = await db
-      .select({ id: sessionCats.id })
-      .from(sessionCats)
-      .innerJoin(sessionUsers, eq(sessionUsers.session_id, sessionCats.session_id))
-      .where(
-        and(
-          eq(sessionCats.cat_id, catId),
-          eq(sessionUsers.user_id, current.user.id),
-        ),
-      )
-      .limit(1);
-    if (owned.length === 0) {
-      throw new AppError("Forbidden: not your cat entry", 403);
-    }
-  }
+  await assertCanEditCatPhoto(catId);
 
   const supabase = await createAdminClient();
   // Storage delete is best-effort — orphaned blob is acceptable.
@@ -115,7 +154,7 @@ export async function removeCatPhoto(catId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
-      .set({ photo_url: null })
+      .set({ photo_url: null, photo_zoom: 1, photo_offset_x: 0, photo_offset_y: 0 })
       .where(eq(cats.id, catId));
     // Queue a forward sync so the cleared photo reaches the sheet. No
     // last_updated_at bump (see uploadCatPhoto).

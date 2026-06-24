@@ -15,6 +15,10 @@ import {
 } from "@/components/app-pages/sessions/session-dialogs";
 import type { MergeFieldDef } from "@/components/app-pages/sessions/session-dialogs";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import {
+  positionFromCat,
+  DEFAULT_PHOTO_POSITION,
+} from "@/lib/photo-position";
 import { CloseIcon } from "@/components/app-pages/shared/icons";
 import { CatFilterToolbar } from "@/components/app-pages/shared/cat-filter-toolbar";
 import {
@@ -133,6 +137,8 @@ function buildMergeDiff(
       fieldKey: "photo_url",
       currentValue: targetCat.photo_url ?? null,
       newValue: newCat.photo_url ?? null,
+      currentPosition: positionFromCat(targetCat),
+      newPosition: positionFromCat(newCat),
       inputType: "image",
     },
     {
@@ -337,9 +343,22 @@ export function SessionsApprovalCrossRefScreen() {
         if (resolved.name !== undefined)
           updatePayload.name =
             (resolved.name as SelectCat["name"]) ?? undefined;
-        if (resolved.photo_url !== undefined)
-          updatePayload.photo_url =
+        if (resolved.photo_url !== undefined) {
+          const chosenUrl =
             (resolved.photo_url as SelectCat["photo_url"]) ?? undefined;
+          updatePayload.photo_url = chosenUrl;
+          // Carry the chosen photo's crop so the survivor frames it the same way.
+          const src =
+            chosenUrl && cat?.photo_url === chosenUrl
+              ? cat
+              : chosenUrl && mergeTargetCat?.photo_url === chosenUrl
+                ? mergeTargetCat
+                : null;
+          const pos = src ? positionFromCat(src) : DEFAULT_PHOTO_POSITION;
+          updatePayload.photo_zoom = pos.zoom;
+          updatePayload.photo_offset_x = pos.offsetX;
+          updatePayload.photo_offset_y = pos.offsetY;
+        }
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;
         if (resolved.spot_last_seen !== undefined)
@@ -538,6 +557,7 @@ export function SessionsApprovalCrossRefScreen() {
                           <CatPhoto
                             photoUrl={c.photo_url}
                             name={c.name}
+                            position={positionFromCat(c)}
                             fit="cover"
                             className="absolute inset-0 h-full w-full"
                             iconClassName="h-8 w-8 text-white/40"
@@ -622,7 +642,8 @@ export function SessionsApprovalCrossRefScreen() {
               <CatPhoto
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
-                className="h-28 w-28 shrink-0 object-cover"
+                position={cat ? positionFromCat(cat) : null}
+                className="h-28 w-28 shrink-0"
                 iconClassName="h-10 w-10 text-brand-dark/30"
               />
             </div>
@@ -719,6 +740,7 @@ export function SessionsApprovalCrossRefScreen() {
                                 <CatPhoto
                                   photoUrl={c.photo_url}
                                   name={c.name}
+                                  position={positionFromCat(c)}
                                   fit="cover"
                                   className="absolute inset-0 h-full w-full"
                                   iconClassName="h-7 w-7 text-white/40"

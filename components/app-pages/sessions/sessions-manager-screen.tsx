@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Pencil, Loader2, Check } from "lucide-react";
 import { displayCatField } from "@/lib/utils";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { positionFromCat } from "@/lib/photo-position";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { approveCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
@@ -123,7 +124,8 @@ export function SessionsManagerScreen({
                       <CatPhoto
                         photoUrl={item.cat.photo_url}
                         name={item.cat.name}
-                        className="h-28 w-28 object-cover"
+                        position={positionFromCat(item.cat)}
+                        className="h-28 w-28"
                         iconClassName="h-10 w-10 text-white/40"
                       />
                     </div>
@@ -223,7 +225,8 @@ export function SessionsManagerScreen({
                     <CatPhoto
                       photoUrl={item.cat.photo_url}
                       name={item.cat.name}
-                      className="h-20 w-20 object-cover"
+                      position={positionFromCat(item.cat)}
+                      className="h-20 w-20"
                       iconClassName="h-9 w-9 text-white/50"
                     />
                   </div>

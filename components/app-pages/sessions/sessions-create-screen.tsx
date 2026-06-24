@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlusIcon, TrashIcon } from "@/components/app-pages/shared/icons";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { positionFromCat } from "@/lib/photo-position";
 import { CatEntryForm } from "@/components/app-pages/shared/cat-entry-form";
 import {
   DeleteSessionDialog,
@@ -326,6 +327,7 @@ export function SessionsCreateScreen({
                       <CatPhoto
                         photoUrl={cat.photo_url}
                         name={cat.name}
+                        position={positionFromCat(cat)}
                         fit="cover"
                         className="absolute inset-0 h-full w-full"
                         iconClassName="h-10 w-10 text-white/40"
@@ -472,6 +474,7 @@ export function SessionsCreateScreen({
                     <CatPhoto
                       photoUrl={cat.photo_url}
                       name={cat.name}
+                      position={positionFromCat(cat)}
                       fit="cover"
                       className="absolute inset-0 h-full w-full"
                       iconClassName="h-10 w-10 text-white/40"

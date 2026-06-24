@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import {
   DetailHeader,
   TopTabs,
   PageContent,
 } from "@/components/app-pages/shared/page-frame";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
-import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
-import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
-import {
-  createPositionedPhotoFile,
-  DEFAULT_PHOTO_POSITION,
-  PhotoPositionEditor,
-  type PhotoPosition,
-} from "@/components/app-pages/shared/photo-position-editor";
+import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
+import { positionFromCat } from "@/lib/photo-position";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
   DateInputRow,
@@ -23,7 +16,6 @@ import {
   buildDate,
 } from "@/components/ui/date-input";
 import { editCat } from "@/app/actions/cats";
-import { uploadCatPhoto } from "@/app/actions/cat-photo";
 import { useAuth } from "@/contexts/auth-context";
 import { useCatDetail } from "@/contexts/cat-detail-context";
 import { useRegions } from "@/lib/hooks/use-regions";
@@ -92,13 +84,6 @@ export function DatabaseGeneralScreen() {
   const { canManage } = useAuth();
   const { catId, cat, loading, error: ctxError, refresh } = useCatDetail();
 
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoPosition, setPhotoPosition] = useState<PhotoPosition>(
-    DEFAULT_PHOTO_POSITION,
-  );
-  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -120,7 +105,6 @@ export function DatabaseGeneralScreen() {
   const [isAdoptable, setIsAdoptable] = useState(false);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const regions = useRegions();
 
@@ -147,16 +131,6 @@ export function DatabaseGeneralScreen() {
   useEffect(() => {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
-
-  useEffect(() => {
-    if (!photoFile) {
-      setPhotoPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(photoFile);
-    setPhotoPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photoFile]);
 
   const displayError = error ?? ctxError;
 
@@ -215,32 +189,6 @@ export function DatabaseGeneralScreen() {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
 
-  const handlePhotoSelect = useCallback((file: File | null) => {
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPosition(DEFAULT_PHOTO_POSITION);
-  }, []);
-
-  const handlePhotoUpload = useCallback(async () => {
-    const file = photoFile;
-    if (!file || !catId) return;
-    setPhotoUploading(true);
-    setError(null);
-    try {
-      const fd = new FormData();
-      const uploadFile = await createPositionedPhotoFile(file, photoPosition);
-      fd.append("file", uploadFile);
-      await uploadCatPhoto(catId, fd);
-      setPhotoFile(null);
-      setPhotoPosition(DEFAULT_PHOTO_POSITION);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Photo upload failed.");
-    } finally {
-      setPhotoUploading(false);
-    }
-  }, [catId, photoFile, photoPosition, refresh]);
-
   const handleToggleAdoptable = useCallback(async () => {
     if (!catId) return;
     const newVal = !isAdoptable;
@@ -295,54 +243,18 @@ export function DatabaseGeneralScreen() {
         {/* Identity card */}
         <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
           <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
-            <div className="relative h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
-              <CatPhoto
+            <div className="h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
+              <CatPhotoButton
+                catId={catId ?? ""}
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
-                className="h-full w-full overflow-hidden rounded-2xl ring-1 ring-brand-dark/10"
+                position={cat ? positionFromCat(cat) : null}
+                canEdit={canManage}
+                onChanged={refresh}
+                className="h-full w-full rounded-2xl ring-1 ring-brand-dark/10"
                 iconClassName="h-12 w-12 text-brand-green/30"
                 sizes="128px"
               />
-              {canManage ? (
-                <div
-                  className={`group absolute inset-0 rounded-2xl transition-colors ${
-                    photoUploading
-                      ? "bg-brand-dark/40"
-                      : "bg-transparent hover:bg-brand-dark/30"
-                  }`}
-                >
-                  <div className="absolute inset-x-2 bottom-2 grid grid-cols-2 gap-1 opacity-100 transition-opacity tablet:opacity-0 tablet:group-hover:opacity-100 tablet:group-focus-within:opacity-100">
-                    <button
-                      type="button"
-                      disabled={photoUploading}
-                      onClick={() => setShowPhotoCapture(true)}
-                      className="inline-flex h-8 items-center justify-center rounded-full bg-brand-orange text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                      aria-label="Take photo"
-                    >
-                      <CameraIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={photoUploading}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex h-8 items-center justify-center rounded-full bg-white text-brand-green shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                      aria-label="Choose photo"
-                    >
-                      <UploadIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      handlePhotoSelect(e.target.files?.[0] ?? null);
-                      e.currentTarget.value = "";
-                    }}
-                  />
-                </div>
-              ) : null}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -551,67 +463,6 @@ export function DatabaseGeneralScreen() {
         isLoading={saving}
       />
 
-      {photoPreview ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
-          onClick={() => {
-            if (!photoUploading) {
-              setPhotoFile(null);
-              setPhotoPosition(DEFAULT_PHOTO_POSITION);
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-sm space-y-4 rounded-2xl bg-brand-cream p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div>
-              <h2 className="font-heading text-xl font-bold tracking-tight text-brand-green">
-                Position Photo
-              </h2>
-              <p className="mt-1 text-xs font-semibold text-brand-dark/60">
-                Drag to move, then use the slider to zoom.
-              </p>
-            </div>
-
-            <PhotoPositionEditor
-              src={photoPreview}
-              position={photoPosition}
-              onChange={setPhotoPosition}
-            />
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                disabled={photoUploading}
-                onClick={() => {
-                  setPhotoFile(null);
-                  setPhotoPosition(DEFAULT_PHOTO_POSITION);
-                }}
-                className="rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={photoUploading}
-                onClick={handlePhotoUpload}
-                className="rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {photoUploading ? "Uploading..." : "Use Photo"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showPhotoCapture ? (
-        <PhotoCaptureDialog
-          onCapture={(file) => handlePhotoSelect(file)}
-          onClose={() => setShowPhotoCapture(false)}
-          onChooseFile={() => fileInputRef.current?.click()}
-        />
-      ) : null}
     </>
   );
 }

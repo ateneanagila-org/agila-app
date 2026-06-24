@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
+import { positionFromCat } from "@/lib/photo-position";
 import {
   ArrowLeftIcon,
   ExternalLinkIcon,
@@ -162,10 +163,13 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
       {/* Hero — photo + meta + apply CTA */}
       <div className="grid gap-6 tablet:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] tablet:items-start tablet:gap-10">
         <div className="relative">
-          <CatPhoto
+          <CatPhotoButton
+            catId={cat.id}
             photoUrl={cat.photo_url}
             name={cat.name}
-            className="aspect-square w-full overflow-hidden rounded-3xl ring-1 ring-brand-dark/10"
+            position={positionFromCat(cat)}
+            canEdit={false}
+            className="aspect-square w-full rounded-3xl ring-1 ring-brand-dark/10"
             iconClassName="h-16 w-16 text-brand-green/30"
             sizes="(min-width: 768px) 50vw, 100vw"
           />

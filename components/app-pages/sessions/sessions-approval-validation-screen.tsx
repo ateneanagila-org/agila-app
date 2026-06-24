@@ -10,7 +10,8 @@ import {
 } from "@/components/app-pages/shared/page-frame";
 import { ChangeConfirmDialog } from "@/components/app-pages/shared/dialogs";
 import { CloseIcon } from "@/components/app-pages/shared/icons";
-import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
+import { positionFromCat } from "@/lib/photo-position";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
   DateInputRow,
@@ -529,12 +530,17 @@ export function SessionsApprovalValidationScreen() {
 
         <section className="mt-4 rounded-2xl bg-white p-5 ring-1 ring-border">
           <div className="flex items-start gap-4">
-            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-brand-cream-dark">
-              <CatPhoto
+            <div className="h-20 w-20 shrink-0 rounded-2xl bg-brand-cream-dark">
+              <CatPhotoButton
+                catId={catId ?? ""}
                 photoUrl={cat?.photo_url}
                 name={cat?.name}
-                className="h-full w-full object-cover"
+                position={cat ? positionFromCat(cat) : null}
+                canEdit
+                onChanged={fetchCat}
+                className="h-full w-full rounded-2xl"
                 iconClassName="h-9 w-9 text-brand-dark/30"
+                sizes="80px"
               />
             </div>
 

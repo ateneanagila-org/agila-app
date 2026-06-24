@@ -2,18 +2,26 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { createCat, editCat, getCatHealthRecords } from "@/app/actions/cats";
-import { uploadCatPhoto, removeCatPhoto } from "@/app/actions/cat-photo";
+import {
+  uploadCatPhoto,
+  removeCatPhoto,
+  editCatPhotoPosition,
+} from "@/app/actions/cat-photo";
 import { createSessionCat, editSessionCat } from "@/app/actions/sessions";
 import { useRegions } from "@/lib/hooks/use-regions";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { Crop } from "lucide-react";
 import { CameraIcon, UploadIcon } from "@/components/app-pages/shared/icons";
 import { PhotoCaptureDialog } from "@/components/app-pages/shared/photo-capture-dialog";
 import {
-  createPositionedPhotoFile,
-  DEFAULT_PHOTO_POSITION,
+  createNormalizedPhotoFile,
   PhotoPositionEditor,
-  type PhotoPosition,
 } from "@/components/app-pages/shared/photo-position-editor";
+import {
+  DEFAULT_PHOTO_POSITION,
+  positionFromCat,
+  type PhotoPosition,
+} from "@/lib/photo-position";
 import {
   CAT_COLOR_VALUES,
   CAT_AGE_VALUES,
@@ -46,6 +54,16 @@ function neuteredToLabel(b: boolean | null | undefined): string {
 // null rather than being omitted — selecting Unknown actually resets the field.
 function neuteredToValue(s: string): boolean | null {
   return s === "Yes" ? true : s === "No" ? false : null;
+}
+
+/** Build upload FormData: full normalized original (no crop) + position trio. */
+async function buildPhotoFormData(file: File, position: PhotoPosition) {
+  const fd = new FormData();
+  fd.append("file", await createNormalizedPhotoFile(file));
+  fd.append("photo_zoom", String(position.zoom));
+  fd.append("photo_offset_x", String(position.offsetX));
+  fd.append("photo_offset_y", String(position.offsetY));
+  return fd;
 }
 
 type CatEntryFormProps = {
@@ -158,6 +176,8 @@ export function CatEntryForm({
     initialCat?.photo_url ?? null,
   );
   const [removedExisting, setRemovedExisting] = useState(false);
+  // Re-cropping the already-saved photo (lossless, position-only).
+  const [adjusting, setAdjusting] = useState(false);
   // Cat already created in DB; subsequent Save clicks only retry the photo upload.
   const [savedCatId, setSavedCatId] = useState<string | null>(
     initialCat?.id ?? null,
@@ -219,12 +239,7 @@ export function CatEntryForm({
         }
         if (photoFile) {
           try {
-            const fd = new FormData();
-            const uploadFile = await createPositionedPhotoFile(
-              photoFile,
-              photoPosition,
-            );
-            fd.append("file", uploadFile);
+            const fd = await buildPhotoFormData(photoFile, photoPosition);
             await uploadCatPhoto(initialCat.id, fd);
           } catch (uploadErr) {
             setPhotoWarning(
@@ -236,6 +251,13 @@ export function CatEntryForm({
           }
         } else if (removedExisting && existingPhotoUrlRef.current) {
           await removeCatPhoto(initialCat.id);
+        } else if (adjusting && existingPhotoUrlRef.current) {
+          // Lossless re-crop of the existing photo — position only, no upload.
+          await editCatPhotoPosition(initialCat.id, {
+            zoom: photoPosition.zoom,
+            offsetX: photoPosition.offsetX,
+            offsetY: photoPosition.offsetY,
+          });
         }
         onSave?.();
         onClose();
@@ -298,12 +320,7 @@ export function CatEntryForm({
 
       if (photoFile && newCatId) {
         try {
-          const fd = new FormData();
-          const uploadFile = await createPositionedPhotoFile(
-            photoFile,
-            photoPosition,
-          );
-          fd.append("file", uploadFile);
+          const fd = await buildPhotoFormData(photoFile, photoPosition);
           await uploadCatPhoto(newCatId, fd);
         } catch (uploadErr) {
           console.error("Photo upload failed:", uploadErr);
@@ -347,6 +364,7 @@ export function CatEntryForm({
     savedCatId,
     initialCat,
     removedExisting,
+    adjusting,
   ]);
 
   const showPhoto =
@@ -452,6 +470,28 @@ export function CatEntryForm({
                     </button>
                   </div>
                 </div>
+              ) : adjusting && showPhoto ? (
+                <div className="space-y-2">
+                  <PhotoPositionEditor
+                    src={showPhoto}
+                    position={photoPosition}
+                    onChange={setPhotoPosition}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdjusting(false);
+                      setPhotoPosition(
+                        initialCat
+                          ? positionFromCat(initialCat)
+                          : DEFAULT_PHOTO_POSITION,
+                      );
+                    }}
+                    className="rounded-full border border-brand-dark/20 px-3 py-1 text-xs font-semibold text-brand-dark/70 transition-opacity hover:opacity-80"
+                  >
+                    Cancel adjust
+                  </button>
+                </div>
               ) : showPhoto ? (
                 <div className="relative overflow-hidden rounded-2xl border border-brand-orange/30 bg-brand-cream-dark/40">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -460,7 +500,7 @@ export function CatEntryForm({
                     alt="Preview"
                     className="h-40 w-full object-contain"
                   />
-                  <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 gap-1 bg-linear-to-t from-black/65 to-transparent px-2 py-2">
+                  <div className="absolute inset-x-0 bottom-0 grid grid-cols-4 gap-1 bg-linear-to-t from-black/65 to-transparent px-2 py-2">
                     <button
                       type="button"
                       onClick={() => setShowPhotoCapture(true)}
@@ -476,6 +516,21 @@ export function CatEntryForm({
                     >
                       <UploadIcon className="h-3.5 w-3.5" />
                       File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoPosition(
+                          initialCat
+                            ? positionFromCat(initialCat)
+                            : DEFAULT_PHOTO_POSITION,
+                        );
+                        setAdjusting(true);
+                      }}
+                      className="inline-flex items-center justify-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-brand-dark transition-opacity hover:opacity-90"
+                    >
+                      <Crop className="h-3.5 w-3.5" />
+                      Crop
                     </button>
                     <button
                       type="button"

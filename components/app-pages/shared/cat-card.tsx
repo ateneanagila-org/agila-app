@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { SelectCat } from "@/lib/validation/cats";
 import { CatPhoto } from "@/components/app-pages/shared/cat-photo";
+import { positionFromCat } from "@/lib/photo-position";
 import {
   ChevronRightIcon,
   MoreHorizontalIcon,
@@ -24,6 +25,9 @@ type CatCardProps = {
     | "date_last_seen"
     | "last_updated_at"
     | "photo_url"
+    | "photo_zoom"
+    | "photo_offset_x"
+    | "photo_offset_y"
     | "cat_status"
     | "is_adoptable"
   >;
@@ -122,6 +126,7 @@ export function CatCard({
           <CatPhoto
             photoUrl={cat.photo_url}
             name={cat.name}
+            position={positionFromCat(cat)}
             className="h-20 w-20 shrink-0 rounded-xl ring-1 ring-brand-green/10"
           />
           <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
@@ -179,6 +184,7 @@ export function CatCard({
           <CatPhoto
             photoUrl={cat.photo_url}
             name={cat.name}
+            position={positionFromCat(cat)}
             className="aspect-square w-full rounded-lg ring-1 ring-brand-green/10"
           />
           {statusChip ? (
@@ -235,6 +241,7 @@ export function CatCard({
         <CatPhoto
           photoUrl={cat.photo_url}
           name={cat.name}
+          position={positionFromCat(cat)}
           className="h-32 w-32 shrink-0 rounded-xl ring-1 ring-brand-green/10"
           sizes="128px"
         />
