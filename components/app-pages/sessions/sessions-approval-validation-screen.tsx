@@ -375,19 +375,32 @@ export function SessionsApprovalValidationScreen() {
           {/* Green form card */}
           <div className="overflow-hidden rounded-2xl bg-brand-green p-4">
             <div className="space-y-4">
-              <div>
-                <p className="text-xs font-bold text-brand-yellow">
-                  Last seen at:
-                </p>
-                <p className="mt-1 text-[15px] font-semibold text-white">
-                  {formatDate(cat?.date_last_seen)} /{" "}
-                  {cat?.spot_last_seen || "—"}
-                </p>
-                {cat?.region_name ? (
-                  <span className="mt-2 inline-block rounded-full bg-brand-dark/60 px-2.5 py-0.5 text-xs font-semibold text-white/80">
-                    {cat.region_name}
-                  </span>
-                ) : null}
+              <div className="flex items-start gap-3">
+                <CatPhotoButton
+                  catId={catId ?? ""}
+                  photoUrl={cat?.photo_url}
+                  name={cat?.name}
+                  position={cat ? positionFromCat(cat) : null}
+                  canEdit
+                  onChanged={fetchCat}
+                  className="h-16 w-16 shrink-0 rounded-2xl ring-1 ring-white/20"
+                  iconClassName="h-7 w-7 text-white/50"
+                  sizes="64px"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-brand-yellow">
+                    Last seen at:
+                  </p>
+                  <p className="mt-1 text-[15px] font-semibold text-white">
+                    {formatDate(cat?.date_last_seen)} /{" "}
+                    {cat?.spot_last_seen || "—"}
+                  </p>
+                  {cat?.region_name ? (
+                    <span className="mt-2 inline-block rounded-full bg-brand-dark/60 px-2.5 py-0.5 text-xs font-semibold text-white/80">
+                      {cat.region_name}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div>
