@@ -335,11 +335,11 @@ export function DatabaseInterventionsScreen() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-2 max-[350px]:gap-1.5">
+        <div className="flex items-center gap-2 max-[400px]:gap-1.5">
           <button
             type="button"
             onClick={openFilterDialog}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark max-[350px]:px-2.5 max-[350px]:text-[10px]"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark max-[400px]:px-2.5 max-[400px]:text-[10px]"
           >
             Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}{" "}
             <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -347,7 +347,7 @@ export function DatabaseInterventionsScreen() {
           <button
             type="button"
             onClick={openSortDialog}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark max-[350px]:px-2.5 max-[350px]:text-[10px]"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-dark/15 bg-white px-4 py-2 text-xs font-bold text-brand-dark/75 transition-colors hover:border-brand-dark/40 hover:text-brand-dark max-[400px]:px-2.5 max-[400px]:text-[10px]"
           >
             Sort by <ChevronDownIcon className="h-3.5 w-3.5" />
           </button>
@@ -356,7 +356,7 @@ export function DatabaseInterventionsScreen() {
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90 max-[350px]:px-2.5 max-[350px]:text-[10px]"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90 max-[400px]:px-2.5 max-[400px]:text-[10px]"
             >
               New Intervention <PlusIcon className="h-3.5 w-3.5" />
             </button>
