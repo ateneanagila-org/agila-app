@@ -130,15 +130,17 @@ export function SessionsApprovalValidationScreen() {
     try {
       const result = await editCat({
         id: catId,
-        name: name || undefined,
+        // Empty text → null (not undefined) so cleared fields persist;
+        // Drizzle .set() skips undefined keys, keeping the old value.
+        name: name || null,
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
         sociability: normalizeCatField<CatSociability>(sociability),
         cat_status: normalizeCatField<CatStatus>(catStatus),
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
-        spot_last_seen: spotLastSeen || undefined,
+        caretaker: caretaker || null,
+        notes: notes || null,
+        spot_last_seen: spotLastSeen || null,
         date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         entry_status: "Original" as CatEntryStatus,
         region_id: regionId,
@@ -229,15 +231,17 @@ export function SessionsApprovalValidationScreen() {
     try {
       const result = await editCat({
         id: catId,
-        name: name || undefined,
+        // Empty text → null (not undefined) so cleared fields persist;
+        // Drizzle .set() skips undefined keys, keeping the old value.
+        name: name || null,
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
         sociability: normalizeCatField<CatSociability>(sociability),
         cat_status: normalizeCatField<CatStatus>(catStatus),
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
-        spot_last_seen: spotLastSeen || undefined,
+        caretaker: caretaker || null,
+        notes: notes || null,
+        spot_last_seen: spotLastSeen || null,
         date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         region_id: regionId,
       });

@@ -794,15 +794,16 @@ export function SessionsScreen({
               </div>
             </section>
 
-            <h2 className="mt-7 font-heading text-lg font-bold text-brand-green">
-              Priority Locations
-            </h2>
-            <p className="mt-0.5 text-xs text-brand-dark/60">
-              Regions ranked by days since last census
-            </p>
-
-            <section className="mt-3 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
-              <div className="grid grid-cols-2 border-b border-border bg-brand-cream px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
+            <section className="mt-7 overflow-hidden rounded-2xl bg-white ring-1 ring-border">
+              <div className="border-b border-border px-5 py-3">
+                <h2 className="font-heading text-lg font-bold text-brand-green">
+                  Priority Locations
+                </h2>
+                <p className="mt-0.5 text-xs text-brand-dark/60">
+                  Regions ranked by days since last census
+                </p>
+              </div>
+              <div className="grid grid-cols-2 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-brand-dark/60">
                 <span>Location</span>
                 <span>Days Since Last Census</span>
               </div>

@@ -360,6 +360,7 @@ export function DatabaseSortByDialog(props: DatabaseSortByDialogProps) {
 type NewInterventionDialogProps = {
   open: boolean;
   onClose: () => void;
+  mode?: "create" | "edit";
   type: string;
   onTypeChange: (v: string) => void;
   notes: string;
@@ -373,6 +374,7 @@ type NewInterventionDialogProps = {
 export function NewInterventionDialog({
   open,
   onClose,
+  mode = "create",
   type,
   onTypeChange,
   notes,
@@ -382,9 +384,13 @@ export function NewInterventionDialog({
   creating,
   error,
 }: NewInterventionDialogProps) {
+  const isEdit = mode === "edit";
   return (
     <Shell open={open} onClose={onClose}>
-      <Header title="New Intervention" onClose={onClose} />
+      <Header
+        title={isEdit ? "Edit Intervention" : "New Intervention"}
+        onClose={onClose}
+      />
 
       {error ? (
         <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -425,7 +431,58 @@ export function NewInterventionDialog({
           onClick={onCreate}
           className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {creating ? "Creating..." : "Apply"} <SaveIcon className="h-4 w-4" />
+          {creating
+            ? isEdit
+              ? "Saving..."
+              : "Creating..."
+            : isEdit
+              ? "Save"
+              : "Apply"}{" "}
+          <SaveIcon className="h-4 w-4" />
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Delete Intervention Dialog ───────────────────────────────────────────────
+
+type DeleteInterventionDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+};
+
+export function DeleteInterventionDialog({
+  open,
+  onClose,
+  onConfirm,
+  isLoading,
+}: DeleteInterventionDialogProps) {
+  return (
+    <Shell open={open} onClose={onClose}>
+      <Header title="Delete intervention?" onClose={onClose} />
+      <p className="text-sm text-foreground">
+        This intervention will be permanently removed. This action cannot be
+        undone.
+      </p>
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-green px-4 py-2 text-sm font-semibold text-brand-green transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
+          Cancel <CloseIcon className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {isLoading ? "Removing..." : "Remove"} <TrashIcon className="h-4 w-4" />
         </button>
       </div>
     </Shell>

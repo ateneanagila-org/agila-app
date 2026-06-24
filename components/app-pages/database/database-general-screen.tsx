@@ -167,15 +167,17 @@ export function DatabaseGeneralScreen() {
     try {
       const result = await editCat({
         id: catId,
-        name: name || undefined,
+        // Empty text → null (not undefined) so cleared fields actually persist;
+        // Drizzle .set() skips undefined keys, leaving the old value in place.
+        name: name || null,
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
         sociability: normalizeCatField<CatSociability>(sociability),
         cat_status: normalizeCatField<CatStatus>(catStatus),
-        caretaker: caretaker || undefined,
-        notes: notes || undefined,
-        spot_last_seen: spotLastSeen || undefined,
+        caretaker: caretaker || null,
+        notes: notes || null,
+        spot_last_seen: spotLastSeen || null,
         date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
         is_adoptable: isAdoptable,
         region_id: regionId,

@@ -115,6 +115,20 @@ function buildMergeDiff(
       inputType: "pill",
     },
     {
+      label: "Specific Location",
+      fieldKey: "spot_last_seen",
+      currentValue: targetCat.spot_last_seen ?? null,
+      newValue: newCat.spot_last_seen ?? null,
+      inputType: "pill",
+    },
+    {
+      label: "Caretaker",
+      fieldKey: "caretaker",
+      currentValue: targetCat.caretaker ?? null,
+      newValue: newCat.caretaker ?? null,
+      inputType: "pill",
+    },
+    {
       label: "Photo",
       fieldKey: "photo_url",
       currentValue: targetCat.photo_url ?? null,
@@ -126,7 +140,7 @@ function buildMergeDiff(
       fieldKey: "notes",
       currentValue: targetCat.notes ?? null,
       newValue: newCat.notes ?? null,
-      inputType: "textarea",
+      inputType: "notes",
     },
   ];
 
@@ -140,13 +154,21 @@ function buildMergeDiff(
     });
   }
 
+  // A field is a real decision only when the values differ AND the new entry
+  // actually contributes a value. When the new side is empty we keep the
+  // target's existing value (no-wipe matches handleMerge's `?? undefined`), so
+  // it never surfaces as a misleading "New = —" choice. Deliberate clears happen
+  // later on the cat's edit screen. Fields that match are auto-merged.
+  const isEmpty = (v: string | null) => v === null || v === "";
   const choiceCandidates = candidates.filter(
-    (f) => f.inputType === "pill" || f.inputType === "image",
+    (f) =>
+      f.inputType === "pill" ||
+      f.inputType === "image" ||
+      f.inputType === "notes",
   );
-  const diffFields = [
-    ...choiceCandidates.filter((f) => f.currentValue !== f.newValue),
-    ...candidates.filter((f) => f.inputType === "textarea"),
-  ];
+  const diffFields = choiceCandidates.filter(
+    (f) => f.currentValue !== f.newValue && !isEmpty(f.newValue),
+  );
   const autoMergedCount = choiceCandidates.filter(
     (f) => f.currentValue === f.newValue,
   ).length;
@@ -320,6 +342,10 @@ export function SessionsApprovalCrossRefScreen() {
             (resolved.photo_url as SelectCat["photo_url"]) ?? undefined;
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;
+        if (resolved.spot_last_seen !== undefined)
+          updatePayload.spot_last_seen = resolved.spot_last_seen ?? undefined;
+        if (resolved.caretaker !== undefined)
+          updatePayload.caretaker = resolved.caretaker ?? undefined;
         if (resolved.is_neutered !== undefined) {
           updatePayload.is_neutered =
             resolved.is_neutered === "Yes"

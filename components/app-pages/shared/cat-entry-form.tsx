@@ -205,11 +205,13 @@ export function CatEntryForm({
           age: normalizeCatField<CatAge>(age),
           sex: normalizeCatField<CatSex>(sex),
           sociability: normalizeCatField<CatSociability>(sociability),
-          spot_last_seen: spotLastSeen || undefined,
+          // Empty text → null (not undefined) so cleared fields persist;
+          // Drizzle .set() skips undefined keys, keeping the old value.
+          spot_last_seen: spotLastSeen || null,
           date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
-          caretaker: caretaker || undefined,
-          notes: notes || undefined,
-          name: name || undefined,
+          caretaker: caretaker || null,
+          notes: notes || null,
+          name: name || null,
         });
         if (result?.serverError) {
           setError(result.serverError);

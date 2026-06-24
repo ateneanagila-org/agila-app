@@ -457,7 +457,7 @@ export type MergeFieldDef = {
   fieldKey: string;
   currentValue: string | null;
   newValue: string | null;
-  inputType: "pill" | "textarea" | "image";
+  inputType: "pill" | "image" | "notes";
 };
 
 type MergeDetailsDialogProps = {
@@ -481,42 +481,26 @@ function MergeDetailsDialogContent({
   isLoading,
 }: Omit<MergeDetailsDialogProps, "open">) {
   const defaultSelections = () =>
-    Object.fromEntries(
-      diffFields
-        .filter((f) => f.inputType === "pill" || f.inputType === "image")
-        .map((f) => [f.fieldKey, "new" as const]),
-    );
-  const defaultTextValues = () =>
-    Object.fromEntries(
-      diffFields
-        .filter((f) => f.inputType === "textarea")
-        .map((f) => [f.fieldKey, f.newValue ?? ""]),
-    );
+    Object.fromEntries(diffFields.map((f) => [f.fieldKey, "new" as const]));
 
   const [selections, setSelections] = useState<Record<string, "new" | "current">>(defaultSelections);
-  const [textValues, setTextValues] = useState<Record<string, string>>(defaultTextValues);
 
   const handleReset = () => {
     setSelections(defaultSelections());
-    setTextValues(defaultTextValues());
   };
 
   const handleMerge = () => {
     const resolved: Record<string, string | null> = {};
     for (const field of diffFields) {
-      if (field.inputType === "pill" || field.inputType === "image") {
-        const sel = selections[field.fieldKey] ?? "new";
-        resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
-      } else {
-        resolved[field.fieldKey] = textValues[field.fieldKey] ?? null;
-      }
+      const sel = selections[field.fieldKey] ?? "new";
+      resolved[field.fieldKey] = sel === "new" ? field.newValue : field.currentValue;
     }
     onMerge(resolved);
   };
 
   const pillFields = diffFields.filter((f) => f.inputType === "pill");
   const imageFields = diffFields.filter((f) => f.inputType === "image");
-  const textareaFields = diffFields.filter((f) => f.inputType === "textarea");
+  const notesFields = diffFields.filter((f) => f.inputType === "notes");
 
   return (
     <>
@@ -526,14 +510,15 @@ function MergeDetailsDialogContent({
         onClose={onClose}
       />
 
-      {pillFields.length > 0 || imageFields.length > 0 || textareaFields.length > 0 ? (
+      {diffFields.length > 0 ? (
         <p className="text-xs text-brand-dark/60">
-          {pillFields.length + imageFields.length} field
-          {pillFields.length + imageFields.length !== 1 ? "s" : ""} differ
+          {diffFields.length} field{diffFields.length !== 1 ? "s" : ""} differ
           {autoMergedCount > 0 ? ` · ${autoMergedCount} auto-merged` : ""}
         </p>
       ) : (
-        <p className="text-xs text-brand-dark/60">All fields match — only notes to review.</p>
+        <p className="text-xs text-brand-dark/60">
+          All fields match — nothing to resolve.
+        </p>
       )}
 
       <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
@@ -614,23 +599,39 @@ function MergeDetailsDialogContent({
           </div>
         ))}
 
-        {textareaFields.map((field) => (
+        {notesFields.map((field) => (
           <div key={field.fieldKey}>
             <p className="mb-1.5 text-sm font-semibold text-brand-orange">{field.label}</p>
-            {field.currentValue ? (
-              <p className="mb-1.5 rounded-xl bg-brand-cream-dark px-3 py-2 text-xs italic text-brand-dark/60">
-                Current: &ldquo;{field.currentValue}&rdquo;
-              </p>
-            ) : null}
-            <textarea
-              value={textValues[field.fieldKey] ?? ""}
-              onChange={(e) =>
-                setTextValues((s) => ({ ...s, [field.fieldKey]: e.target.value }))
-              }
-              rows={3}
-              placeholder="No notes"
-              className="w-full rounded-xl border border-brand-dark/15 bg-white px-3 py-2 text-sm text-brand-dark outline-none focus:border-brand-green"
-            />
+            <div className="space-y-1.5">
+              {(["new", "current"] as const).map((side) => {
+                const value = side === "new" ? field.newValue : field.currentValue;
+                const selected = (selections[field.fieldKey] ?? "new") === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() =>
+                      setSelections((s) => ({ ...s, [field.fieldKey]: side }))
+                    }
+                    className={`flex w-full flex-col gap-1 rounded-xl border-2 px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? "border-brand-green bg-brand-green/10"
+                        : "border-brand-dark/15 bg-brand-cream hover:bg-brand-cream-dark"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-dark/60">
+                        {side === "new" ? "New" : "Current"}
+                      </span>
+                      {selected ? <span className="text-xs text-brand-green">✓</span> : null}
+                    </div>
+                    <span className="whitespace-pre-wrap break-words text-sm text-brand-dark">
+                      {value || "—"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import type { RegionOption } from "@/lib/repo/regions.repo";
 import { HorizontalBarChart } from "@/components/app-pages/shared/charts";
 import { LocationPicker } from "@/components/app-pages/shared/location-picker";
 import { useRegions } from "@/lib/hooks/use-regions";
@@ -11,6 +12,7 @@ import { computeCensusStats } from "@/lib/stats/census-stats";
 type OverviewScreenProps = {
   initialCats: CatWithRegion[];
   initialHealthRecords: SelectCatHealthRecord[];
+  initialRegions?: RegionOption[];
 };
 
 function formatLatestUpdate(cats: CatWithRegion[]) {
@@ -29,8 +31,9 @@ function formatLatestUpdate(cats: CatWithRegion[]) {
 export function OverviewScreen({
   initialCats,
   initialHealthRecords,
+  initialRegions = [],
 }: OverviewScreenProps) {
-  const regions = useRegions();
+  const regions = useRegions(initialRegions);
   const regionNames = useMemo(
     () => regions.map((r) => r.name).sort((a, b) => a.localeCompare(b)),
     [regions],
@@ -80,10 +83,9 @@ export function OverviewScreen({
       const key = cat.region_name ?? "UNKNOWN";
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    return Array.from(counts.entries()).map(([label, value]) => ({
-      label,
-      value,
-    }));
+    return Array.from(counts.entries())
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [allCats, regionNames]);
 
   const desktopStatusStats = useMemo(
