@@ -202,16 +202,28 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
             ) : null}
           </div>
 
-          {cat.spot_last_seen || cat.last_updated_at ? (
+          {cat.spot_last_seen || cat.date_last_seen || cat.last_updated_at ? (
             <p className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-brand-dark/65">
-              {cat.spot_last_seen ? (
+              {cat.spot_last_seen || cat.date_last_seen ? (
                 <>
                   <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[11px]">
                     Last seen
                   </span>
-                  <span className="font-semibold text-brand-dark/80">
-                    {cat.spot_last_seen}
-                  </span>
+                  {cat.spot_last_seen ? (
+                    <span className="font-semibold text-brand-dark/80">
+                      {cat.spot_last_seen}
+                    </span>
+                  ) : null}
+                  {cat.date_last_seen ? (
+                    <span className="font-semibold tabular-nums text-brand-dark/80">
+                      {cat.spot_last_seen ? "· " : ""}
+                      {new Date(cat.date_last_seen).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  ) : null}
                 </>
               ) : null}
               {cat.last_updated_at ? (

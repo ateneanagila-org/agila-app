@@ -36,6 +36,9 @@ export const sheetRowSchema = z.object({
   sociability: CatSociabilityEnum.nullable(),
   cat_status: CatStatusEnum.nullable(),
   spot_last_seen: z.string().nullable(),
+  // Optional so the UNKNOWN tab (which has no col N) can omit it entirely and
+  // leave date_last_seen untouched on import — same pattern as paws_id.
+  date_last_seen: z.string().nullable().optional(),
   caretaker: z.string().nullable(),
   notes: z.string().nullable(),
   is_adoptable: z.boolean(),
@@ -102,6 +105,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const vaccination_date = row[16] && row[16] !== "N/A" ? row[16] : null;
 
   const name = row[2] && row[2] !== "N/A" ? row[2] : null;
+  const date_last_seen = row[13] && row[13] !== "N/A" ? row[13] : null; // col N
   const spot_last_seen = row[14] && row[14] !== "N/A" ? row[14] : null;
   const caretaker = row[12] && row[12] !== "N/A" ? row[12] : null;
   const notes = row[17] && row[17] !== "N/A" ? row[17] : null;
@@ -124,6 +128,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
     sociability,
     cat_status,
     spot_last_seen,
+    date_last_seen,
     caretaker,
     notes,
     is_adoptable,

@@ -252,10 +252,10 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
   // catalogDisplay defaults to "" â€” safe because syncAndCompactRegion's UPDATE
   // branch reads col A from the existing sheet row and recomputes the suffix,
   // so the payload value is never written verbatim for updates.
-  const lastSeenDate =
-    region.name === "UNKNOWN"
-      ? null
-      : await sessionsRepo.findLatestSessionDateForCat(catId, tx);
+  // date_last_seen is a plain stored value, not derived from sessions. When null
+  // the payload carries "N/A" and the syncAndCompactRegion guard preserves the
+  // sheet's existing col N (protects legacy dates pre-backfill).
+  const lastSeenDate = region.name === "UNKNOWN" ? null : cat.date_last_seen;
   const rowData =
     region.name === "UNKNOWN"
       ? mapUnknownCatToSheetRow(cat, cat.catHealthRecords)
@@ -357,10 +357,8 @@ export async function syncAndCompactRegion(
             where: (i, { eq }) => eq(i.cat_id, cat.id),
             orderBy: (i, { desc }) => [desc(i.requested_at)],
           });
-          const lastSeenDate =
-            region.name === "UNKNOWN"
-              ? null
-              : await sessionsRepo.findLatestSessionDateForCat(cat.id);
+          // date_last_seen is the stored column, not a session-derived value.
+          const lastSeenDate = region.name === "UNKNOWN" ? null : cat.date_last_seen;
           const newPayload =
             region.name === "UNKNOWN"
               ? mapUnknownCatToSheetRow(cat, health ?? null, catalogDisplay)
@@ -383,11 +381,11 @@ export async function syncAndCompactRegion(
             // UNKNOWN cats: preserve col A as-is (no status suffix in that layout)
             updatedRow[0] = currentRows[idx][0] ?? "";
           }
-          // col N (index 13) = date_last_seen is DERIVED from session data, never
-          // stored on the cat. When the DB has no session for this cat (e.g. the
-          // initial import, before any sessions exist) the payload carries "N/A".
-          // Don't let that clobber a real date the sheet already had — DB wins
-          // only when it actually has one. UNKNOWN has no col N, so skip it.
+          // col N (index 13) = date_last_seen, a plain stored column. When it's
+          // null the payload carries "N/A"; don't let that clobber a real date
+          // the sheet already has — this protects legacy col N until the one-time
+          // backfill fills the column. DB wins only when it actually has a date.
+          // UNKNOWN has no col N, so skip it.
           if (region.name !== "UNKNOWN") {
             const fromDb = updatedRow[13];
             if (!fromDb || fromDb === "N/A") {

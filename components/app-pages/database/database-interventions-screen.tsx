@@ -221,10 +221,14 @@ export function DatabaseInterventionsScreen() {
                 <span className="font-semibold text-brand-dark/80">
                   {cat?.spot_last_seen || "Unknown"}
                 </span>
-                <span className="text-brand-dark/30">·</span>
-                <span className="tabular-nums">
-                  {formatDate(cat?.last_updated_at)}
-                </span>
+                {cat?.date_last_seen ? (
+                  <>
+                    <span className="text-brand-dark/30">·</span>
+                    <span className="tabular-nums">
+                      {formatDate(cat.date_last_seen)}
+                    </span>
+                  </>
+                ) : null}
               </p>
             </div>
           </div>

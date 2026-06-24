@@ -34,6 +34,21 @@ function neuteredLabel(v: boolean | null | undefined): string {
   return v === true ? "Yes" : v === false ? "No" : "Unknown";
 }
 
+/** The later of two sighting dates (non-null wins; both null → null). Used so a
+ *  merge advances the survivor's date_last_seen to the most recent sighting. */
+function newerDate(
+  a: Date | string | null | undefined,
+  b: Date | string | null | undefined,
+): Date | null {
+  const da = a ? new Date(a) : null;
+  const db = b ? new Date(b) : null;
+  const va = da && !isNaN(da.getTime()) ? da : null;
+  const vb = db && !isNaN(db.getTime()) ? db : null;
+  if (!va) return vb;
+  if (!vb) return va;
+  return va.getTime() >= vb.getTime() ? va : vb;
+}
+
 function buildMergeDiff(
   newCat: CatWithRegion,
   targetCat: CatWithRegion,
@@ -317,6 +332,14 @@ export function SessionsApprovalCrossRefScreen() {
           updatePayload.region_id =
             regions.find((r) => r.name === resolved.region_name)?.id ?? null;
         }
+        // Last seen advances to the most recent sighting across both records —
+        // not a manager choice; "last seen" is just the latest known date.
+        // Advance-only: never set (and so never clear) when neither has a date.
+        const advancedLastSeen = newerDate(
+          mergeTargetCat?.date_last_seen,
+          cat?.date_last_seen,
+        );
+        if (advancedLastSeen) updatePayload.date_last_seen = advancedLastSeen;
         const step1 = await editCat(updatePayload);
         if (step1?.serverError) {
           setError(step1.serverError);
@@ -340,7 +363,7 @@ export function SessionsApprovalCrossRefScreen() {
         setSaving(false);
       }
     },
-    [catId, mergeTargetId, regions, router],
+    [catId, mergeTargetId, regions, router, cat, mergeTargetCat],
   );
 
   const handleApprove = useCallback(async () => {
@@ -525,7 +548,7 @@ export function SessionsApprovalCrossRefScreen() {
                           ) : null}
                           <p className="mt-2 text-sm font-bold text-white truncate">
                             {c.spot_last_seen || "—"} ·{" "}
-                            {formatDate(c.last_updated_at)}
+                            {formatDate(c.date_last_seen)}
                           </p>
                         </div>
                       </div>
@@ -609,8 +632,10 @@ export function SessionsApprovalCrossRefScreen() {
                     ) : null}
                   </div>
                   <p className="mt-3 text-sm text-brand-dark/60">
-                    Last seen: {cat?.spot_last_seen || "—"} &middot;{" "}
-                    {formatDate(cat?.last_updated_at)}
+                    Last seen: {cat?.spot_last_seen || "—"}
+                    {cat?.date_last_seen
+                      ? ` · ${formatDate(cat.date_last_seen)}`
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -704,7 +729,7 @@ export function SessionsApprovalCrossRefScreen() {
                                 ) : null}
                                 <p className="mt-2 text-sm font-bold text-white truncate">
                                   {c.spot_last_seen || "—"} ·{" "}
-                                  {formatDate(c.last_updated_at)}
+                                  {formatDate(c.date_last_seen)}
                                 </p>
                               </div>
                             </div>

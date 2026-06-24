@@ -30,6 +30,13 @@ import { linkCatToSystemSession } from "@/lib/services/system-session.service";
  */
 const CONFLICT_BUFFER_MS = 5_000;
 
+/** Parse a sheet date string ("M/D/YYYY") to a Date, or null if blank/invalid. */
+function parseSheetDate(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 interface ReverseSyncResult {
   imported: number;
   skipped: number;
@@ -130,6 +137,7 @@ async function reverseSyncRegionInternal(
             neuter_date,
             vaccination_date,
             paws_id,
+            date_last_seen,
             tnvr_signal,
             vet_signal,
             ...catFields
@@ -139,6 +147,7 @@ async function reverseSyncRegionInternal(
             .values({
               id: sheetRow.entityId,
               paws_id: paws_id ?? null,
+              date_last_seen: parseSheetDate(date_last_seen),
               entry_status: "Original",
               ...catFields,
             })
@@ -395,6 +404,12 @@ export async function importSheetRowToDB(
         is_adoptable: data.is_adoptable,
         // photo_url intentionally omitted — owned exclusively by photo-import.service.ts
         ...(data.paws_id !== undefined ? { paws_id: data.paws_id } : {}),
+        // date_last_seen is a plain stored value — the sheet's col N wins on a
+        // human edit (LWW). Omitted entirely for UNKNOWN (no col N) so it's never
+        // nulled there. No derived-value guard needed: there's nothing to freeze.
+        ...(data.date_last_seen !== undefined
+          ? { date_last_seen: parseSheetDate(data.date_last_seen) }
+          : {}),
         last_updated_at: new Date(),
       })
       .where(eq(cats.id, data.id));
