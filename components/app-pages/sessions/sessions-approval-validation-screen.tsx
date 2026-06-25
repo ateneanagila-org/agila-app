@@ -498,6 +498,33 @@ export function SessionsApprovalValidationScreen() {
 
               <div>
                 <label className="text-xs font-bold text-brand-yellow">
+                  Specific Location
+                </label>
+                <input
+                  value={spotLastSeen}
+                  onChange={(e) => setSpotLastSeen(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-pink-200 bg-brand-cream px-3 py-2.5 text-sm text-slate-900 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">
+                  Date Last Seen
+                </label>
+                <div className="mt-1.5">
+                  <DateInputRow
+                    month={dlsMonth}
+                    day={dlsDay}
+                    year={dlsYear}
+                    onMonthChange={setDlsMonth}
+                    onDayChange={setDlsDay}
+                    onYearChange={setDlsYear}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-brand-yellow">
                   Notes
                 </label>
                 <textarea
