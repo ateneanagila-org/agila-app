@@ -165,7 +165,11 @@ function buildMergeDiff(
   // target's existing value (no-wipe matches handleMerge's `?? undefined`), so
   // it never surfaces as a misleading "New = —" choice. Deliberate clears happen
   // later on the cat's edit screen. Fields that match are auto-merged.
-  const isEmpty = (v: string | null) => v === null || v === "";
+  // "Unknown" counts as empty too: pills store it as null, but neuteredLabel
+  // renders null as the literal "Unknown" — without this it would slip through
+  // and let a new "Unknown" wipe the target's neutered flag (inconsistent leak).
+  const isEmpty = (v: string | null) =>
+    v === null || v === "" || v === "Unknown";
   const choiceCandidates = candidates.filter(
     (f) =>
       f.inputType === "pill" ||

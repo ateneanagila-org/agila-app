@@ -18,7 +18,12 @@ import {
   parseDateParts,
   buildDate,
 } from "@/components/ui/date-input";
-import { getCats, editCat, removeCat } from "@/app/actions/cats";
+import {
+  getCats,
+  editCat,
+  removeCat,
+  getCatHealthRecords,
+} from "@/app/actions/cats";
 import { normalizeCatField } from "@/lib/utils";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useRegions } from "@/lib/hooks/use-regions";
@@ -28,6 +33,7 @@ import {
   CAT_SEX_VALUES,
   CAT_SOCIABILITY_VALUES,
   CAT_STATUS_VALUES,
+  CATHEALTHRECORD_CONDITION_VALUES,
 } from "@/lib/db/enums";
 import type {
   CatColor,
@@ -36,7 +42,16 @@ import type {
   CatSociability,
   CatStatus,
   CatEntryStatus,
+  CatHealthRecordCondition,
 } from "@/lib/db/enums";
+
+const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
+function neuteredToLabel(b: boolean | null | undefined): string {
+  return b === true ? "Yes" : b === false ? "No" : "Unknown";
+}
+function neuteredToValue(s: string): boolean | null {
+  return s === "Yes" ? true : s === "No" ? false : null;
+}
 
 export function SessionsApprovalValidationScreen() {
   const router = useRouter();
@@ -54,6 +69,13 @@ export function SessionsApprovalValidationScreen() {
 
   // Form state
   const [name, setName] = useState("");
+  const [condition, setCondition] = useState("Unknown");
+  const [neutered, setNeutered] = useState("Unknown");
+  // Original health-record values (condition/is_neutered live off the cat row) so
+  // isDirty can tell an untouched Unknown from a real edit and not skip the save.
+  const [origCondition, setOrigCondition] =
+    useState<CatHealthRecordCondition | null>(null);
+  const [origNeutered, setOrigNeutered] = useState<boolean | null>(null);
   const [color, setColor] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
@@ -103,11 +125,19 @@ export function SessionsApprovalValidationScreen() {
     setLoading(true);
     setError(null);
     try {
-      const result = await getCats({ id: catId });
+      const [result, hrResult] = await Promise.all([
+        getCats({ id: catId }),
+        getCatHealthRecords({ cat_id: catId }),
+      ]);
       if (result?.data && result.data.length > 0) {
         const catData = result.data[0];
         setCat(catData);
         populateForm(catData);
+        const rec = hrResult?.data?.[0];
+        setCondition(rec?.condition ?? "Unknown");
+        setNeutered(neuteredToLabel(rec?.is_neutered));
+        setOrigCondition(rec?.condition ?? null);
+        setOrigNeutered(rec?.is_neutered ?? null);
       } else {
         setError("Cat not found.");
       }
@@ -134,6 +164,8 @@ export function SessionsApprovalValidationScreen() {
         // Empty text → null (not undefined) so cleared fields persist;
         // Drizzle .set() skips undefined keys, keeping the old value.
         name: name || null,
+        condition: normalizeCatField<CatHealthRecordCondition>(condition),
+        is_neutered: neuteredToValue(neutered),
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
@@ -160,6 +192,8 @@ export function SessionsApprovalValidationScreen() {
   }, [
     catId,
     name,
+    condition,
+    neutered,
     color,
     age,
     sex,
@@ -184,6 +218,8 @@ export function SessionsApprovalValidationScreen() {
     const od = parseDateParts(cat.date_last_seen);
     return (
       (name || "") !== (cat.name ?? "") ||
+      normalizeCatField<CatHealthRecordCondition>(condition) !== origCondition ||
+      neuteredToValue(neutered) !== origNeutered ||
       dlsMonth !== od.month ||
       dlsDay !== od.day ||
       dlsYear !== od.year ||
@@ -201,6 +237,10 @@ export function SessionsApprovalValidationScreen() {
   }, [
     cat,
     name,
+    condition,
+    neutered,
+    origCondition,
+    origNeutered,
     color,
     age,
     sex,
@@ -235,6 +275,8 @@ export function SessionsApprovalValidationScreen() {
         // Empty text → null (not undefined) so cleared fields persist;
         // Drizzle .set() skips undefined keys, keeping the old value.
         name: name || null,
+        condition: normalizeCatField<CatHealthRecordCondition>(condition),
+        is_neutered: neuteredToValue(neutered),
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
@@ -261,6 +303,8 @@ export function SessionsApprovalValidationScreen() {
     isDirty,
     crossRefHref,
     name,
+    condition,
+    neutered,
     color,
     age,
     sex,
@@ -446,6 +490,18 @@ export function SessionsApprovalValidationScreen() {
                     options: ["Unknown", ...CAT_STATUS_VALUES],
                     value: catStatus,
                     onChange: setCatStatus,
+                  },
+                  {
+                    label: "Condition",
+                    options: ["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES],
+                    value: condition,
+                    onChange: setCondition,
+                  },
+                  {
+                    label: "Neutered",
+                    options: [...NEUTERED_OPTIONS],
+                    value: neutered,
+                    onChange: setNeutered,
                   },
                 ] as const
               ).map(({ label, options, value, onChange }) => (
@@ -690,6 +746,18 @@ export function SessionsApprovalValidationScreen() {
                       options: ["Unknown", ...CAT_STATUS_VALUES],
                       value: catStatus,
                       onChange: setCatStatus,
+                    },
+                    {
+                      label: "Condition",
+                      options: ["Unknown", ...CATHEALTHRECORD_CONDITION_VALUES],
+                      value: condition,
+                      onChange: setCondition,
+                    },
+                    {
+                      label: "Neutered",
+                      options: [...NEUTERED_OPTIONS],
+                      value: neutered,
+                      onChange: setNeutered,
                     },
                     {
                       label: "Region (override)",
