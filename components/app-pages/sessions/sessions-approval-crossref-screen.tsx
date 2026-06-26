@@ -488,7 +488,7 @@ export function SessionsApprovalCrossRefScreen() {
           <DetailHeader
             name={cat?.name || "Unnamed"}
             lastUpdated={formatDate(cat?.last_updated_at)}
-            backHref={validationHref}
+            backHref={backHref}
           />
 
           {/* Action buttons */}
