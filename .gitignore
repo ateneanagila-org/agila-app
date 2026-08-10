@@ -53,3 +53,5 @@ output.txt
 /workers/sync-cron/node_modules
 
 .vscode/
+# superpowers subagent-driven-development scratch
+.superpowers/

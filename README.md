@@ -25,7 +25,10 @@ so members keep a familiar, always-current fallback if the app is ever unavailab
 > Administrator).
 >
 > **Operating the sync system (technical):** see the
-> [GSheets Sync Setup & Operations Guide](docs/gsheets-sync-setup-guide.md).
+> [GSheets Sync Setup & Operations Guide](docs/operations/gsheets-sync-setup.md).
+>
+> **Working on the code:** start with [CLAUDE.md](CLAUDE.md) for conventions and invariants,
+> then [docs/](docs/README.md) for the architecture references.
 
 ---
 
@@ -53,20 +56,26 @@ access to the sheets, while managers/admins retain edit access as an emergency f
 | Framework        | Next.js 16 (App Router, React 19)                  |
 | Language         | TypeScript (strict)                                |
 | Styling          | Tailwind CSS 4                                     |
-| UI Primitives    | Radix UI + custom components                       |
-| Data Fetching    | TanStack Query 4                                   |
+| UI Primitives    | Mostly custom; Radix `Slot` + CVA for `Button`     |
+| Data Fetching    | Server Components for initial load, server actions thereafter |
 | Server Actions   | `next-safe-action` 8                               |
-| Validation       | Zod 4                                              |
+| Validation       | Zod 4 (+ `drizzle-zod`)                            |
 | ORM              | Drizzle ORM + Drizzle Kit                          |
 | Database         | PostgreSQL (via Supabase)                          |
-| Auth             | Supabase Auth + Google OAuth (SSR)                 |
+| Auth             | Supabase Auth + Google OAuth (SSR), admin allowlist |
 | Storage          | Supabase Storage (photos)                          |
 | Google APIs      | Sheets API, Drive API                              |
-| Image Processing | Sharp (server), browser-image-compression (client) |
+| Image Processing | Sharp (server), Canvas (client normalize)          |
 | Scheduled Jobs   | Cloudflare Workers (sync cron)                     |
 | Alerts           | Discord Webhooks                                   |
 | Charts           | Recharts                                           |
-| Testing          | Jest + Testing Library                             |
+| Testing          | Jest (Node env, service/sync focused)              |
+
+> There is no client data-fetching library in use. Pages load initial data in a Server
+> Component and pass it down; mutations and refreshes go through server actions. Several
+> dependencies in `package.json` are **unused** and pending removal:
+> `@tanstack/react-query`, `better-auth`, `browser-image-compression`, `node-html-parser`,
+> `drizzle-seed`, and `@testing-library/*`.
 
 ---
 
@@ -110,8 +119,13 @@ summary sheets.
 
 **Sync scheduling**: a Cloudflare Worker (`workers/sync-cron/`) fires every 20 minutes
 (`*/20 * * * *`), health-checks the app via `/api/health`, then POSTs `/api/cron/sync` with a
-shared `CRON_SECRET` to run photo-import → reverse → forward → summary-regen across all
-regions. If a tick fails, the app **auto-freezes** the sync and posts a Discord alert.
+shared `CRON_SECRET`. Each tick does one paced read of every region sheet, then runs
+**reverse → photo-import → forward → summary-regen** (reverse first, so cats created from new
+sheet rows exist before their photos are attached), with an early exit when nothing is pending.
+If a tick fails, the app **auto-freezes** the sync and posts a Discord alert.
+
+> Full detail — column contract, conflict rules, and the invariants that must not be
+> "simplified" — is in [docs/architecture/sync-engine.md](docs/architecture/sync-engine.md).
 
 ### Google Apps Script
 
@@ -125,7 +139,7 @@ bookkeeping on human edits:
 > One-time structural setup (headers, protected columns, UUID seeding) is done **server-side
 > from the Admin tab** as the service account — not from Apps Script. The legacy Apps Script
 > setup/freeze functions are deprecated; see the
-> [sync setup guide](docs/gsheets-sync-setup-guide.md).
+> [sync setup guide](docs/operations/gsheets-sync-setup.md).
 
 ### Sync Queue, Audit Log & Freeze
 
@@ -281,13 +295,16 @@ agila-app/
 │   ├── sync-cron/                    # Cloudflare Worker — scheduled sync trigger
 │   └── apps-script/                  # Google Apps Script — sheet edit triggers
 ├── docs/
-│   ├── handbook/AGILA-User-Manual.md # Non-technical user manual (by role)
-│   └── gsheets-sync-setup-guide.md   # Sync setup & operations (technical)
+│   ├── architecture/                 # Sync engine, data model, frontend strategy
+│   ├── operations/                   # Sync setup & runbook (technical)
+│   ├── handbook/                     # Non-technical user manual (by role)
+│   ├── reference/                    # Original proposal + CATalog sheet exports
+│   └── archive/                      # Historical plans & specs — not current truth
 ├── __tests__/                        # Jest suites (sync-focused)
 ├── scripts/                          # One-off data import and maintenance scripts
 ├── drizzle.config.ts
 ├── next.config.ts
-└── CLAUDE.md                         # Frontend development guide
+└── CLAUDE.md                         # Agent guide — conventions, invariants, design system
 ```
 
 ---
@@ -310,7 +327,14 @@ Contact @legnspice (Niles Cabrera) for access to the following:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_SUPABASE_SERVICE_ROLE_KEY=
+
+# Postgres — pooled for the app, direct for drizzle-kit push
+DATABASE_URL=
+DIRECT_DATABASE_URL=
+
+# Site origin (OAuth redirect target)
+NEXT_PUBLIC_SITE_URL=
 
 # Google (full service account JSON as a single env var)
 SERVICE_ACCOUNT_CREDENTIALS=
@@ -322,6 +346,10 @@ DISCORD_WEBHOOK_URL=
 # Sync cron (shared with the Cloudflare Worker)
 CRON_SECRET=
 ```
+
+> Note the `NEXT_` prefix on the service-role key — it is read as
+> `NEXT_SUPABASE_SERVICE_ROLE_KEY`, not the Supabase default name. It is server-only despite
+> the prefix (no `NEXT_PUBLIC_`), so it is never exposed to the browser.
 
 ### Install & Run
 
@@ -340,9 +368,9 @@ pnpm drizzle-kit push
 
 ## Testing
 
-Tests live in `__tests__/` and run with Jest — **14 suites, 127 tests** at last run, all
-green. Coverage is concentrated on the **sync system and its supporting logic** (the riskiest,
-least-visible part of the app); UI is not unit-tested.
+Tests live in `__tests__/` and run with Jest — **17 suites**. Coverage is concentrated on the
+**sync system and its supporting logic** (the riskiest, least-visible part of the app). UI is
+not tested at all: `testEnvironment` is `node` and there are no component tests.
 
 ```bash
 pnpm jest __tests__     # run the suite
@@ -364,9 +392,16 @@ pnpm tsc --noEmit       # type-check (or `pnpm build`, which also checks types)
 | Region-move routing & queue cleanup               | `services/cats-region-routing.test.ts`             |
 | Census / TNVR statistics                          | `stats/census-stats.test.ts`                       |
 | Cat & session actions                             | `actions/cats.test.ts`, `actions/sessions.test.ts` |
+| Cat photo upload / re-crop / remove               | `actions/cat-photo.test.ts`                        |
+| Crop-as-metadata geometry                         | `lib/photo-position.test.ts`                       |
+| Session detail loader                             | `services/sessions-detail.test.ts`                 |
 
 The database and Google APIs are mocked per file, so the suite runs offline — no live
 spreadsheet or database required.
+
+These tests encode the sync invariants documented in
+[docs/architecture/sync-engine.md](docs/architecture/sync-engine.md). If one fails after a
+change there, the invariant is real — understand it before editing the assertion.
 
 ---
 

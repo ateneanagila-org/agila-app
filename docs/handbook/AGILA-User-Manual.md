@@ -4,7 +4,7 @@ A guide to using the AGILA CATalog app, written for the people who use it every 
 You do **not** need to know anything technical to use this manual.
 
 > **Developers only:** setup, deployment, and how the Google Sheets sync works under the
-> hood live in [`../gsheets-sync-setup-guide.md`](../gsheets-sync-setup-guide.md) — not here.
+> hood live in [`../operations/gsheets-sync-setup.md`](../operations/gsheets-sync-setup.md) — not here.
 > Nothing in this manual requires a developer, a terminal, or code.
 
 ---
@@ -403,7 +403,7 @@ frozen, the app and the sheets stop updating each other.
 
 If you're not sure what the reason means or the freeze comes straight back, this is the one
 situation to **ask a developer** — point them at
-[`../gsheets-sync-setup-guide.md`](../gsheets-sync-setup-guide.md).
+[`../operations/gsheets-sync-setup.md`](../operations/gsheets-sync-setup.md).
 
 ### Provision region sheets
 
