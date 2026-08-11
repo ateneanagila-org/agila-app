@@ -375,8 +375,7 @@ function isStructurallyBlank(sheet) {
  * tells them to rename it with a leading underscore.
  *
  * App-created region tabs are NOT flagged: they are clones of the TEMPLATE tab
- * and always carry header row 2, so isStructurallyBlank returns false for them
- * regardless of when this trigger fires relative to _config!B2 propagation.
+ * and always carry header row 2, so isStructurallyBlank returns false for them.
  *
  * HOW TO DEPLOY (one-time, like the onEdit trigger):
  *   Triggers (clock icon) -> + Add Trigger
