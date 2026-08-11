@@ -6,7 +6,7 @@ import * as regionsRepo from "@/lib/repo/regions.repo";
 import { requireRole, requireAuth, ADMIN_ONLY } from "@/lib/auth/rbac";
 import {
   createRegionSchema,
-  renameRegionSchema,
+  updateRegionSchema,
   deleteRegionSchema,
 } from "@/lib/validation/regions";
 
@@ -27,11 +27,11 @@ export const createRegion = actionClient
     });
   });
 
-export const renameRegion = actionClient
-  .schema(renameRegionSchema)
+export const updateRegion = actionClient
+  .schema(updateRegionSchema)
   .action(async ({ parsedInput }) => {
     await requireRole(...ADMIN_ONLY);
-    return await service.renameRegion(parsedInput);
+    return await service.updateRegion(parsedInput);
   });
 
 export const deleteRegion = actionClient

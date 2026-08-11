@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import {
   listRegions,
   createRegion,
-  renameRegion,
+  updateRegion,
   deleteRegion,
 } from "@/app/actions/regions";
 import { REGION_COLOR_VALUES } from "@/lib/db/enums";
@@ -133,7 +133,7 @@ export function RegionControls() {
                         disabled={isPending || !renameValue.trim()}
                         onClick={() =>
                           run(async () => {
-                            const res = await renameRegion({
+                            const res = await updateRegion({
                               id: r.id,
                               name: renameValue.trim(),
                             });

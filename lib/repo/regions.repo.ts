@@ -26,8 +26,11 @@ export const insertRegion = (
   client: DB = db,
 ) => client.insert(regions).values(data).returning();
 
-export const updateRegionName = (id: string, name: string, client: DB = db) =>
-  client.update(regions).set({ name }).where(eq(regions.id, id)).returning();
+export const updateRegion = (
+  id: string,
+  data: { name?: string; color?: RegionColor | null },
+  client: DB = db,
+) => client.update(regions).set(data).where(eq(regions.id, id)).returning();
 
 export const deleteRegion = (id: string, client: DB = db) =>
   client.delete(regions).where(eq(regions.id, id)).returning();

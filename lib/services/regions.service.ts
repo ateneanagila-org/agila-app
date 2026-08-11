@@ -35,21 +35,42 @@ export const createRegion = async (data: {
   return region;
 };
 
-export const renameRegion = async (data: { id: string; name: string }) => {
+/**
+ * Updates a region's name and/or colour.
+ *
+ * Only a genuine rename touches the spreadsheet — colour is app-side data, so a
+ * colour-only edit performs no Sheets writes at all. Submitting the unchanged
+ * name counts as no rename.
+ */
+export const updateRegion = async (data: {
+  id: string;
+  name?: string;
+  color?: RegionColor | null;
+}) => {
   const region = await regionsRepo.findRegionById(data.id);
   if (!region) throw new AppError("Region not found.");
-  if (region.name === data.name) return region;
 
-  const clash = await regionsRepo.findRegionByName(data.name);
-  if (clash) throw new AppError(`Region "${data.name}" already exists.`);
+  const nameChanged = data.name !== undefined && data.name !== region.name;
 
-  const oldName = region.name;
-  const [updated] = await regionsRepo.updateRegionName(data.id, data.name);
+  if (nameChanged) {
+    const clash = await regionsRepo.findRegionByName(data.name!);
+    if (clash) throw new AppError(`Region "${data.name}" already exists.`);
+  }
 
-  // Rename the sheet tab to keep sync (which matches tabs by name) working,
-  // then refresh _config!B2.
-  await renameRegionSheetTab(oldName, data.name);
-  await provisionRegionSheets();
+  const patch: { name?: string; color?: RegionColor | null } = {};
+  if (nameChanged) patch.name = data.name;
+  if (data.color !== undefined) patch.color = data.color;
+
+  const [updated] =
+    Object.keys(patch).length > 0
+      ? await regionsRepo.updateRegion(data.id, patch)
+      : [region];
+
+  if (nameChanged) {
+    // Sync matches tabs by name, so the tab must follow the rename.
+    await renameRegionSheetTab(region.name, data.name!);
+    await provisionRegionSheets();
+  }
 
   return updated;
 };

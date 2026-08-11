@@ -16,10 +16,15 @@ export const createRegionSchema = createInsertSchema(regions)
   .pick({ color: true })
   .extend({ name: regionName });
 
-export const renameRegionSchema = z.object({
-  id: z.string().uuid(),
-  name: regionName,
-});
+export const updateRegionSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: regionName.optional(),
+    color: regionsSchema.shape.color.optional(),
+  })
+  .refine((v) => v.name !== undefined || v.color !== undefined, {
+    message: "Provide a name or a colour to update.",
+  });
 
 export const deleteRegionSchema = z.object({
   id: z.string().uuid(),
@@ -28,5 +33,5 @@ export const deleteRegionSchema = z.object({
 });
 
 export type CreateRegionInput = z.infer<typeof createRegionSchema>;
-export type RenameRegionInput = z.infer<typeof renameRegionSchema>;
+export type UpdateRegionInput = z.infer<typeof updateRegionSchema>;
 export type DeleteRegionInput = z.infer<typeof deleteRegionSchema>;
