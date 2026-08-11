@@ -38,7 +38,6 @@ export function RegionControls() {
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
     name: string;
-    warningText: string | null;
   } | null>(null);
 
   async function refresh() {
@@ -72,22 +71,15 @@ export function RegionControls() {
     safePage * PAGE_SIZE + PAGE_SIZE,
   );
 
-  async function handleDeleteClick(r: Region) {
+  /**
+   * Opens the confirm modal. Deliberately makes NO server call — the previous
+   * implementation probed with an unforced deleteRegion, which the server
+   * treats as a real delete for an empty region (row + sheet tab gone before
+   * any dialog appeared).
+   */
+  function handleDeleteClick(r: Region) {
     setError(null);
-    const res = await deleteRegion({ id: r.id });
-    if (res?.serverError) {
-      if (res.serverError.includes("not empty")) {
-        setConfirmDelete({
-          id: r.id,
-          name: r.name,
-          warningText: res.serverError,
-        });
-      } else {
-        setError(res.serverError);
-      }
-      return;
-    }
-    await refresh();
+    setConfirmDelete({ id: r.id, name: r.name });
   }
 
   return (
@@ -298,7 +290,6 @@ export function RegionControls() {
       {confirmDelete && (
         <DeleteRegionConfirm
           name={confirmDelete.name}
-          warningText={confirmDelete.warningText}
           pending={isPending}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() =>
@@ -319,13 +310,11 @@ export function RegionControls() {
 
 function DeleteRegionConfirm({
   name,
-  warningText,
   pending,
   onCancel,
   onConfirm,
 }: {
   name: string;
-  warningText: string | null;
   pending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -345,7 +334,9 @@ function DeleteRegionConfirm({
           Delete &ldquo;{name}&rdquo;?
         </h3>
         <p className="mt-2 text-sm text-red-600">
-          {warningText ?? "This cannot be undone."}
+          Deleting <strong>{name}</strong> permanently removes the region, all of
+          its sessions, and any cats that exist only in this zone. This cannot be
+          undone.
         </p>
         <p className="mt-3 text-xs text-brand-dark/60">
           Type the region name to confirm:
