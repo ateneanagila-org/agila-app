@@ -374,9 +374,9 @@ function isStructurallyBlank(sheet) {
  * how a non-technical steward keeps a legit notes/stats tab — the banner copy
  * tells them to rename it with a leading underscore.
  *
- * App-created region tabs are NOT flagged: createRegion (app side) writes the
- * new name to _config!B2 BEFORE creating the tab, so by the time this fires the
- * name is already in B2 and the tab is recognized.
+ * App-created region tabs are NOT flagged: they are clones of the TEMPLATE tab
+ * and always carry header row 2, so isStructurallyBlank returns false for them
+ * regardless of when this trigger fires relative to _config!B2 propagation.
  *
  * HOW TO DEPLOY (one-time, like the onEdit trigger):
  *   Triggers (clock icon) -> + Add Trigger
