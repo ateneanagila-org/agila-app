@@ -340,6 +340,25 @@ function setupSystemColProtection() {
 }
 
 /**
+ * True when a tab has no structure at all — every cell in A1:V2 is empty.
+ *
+ * This is what makes the orphan check race-proof. A tab cloned from TEMPLATE
+ * always carries header row 2, so it can never be flagged no matter when this
+ * trigger fires relative to the app writing _config!B2. A tab a steward creates
+ * with the "+" button is genuinely blank and is still caught. The test is a
+ * fact about the tab rather than a race against the app.
+ */
+function isStructurallyBlank(sheet) {
+  var values = sheet.getRange(1, 1, 2, 22).getValues(); // A1:V2
+  for (var r = 0; r < values.length; r++) {
+    for (var c = 0; c < values[r].length; c++) {
+      if (String(values[r][c]).trim() !== "") return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Installable onChange trigger — flags region tabs created BY HAND (outside the
  * app). Sync only ever touches tabs whose name matches a DB region (mirrored to
  * _config!B2); a tab made directly in the spreadsheet is invisible to sync, so
@@ -386,7 +405,10 @@ function onSheetChange(e) {
     // marker as _config). Stewards rename a helper tab to start with "_" to
     // dismiss the orphan warning — see warnOrphanTab banner copy.
     if (name.charAt(0) === "_") return false;
-    return !allowed[name];
+    if (allowed[name]) return false;
+    // Only a genuinely blank tab is a hand-made orphan. Anything carrying
+    // header structure is a region tab (or a clone of one) mid-provisioning.
+    return isStructurallyBlank(s);
   });
   if (orphans.length === 0) return;
 
@@ -429,16 +451,9 @@ function warnOrphanTab(sheet) {
   var a1 = sheet.getRange("A1");
   if (String(a1.getValue()).indexOf("will NOT sync") !== -1) return;
 
-  // Cosmetic banner spanning A1:L1. merge() throws "can't merge frozen and
-  // non-frozen columns" when a frozen-column boundary falls inside A1:L1 (e.g. a
-  // tab cloned from one with frozen panes), so guard it — the banner text below
-  // is what actually matters.
-  try {
-    sheet.getRange(1, 1, 1, 12).merge();
-  } catch (err) {
-    Logger.log("banner merge skipped on " + sheet.getName() + ": " + err);
-  }
-  a1 = sheet.getRange(1, 1);
+  // Deliberately NOT merged across A1:L1. A merge here destroys the title row
+  // of a region sheet if this ever fires on one, and createRegionSheetTab only
+  // clears A3:Z so the damage would be permanent.
   a1.setValue(
     "⚠️ This tab was created by hand and will NOT sync — anything entered here is lost. " +
       "To add a REGION, use the app (Admin > Edit Regions), then delete this tab. " +
