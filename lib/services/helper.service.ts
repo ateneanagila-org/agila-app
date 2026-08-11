@@ -25,7 +25,7 @@ import {
 } from "./catalog.service";
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
-import { NON_REGION_TABS } from "@/lib/constants";
+import { NON_REGION_TABS, TEMPLATE_TAB_NAME } from "@/lib/constants";
 
 const MAX_RETRIES = 3;
 
@@ -1174,20 +1174,28 @@ export async function provisionRegionSheets(): Promise<{ regions: number }> {
   return { regions: regions.length };
 }
 
-/** Picks a standard region tab to use as the structural template. */
+/** Resolves the curated TEMPLATE tab that new region sheets are cloned from. */
 async function findTemplateSheetId(
   glSheets: WrappedSheetsClient,
   glAuth: InstanceType<typeof google.auth.GoogleAuth>,
 ): Promise<number> {
-  const sheets = await getSpreadsheetSheets(glSheets, glAuth, CONFIG_SPREADSHEET_ID);
+  const sheets = await getSpreadsheetSheets(
+    glSheets,
+    glAuth,
+    CONFIG_SPREADSHEET_ID,
+  );
   const template = sheets.find(
     (s) =>
-      s.properties?.title &&
-      !NON_REGION_TABS.has(s.properties.title) &&
+      s.properties?.title === TEMPLATE_TAB_NAME &&
       s.properties.sheetId != null,
   );
+  // Cloning a live region is never a correct fallback — it drags that region's
+  // formatting, conditional rules and protections onto the new tab. Fail loudly.
   if (template?.properties?.sheetId == null) {
-    throw new Error("No existing region tab to use as a template.");
+    throw new Error(
+      `Region sheet template "${TEMPLATE_TAB_NAME}" was not found in the spreadsheet. ` +
+        `Create a tab named "${TEMPLATE_TAB_NAME}" carrying the standard region header rows before adding a region.`,
+    );
   }
   return template.properties.sheetId;
 }
@@ -1219,6 +1227,17 @@ export async function createRegionSheetTab(name: string): Promise<void> {
     auth: glAuth,
     spreadsheetId: CONFIG_SPREADSHEET_ID,
     range: `'${name}'!A3:Z`,
+  });
+
+  // Row 1 is the region title. The clone carries the template's title, and the
+  // A3:Z clear above does not reach it — without this the new tab announces
+  // itself as "TEMPLATE".
+  await glSheets.spreadsheets.values.update({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `'${name}'!A1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[name]] },
   });
 }
 

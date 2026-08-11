@@ -11,6 +11,14 @@ export const NON_REGION_TABS = new Set([
   "SAMPLE",
 ]);
 
+/**
+ * The curated tab new region sheets are cloned from. It is intentionally also
+ * present in NON_REGION_TABS — it is not a region — but that set is the wrong
+ * list to pick a template from, which is how region creation ended up cloning a
+ * live region tab. Look this up by name instead.
+ */
+export const TEMPLATE_TAB_NAME = "TEMPLATE";
+
 export const CENSUS_REPORT_URL =
   "https://docs.google.com/document/d/1KSbi4g0Ir3MyB3b_-KVXHx9I4VWWpF8M8RIvw5331hI/edit?usp=sharing"; // TODO: replace with the real Google Docs folder URL
 export const REFERRAL_SHEET_URL =
