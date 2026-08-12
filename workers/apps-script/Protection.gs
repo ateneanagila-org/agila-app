@@ -349,7 +349,21 @@ function setupSystemColProtection() {
  * fact about the tab rather than a race against the app.
  */
 function isStructurallyBlank(sheet) {
-  var values = sheet.getRange(1, 1, 2, 22).getValues(); // A1:V2
+  var values;
+  try {
+    values = sheet.getRange(1, 1, 2, 22).getValues(); // A1:V2
+  } catch (err) {
+    // A grid narrower than 22 cols or shorter than 2 rows throws here. This
+    // runs inside onSheetChange's .filter() callback with no per-sheet guard
+    // around it (unlike warnOrphanTab, which has its own try/catch) — an
+    // uncaught throw would abort .filter() and silently skip every tab's
+    // orphan check for the whole run. Treat "cannot determine" as "not an
+    // orphan" so one odd-shaped sheet never takes down the rest.
+    Logger.log(
+      "isStructurallyBlank failed for " + sheet.getName() + ": " + err,
+    );
+    return false;
+  }
   for (var r = 0; r < values.length; r++) {
     for (var c = 0; c < values[r].length; c++) {
       if (String(values[r][c]).trim() !== "") return false;

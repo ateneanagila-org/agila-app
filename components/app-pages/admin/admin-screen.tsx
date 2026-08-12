@@ -214,11 +214,16 @@ export function AdminScreen({
     setDeleting(true);
     try {
       const result = await removeAllowedEmail.bind(null, userToDelete)();
-      if (result?.serverError) { setError(result.serverError); return; }
+      if (result?.serverError) {
+        setShowDeleteConfirm(false);
+        setError(result.serverError);
+        return;
+      }
       await fetchUsers();
       setShowDeleteConfirm(false);
       setUserToDelete(null);
     } catch (err) {
+      setShowDeleteConfirm(false);
       setError(err instanceof Error ? err.message : "Failed to delete user.");
     } finally {
       setDeleting(false);

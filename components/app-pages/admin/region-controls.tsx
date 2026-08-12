@@ -138,7 +138,7 @@ export function RegionControls({
         </div>
 
         <div className="rounded-2xl bg-white ring-1 ring-border">
-          {error && (
+          {error && !editing && !confirmDelete && (
             <p className="mx-4 mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
               {error}
             </p>
@@ -331,6 +331,11 @@ export function RegionControls({
                 </div>
               </div>
             </div>
+            {error && (
+              <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                {error}
+              </p>
+            )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
@@ -367,6 +372,7 @@ export function RegionControls({
         <DeleteRegionConfirm
           name={confirmDelete.name}
           pending={isPending}
+          error={error}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() =>
             run(async () => {
@@ -387,11 +393,13 @@ export function RegionControls({
 function DeleteRegionConfirm({
   name,
   pending,
+  error,
   onCancel,
   onConfirm,
 }: {
   name: string;
   pending: boolean;
+  error: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -423,6 +431,11 @@ function DeleteRegionConfirm({
           placeholder={name}
           className="mt-1 h-9 w-full rounded-lg border border-red-300 bg-white px-2 text-sm outline-none"
         />
+        {error && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+            {error}
+          </p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"

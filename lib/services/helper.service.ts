@@ -1266,6 +1266,17 @@ export async function renameRegionSheetTab(
       ],
     },
   });
+
+  // Row 1 is the region title, mirroring createRegionSheetTab's stamp. The
+  // properties update above only renames the tab itself, so without this the
+  // title row would keep reading the old name after a rename.
+  await glSheets.spreadsheets.values.update({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    range: `'${newName}'!A1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[newName]] },
+  });
 }
 
 /** Deletes a region tab. No-op if missing. */
