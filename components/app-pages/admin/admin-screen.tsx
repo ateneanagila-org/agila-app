@@ -241,7 +241,7 @@ export function AdminScreen({
         if (result?.serverError) {
           setUsers((prev) =>
             prev.map((u) =>
-              u.id === userId && previous
+              u.id === userId && u.auth_role === role && previous
                 ? { ...u, auth_role: previous }
                 : u,
             ),
