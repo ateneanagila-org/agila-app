@@ -8,7 +8,6 @@ import {
   ChevronDownIcon,
   TrashIcon,
 } from "@/components/app-pages/shared/icons";
-import { CENSUS_REPORT_URL } from "@/lib/constants";
 import {
   SessionSortByDialog,
   CreateSessionDialog,
@@ -16,6 +15,7 @@ import {
 } from "@/components/app-pages/sessions/session-dialogs";
 import { createSession, removeSession } from "@/app/actions/sessions";
 import { useAuth } from "@/contexts/auth-context";
+import { useLinks } from "@/contexts/links-context";
 import type { SelectSession } from "@/lib/validation/sessions";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { SESSIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
@@ -37,6 +37,7 @@ export function SessionsScreen({
   initialRegionOptions,
 }: SessionsScreenProps) {
   const { canManage, userData } = useAuth();
+  const { censusReport } = useLinks();
   const userId = userData?.supabaseUser?.id;
   const router = useRouter();
   const [sessions, setSessions] = useState<SelectSession[]>(initialSessions);
@@ -189,7 +190,7 @@ export function SessionsScreen({
             <div className="flex gap-2">
               {canManage ? (
                 <a
-                  href={CENSUS_REPORT_URL}
+                  href={censusReport}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -363,7 +364,7 @@ export function SessionsScreen({
             <div className="flex gap-2">
               {canManage ? (
                 <a
-                  href={CENSUS_REPORT_URL}
+                  href={censusReport}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
@@ -538,7 +539,7 @@ export function SessionsScreen({
           <div className="flex items-center gap-2">
             {canManage ? (
               <a
-                href={CENSUS_REPORT_URL}
+                href={censusReport}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"

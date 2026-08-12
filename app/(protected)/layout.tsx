@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { findProfiles } from "@/lib/repo/users.repo";
 import { AuthProvider } from "@/contexts/auth-context";
+import { LinksProvider } from "@/contexts/links-context";
+import { getLinks } from "@/lib/services/system.service";
 
 // Server component: auth state resolved on the server so clients never see a
 // loading flash. Middleware already guards unauthenticated access; this layout
@@ -20,7 +22,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  const profiles = await findProfiles({ id: user.id });
+  const [profiles, links] = await Promise.all([
+    findProfiles({ id: user.id }),
+    getLinks(),
+  ]);
   const profile = profiles[0];
 
   if (!profile) {
@@ -29,7 +34,7 @@ export default async function ProtectedLayout({
 
   return (
     <AuthProvider userData={{ supabaseUser: user, profile }}>
-      {children}
+      <LinksProvider links={links}>{children}</LinksProvider>
     </AuthProvider>
   );
 }

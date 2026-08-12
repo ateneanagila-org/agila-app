@@ -9,7 +9,7 @@ import { positionFromCat } from "@/lib/photo-position";
 import { ApproveCatDialog } from "@/components/app-pages/sessions/session-dialogs";
 import { approveCat } from "@/app/actions/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
-import { CENSUS_REPORT_URL } from "@/lib/constants";
+import { useLinks } from "@/contexts/links-context";
 
 export type ReviewItem = {
   cat: CatWithRegion;
@@ -24,6 +24,7 @@ type SessionsManagerScreenProps = {
 export function SessionsManagerScreen({
   initialForReview,
 }: SessionsManagerScreenProps) {
+  const { censusReport } = useLinks();
   const [forReview, setForReview] = useState<ReviewItem[]>(initialForReview);
   const loading = false;
   const [approvingItem, setApprovingItem] = useState<ReviewItem | null>(null);
@@ -78,7 +79,7 @@ export function SessionsManagerScreen({
           {/* Top action buttons */}
           <div className="flex gap-2">
             <a
-              href={CENSUS_REPORT_URL}
+              href={censusReport}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-dark py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
@@ -191,7 +192,7 @@ export function SessionsManagerScreen({
           </h1>
           <div className="flex items-center gap-2">
             <a
-              href={CENSUS_REPORT_URL}
+              href={censusReport}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-brand-dark px-4 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"

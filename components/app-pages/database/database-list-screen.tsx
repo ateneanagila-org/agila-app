@@ -13,7 +13,7 @@ import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useAuth } from "@/contexts/auth-context";
-import { REFERRAL_SHEET_URL } from "@/lib/constants";
+import { useLinks } from "@/contexts/links-context";
 
 function groupByCatId<T extends { cat_id: string }>(items: T[] | undefined) {
   const grouped = new Map<string, T[]>();
@@ -61,6 +61,7 @@ type DatabaseListScreenProps = {
 
 export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
   const { canManage } = useAuth();
+  const { referralSheet } = useLinks();
   const [showAdd, setShowAdd] = useState(false);
   const [cats, setCats] = useState<FilterableCat[]>(initialCats);
   const [loading, setLoading] = useState(false);
@@ -170,7 +171,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
               </p>
             </div>
             <a
-              href={REFERRAL_SHEET_URL}
+              href={referralSheet}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-dark px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
@@ -247,7 +248,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={REFERRAL_SHEET_URL}
+              href={referralSheet}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-full bg-brand-dark px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
