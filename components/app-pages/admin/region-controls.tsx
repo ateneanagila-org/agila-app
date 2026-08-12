@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   listRegions,
@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/regions";
 import { REGION_COLOR_VALUES } from "@/lib/db/enums";
 import { CustomSelect } from "@/components/ui/custom-select";
+import type { RegionOption } from "@/lib/repo/regions.repo";
 
 type Region = {
   id: string;
@@ -55,8 +56,14 @@ function ColorDot({ color }: { color: string | null }) {
 
 const PAGE_SIZE = 5;
 
-export function RegionControls() {
-  const [regions, setRegions] = useState<Region[]>([]);
+export function RegionControls({
+  initialRegions,
+}: {
+  initialRegions: RegionOption[];
+}) {
+  const [regions, setRegions] = useState<Region[]>(
+    initialRegions as Region[],
+  );
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -79,13 +86,9 @@ export function RegionControls() {
 
   async function refresh() {
     const res = await listRegions({});
+    if (res?.serverError) throw new Error(res.serverError);
     if (res?.data) setRegions(res.data as Region[]);
   }
-  useEffect(() => {
-    listRegions({}).then((res) => {
-      if (res?.data) setRegions(res.data as Region[]);
-    });
-  }, []);
 
   function run(fn: () => Promise<unknown>) {
     setError(null);

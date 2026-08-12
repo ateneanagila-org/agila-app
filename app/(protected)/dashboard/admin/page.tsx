@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminScreen } from "@/components/app-pages/admin/admin-screen";
 import { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
+import { findRegions } from "@/lib/repo/regions.repo";
 import {
   getSyncFreezeReason,
   isSyncFrozen,
@@ -19,7 +20,7 @@ type InitialSyncStatus = {
 };
 
 export default async function AdminPage() {
-  const [users, syncStatus] = await Promise.all([
+  const [users, syncStatus, regions] = await Promise.all([
     loadData("Users initial load", () => findAllowedEmailsWithProfile(), []),
     loadData<InitialSyncStatus>(
       "Sync status initial load",
@@ -35,7 +36,14 @@ export default async function AdminPage() {
         reason: null,
       },
     ),
+    loadData("Admin regions initial load", () => findRegions(), []),
   ]);
 
-  return <AdminScreen initialUsers={users} initialSyncStatus={syncStatus} />;
+  return (
+    <AdminScreen
+      initialUsers={users}
+      initialSyncStatus={syncStatus}
+      initialRegions={regions}
+    />
+  );
 }

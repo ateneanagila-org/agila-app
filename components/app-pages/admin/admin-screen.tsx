@@ -22,6 +22,7 @@ import {
   editAllowedEmail,
 } from "@/app/actions/users";
 import type { findAllowedEmailsWithProfile } from "@/lib/repo/users.repo";
+import type { RegionOption } from "@/lib/repo/regions.repo";
 import { AUTH_ROLE_VALUES } from "@/lib/db/enums";
 import type { AuthRole } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
@@ -63,11 +64,16 @@ function RoleSelect({
 type AdminScreenProps = {
   initialUsers: AllowedEmailEntry[];
   initialSyncStatus: { frozen: boolean | null; reason: string | null };
+  initialRegions: RegionOption[];
 };
 
 const USER_PAGE_SIZE = 10;
 
-export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProps) {
+export function AdminScreen({
+  initialUsers,
+  initialSyncStatus,
+  initialRegions,
+}: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -305,7 +311,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
 
           <div className="space-y-4 pb-20">
             <GSheetConfigControls initialStatus={initialSyncStatus} />
-            <RegionControls />
+            <RegionControls initialRegions={initialRegions} />
           </div>
         </div>
       </div>
@@ -426,7 +432,7 @@ export function AdminScreen({ initialUsers, initialSyncStatus }: AdminScreenProp
             </div>
           </div>
           <GSheetConfigControls initialStatus={initialSyncStatus} />
-          <RegionControls />
+          <RegionControls initialRegions={initialRegions} />
         </div>
       </div>
 
