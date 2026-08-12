@@ -20,9 +20,12 @@ import {
   PUBLIC_CATALOG_CONFIG,
   withCatRegionOptions,
 } from "@/lib/hooks/filter-sort-configs";
-import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 
-export function CatalogScreen() {
+type CatalogScreenProps = {
+  adoptFosterUrl: string;
+};
+
+export function CatalogScreen({ adoptFosterUrl }: CatalogScreenProps) {
   const [cats, setCats] = useState<CatWithRegion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -104,7 +107,7 @@ export function CatalogScreen() {
           cat a second chance at a loving home.
         </p>
         <a
-          href={ADOPT_FOSTER_APPLICATION_URL}
+          href={adoptFosterUrl}
           target="_blank"
           rel="noreferrer"
           className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"

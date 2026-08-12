@@ -10,7 +10,6 @@ import {
   ArrowLeftIcon,
   ExternalLinkIcon,
 } from "@/components/app-pages/shared/icons";
-import { ADOPT_FOSTER_APPLICATION_URL } from "@/lib/constants";
 import {
   getAdoptableCats,
   getAdoptableCatHealthRecord,
@@ -21,6 +20,7 @@ import type { CatWithRegion } from "@/lib/repo/cats.repo";
 
 type CatalogDetailScreenProps = {
   catId: string;
+  adoptFosterUrl: string;
 };
 
 function sexGlyph(s: string | null | undefined): string | null {
@@ -62,7 +62,10 @@ function DetailRow({
   );
 }
 
-export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
+export function CatalogDetailScreen({
+  catId,
+  adoptFosterUrl,
+}: CatalogDetailScreenProps) {
   const [cat, setCat] = useState<CatWithRegion | null>(null);
   const [healthRecord, setHealthRecord] =
     useState<SelectCatHealthRecord | null>(null);
@@ -244,7 +247,7 @@ export function CatalogDetailScreen({ catId }: CatalogDetailScreenProps) {
           ) : null}
 
           <a
-            href={ADOPT_FOSTER_APPLICATION_URL}
+            href={adoptFosterUrl}
             target="_blank"
             rel="noreferrer"
             className="mt-7 inline-flex items-center justify-center gap-2 self-start rounded-full bg-brand-orange px-7 py-3 text-sm font-bold tracking-wide text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
