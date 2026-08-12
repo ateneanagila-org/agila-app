@@ -211,8 +211,8 @@ export function AdminScreen({
   return (
     <>
       {/* ── Mobile ─────────────────────────────────────────────────── */}
-      <div className="relative flex min-h-screen flex-col tablet:hidden">
-        <div className="flex-1 overflow-auto px-4 py-4">
+      <div className="flex flex-1 flex-col tablet:hidden">
+        <div className="flex-1 px-4 py-4">
           <p className="mb-4 font-heading text-2xl font-bold text-brand-green">Admin</p>
 
           {/* Users & Access */}

@@ -84,7 +84,7 @@ export default function AdminLoading() {
   return (
     <>
       {/* ── Mobile ── */}
-      <div className="flex min-h-screen flex-col tablet:hidden">
+      <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 px-4 py-4">
           <Bone className="mb-4 h-7 w-24 rounded-lg" />
           <AdminSkeletonBody />
