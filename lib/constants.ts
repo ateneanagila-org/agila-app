@@ -25,3 +25,34 @@ export const REFERRAL_SHEET_URL =
   "https://docs.google.com/spreadsheets/d/1g3f-y-KmJdzSVoL2aKWRQ_1oxVydDDiv-WaAekhAt18/edit?usp=sharing"; // TODO: replace with the real referral GSheet URL
 export const ADOPT_FOSTER_APPLICATION_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSecF51CTWP4UzQl98JNecr2A_-FoWSbXoBvJpU4nu7aee122g/viewform"; // TODO: replace with the real form URL
+
+/**
+ * system_config keys backing the admin-editable referral links.
+ *
+ * Defined once and shared by reader and writer so there is a single spelling —
+ * system_config is untyped key/value, so a typo would silently yield the
+ * fallback instead of an error.
+ */
+export const LINK_CONFIG_KEYS = {
+  censusReport: "link_census_report",
+  referralSheet: "link_referral_sheet",
+  adoptFoster: "link_adopt_foster",
+} as const;
+
+export type AppLinks = {
+  censusReport: string;
+  referralSheet: string;
+  adoptFoster: string;
+};
+
+/**
+ * Compiled-in fallbacks. A missing or blank system_config row resolves to these,
+ * so the feature ships with no migration step and no window where a link is
+ * empty. app/error.tsx uses these directly — it is the crash boundary and must
+ * never depend on a DB read.
+ */
+export const DEFAULT_LINKS: AppLinks = {
+  censusReport: CENSUS_REPORT_URL,
+  referralSheet: REFERRAL_SHEET_URL,
+  adoptFoster: ADOPT_FOSTER_APPLICATION_URL,
+};

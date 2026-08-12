@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { systemConfig } from "@/lib/db/schema";
+import * as systemRepo from "@/lib/repo/system.repo";
+import { LINK_CONFIG_KEYS, DEFAULT_LINKS, type AppLinks } from "@/lib/constants";
 
 export async function isSyncFrozen(): Promise<boolean> {
   const row = await db.query.systemConfig.findFirst({
@@ -38,4 +40,45 @@ export async function getSyncFreezeReason(): Promise<string | null> {
     where: (cols, { eq }) => eq(cols.key, "sync_freeze_reason"),
   });
   return row?.value ?? null;
+}
+
+/**
+ * Resolves the referral links, falling back to the compiled-in defaults for any
+ * key that is missing or blank. Callers cannot tell a configured link from a
+ * fallback — they just get a URL.
+ *
+ * A failed read degrades to defaults rather than propagating: a broken config
+ * table should not blank every link in the app.
+ */
+export async function getLinks(): Promise<AppLinks> {
+  let rows: Array<{ key: string; value: string }>;
+  try {
+    rows = await systemRepo.findSystemConfig();
+  } catch (error) {
+    console.warn(
+      `getLinks: falling back to defaults — ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    return DEFAULT_LINKS;
+  }
+
+  const byKey = new Map(rows.map((r) => [r.key, r.value]));
+  const resolve = (key: string, fallback: string) => {
+    const stored = byKey.get(key)?.trim();
+    return stored ? stored : fallback;
+  };
+
+  return {
+    censusReport: resolve(
+      LINK_CONFIG_KEYS.censusReport,
+      DEFAULT_LINKS.censusReport,
+    ),
+    referralSheet: resolve(
+      LINK_CONFIG_KEYS.referralSheet,
+      DEFAULT_LINKS.referralSheet,
+    ),
+    adoptFoster: resolve(
+      LINK_CONFIG_KEYS.adoptFoster,
+      DEFAULT_LINKS.adoptFoster,
+    ),
+  };
 }
