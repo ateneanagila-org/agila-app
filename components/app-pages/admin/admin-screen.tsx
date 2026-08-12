@@ -31,6 +31,8 @@ import { USERS_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { RegionControls } from "./region-controls";
 import { GSheetConfigControls } from "./gsheet-config-controls";
+import { LinkControls } from "./link-controls";
+import type { AppLinks } from "@/lib/constants";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
 
@@ -91,6 +93,7 @@ type AdminScreenProps = {
   initialUsers: AllowedEmailEntry[];
   initialSyncStatus: { frozen: boolean | null; reason: string | null };
   initialRegions: RegionOption[];
+  initialLinks: AppLinks;
 };
 
 const USER_PAGE_SIZE = 10;
@@ -99,6 +102,7 @@ export function AdminScreen({
   initialUsers,
   initialSyncStatus,
   initialRegions,
+  initialLinks,
 }: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -367,6 +371,7 @@ export function AdminScreen({
           <div className="space-y-4 pb-20">
             <GSheetConfigControls initialStatus={initialSyncStatus} />
             <RegionControls initialRegions={initialRegions} />
+            <LinkControls initialLinks={initialLinks} />
           </div>
         </div>
       </div>
@@ -492,6 +497,7 @@ export function AdminScreen({
           </div>
           <GSheetConfigControls initialStatus={initialSyncStatus} />
           <RegionControls initialRegions={initialRegions} />
+          <LinkControls initialLinks={initialLinks} />
         </div>
       </div>
 
