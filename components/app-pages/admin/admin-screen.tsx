@@ -11,6 +11,7 @@ import {
 } from "@/components/app-pages/admin/user-dialogs";
 import {
   ChevronDownIcon,
+  CloseIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
@@ -32,6 +33,31 @@ import { RegionControls } from "./region-controls";
 import { GSheetConfigControls } from "./gsheet-config-controls";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
+
+function AdminError({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mb-3 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2"
+    >
+      <p className="text-xs font-medium text-red-700">{message}</p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss error"
+        className="shrink-0 text-red-400 transition-colors hover:text-red-700"
+      >
+        <CloseIcon className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 function LoadingIndicator() {
   return (
@@ -199,13 +225,33 @@ export function AdminScreen({
     }
   }, [userToDelete, fetchUsers]);
 
-  // Optimistic role update — writes both allowedEmails.auth_role and profiles.auth_role
-  const handleRoleChange = useCallback((userId: string, role: AuthRole) => {
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, auth_role: role } : u));
-    startRoleTransition(async () => {
-      await editAllowedEmail.bind(null, userId)({ auth_role: role });
-    });
-  }, []);
+  // Optimistic role update — writes both allowedEmails.auth_role and
+  // profiles.auth_role. Reverts on failure; without the rollback a rejected
+  // change kept displaying as applied until reload.
+  const handleRoleChange = useCallback(
+    (userId: string, role: AuthRole) => {
+      const previous = users.find((u) => u.id === userId)?.auth_role;
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, auth_role: role } : u)),
+      );
+      startRoleTransition(async () => {
+        const result = await editAllowedEmail.bind(null, userId)({
+          auth_role: role,
+        });
+        if (result?.serverError) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === userId && previous
+                ? { ...u, auth_role: previous }
+                : u,
+            ),
+          );
+          setError(result.serverError);
+        }
+      });
+    },
+    [users],
+  );
 
 
   return (
@@ -214,6 +260,10 @@ export function AdminScreen({
       <div className="flex flex-1 flex-col tablet:hidden">
         <div className="flex-1 px-4 py-4">
           <p className="mb-4 font-heading text-2xl font-bold text-brand-green">Admin</p>
+
+          {error && !showAddUser ? (
+            <AdminError message={error} onDismiss={() => setError(null)} />
+          ) : null}
 
           {/* Users & Access */}
           <div className="mb-6">
@@ -319,6 +369,10 @@ export function AdminScreen({
       {/* ── Desktop ─────────────────────────────────────────────────── */}
       <div className="hidden min-h-full w-full bg-brand-cream p-6 tablet:block tablet:p-8">
         <h1 className="mb-6 font-heading text-3xl font-bold tracking-tight text-brand-dark">Admin</h1>
+
+        {error && !showAddUser ? (
+          <AdminError message={error} onDismiss={() => setError(null)} />
+        ) : null}
 
         <div className="space-y-6">
           {/* Users & Access */}
