@@ -5,9 +5,10 @@ jest.mock("@/lib/repo/system.repo", () => ({
 }));
 jest.mock("@/lib/db", () => ({ db: {}, Transaction: class {} }));
 
-import { getLinks } from "@/lib/services/system.service";
+import { getLinks, updateLinks } from "@/lib/services/system.service";
 import * as systemRepo from "@/lib/repo/system.repo";
 import { DEFAULT_LINKS } from "@/lib/constants";
+import { updateLinksSchema } from "@/lib/validation/system";
 
 const mockRepo = systemRepo as jest.Mocked<typeof systemRepo>;
 
@@ -55,5 +56,76 @@ describe("getLinks", () => {
     mockRepo.findSystemConfig.mockRejectedValue(new Error("db down") as never);
 
     await expect(getLinks()).resolves.toEqual(DEFAULT_LINKS);
+  });
+});
+
+describe("updateLinks", () => {
+  beforeEach(() => {
+    mockRepo.findSystemConfig.mockResolvedValue([] as never);
+  });
+
+  it("upserts a provided URL", async () => {
+    await updateLinks({ censusReport: "https://example.com/a" });
+
+    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
+      "link_census_report",
+      "https://example.com/a",
+    );
+    expect(mockRepo.deleteSystemConfigKey).not.toHaveBeenCalled();
+  });
+
+  it("deletes the row when a field is cleared, restoring the default", async () => {
+    await updateLinks({ censusReport: null });
+
+    expect(mockRepo.deleteSystemConfigKey).toHaveBeenCalledWith(
+      "link_census_report",
+    );
+    expect(mockRepo.upsertSystemConfig).not.toHaveBeenCalled();
+  });
+
+  it("leaves untouched fields alone", async () => {
+    await updateLinks({ adoptFoster: "https://example.com/form" });
+
+    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledTimes(1);
+    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
+      "link_adopt_foster",
+      "https://example.com/form",
+    );
+    expect(mockRepo.deleteSystemConfigKey).not.toHaveBeenCalled();
+  });
+
+  it("returns the freshly resolved links", async () => {
+    mockRepo.findSystemConfig.mockResolvedValue([
+      { key: "link_census_report", value: "https://example.com/a" },
+    ] as never);
+
+    const links = await updateLinks({ censusReport: "https://example.com/a" });
+
+    expect(links.censusReport).toBe("https://example.com/a");
+  });
+});
+
+describe("updateLinksSchema", () => {
+  it("rejects a value that is not a URL", () => {
+    expect(
+      updateLinksSchema.safeParse({ censusReport: "not a url" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-https URL", () => {
+    expect(
+      updateLinksSchema.safeParse({ censusReport: "http://example.com" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("accepts null as an explicit clear", () => {
+    expect(updateLinksSchema.safeParse({ censusReport: null }).success).toBe(
+      true,
+    );
+  });
+
+  it("rejects an empty payload", () => {
+    expect(updateLinksSchema.safeParse({}).success).toBe(false);
   });
 });

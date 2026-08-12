@@ -82,3 +82,26 @@ export async function getLinks(): Promise<AppLinks> {
     ),
   };
 }
+
+/**
+ * Writes referral links. A `null` clears the key by DELETING the row rather
+ * than storing an empty string, so the compiled-in default takes over cleanly
+ * on the next read. An absent field is left untouched.
+ */
+export async function updateLinks(
+  input: Partial<Record<keyof AppLinks, string | null>>,
+): Promise<AppLinks> {
+  for (const field of Object.keys(LINK_CONFIG_KEYS) as Array<keyof AppLinks>) {
+    const value = input[field];
+    if (value === undefined) continue;
+
+    const key = LINK_CONFIG_KEYS[field];
+    if (value === null) {
+      await systemRepo.deleteSystemConfigKey(key);
+    } else {
+      await systemRepo.upsertSystemConfig(key, value);
+    }
+  }
+
+  return await getLinks();
+}

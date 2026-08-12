@@ -3,6 +3,8 @@ import {
   isSyncFrozen,
   setSyncFrozen,
   getSyncFreezeReason,
+  getLinks,
+  updateLinks as updateLinksService,
 } from "@/lib/services/system.service";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
 import {
@@ -16,6 +18,9 @@ import {
   requireRole,
   ADMIN_ONLY,
 } from "@/lib/auth/rbac";
+import { actionClient } from "@/lib/error/actions-handler";
+import { updateLinksSchema } from "@/lib/validation/system";
+import { z } from "zod";
 
 export async function unfreezeSync() {
   await requireRole(...ADMIN_ONLY);
@@ -61,3 +66,17 @@ export async function getSyncStatus() {
   const reason = frozen ? await getSyncFreezeReason() : null;
   return { frozen, reason };
 }
+
+export const getAppLinks = actionClient
+  .schema(z.object({}))
+  .action(async () => {
+    await requireAuth();
+    return await getLinks();
+  });
+
+export const updateLinks = actionClient
+  .schema(updateLinksSchema)
+  .action(async ({ parsedInput }) => {
+    await requireRole(...ADMIN_ONLY);
+    return await updateLinksService(parsedInput);
+  });
