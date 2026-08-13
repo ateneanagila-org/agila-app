@@ -7,6 +7,7 @@ import {
   getSyncFreezeReason,
   isSyncFrozen,
 } from "@/lib/services/system.service";
+import { countOpenBugReports } from "@/lib/repo/bug-reports.repo";
 import { loadData } from "@/lib/safe-initial-data";
 
 export const maxDuration = 120;
@@ -21,7 +22,7 @@ type InitialSyncStatus = {
 };
 
 export default async function AdminPage() {
-  const [users, syncStatus, regions, links] = await Promise.all([
+  const [users, syncStatus, regions, links, openBugReports] = await Promise.all([
     loadData("Users initial load", () => findAllowedEmailsWithProfile(), []),
     loadData<InitialSyncStatus>(
       "Sync status initial load",
@@ -39,6 +40,7 @@ export default async function AdminPage() {
     ),
     loadData("Admin regions initial load", () => findRegions(), []),
     getLinks(),
+    loadData("Open bug report count", () => countOpenBugReports(), 0),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function AdminPage() {
       initialSyncStatus={syncStatus}
       initialRegions={regions}
       initialLinks={links}
+      openBugReports={openBugReports}
     />
   );
 }

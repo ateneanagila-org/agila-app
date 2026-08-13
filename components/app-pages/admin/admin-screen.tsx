@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { SearchDialog } from "@/components/app-pages/shared/dialogs";
 import {
@@ -61,6 +62,29 @@ function AdminError({
   );
 }
 
+function BugReportsCard({ openCount }: { openCount: number }) {
+  return (
+    <div>
+      <h2 className="mb-2 text-sm font-bold text-brand-dark">Bug Reports</h2>
+      <div className="rounded-2xl bg-white ring-1 ring-border">
+        <div className="flex items-center justify-between gap-3 px-4 py-4">
+          <p className="text-sm text-brand-dark/65">
+            {openCount === 0
+              ? "No open reports."
+              : `${openCount} open report${openCount === 1 ? "" : "s"}.`}
+          </p>
+          <Link
+            href="/dashboard/admin/bug-reports"
+            className="shrink-0 rounded-full bg-brand-dark px-4 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            View reports ›
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoadingIndicator() {
   return (
     <div className="flex items-center justify-center py-12">
@@ -94,6 +118,7 @@ type AdminScreenProps = {
   initialSyncStatus: { frozen: boolean | null; reason: string | null };
   initialRegions: RegionOption[];
   initialLinks: AppLinks;
+  openBugReports: number;
 };
 
 const USER_PAGE_SIZE = 10;
@@ -103,6 +128,7 @@ export function AdminScreen({
   initialSyncStatus,
   initialRegions,
   initialLinks,
+  openBugReports,
 }: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -372,6 +398,7 @@ export function AdminScreen({
             <GSheetConfigControls initialStatus={initialSyncStatus} />
             <RegionControls initialRegions={initialRegions} />
             <LinkControls initialLinks={initialLinks} />
+            <BugReportsCard openCount={openBugReports} />
           </div>
         </div>
       </div>
@@ -498,6 +525,7 @@ export function AdminScreen({
           <GSheetConfigControls initialStatus={initialSyncStatus} />
           <RegionControls initialRegions={initialRegions} />
           <LinkControls initialLinks={initialLinks} />
+          <BugReportsCard openCount={openBugReports} />
         </div>
       </div>
 
