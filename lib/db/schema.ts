@@ -26,6 +26,7 @@ import {
   actionStatusEnum,
   actionEnum,
   syncDirectionEnum,
+  bugReportStatusEnum,
 } from "./enums";
 
 const authSchema = pgSchema("auth");
@@ -208,4 +209,26 @@ export const systemConfig = pgTable("system_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * User-submitted bug reports.
+ *
+ * reporter_name / reporter_email are SNAPSHOTS, not derived. profiles.id
+ * cascades from supabaseUsers.id and removing someone from the allowlist
+ * deletes their auth user — so a cascading FK would delete their reports too.
+ * SET NULL plus the snapshot keeps a report readable after its reporter is
+ * gone, which is exactly when it still matters.
+ */
+export const bugReports = pgTable("bug_reports", {
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  message: text("message").notNull(),
+  reporter_id: uuid("reporter_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  reporter_name: text("reporter_name"),
+  reporter_email: text("reporter_email").notNull(),
+  status: bugReportStatusEnum("status").notNull().default("Open"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  resolved_at: timestamp("resolved_at"),
 });

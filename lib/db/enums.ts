@@ -205,6 +205,14 @@ export const syncDirectionEnum = pgEnum(
 export const SyncDirectionEnum = z.enum(SYNC_DIRECTION_VALUES);
 export type SyncDirection = z.infer<typeof SyncDirectionEnum>;
 
+// Bug Report Status
+export const BUG_REPORT_STATUS_VALUES = ["Open", "Resolved"] as const;
+export const bugReportStatusEnum = pgEnum(
+  "bug_report_status",
+  BUG_REPORT_STATUS_VALUES,
+);
+export type BugReportStatus = (typeof BUG_REPORT_STATUS_VALUES)[number];
+
 // FOR TESTING
 export const URGENCY_VALUES = [
   "Now",
