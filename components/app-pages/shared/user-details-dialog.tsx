@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { CloseIcon } from "@/components/app-pages/shared/icons";
 import { submitBugReport } from "@/app/actions/bug-reports";
 
@@ -31,6 +31,19 @@ export function UserDetailsDialog({ open, onClose, name, email, role }: UserDeta
   const [sent, setSent] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSending, startSending] = useTransition();
+
+  // The dialog stays mounted when closed (user-menu renders it unconditionally
+  // and it early-returns null), so state survives every close. Without this
+  // reset, one sent report leaves the confirmation showing forever and the user
+  // can never file a second.
+  useEffect(() => {
+    if (!open) {
+      setReporting(false);
+      setMessage("");
+      setSent(false);
+      setReportError(null);
+    }
+  }, [open]);
 
   const handleSubmitReport = () => {
     setReportError(null);
@@ -116,6 +129,7 @@ export function UserDetailsDialog({ open, onClose, name, email, role }: UserDeta
               <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
+                  disabled={isSending}
                   onClick={() => {
                     setReporting(false);
                     setMessage("");
