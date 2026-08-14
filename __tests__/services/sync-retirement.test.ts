@@ -17,6 +17,11 @@ jest.mock("@/lib/services/sync-cron.service", () => ({
 jest.mock("@/lib/services/discord.service", () => ({
   sendSyncAlert: jest.fn(),
 }));
+jest.mock("@/lib/services/photo-import.service", () => ({
+  reconcileCatPhotos: jest
+    .fn()
+    .mockResolvedValue({ scanned: 0, referenced: 0, removed: 0 }),
+}));
 jest.mock("next/server", () => ({
   after: (fn: () => unknown) => fn(),
   NextResponse: {

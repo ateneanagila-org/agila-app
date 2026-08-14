@@ -114,85 +114,89 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
 
         <div className="border-t border-border" />
 
-        {/* Provision sheets */}
-        <div className="px-4 py-3">
-          <p className="mb-0.5 text-sm font-semibold text-brand-dark">Provision region sheets</p>
-          <p className="mb-2 text-xs text-brand-dark/55">
-            Ensure W/X/Y headers, apply A &amp; W–Y protections, refresh _config!B2.
-          </p>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() =>
-              run("provision", async () => {
-                const r = await provisionSheets();
-                return `Provisioned ${r.regions} region sheet${r.regions === 1 ? "" : "s"} (headers, protections, _config).`;
-              })
-            }
-            className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
-            {busy("provision") ? "Working…" : "Provision sheets"}
-          </button>
-          {results.provision && (
-            <p className={`mt-2 text-xs ${results.provision.ok ? "text-brand-green" : "text-red-600"}`}>
-              {results.provision.text}
-            </p>
-          )}
-        </div>
-
-        <div className="border-t border-border" />
-
-        {/* Seed missing UUIDs */}
-        <div className="px-4 py-3">
-          <p className="mb-0.5 text-sm font-semibold text-brand-dark">Seed missing UUIDs</p>
-          <p className="mb-2 text-xs text-brand-dark/55">
-            Mint a permanent UUID in col Y for existing rows that lack one, so they can be imported. Only fills blanks.
-          </p>
-          {confirmSeed ? (
-            <div className="flex items-center gap-2">
+        {!retired && (
+          <>
+            {/* Provision sheets */}
+            <div className="px-4 py-3">
+              <p className="mb-0.5 text-sm font-semibold text-brand-dark">Provision region sheets</p>
+              <p className="mb-2 text-xs text-brand-dark/55">
+                Ensure W/X/Y headers, apply A &amp; W–Y protections, refresh _config!B2.
+              </p>
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => {
-                  setConfirmSeed(false);
-                  run("seed", async () => {
-                    const r = await seedSheetUuids();
-                    return r.seeded === 0
-                      ? "No rows needed a UUID."
-                      : `Seeded ${r.seeded} UUID${r.seeded === 1 ? "" : "s"}.`;
-                  });
-                }}
+                onClick={() =>
+                  run("provision", async () => {
+                    const r = await provisionSheets();
+                    return `Provisioned ${r.regions} region sheet${r.regions === 1 ? "" : "s"} (headers, protections, _config).`;
+                  })
+                }
                 className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {busy("seed") ? "Seeding…" : "Confirm — write UUIDs"}
+                {busy("provision") ? "Working…" : "Provision sheets"}
               </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => setConfirmSeed(false)}
-                className="rounded-full px-3 py-1.5 text-xs font-bold text-brand-dark/60 hover:text-brand-dark disabled:opacity-40"
-              >
-                Cancel
-              </button>
+              {results.provision && (
+                <p className={`mt-2 text-xs ${results.provision.ok ? "text-brand-green" : "text-red-600"}`}>
+                  {results.provision.text}
+                </p>
+              )}
             </div>
-          ) : (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setConfirmSeed(true)}
-              className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              Seed UUIDs…
-            </button>
-          )}
-          {results.seed && (
-            <p className={`mt-2 text-xs ${results.seed.ok ? "text-brand-green" : "text-red-600"}`}>
-              {results.seed.text}
-            </p>
-          )}
-        </div>
 
-        <div className="border-t border-border" />
+            <div className="border-t border-border" />
+
+            {/* Seed missing UUIDs */}
+            <div className="px-4 py-3">
+              <p className="mb-0.5 text-sm font-semibold text-brand-dark">Seed missing UUIDs</p>
+              <p className="mb-2 text-xs text-brand-dark/55">
+                Mint a permanent UUID in col Y for existing rows that lack one, so they can be imported. Only fills blanks.
+              </p>
+              {confirmSeed ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      setConfirmSeed(false);
+                      run("seed", async () => {
+                        const r = await seedSheetUuids();
+                        return r.seeded === 0
+                          ? "No rows needed a UUID."
+                          : `Seeded ${r.seeded} UUID${r.seeded === 1 ? "" : "s"}.`;
+                      });
+                    }}
+                    className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                  >
+                    {busy("seed") ? "Seeding…" : "Confirm — write UUIDs"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => setConfirmSeed(false)}
+                    className="rounded-full px-3 py-1.5 text-xs font-bold text-brand-dark/60 hover:text-brand-dark disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setConfirmSeed(true)}
+                  className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                >
+                  Seed UUIDs…
+                </button>
+              )}
+              {results.seed && (
+                <p className={`mt-2 text-xs ${results.seed.ok ? "text-brand-green" : "text-red-600"}`}>
+                  {results.seed.text}
+                </p>
+              )}
+            </div>
+
+            <div className="border-t border-border" />
+          </>
+        )}
 
         {/* Reclaim orphaned photos */}
         <div className="px-4 py-3">

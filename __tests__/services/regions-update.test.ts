@@ -10,6 +10,9 @@ jest.mock("@/lib/services/helper.service", () => ({
   deleteRegionSheetTab: jest.fn(),
   syncRegionSheetNames: jest.fn(),
 }));
+jest.mock("@/lib/services/system.service", () => ({
+  isSyncRetired: jest.fn().mockResolvedValue(false),
+}));
 jest.mock("@/lib/db", () => ({
   db: { transaction: jest.fn(async (cb: (tx: unknown) => unknown) => cb({})) },
   Transaction: class {},

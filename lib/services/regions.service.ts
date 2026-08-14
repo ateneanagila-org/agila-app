@@ -7,6 +7,7 @@ import {
   provisionRegionSheets,
   syncRegionSheetNames,
 } from "./helper.service";
+import { isSyncRetired } from "./system.service";
 import { db } from "../db";
 import { AppError } from "../error/app-error";
 import type { RegionColor } from "../db/enums";
@@ -23,14 +24,19 @@ export const createRegion = async (data: {
     color: data.color ?? null,
   });
 
-  // Mirror the new region into _config!B2 from the DB BEFORE creating the tab,
-  // so the Apps Script onChange guard (onSheetChange) sees the tab we're about
-  // to create as a known region and does NOT flag it as a hand-made orphan.
-  await syncRegionSheetNames();
+  // Once sync is retired, the spreadsheet is released for good — region CRUD
+  // stays DB-only from here on and must not touch the sheet at all.
+  if (!(await isSyncRetired())) {
+    // Mirror the new region into _config!B2 from the DB BEFORE creating the
+    // tab, so the Apps Script onChange guard (onSheetChange) sees the tab
+    // we're about to create as a known region and does NOT flag it as a
+    // hand-made orphan.
+    await syncRegionSheetNames();
 
-  // Create + provision the sheet tab (headers, protections, refreshes B2 again).
-  await createRegionSheetTab(data.name);
-  await provisionRegionSheets();
+    // Create + provision the sheet tab (headers, protections, refreshes B2 again).
+    await createRegionSheetTab(data.name);
+    await provisionRegionSheets();
+  }
 
   return region;
 };
@@ -66,7 +72,7 @@ export const updateRegion = async (data: {
       ? await regionsRepo.updateRegion(data.id, patch)
       : [region];
 
-  if (nameChanged) {
+  if (nameChanged && !(await isSyncRetired())) {
     // Sync matches tabs by name, so the tab must follow the rename.
     await renameRegionSheetTab(region.name, data.name!);
     await provisionRegionSheets();
@@ -104,7 +110,9 @@ export const deleteRegion = async (data: { id: string; force?: boolean }) => {
     if (orphanIds.length > 0) await catsRepo.deleteCatsByIds(orphanIds, tx);
   });
 
-  await deleteRegionSheetTab(region.name);
+  if (!(await isSyncRetired())) {
+    await deleteRegionSheetTab(region.name);
+  }
 
   return { deletedRegion: region.name, deletedCats: orphanIds.length };
 };

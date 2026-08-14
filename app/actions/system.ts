@@ -45,6 +45,9 @@ export async function unfreezeSync() {
  */
 export async function provisionSheets() {
   await requireRole(...ADMIN_ONLY);
+  if (await isSyncRetired()) {
+    throw new AppError("Sync is retired. Provisioning is no longer possible.", 409);
+  }
   return await provisionRegionSheets();
 }
 
@@ -55,6 +58,9 @@ export async function provisionSheets() {
  */
 export async function seedSheetUuids() {
   await requireRole(...ADMIN_ONLY);
+  if (await isSyncRetired()) {
+    throw new AppError("Sync is retired. Seeding UUIDs is no longer possible.", 409);
+  }
   return await seedMissingUuidsAllRegions();
 }
 
