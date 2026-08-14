@@ -33,6 +33,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { RegionControls } from "./region-controls";
 import { GSheetConfigControls } from "./gsheet-config-controls";
 import { LinkControls } from "./link-controls";
+import { StorageGauge } from "./storage-gauge";
 import type { AppLinks } from "@/lib/constants";
 
 type AllowedEmailEntry = Awaited<ReturnType<typeof findAllowedEmailsWithProfile>>[number];
@@ -123,6 +124,8 @@ type AdminScreenProps = {
   initialRegions: RegionOption[];
   initialLinks: AppLinks;
   openBugReports: number;
+  storageUsage: { bytes: number | null; capBytes: number };
+  lastCleanupAt: string | null;
 };
 
 const USER_PAGE_SIZE = 10;
@@ -133,6 +136,8 @@ export function AdminScreen({
   initialRegions,
   initialLinks,
   openBugReports,
+  storageUsage,
+  lastCleanupAt,
 }: AdminScreenProps) {
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -403,6 +408,7 @@ export function AdminScreen({
             <RegionControls initialRegions={initialRegions} />
             <LinkControls initialLinks={initialLinks} />
             <BugReportsCard openCount={openBugReports} />
+            <StorageGauge usage={storageUsage} lastCleanupAt={lastCleanupAt} />
           </div>
         </div>
       </div>
@@ -530,6 +536,7 @@ export function AdminScreen({
           <RegionControls initialRegions={initialRegions} />
           <LinkControls initialLinks={initialLinks} />
           <BugReportsCard openCount={openBugReports} />
+          <StorageGauge usage={storageUsage} lastCleanupAt={lastCleanupAt} />
         </div>
       </div>
 

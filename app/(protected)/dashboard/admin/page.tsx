@@ -7,10 +7,12 @@ import {
   getSyncFreezeReason,
   isSyncFrozen,
   isSyncRetired,
+  getPhotoStorageUsage,
+  getLastPhotoGcAt,
 } from "@/lib/services/system.service";
 import { countOpenBugReports } from "@/lib/repo/bug-reports.repo";
 import { loadData } from "@/lib/safe-initial-data";
-import { DEFAULT_LINKS } from "@/lib/constants";
+import { DEFAULT_LINKS, STORAGE_CAP_BYTES } from "@/lib/constants";
 
 export const maxDuration = 120;
 
@@ -25,28 +27,35 @@ type InitialSyncStatus = {
 };
 
 export default async function AdminPage() {
-  const [users, syncStatus, regions, links, openBugReports] = await Promise.all([
-    loadData("Users initial load", () => findAllowedEmailsWithProfile(), []),
-    loadData<InitialSyncStatus>(
-      "Sync status initial load",
-      async () => {
-        const frozen = await isSyncFrozen();
-        return {
-          frozen,
-          reason: frozen ? await getSyncFreezeReason() : null,
-          retired: await isSyncRetired(),
-        };
-      },
-      {
-        frozen: null,
-        reason: null,
-        retired: false,
-      },
-    ),
-    loadData("Admin regions initial load", () => findRegions(), []),
-    loadData("Admin links initial load", () => getLinks(), DEFAULT_LINKS),
-    loadData("Open bug report count", () => countOpenBugReports(), 0),
-  ]);
+  const [users, syncStatus, regions, links, openBugReports, storageUsage, lastCleanupAt] =
+    await Promise.all([
+      loadData("Users initial load", () => findAllowedEmailsWithProfile(), []),
+      loadData<InitialSyncStatus>(
+        "Sync status initial load",
+        async () => {
+          const frozen = await isSyncFrozen();
+          return {
+            frozen,
+            reason: frozen ? await getSyncFreezeReason() : null,
+            retired: await isSyncRetired(),
+          };
+        },
+        {
+          frozen: null,
+          reason: null,
+          retired: false,
+        },
+      ),
+      loadData("Admin regions initial load", () => findRegions(), []),
+      loadData("Admin links initial load", () => getLinks(), DEFAULT_LINKS),
+      loadData("Open bug report count", () => countOpenBugReports(), 0),
+      loadData(
+        "Photo storage usage",
+        () => getPhotoStorageUsage(),
+        { bytes: null, capBytes: STORAGE_CAP_BYTES },
+      ),
+      loadData("Last photo GC timestamp", () => getLastPhotoGcAt(), null),
+    ]);
 
   return (
     <AdminScreen
@@ -55,6 +64,8 @@ export default async function AdminPage() {
       initialRegions={regions}
       initialLinks={links}
       openBugReports={openBugReports}
+      storageUsage={storageUsage}
+      lastCleanupAt={lastCleanupAt}
     />
   );
 }
