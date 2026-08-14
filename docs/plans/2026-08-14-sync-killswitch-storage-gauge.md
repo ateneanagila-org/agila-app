@@ -1350,6 +1350,8 @@ export function StorageGauge({
 
 There is no `"use client"` directive: this component holds no state and no handlers, so it stays a server component.
 
+**On the hand-rolled bar rather than a shadcn `Progress`.** shadcn is configured here (`components.json`, new-york, RSC), but `components/ui/` holds only four primitives and `@radix-ui/react-progress` is not a dependency — using it means adding a runtime dep for one static bar whose value Radix does not add to (no keyboard handling, no focus, no state), and whose threshold colouring would need class overrides regardless. **Decision: hand-roll it now, and extract a shared `components/ui/` gauge the moment a second one is needed** — an egress meter, a DB-quota meter, a Sheets-quota meter. That is the trigger; do not extract preemptively for one usage, and do not add a third bespoke bar without extracting.
+
 - [ ] **Step 3: Seed both values in `admin/page.tsx`**
 
 Add the import:
