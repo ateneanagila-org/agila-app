@@ -16,7 +16,7 @@ import {
 import * as sessionsRepo from "@/lib/repo/sessions.repo";
 import * as catsRepo from "@/lib/repo/cats.repo";
 import * as regionsRepo from "@/lib/repo/regions.repo";
-import { isSyncFrozen } from "./system.service";
+import { getSyncHalt } from "./system.service";
 import {
   statusSuffix,
   nextCatalogId,
@@ -286,9 +286,11 @@ export async function refreshCatInSyncQueue(catId: string, tx: Transaction) {
 export async function syncAndCompactRegion(
   regionId: string,
 ): Promise<SheetRow[] | null> {
-  const frozen = await isSyncFrozen();
-  if (frozen) {
-    console.log(`[Sync] Frozen â€" skipping region ${regionId}`);
+  const halt = await getSyncHalt();
+  if (halt) {
+    console.log(
+      `[Sync] ${halt === "retired" ? "Retired" : "Frozen"} — skipping region ${regionId}`,
+    );
     return null;
   }
 

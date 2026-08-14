@@ -8,6 +8,12 @@ type DB = typeof db | Transaction;
 export const findSystemConfig = (client: DB = db) =>
   client.select().from(systemConfig);
 
+/** One system_config row by key, or undefined. */
+export const findSystemConfigByKey = (key: string, client: DB = db) =>
+  client.query.systemConfig.findFirst({
+    where: (cols, { eq }) => eq(cols.key, key),
+  });
+
 export const upsertSystemConfig = (
   key: string,
   value: string,

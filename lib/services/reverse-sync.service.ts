@@ -15,7 +15,7 @@ import {
   refreshCatInSyncQueue,
   backfillCatalogIds,
 } from "./helper.service";
-import { isSyncFrozen } from "./system.service";
+import { getSyncHalt, isSyncRetired } from "./system.service";
 import {
   sheetRowSchema,
   parseSheetRow,
@@ -293,9 +293,11 @@ export async function reverseSyncRegionsFromState(
   totalImported: number;
   totalErrors: number;
 }> {
-  const frozen = await isSyncFrozen();
-  if (frozen) {
-    console.log("[ReverseSync] Frozen — skipping all regions");
+  const halt = await getSyncHalt();
+  if (halt) {
+    console.log(
+      `[ReverseSync] ${halt === "retired" ? "Retired" : "Frozen"} — skipping all regions`,
+    );
     return { regionsProcessed: 0, totalImported: 0, totalErrors: 0 };
   }
 
@@ -340,6 +342,16 @@ export async function fullReverseSync(force = false): Promise<{
   totalErrors: number;
   allErrors: Array<{ region: string; entityId: string; error: string }>;
 }> {
+  // Retired ONLY — never getSyncHalt(). This runs while frozen by design:
+  // unfreezeSync() calls it before clearing the flag. But after retirement it
+  // must not run at all, because backfillCatalogIds writes column A back to the
+  // spreadsheet, and unfreezeSync remains a callable server action even once
+  // its button is hidden.
+  if (await isSyncRetired()) {
+    console.log("[FullReverseSync] Retired — refusing to touch the sheets");
+    return { regions: 0, totalImported: 0, totalErrors: 0, allErrors: [] };
+  }
+
   const allRegions = await db.query.regions.findMany();
   const sheetStates = await readAllRegionSheetStates(allRegions);
 

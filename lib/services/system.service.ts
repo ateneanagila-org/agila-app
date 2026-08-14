@@ -107,3 +107,47 @@ export async function updateLinks(
 
   return await getLinks();
 }
+
+/**
+ * system_config key marking sync permanently retired.
+ *
+ * Written as a literal here and NOWHERE else, exactly as "sync_frozen" is —
+ * this file is the key's sole owner. If another module spelled it too, a typo
+ * would fail silently: the write lands under a misspelled key, the read finds
+ * nothing, and the killswitch quietly does nothing.
+ *
+ * Deliberately NOT the same key as sync_frozen: that one is a temporary,
+ * error-triggered pause with an "Unfreeze" button built to undo it.
+ * Retirement must survive that button.
+ */
+const SYNC_RETIRED_KEY = "sync_retired";
+
+/** True when sync has been permanently retired. */
+export async function isSyncRetired(): Promise<boolean> {
+  const row = await systemRepo.findSystemConfigByKey(SYNC_RETIRED_KEY);
+  return row?.value === "true";
+}
+
+/**
+ * Marks sync permanently retired.
+ *
+ * One-way by design — there is deliberately no `clearSyncRetired()`. Recovery
+ * means a developer deleting the row by hand, which is the intended friction.
+ * Note `unfreezeSync()` must never touch this key.
+ */
+export async function setSyncRetired(): Promise<void> {
+  await systemRepo.upsertSystemConfig(SYNC_RETIRED_KEY, "true");
+}
+
+export type SyncHalt = "frozen" | "retired" | null;
+
+/**
+ * Why sync must not run, or null if it may. Retirement is checked first
+ * because it is terminal — if both flags are somehow set, "retired" is the
+ * honest answer.
+ */
+export async function getSyncHalt(): Promise<SyncHalt> {
+  if (await isSyncRetired()) return "retired";
+  if (await isSyncFrozen()) return "frozen";
+  return null;
+}

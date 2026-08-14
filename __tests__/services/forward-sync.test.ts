@@ -23,7 +23,7 @@ jest.mock("@/lib/services/sheets-client.service", () => ({
 }));
 
 jest.mock("@/lib/db", () => ({ db: {}, Transaction: class {} }));
-jest.mock("@/lib/services/system.service", () => ({ isSyncFrozen: jest.fn() }));
+jest.mock("@/lib/services/system.service", () => ({ getSyncHalt: jest.fn() }));
 jest.mock("@/lib/repo/cats.repo", () => ({ findCatsByIds: jest.fn() }));
 jest.mock("@/lib/repo/regions.repo", () => ({ findRegionById: jest.fn() }));
 jest.mock("@/lib/repo/sessions.repo", () => ({
@@ -38,7 +38,7 @@ import {
   type SheetRow,
 } from "@/lib/services/helper.service";
 import { db } from "@/lib/db";
-import { isSyncFrozen } from "@/lib/services/system.service";
+import { getSyncHalt } from "@/lib/services/system.service";
 import * as catsRepo from "@/lib/repo/cats.repo";
 import * as regionsRepo from "@/lib/repo/regions.repo";
 
@@ -76,7 +76,7 @@ function makeFakeSheets(): FakeSheets {
 
 let fakeSheets: FakeSheets;
 const dbm = db as unknown as Record<string, jest.Mock | unknown>;
-const frozenMock = isSyncFrozen as jest.Mock;
+const haltMock = getSyncHalt as jest.Mock;
 const findCatsByIdsMock = catsRepo.findCatsByIds as jest.Mock;
 const findRegionByIdMock = regionsRepo.findRegionById as jest.Mock;
 
@@ -107,7 +107,7 @@ beforeEach(() => {
   (globalThis as unknown as { __fakeSheets: FakeSheets }).__fakeSheets =
     fakeSheets;
 
-  frozenMock.mockResolvedValue(false);
+  haltMock.mockResolvedValue(null);
   findCatsByIdsMock.mockResolvedValue([]);
 
   dbm.query = {
@@ -140,7 +140,7 @@ describe("syncAndCompactRegion", () => {
   }
 
   it("skips entirely when sync is frozen", async () => {
-    frozenMock.mockResolvedValue(true);
+    haltMock.mockResolvedValue("frozen");
     await syncAndCompactRegion("r1");
     expect(fakeSheets.spreadsheets.values.get).not.toHaveBeenCalled();
   });
