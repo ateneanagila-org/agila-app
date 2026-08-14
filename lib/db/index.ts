@@ -19,7 +19,17 @@ declare global {
 const client =
   global.pgClient ??
   postgres(process.env.DATABASE_URL!, {
-    max: 5,
+    // Must exceed the widest Promise.all in the app: the Admin page fires 7
+    // concurrent loads. At max: 5 two of them queued for a connection, and
+    // during `next build` (7 parallel workers, each with its own pool) that
+    // wait exceeded the 60s render budget — failing the build ~1 run in 4.
+    //
+    // Safe against the server ceiling because DATABASE_URL points at Supabase's
+    // TRANSACTION POOLER (port 6543): this counts pooler client slots, which are
+    // multiplexed onto far fewer Postgres backends. Measured: a 12-way
+    // concurrent burst took Postgres from 13 to 23 connections against
+    // max_connections = 60.
+    max: 12,
     prepare: false, // required for Supabase transaction pooler
   });
 
