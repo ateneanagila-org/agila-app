@@ -62,12 +62,14 @@ Tasks 4 and 6 both touch `app/(protected)/dashboard/admin/page.tsx`, and Tasks 2
 - Produces, consumed by Tasks 2, 3, 7:
   - `findSystemConfigByKey(key: string, client?)` from `@/lib/repo/system.repo`, returning the row or `undefined`
   - `isSyncRetired(): Promise<boolean>` from `@/lib/services/system.service`
+  - `setSyncRetired(): Promise<void>` from `@/lib/services/system.service`
   - `getSyncHalt(): Promise<"frozen" | "retired" | null>` from `@/lib/services/system.service`
-  - `SYNC_RETIRED_KEY` from `@/lib/constants`
 
 **Background:** `isSyncFrozen()` is consulted in exactly two places — `helper.service.ts` (forward sync) and `reverse-sync.service.ts` (reverse import). Retirement reuses those checkpoints but not the flag: `unfreezeSync()` clears `sync_frozen`, and if retirement shared that key one click on a button built for the routine "a tick failed, resume it" case would resurrect sync onto sheets the org may have hand-edited for months.
 
 `getSyncHalt` checks retired **first** because retirement is terminal — if both are somehow set, the honest answer is "retired".
+
+**On the key string.** `"sync_retired"` is written as a literal in `system.service.ts` and **nowhere else** — exactly as `"sync_frozen"` already is across `isSyncFrozen` / `setSyncFrozen` / `getSyncFreezeReason`. That is why this task ships `setSyncRetired()` alongside the reader even though nothing calls it until Task 3: the alternative was for `retirement.service.ts` to spell the key itself, and a typo there would fail **silently** — the write lands under a misspelled key, the read finds nothing, and the killswitch quietly does nothing. Keeping one file as the key's sole owner removes that failure mode without introducing a constant.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -88,7 +90,11 @@ jest.mock("@/lib/db", () => ({
   Transaction: class {},
 }));
 
-import { isSyncRetired, getSyncHalt } from "@/lib/services/system.service";
+import {
+  isSyncRetired,
+  setSyncRetired,
+  getSyncHalt,
+} from "@/lib/services/system.service";
 import * as systemRepo from "@/lib/repo/system.repo";
 import { db } from "@/lib/db";
 
@@ -137,6 +143,17 @@ describe("isSyncRetired", () => {
   });
 });
 
+describe("setSyncRetired", () => {
+  it("writes the flag under the same key isSyncRetired reads", async () => {
+    await setSyncRetired();
+
+    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
+      "sync_retired",
+      "true",
+    );
+  });
+});
+
 describe("getSyncHalt", () => {
   it("returns null when neither flag is set", async () => {
     await expect(getSyncHalt()).resolves.toBeNull();
@@ -165,22 +182,7 @@ describe("getSyncHalt", () => {
 Run: `pnpm jest __tests__/services/sync-retirement.test.ts`
 Expected: FAIL — `isSyncRetired is not a function`.
 
-- [ ] **Step 3: Add the key constant**
-
-In `lib/constants.ts`, below the `LINK_CONFIG_KEYS` block:
-
-```ts
-/**
- * system_config key marking sync permanently retired.
- *
- * Deliberately NOT the same key as sync_frozen: that one is a temporary,
- * error-triggered pause with an "Unfreeze" button built to undo it. Retirement
- * must survive that button.
- */
-export const SYNC_RETIRED_KEY = "sync_retired";
-```
-
-- [ ] **Step 4: Add the single-key repo read**
+- [ ] **Step 3: Add the single-key repo read**
 
 In `lib/repo/system.repo.ts`, below `findSystemConfig`:
 
@@ -192,27 +194,40 @@ export const findSystemConfigByKey = (key: string, client: DB = db) =>
   });
 ```
 
-- [ ] **Step 5: Add `isSyncRetired` and `getSyncHalt` to the service**
+- [ ] **Step 4: Add `isSyncRetired`, `setSyncRetired` and `getSyncHalt` to the service**
 
-In `lib/services/system.service.ts`, extend the imports:
-
-```ts
-import { SYNC_RETIRED_KEY } from "@/lib/constants";
-```
-
-(`systemRepo` is already imported by the P2 link functions.) Append:
+`systemRepo` is already imported here by the P2 link functions, so no new import is needed. Append:
 
 ```ts
 /**
- * True when sync has been permanently retired.
+ * system_config key marking sync permanently retired.
  *
- * Distinct from isSyncFrozen: unfreezeSync() must never clear this, so the
- * Unfreeze button cannot resurrect sync onto sheets the org has since
- * hand-edited.
+ * Written as a literal here and NOWHERE else, exactly as "sync_frozen" is —
+ * this file is the key's sole owner. If another module spelled it too, a typo
+ * would fail silently: the write lands under a misspelled key, the read finds
+ * nothing, and the killswitch quietly does nothing.
+ *
+ * Deliberately NOT the same key as sync_frozen: that one is a temporary,
+ * error-triggered pause with an "Unfreeze" button built to undo it.
+ * Retirement must survive that button.
  */
+const SYNC_RETIRED_KEY = "sync_retired";
+
+/** True when sync has been permanently retired. */
 export async function isSyncRetired(): Promise<boolean> {
   const row = await systemRepo.findSystemConfigByKey(SYNC_RETIRED_KEY);
   return row?.value === "true";
+}
+
+/**
+ * Marks sync permanently retired.
+ *
+ * One-way by design — there is deliberately no `clearSyncRetired()`. Recovery
+ * means a developer deleting the row by hand, which is the intended friction.
+ * Note `unfreezeSync()` must never touch this key.
+ */
+export async function setSyncRetired(): Promise<void> {
+  await systemRepo.upsertSystemConfig(SYNC_RETIRED_KEY, "true");
 }
 
 export type SyncHalt = "frozen" | "retired" | null;
@@ -229,7 +244,7 @@ export async function getSyncHalt(): Promise<SyncHalt> {
 }
 ```
 
-- [ ] **Step 6: Update the forward-sync gate**
+- [ ] **Step 5: Update the forward-sync gate**
 
 In `lib/services/helper.service.ts`, change the import on line 19 from `import { isSyncFrozen } from "./system.service";` to:
 
@@ -249,7 +264,7 @@ and replace the gate at the top of `syncAndCompactRegion`:
   }
 ```
 
-- [ ] **Step 7: Update the reverse-sync gate**
+- [ ] **Step 6: Update the reverse-sync gate**
 
 In `lib/services/reverse-sync.service.ts`, change the import on line 18 to:
 
@@ -269,20 +284,20 @@ and replace the gate:
   }
 ```
 
-- [ ] **Step 8: Confirm no `isSyncFrozen` import remains in the two gate files**
+- [ ] **Step 7: Confirm no `isSyncFrozen` import remains in the two gate files**
 
 Run: `grep -n "isSyncFrozen" lib/services/helper.service.ts lib/services/reverse-sync.service.ts`
 Expected: no output. `isSyncFrozen` itself stays exported from `system.service.ts` — `app/actions/system.ts` still uses it for the status display. Leaving a stale import would not fail `tsc` (`noUnusedLocals` is off) but eslint would flag it.
 
-- [ ] **Step 9: Run the test, the full suite, type-check and lint**
+- [ ] **Step 8: Run the test, the full suite, type-check and lint**
 
-Run: `pnpm jest __tests__/services/sync-retirement.test.ts && pnpm jest __tests__ && pnpm tsc --noEmit && pnpm lint lib/constants.ts lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts __tests__/services/sync-retirement.test.ts`
-Expected: 7 new tests PASS; all suites PASS (21 suites / 191 tests before this task, so 22 / 198 after); tsc exit 0; zero lint warnings on those paths. **Do not** lint `reverse-sync.service.ts` — it carries a pre-existing warning.
+Run: `pnpm jest __tests__/services/sync-retirement.test.ts && pnpm jest __tests__ && pnpm tsc --noEmit && pnpm lint lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts __tests__/services/sync-retirement.test.ts`
+Expected: 8 new tests PASS; all suites PASS (21 suites / 191 tests before this task, so 22 / 199 after); tsc exit 0; zero lint warnings on those paths. **Do not** lint `reverse-sync.service.ts` — it carries a pre-existing warning.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add lib/constants.ts lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts lib/services/reverse-sync.service.ts __tests__/services/sync-retirement.test.ts
+git add lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts lib/services/reverse-sync.service.ts __tests__/services/sync-retirement.test.ts
 git commit -m "feat(sync): add sync_retired flag honoured by both sync gates
 
 Retirement reuses the freeze checkpoints but not the freeze key: unfreezeSync
@@ -448,7 +463,7 @@ CRON_SECRET comparison so an unauthenticated caller still gets 401."
 - Create: `__tests__/services/retire-sync.test.ts`
 
 **Interfaces:**
-- Consumes from Task 1: `SYNC_RETIRED_KEY` from `@/lib/constants`, `upsertSystemConfig` from `@/lib/repo/system.repo`
+- Consumes from Task 1: `setSyncRetired()` from `@/lib/services/system.service`
 - Produces, consumed by Task 4:
   - `releaseSystemColProtections(): Promise<{ released: number }>` from `@/lib/services/helper.service`
   - `retireSync(): Promise<{ protectionsReleased: boolean; released: number; error: string | null }>` from `@/lib/services/retirement.service`
@@ -464,11 +479,8 @@ CRON_SECRET comparison so an unauthenticated caller still gets 401."
 Create `__tests__/services/retire-sync.test.ts`:
 
 ```ts
-jest.mock("@/lib/repo/system.repo", () => ({
-  findSystemConfig: jest.fn(),
-  findSystemConfigByKey: jest.fn(),
-  upsertSystemConfig: jest.fn(),
-  deleteSystemConfigKey: jest.fn(),
+jest.mock("@/lib/services/system.service", () => ({
+  setSyncRetired: jest.fn(),
 }));
 jest.mock("@/lib/services/helper.service", () => ({
   releaseSystemColProtections: jest.fn(),
@@ -476,32 +488,30 @@ jest.mock("@/lib/services/helper.service", () => ({
 jest.mock("@/lib/db", () => ({ db: {}, Transaction: class {} }));
 
 import { retireSync } from "@/lib/services/retirement.service";
-import * as systemRepo from "@/lib/repo/system.repo";
+import * as systemService from "@/lib/services/system.service";
 import * as helper from "@/lib/services/helper.service";
 
-const mockRepo = systemRepo as jest.Mocked<typeof systemRepo>;
+const mockSystem = systemService as jest.Mocked<typeof systemService>;
 const mockHelper = helper as jest.Mocked<typeof helper>;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSystem.setSyncRetired.mockResolvedValue(undefined as never);
   mockHelper.releaseSystemColProtections.mockResolvedValue({
     released: 4,
   } as never);
 });
 
 describe("retireSync", () => {
-  it("writes the flag", async () => {
+  it("sets the retirement flag", async () => {
     await retireSync();
 
-    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
-      "sync_retired",
-      "true",
-    );
+    expect(mockSystem.setSyncRetired).toHaveBeenCalled();
   });
 
-  it("writes the flag BEFORE attempting any Sheets call", async () => {
+  it("sets the flag BEFORE attempting any Sheets call", async () => {
     const order: string[] = [];
-    mockRepo.upsertSystemConfig.mockImplementation((() => {
+    mockSystem.setSyncRetired.mockImplementation((() => {
       order.push("flag");
       return Promise.resolve(undefined);
     }) as never);
@@ -534,7 +544,7 @@ describe("retireSync", () => {
     expect(result.error).toMatch(/credentials revoked/);
   });
 
-  it("keeps the flag written even when the Sheets call throws", async () => {
+  it("keeps the flag set even when the Sheets call throws", async () => {
     mockHelper.releaseSystemColProtections.mockRejectedValue(
       new Error("spreadsheet deleted") as never,
     );
@@ -542,10 +552,7 @@ describe("retireSync", () => {
     await retireSync();
 
     // The whole point: retirement must survive already-broken Sheets access.
-    expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
-      "sync_retired",
-      "true",
-    );
+    expect(mockSystem.setSyncRetired).toHaveBeenCalled();
   });
 });
 ```
@@ -624,9 +631,8 @@ This uses `db.query.regions` directly, matching the surrounding function. That i
 - [ ] **Step 4: Create `lib/services/retirement.service.ts`**
 
 ```ts
-import * as systemRepo from "@/lib/repo/system.repo";
+import { setSyncRetired } from "@/lib/services/system.service";
 import { releaseSystemColProtections } from "@/lib/services/helper.service";
-import { SYNC_RETIRED_KEY } from "@/lib/constants";
 
 /**
  * Permanently retires the Google Sheets sync.
@@ -634,6 +640,10 @@ import { SYNC_RETIRED_KEY } from "@/lib/constants";
  * Lives in its own module rather than system.service.ts on purpose:
  * helper.service.ts imports from system.service.ts, so importing
  * releaseSystemColProtections there would create a runtime import cycle.
+ *
+ * Note this module never names the system_config key — setSyncRetired owns it.
+ * Spelling it here too would risk a silent typo: the write would land under a
+ * misspelled key and isSyncRetired would keep returning false.
  *
  * The flag is written FIRST and the Sheets call is best-effort. A decade from
  * now the likeliest reason to reach for this button is that Google access has
@@ -645,7 +655,7 @@ export async function retireSync(): Promise<{
   released: number;
   error: string | null;
 }> {
-  await systemRepo.upsertSystemConfig(SYNC_RETIRED_KEY, "true");
+  await setSyncRetired();
 
   try {
     const { released } = await releaseSystemColProtections();
@@ -934,6 +944,7 @@ to unlock those columns by hand."
   - `storageObjects` table from `@/lib/db/schema`
   - `sumPhotoStorageBytes(client?): Promise<number>` from `@/lib/repo/storage.repo`
   - `getPhotoStorageUsage(): Promise<{ bytes: number | null; capBytes: number }>` from `@/lib/services/system.service`
+  - `getLastPhotoGcAt(): Promise<string | null>` from `@/lib/services/system.service`
   - `STORAGE_CAP_BYTES`, `STORAGE_WARN_RATIO`, `STORAGE_CRITICAL_RATIO` from `@/lib/constants`
 
 **Background:** `storage.objects` is a real Postgres table in Supabase's `storage` schema, with byte size in `metadata->>'size'`. The codebase already declares a foreign schema this way — `pgSchema("auth")` at `lib/db/schema.ts:32` for `auth.users` — so this follows an established idiom.
@@ -1114,6 +1125,21 @@ export async function getPhotoStorageUsage(): Promise<{
     return { bytes: null, capBytes: STORAGE_CAP_BYTES };
   }
 }
+
+/**
+ * system_config key holding the last orphan-GC sweep time, ISO 8601.
+ *
+ * Owned by this file, like sync_frozen and sync_retired. Consumers ask
+ * getLastPhotoGcAt() rather than spelling the key, so a typo cannot leave the
+ * Admin card reading "never" forever while the sweep runs fine.
+ */
+const PHOTO_GC_KEY = "last_photo_gc_at";
+
+/** When the automatic orphan sweep last ran, or null if it never has. */
+export async function getLastPhotoGcAt(): Promise<string | null> {
+  const row = await systemRepo.findSystemConfigByKey(PHOTO_GC_KEY);
+  return row?.value ?? null;
+}
 ```
 
 - [ ] **Step 7: Run the test to verify it passes**
@@ -1249,11 +1275,13 @@ There is no `"use client"` directive: this component holds no state and no handl
 
 - [ ] **Step 2: Seed both values in `admin/page.tsx`**
 
-Add the imports:
+Add the import:
 
 ```tsx
-import { getPhotoStorageUsage } from "@/lib/services/system.service";
-import { findSystemConfigByKey } from "@/lib/repo/system.repo";
+import {
+  getPhotoStorageUsage,
+  getLastPhotoGcAt,
+} from "@/lib/services/system.service";
 ```
 
 Extend the `Promise.all` with two more entries, destructuring them onto the end of the existing array:
@@ -1264,15 +1292,10 @@ Extend the `Promise.all` with two more entries, destructuring them onto the end 
       () => getPhotoStorageUsage(),
       { bytes: null, capBytes: STORAGE_CAP_BYTES },
     ),
-    loadData(
-      "Last photo GC timestamp",
-      async () => {
-        const row = await findSystemConfigByKey("last_photo_gc_at");
-        return row?.value ?? null;
-      },
-      null,
-    ),
+    loadData("Last photo GC timestamp", () => getLastPhotoGcAt(), null),
 ```
+
+The page asks a question rather than knowing a schema detail: `system.service.ts` owns the `last_photo_gc_at` key string, exactly as it owns `sync_frozen` and `sync_retired`. Spelling the key here as well would risk a silent typo — the card would read "never" forever while the sweep ran fine.
 
 Import `STORAGE_CAP_BYTES` from `@/lib/constants` for that fallback, and pass both down:
 
@@ -1332,8 +1355,8 @@ Stewards cannot run SQL, so usage has to be self-serve. Amber at 80%, red at
 - Modify: `__tests__/services/storage-usage.test.ts`
 
 **Interfaces:**
-- Consumes from Task 5: `findSystemConfigByKey`, `upsertSystemConfig`
-- Produces: `shouldRunPhotoGc(now?): Promise<boolean>` and `markPhotoGcRun(now?): Promise<void>` from `@/lib/services/system.service`; `PHOTO_GC_KEY` and `PHOTO_GC_INTERVAL_MS` from `@/lib/constants`
+- Consumes from Task 5: the module-private `PHOTO_GC_KEY` const already declared in `system.service.ts`, plus `findSystemConfigByKey` / `upsertSystemConfig` from `@/lib/repo/system.repo`
+- Produces: `shouldRunPhotoGc(now?): Promise<boolean>` and `markPhotoGcRun(now?): Promise<void>` from `@/lib/services/system.service`; `PHOTO_GC_INTERVAL_MS` from `@/lib/constants`
 
 **Background:** `reconcileCatPhotos` (in `lib/services/photo-import.service.ts`, returning `{ scanned, referenced, removed }`) is already reference-aware — it derives paths from `photo_url` and reference-checks before deleting, the invariant that stops a merged duplicate's reassigned blob being reclaimed while the surviving cat still points at it. It is documented idempotent and safe to re-run, so it is safe unattended.
 
@@ -1406,21 +1429,20 @@ describe("markPhotoGcRun", () => {
 Run: `pnpm jest __tests__/services/storage-usage.test.ts`
 Expected: FAIL — `shouldRunPhotoGc is not a function`.
 
-- [ ] **Step 3: Add the GC constants**
+- [ ] **Step 3: Add the interval constant**
 
 In `lib/constants.ts`, below the storage constants:
 
 ```ts
-/** system_config key holding the last orphan-GC sweep time, ISO 8601. */
-export const PHOTO_GC_KEY = "last_photo_gc_at";
-
 /** Minimum gap between automatic orphan sweeps (7 days). */
 export const PHOTO_GC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 ```
 
+This is a tunable, so it belongs in `constants.ts`. The `PHOTO_GC_KEY` string is **not** — Task 5 already declared it as a module-private const in `system.service.ts`, which owns it. Do not re-declare or export it.
+
 - [ ] **Step 4: Add the guard helpers**
 
-In `lib/services/system.service.ts`, extend the `@/lib/constants` import with `PHOTO_GC_KEY` and `PHOTO_GC_INTERVAL_MS`, then append:
+In `lib/services/system.service.ts`, extend the `@/lib/constants` import with `PHOTO_GC_INTERVAL_MS`, then append (`PHOTO_GC_KEY` is already in scope from Task 5):
 
 ```ts
 /**
