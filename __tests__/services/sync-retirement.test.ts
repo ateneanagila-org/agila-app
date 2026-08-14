@@ -11,6 +11,21 @@ jest.mock("@/lib/db", () => ({
   },
   Transaction: class {},
 }));
+jest.mock("@/lib/services/sync-cron.service", () => ({
+  syncAllPendingRegions: jest.fn(),
+}));
+jest.mock("@/lib/services/discord.service", () => ({
+  sendSyncAlert: jest.fn(),
+}));
+jest.mock("next/server", () => ({
+  after: (fn: () => unknown) => fn(),
+  NextResponse: {
+    json: (body: unknown, init?: { status?: number }) => ({
+      body,
+      status: init?.status ?? 200,
+    }),
+  },
+}));
 
 import {
   isSyncRetired,
@@ -116,5 +131,61 @@ describe("getSyncHalt", () => {
     setFrozen(true);
     setRetired(true);
     await expect(getSyncHalt()).resolves.toBe("retired");
+  });
+});
+
+import { POST } from "@/app/api/cron/sync/route";
+import { syncAllPendingRegions } from "@/lib/services/sync-cron.service";
+
+const mockSync = syncAllPendingRegions as jest.Mock;
+
+/** Minimal stand-in for NextRequest — the route only reads one header. */
+function req(token: string | null) {
+  return {
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === "authorization" && token
+          ? `Bearer ${token}`
+          : null,
+    },
+  } as unknown as Parameters<typeof POST>[0];
+}
+
+describe("cron sync route", () => {
+  const OLD_SECRET = process.env.CRON_SECRET;
+
+  beforeAll(() => {
+    process.env.CRON_SECRET = "test-secret";
+  });
+  afterAll(() => {
+    process.env.CRON_SECRET = OLD_SECRET;
+  });
+
+  it("returns 401 for a bad secret EVEN WHEN retired", async () => {
+    setRetired(true);
+
+    const res = (await POST(req("wrong"))) as unknown as { status: number };
+
+    expect(res.status).toBe(401);
+    expect(mockSync).not.toHaveBeenCalled();
+  });
+
+  it("short-circuits without running sync when retired", async () => {
+    setRetired(true);
+
+    const res = (await POST(req("test-secret"))) as unknown as {
+      body: { retired?: boolean };
+    };
+
+    expect(res.body.retired).toBe(true);
+    expect(mockSync).not.toHaveBeenCalled();
+  });
+
+  it("runs sync when not retired", async () => {
+    setRetired(false);
+
+    await POST(req("test-secret"));
+
+    expect(mockSync).toHaveBeenCalled();
   });
 });

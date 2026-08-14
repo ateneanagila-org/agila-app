@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { syncAllPendingRegions } from "@/lib/services/sync-cron.service";
-import { setSyncFrozen } from "@/lib/services/system.service";
+import { setSyncFrozen, isSyncRetired } from "@/lib/services/system.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
 
 export async function POST(request: NextRequest) {
@@ -10,6 +10,14 @@ export async function POST(request: NextRequest) {
 
   if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Retired systems do no work at all. This sits after the auth check so an
+  // unauthenticated caller still gets 401 rather than learning our state, and
+  // before after() so a retired tick costs no queries — it may keep firing for
+  // years if nobody disables the Cloudflare trigger.
+  if (await isSyncRetired()) {
+    return NextResponse.json({ ok: true, retired: true });
   }
 
   after(async () => {
