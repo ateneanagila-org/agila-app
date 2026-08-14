@@ -1229,6 +1229,7 @@ know."
 ### Task 6: Photo Storage card
 
 **Files:**
+- Modify: `lib/utils.ts`
 - Create: `components/app-pages/admin/storage-gauge.tsx`
 - Modify: `components/app-pages/admin/admin-screen.tsx`
 - Modify: `app/(protected)/dashboard/admin/page.tsx`
@@ -1237,26 +1238,42 @@ know."
 - Consumes from Task 5: `getPhotoStorageUsage()`, `STORAGE_WARN_RATIO`, `STORAGE_CRITICAL_RATIO`
 - Produces: `StorageGauge` requiring `usage: { bytes: number | null; capBytes: number }` and `lastCleanupAt: string | null`; `AdminScreen` gains both as props
 
-**Background:** `admin-screen.tsx` renders its config cards in **both** a mobile branch and a desktop branch — `GSheetConfigControls`, `RegionControls`, `LinkControls` and `BugReportsCard` all appear in both. `StorageGauge` joins them in both, after `BugReportsCard`. A single render site still compiles, so Step 4 greps for it.
+**Background:** `admin-screen.tsx` renders its config cards in **both** a mobile branch and a desktop branch — `GSheetConfigControls`, `RegionControls`, `LinkControls` and `BugReportsCard` all appear in both. `StorageGauge` joins them in both, after `BugReportsCard`. A single render site still compiles, so Step 5 greps for it.
 
 `lastCleanupAt` is wired now but stays `null` until Task 7 writes `last_photo_gc_at`. The card must render sensibly with `null` from the day it lands.
 
-- [ ] **Step 1: Create `components/app-pages/admin/storage-gauge.tsx`**
+- [ ] **Step 1: Add the shared date formatter to `lib/utils.ts`**
+
+This codebase has **nine** local `formatDate` copies and no shared one. Eight agree exactly — `MM/DD/YY`, `—` when null — and one (`bug-reports-screen.tsx`) drifted to a 4-digit year. Rather than adding a tenth in a third format, put the dominant form in `lib/utils.ts` beside `displayCatField`:
+
+```ts
+/**
+ * The codebase's date display format: MM/DD/YY, em dash when absent.
+ *
+ * Extracted here because nine components had defined this same function
+ * locally. Those copies are not migrated by this project — see the follow-up
+ * note in Out of Scope — but new code uses this one rather than adding a tenth.
+ */
+export const formatDate = (
+  date: Date | string | null | undefined,
+): string => {
+  if (!date) return "—";
+  const d = new Date(date);
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+};
+```
+
+- [ ] **Step 2: Create `components/app-pages/admin/storage-gauge.tsx`**
 
 ```tsx
 import {
   STORAGE_WARN_RATIO,
   STORAGE_CRITICAL_RATIO,
 } from "@/lib/constants";
+import { formatDate } from "@/lib/utils";
 
 function formatMb(bytes: number) {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "never";
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, "0")} ${d.toLocaleString("en-US", { month: "short" })} ${d.getFullYear()}`;
 }
 
 export function StorageGauge({
@@ -1322,7 +1339,7 @@ export function StorageGauge({
           )}
 
           <p className="mt-2 text-[11px] text-brand-dark/45">
-            Last cleanup: {formatDate(lastCleanupAt)}
+            Last cleanup: {lastCleanupAt ? formatDate(lastCleanupAt) : "never"}
           </p>
         </div>
       </div>
@@ -1333,7 +1350,7 @@ export function StorageGauge({
 
 There is no `"use client"` directive: this component holds no state and no handlers, so it stays a server component.
 
-- [ ] **Step 2: Seed both values in `admin/page.tsx`**
+- [ ] **Step 3: Seed both values in `admin/page.tsx`**
 
 Add the import:
 
@@ -1364,7 +1381,7 @@ Import `STORAGE_CAP_BYTES` from `@/lib/constants` for that fallback, and pass bo
       lastCleanupAt={lastCleanupAt}
 ```
 
-- [ ] **Step 3: Thread the props through `admin-screen.tsx`**
+- [ ] **Step 4: Thread the props through `admin-screen.tsx`**
 
 Add `import { StorageGauge } from "./storage-gauge";`, extend `AdminScreenProps`:
 
@@ -1379,25 +1396,25 @@ destructure both in the component signature, and render in **both** branches imm
             <StorageGauge usage={storageUsage} lastCleanupAt={lastCleanupAt} />
 ```
 
-- [ ] **Step 4: Confirm both branches render it**
+- [ ] **Step 5: Confirm both branches render it**
 
 Run: `grep -c "StorageGauge usage" components/app-pages/admin/admin-screen.tsx`
 Expected: `2`.
 
-- [ ] **Step 5: Confirm no `min-h-screen` crept in**
+- [ ] **Step 6: Confirm no `min-h-screen` crept in**
 
 Run: `grep -rn "min-h-screen" --include="*.tsx" app components`
 Expected: no output.
 
-- [ ] **Step 6: Type-check, lint, test**
+- [ ] **Step 7: Type-check, lint, test**
 
 Run: `pnpm tsc --noEmit && pnpm jest __tests__ && pnpm lint components/app-pages/admin/storage-gauge.tsx components/app-pages/admin/admin-screen.tsx "app/(protected)/dashboard/admin/page.tsx"`
 Expected: tsc exit 0, all suites PASS, zero lint warnings.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add components/app-pages/admin/storage-gauge.tsx components/app-pages/admin/admin-screen.tsx "app/(protected)/dashboard/admin/page.tsx"
+git add lib/utils.ts components/app-pages/admin/storage-gauge.tsx components/app-pages/admin/admin-screen.tsx "app/(protected)/dashboard/admin/page.tsx"
 git commit -m "feat(admin): Photo Storage gauge
 
 Stewards cannot run SQL, so usage has to be self-serve. Amber at 80%, red at
@@ -1742,4 +1759,5 @@ Manual:
 - **Batch-recompressing existing photos** or changing upload quality.
 - **Pruning photos of deceased/adopted cats** — a retention policy decision.
 - **Fixing the pre-existing `db.*` layering violations** in `system.service.ts`, `helper.service.ts`, `reverse-sync.service.ts`, `sync-cron.service.ts` and `photo-import.service.ts`.
+- **Migrating the nine existing local `formatDate` copies** to the shared `lib/utils.ts` one this project adds. Eight are byte-identical (`MM/DD/YY`, `—` when null); the ninth, `components/app-pages/admin/bug-reports-screen.tsx`, drifted to a 4-digit year and should be reconciled too. Touching nine screens across sessions, database and admin does not belong in a killswitch-and-storage project — but new code now has one obvious helper to reach for, so the count stops growing.
 - **Making the manual Reclaim button write `last_photo_gc_at`.** Arguably it should, so the card reflects any sweep rather than only automatic ones. Left out deliberately to keep the guard's meaning unambiguous — it currently answers "when did the *automatic* sweep last run", which is the thing neglect makes invisible.
