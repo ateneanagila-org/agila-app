@@ -3,7 +3,10 @@ jest.mock("@/lib/repo/system.repo", () => ({
   upsertSystemConfig: jest.fn(),
   deleteSystemConfigKey: jest.fn(),
 }));
-jest.mock("@/lib/db", () => ({ db: {}, Transaction: class {} }));
+jest.mock("@/lib/db", () => ({
+  db: { transaction: jest.fn((cb: (tx: unknown) => unknown) => cb({})) },
+  Transaction: class {},
+}));
 
 import { getLinks, updateLinks } from "@/lib/services/system.service";
 import * as systemRepo from "@/lib/repo/system.repo";
@@ -70,6 +73,7 @@ describe("updateLinks", () => {
     expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
       "link_census_report",
       "https://example.com/a",
+      {},
     );
     expect(mockRepo.deleteSystemConfigKey).not.toHaveBeenCalled();
   });
@@ -79,6 +83,7 @@ describe("updateLinks", () => {
 
     expect(mockRepo.deleteSystemConfigKey).toHaveBeenCalledWith(
       "link_census_report",
+      {},
     );
     expect(mockRepo.upsertSystemConfig).not.toHaveBeenCalled();
   });
@@ -90,6 +95,7 @@ describe("updateLinks", () => {
     expect(mockRepo.upsertSystemConfig).toHaveBeenCalledWith(
       "link_adopt_foster",
       "https://example.com/form",
+      {},
     );
     expect(mockRepo.deleteSystemConfigKey).not.toHaveBeenCalled();
   });

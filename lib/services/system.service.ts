@@ -91,17 +91,19 @@ export async function getLinks(): Promise<AppLinks> {
 export async function updateLinks(
   input: Partial<Record<keyof AppLinks, string | null>>,
 ): Promise<AppLinks> {
-  for (const field of Object.keys(LINK_CONFIG_KEYS) as Array<keyof AppLinks>) {
-    const value = input[field];
-    if (value === undefined) continue;
+  await db.transaction(async (tx) => {
+    for (const field of Object.keys(LINK_CONFIG_KEYS) as Array<keyof AppLinks>) {
+      const value = input[field];
+      if (value === undefined) continue;
 
-    const key = LINK_CONFIG_KEYS[field];
-    if (value === null) {
-      await systemRepo.deleteSystemConfigKey(key);
-    } else {
-      await systemRepo.upsertSystemConfig(key, value);
+      const key = LINK_CONFIG_KEYS[field];
+      if (value === null) {
+        await systemRepo.deleteSystemConfigKey(key, tx);
+      } else {
+        await systemRepo.upsertSystemConfig(key, value, tx);
+      }
     }
-  }
+  });
 
   return await getLinks();
 }

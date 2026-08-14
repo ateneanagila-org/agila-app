@@ -1,5 +1,6 @@
 "use server";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { actionClient } from "@/lib/error/actions-handler";
 import * as service from "@/lib/services/bug-reports.service";
 import * as bugReportsRepo from "@/lib/repo/bug-reports.repo";
@@ -41,12 +42,19 @@ export const resolveBugReport = actionClient
   .schema(setBugReportStatusSchema)
   .action(async ({ parsedInput }) => {
     await requireRole(...ADMIN_ONLY);
-    return await service.setBugReportStatus(parsedInput.id, parsedInput.status);
+    const result = await service.setBugReportStatus(
+      parsedInput.id,
+      parsedInput.status,
+    );
+    revalidatePath("/", "layout");
+    return result;
   });
 
 export const removeBugReportAction = actionClient
   .schema(deleteBugReportSchema)
   .action(async ({ parsedInput }) => {
     await requireRole(...ADMIN_ONLY);
-    return await service.removeBugReport(parsedInput.id);
+    const result = await service.removeBugReport(parsedInput.id);
+    revalidatePath("/", "layout");
+    return result;
   });

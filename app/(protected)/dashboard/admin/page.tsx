@@ -9,6 +9,7 @@ import {
 } from "@/lib/services/system.service";
 import { countOpenBugReports } from "@/lib/repo/bug-reports.repo";
 import { loadData } from "@/lib/safe-initial-data";
+import { DEFAULT_LINKS } from "@/lib/constants";
 
 export const maxDuration = 120;
 
@@ -39,7 +40,7 @@ export default async function AdminPage() {
       },
     ),
     loadData("Admin regions initial load", () => findRegions(), []),
-    getLinks(),
+    loadData("Admin links initial load", () => getLinks(), DEFAULT_LINKS),
     loadData("Open bug report count", () => countOpenBugReports(), 0),
   ]);
 
