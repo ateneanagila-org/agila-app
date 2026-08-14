@@ -12,6 +12,7 @@ invariants, and the design system. Everything here is the deeper layer beneath i
 | [architecture/frontend.md](architecture/frontend.md)        | dev / agent     | Two-screen (mobile/desktop) strategy                          |
 | [specs/](specs/)                                            | dev / agent     | **Active** design specs awaiting or under implementation      |
 | [operations/gsheets-sync-setup.md](operations/gsheets-sync-setup.md) | operator | Sync setup + runbook: provisioning, cutover, recovery         |
+| [operations/decommissioning.md](operations/decommissioning.md) | operator | Retiring the sync: killswitch, cron teardown, Apps Script cleanup |
 | [handbook/AGILA-User-Manual.md](handbook/AGILA-User-Manual.md) | end user    | Non-technical manual, split by role                           |
 | [reference/](reference/)                                    | context         | Original proposal + CATalog spreadsheet exports               |
 | [archive/](archive/)                                        | historical      | Point-in-time plans and specs — **not current truth**         |
