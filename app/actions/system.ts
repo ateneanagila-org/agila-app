@@ -4,8 +4,10 @@ import {
   isSyncFrozen,
   setSyncFrozen,
   getSyncFreezeReason,
+  isSyncRetired,
   updateLinks as updateLinksService,
 } from "@/lib/services/system.service";
+import { retireSync } from "@/lib/services/retirement.service";
 import { fullReverseSync } from "@/lib/services/reverse-sync.service";
 import {
   provisionRegionSheets,
@@ -19,10 +21,17 @@ import {
   ADMIN_ONLY,
 } from "@/lib/auth/rbac";
 import { actionClient } from "@/lib/error/actions-handler";
+import { AppError } from "@/lib/error/app-error";
 import { updateLinksSchema } from "@/lib/validation/system";
 
 export async function unfreezeSync() {
   await requireRole(...ADMIN_ONLY);
+  if (await isSyncRetired()) {
+    throw new AppError(
+      "Sync is retired. Unfreezing is no longer possible.",
+      409,
+    );
+  }
   const reverseSyncResult = await fullReverseSync();
   await setSyncFrozen(false);
   await sendSyncAlert("Sync manually unfrozen by admin. System resumed.");
@@ -59,11 +68,25 @@ export async function reclaimOrphanedPhotos() {
   return await reconcileCatPhotos();
 }
 
+/**
+ * Permanently retires the Sheets sync. There is no undo in the UI — a
+ * developer can clear the system_config row, but no steward-facing control
+ * does. Deliberate: this is expected to happen once, ever.
+ */
+export async function retireSyncAction() {
+  await requireRole(...ADMIN_ONLY);
+  return await retireSync();
+}
+
 export async function getSyncStatus() {
   await requireAuth();
   const frozen = await isSyncFrozen();
-  const reason = frozen ? await getSyncFreezeReason() : null;
-  return { frozen, reason };
+  const retired = await isSyncRetired();
+  return {
+    frozen,
+    reason: frozen ? await getSyncFreezeReason() : null,
+    retired,
+  };
 }
 
 export const updateLinks = actionClient

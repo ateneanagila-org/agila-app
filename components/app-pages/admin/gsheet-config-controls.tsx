@@ -6,6 +6,7 @@ import {
   seedSheetUuids,
   unfreezeSync,
   reclaimOrphanedPhotos,
+  retireSyncAction,
 } from "@/app/actions/system";
 
 type ActionResult = { ok: boolean; text: string };
@@ -14,6 +15,7 @@ type GSheetConfigControlsProps = {
   initialStatus: {
     frozen: boolean | null;
     reason: string | null;
+    retired: boolean;
   };
 };
 
@@ -25,6 +27,9 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
   const [confirmReclaim, setConfirmReclaim] = useState(false);
   const [frozen, setFrozen] = useState<boolean | null>(initialStatus.frozen);
   const [reason, setReason] = useState<string | null>(initialStatus.reason);
+  const [retired, setRetired] = useState(initialStatus.retired);
+  const [confirmRetire, setConfirmRetire] = useState(false);
+  const [typed, setTyped] = useState("");
 
   function run(key: string, fn: () => Promise<string>) {
     setActiveKey(key);
@@ -60,37 +65,50 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
         <div className="px-4 py-3">
           <div className="mb-1 flex items-center gap-2">
             <p className="text-sm font-semibold text-brand-dark">Sync status</p>
-            {frozen !== null && (
+            {retired ? (
+              <span className="rounded-full bg-brand-dark px-2 py-0.5 text-[11px] font-semibold text-white">
+                Retired
+              </span>
+            ) : frozen !== null ? (
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${frozen ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"}`}>
                 {frozen ? "Frozen" : "Active"}
               </span>
-            )}
+            ) : null}
           </div>
           {frozen && reason && (
             <p className="mb-2 text-xs text-red-500">Reason: {reason}</p>
           )}
-          <p className="mb-2 text-xs text-brand-dark/55">
-            Unfreezing runs a full reverse sync then resumes the forward sync cron.
-          </p>
-          <button
-            type="button"
-            disabled={isPending || frozen === false}
-            onClick={() =>
-              run("unfreeze", async () => {
-                await unfreezeSync();
-                setFrozen(false);
-                setReason(null);
-                return "System unfrozen. Sync resumed.";
-              })
-            }
-            className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
-            {busy("unfreeze") ? "Unfreezing…" : "Unfreeze"}
-          </button>
-          {results.unfreeze && (
-            <p className={`mt-2 text-xs ${results.unfreeze.ok ? "text-brand-green" : "text-red-600"}`}>
-              {results.unfreeze.text}
+          {retired ? (
+            <p className="text-xs text-brand-dark/55">
+              Sync is permanently retired. The spreadsheet is no longer written
+              to and its system columns have been unlocked for manual editing.
             </p>
+          ) : (
+            <>
+              <p className="mb-2 text-xs text-brand-dark/55">
+                Unfreezing runs a full reverse sync then resumes the forward sync cron.
+              </p>
+              <button
+                type="button"
+                disabled={isPending || frozen === false}
+                onClick={() =>
+                  run("unfreeze", async () => {
+                    await unfreezeSync();
+                    setFrozen(false);
+                    setReason(null);
+                    return "System unfrozen. Sync resumed.";
+                  })
+                }
+                className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                {busy("unfreeze") ? "Unfreezing…" : "Unfreeze"}
+              </button>
+              {results.unfreeze && (
+                <p className={`mt-2 text-xs ${results.unfreeze.ok ? "text-brand-green" : "text-red-600"}`}>
+                  {results.unfreeze.text}
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -226,6 +244,82 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
             </p>
           )}
         </div>
+
+        {!retired && (
+          <>
+            <div className="border-t border-border" />
+            <div className="px-4 py-3">
+              <p className="mb-0.5 text-sm font-semibold text-red-600">
+                Retire sync
+              </p>
+              <p className="mb-2 text-xs text-brand-dark/55">
+                Permanently stops all writes to the spreadsheet and unlocks its
+                system columns for manual editing. The app keeps working on its
+                own database. <strong>This cannot be undone from here.</strong>
+              </p>
+
+              {confirmRetire ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-brand-dark/60">
+                    Type <strong>RETIRE</strong> to confirm.
+                  </p>
+                  <input
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    autoFocus
+                    className="h-9 w-full max-w-xs rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-1 focus:ring-brand-orange/40"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending || typed !== "RETIRE"}
+                      onClick={() =>
+                        run("retire", async () => {
+                          const r = await retireSyncAction();
+                          setRetired(true);
+                          setConfirmRetire(false);
+                          setTyped("");
+                          return r.protectionsReleased
+                            ? `Sync retired. Released ${r.released} column protection${r.released === 1 ? "" : "s"}.`
+                            : `Sync retired, but the spreadsheet could not be updated: ${r.error}. Column protections may still need removing by hand.`;
+                        })
+                      }
+                      className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    >
+                      {busy("retire") ? "Retiring…" : "Confirm — retire sync"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => {
+                        setConfirmRetire(false);
+                        setTyped("");
+                      }}
+                      className="rounded-full px-4 py-1.5 text-xs font-bold text-brand-dark/60 disabled:opacity-40"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setConfirmRetire(true)}
+                  className="rounded-full border border-red-300 px-4 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                >
+                  Retire sync…
+                </button>
+              )}
+
+              {results.retire && (
+                <p className={`mt-2 text-xs ${results.retire.ok ? "text-brand-green" : "text-red-600"}`}>
+                  {results.retire.text}
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

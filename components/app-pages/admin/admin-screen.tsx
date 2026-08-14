@@ -115,7 +115,11 @@ function RoleSelect({
 
 type AdminScreenProps = {
   initialUsers: AllowedEmailEntry[];
-  initialSyncStatus: { frozen: boolean | null; reason: string | null };
+  initialSyncStatus: {
+    frozen: boolean | null;
+    reason: string | null;
+    retired: boolean;
+  };
   initialRegions: RegionOption[];
   initialLinks: AppLinks;
   openBugReports: number;

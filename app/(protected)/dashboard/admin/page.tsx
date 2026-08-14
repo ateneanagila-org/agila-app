@@ -6,6 +6,7 @@ import {
   getLinks,
   getSyncFreezeReason,
   isSyncFrozen,
+  isSyncRetired,
 } from "@/lib/services/system.service";
 import { countOpenBugReports } from "@/lib/repo/bug-reports.repo";
 import { loadData } from "@/lib/safe-initial-data";
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
 type InitialSyncStatus = {
   frozen: boolean | null;
   reason: string | null;
+  retired: boolean;
 };
 
 export default async function AdminPage() {
@@ -32,11 +34,13 @@ export default async function AdminPage() {
         return {
           frozen,
           reason: frozen ? await getSyncFreezeReason() : null,
+          retired: await isSyncRetired(),
         };
       },
       {
         frozen: null,
         reason: null,
+        retired: false,
       },
     ),
     loadData("Admin regions initial load", () => findRegions(), []),
