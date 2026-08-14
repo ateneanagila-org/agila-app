@@ -1020,6 +1020,64 @@ export async function setupSystemColProtections(): Promise<void> {
 }
 
 /**
+ * Removes the A and W–Y protections from every region sheet, leaving no
+ * replacements.
+ *
+ * Used by retirement. Those protections are owned by the service account and
+ * exist to stop humans editing system-managed columns — after retirement
+ * nothing manages them, so leaving them in place would hand stewards a
+ * spreadsheet with four locked columns and no app to unlock them.
+ *
+ * This is setupSystemColProtections' delete loop without the re-apply.
+ */
+export async function releaseSystemColProtections(): Promise<{
+  released: number;
+}> {
+  const regions = await regionsRepo.findRegions();
+  const regionNames = new Set<string>(regions.map((r) => r.name));
+
+  const { glAuth, glSheets } = await connectToSheets();
+
+  const spreadsheet = await glSheets.spreadsheets.get({
+    auth: glAuth,
+    spreadsheetId: CONFIG_SPREADSHEET_ID,
+    fields: "sheets(properties(sheetId,title),protectedRanges)",
+  });
+
+  const requests: object[] = [];
+
+  for (const sheet of spreadsheet.data.sheets ?? []) {
+    const title = sheet.properties?.title ?? "";
+    if (!regionNames.has(title)) continue;
+
+    for (const pr of sheet.protectedRanges ?? []) {
+      const range = pr.range;
+      const isColA =
+        range?.startColumnIndex === SYS_COL_A_START &&
+        range?.endColumnIndex === SYS_COL_A_END;
+      const isColWY =
+        range?.startColumnIndex === SYS_COL_WY_START &&
+        range?.endColumnIndex === SYS_COL_WY_END;
+      if (isColA || isColWY) {
+        requests.push({
+          deleteProtectedRange: { protectedRangeId: pr.protectedRangeId },
+        });
+      }
+    }
+  }
+
+  if (requests.length > 0) {
+    await glSheets.spreadsheets.batchUpdate({
+      auth: glAuth,
+      spreadsheetId: CONFIG_SPREADSHEET_ID,
+      requestBody: { requests },
+    });
+  }
+
+  return { released: requests.length };
+}
+
+/**
  * Writes region sheet names to _config!B2 so Apps Script Protection.gs
  * knows which tabs are region data sheets vs. static summary sheets.
  * Call whenever a region is created or deleted.
