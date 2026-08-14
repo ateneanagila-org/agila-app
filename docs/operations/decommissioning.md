@@ -48,10 +48,12 @@ forever**, at a webhook nobody owns any more.
 ## 3. Remove the Apps Script triggers (spreadsheet)
 
 Open the CATalog spreadsheet → Extensions → Apps Script → Triggers (clock
-icon) → delete the `onEdit` and `onSheetChange` triggers.
+icon) → delete the `onEditInstallable` and `onSheetChange` triggers.
 
-`onEdit` only stamps the edit-timestamp columns — harmless once nothing reads
-them. `onSheetChange` is the reason this step matters: it banners hand-made tabs
+`onEditInstallable` only stamps the edit-timestamp columns — harmless once nothing reads
+them. (It is named `onEditInstallable` rather than `onEdit` because Apps Script
+reserves the bare name for simple triggers, which cannot use the Sheets API.)
+`onSheetChange` is the reason this step matters: it banners hand-made tabs
 with text reading *"To add a REGION, use the app (Admin > Edit Regions)"*. After
 retirement that advice is wrong. Stewards may legitimately add tabs by hand, and
 would get a red warning pointing them at an app that no longer syncs.
