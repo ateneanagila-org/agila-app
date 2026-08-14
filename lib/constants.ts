@@ -56,3 +56,18 @@ export const DEFAULT_LINKS: AppLinks = {
   referralSheet: REFERRAL_SHEET_URL,
   adoptFoster: ADOPT_FOSTER_APPLICATION_URL,
 };
+
+/**
+ * Supabase free-tier storage cap, in bytes (1 GB).
+ *
+ * A PLAN limit, not a physical one — if the project ever moves to a paid tier
+ * this is wrong and the gauge under-reports headroom. Named and commented for
+ * exactly that reason rather than inlined in a component.
+ */
+export const STORAGE_CAP_BYTES = 1024 * 1024 * 1024;
+
+/** Amber above this share of the cap. From the storage analysis (§7). */
+export const STORAGE_WARN_RATIO = 0.8;
+
+/** Red above this share of the cap. From the storage analysis (§7). */
+export const STORAGE_CRITICAL_RATIO = 0.92;

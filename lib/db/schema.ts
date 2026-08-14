@@ -36,6 +36,20 @@ export const supabaseUsers = authSchema.table("users", {
   email: text("email").notNull().unique(),
 });
 
+/**
+ * Supabase-managed storage catalogue. DECLARED FOR READS ONLY — this table
+ * belongs to the platform, not to us. Never include it in a drizzle-kit push;
+ * only the columns the storage gauge needs are described here.
+ */
+const storageSchema = pgSchema("storage");
+
+export const storageObjects = storageSchema.table("objects", {
+  id: uuid("id").primaryKey(),
+  bucket_id: text("bucket_id"),
+  name: text("name"),
+  metadata: jsonb("metadata"),
+});
+
 export const profiles = pgTable("profiles", {
   id: uuid("id")
     .primaryKey()

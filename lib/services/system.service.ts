@@ -2,7 +2,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { systemConfig } from "@/lib/db/schema";
 import * as systemRepo from "@/lib/repo/system.repo";
-import { LINK_CONFIG_KEYS, DEFAULT_LINKS, type AppLinks } from "@/lib/constants";
+import * as storageRepo from "@/lib/repo/storage.repo";
+import {
+  LINK_CONFIG_KEYS,
+  DEFAULT_LINKS,
+  type AppLinks,
+  STORAGE_CAP_BYTES,
+} from "@/lib/constants";
 
 export async function isSyncFrozen(): Promise<boolean> {
   const row = await db.query.systemConfig.findFirst({
@@ -150,4 +156,40 @@ export async function getSyncHalt(): Promise<SyncHalt> {
   if (await isSyncRetired()) return "retired";
   if (await isSyncFrozen()) return "frozen";
   return null;
+}
+
+/**
+ * Photo storage usage against the plan cap.
+ *
+ * A failed read yields null, NOT zero: "0 MB used" reads as reassuring when it
+ * actually means we have no idea. The card renders null as "Unavailable".
+ */
+export async function getPhotoStorageUsage(): Promise<{
+  bytes: number | null;
+  capBytes: number;
+}> {
+  try {
+    const bytes = await storageRepo.sumPhotoStorageBytes();
+    return { bytes, capBytes: STORAGE_CAP_BYTES };
+  } catch (error) {
+    console.warn(
+      `getPhotoStorageUsage: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+    return { bytes: null, capBytes: STORAGE_CAP_BYTES };
+  }
+}
+
+/**
+ * system_config key holding the last orphan-GC sweep time, ISO 8601.
+ *
+ * Owned by this file, like sync_frozen and sync_retired. Consumers ask
+ * getLastPhotoGcAt() rather than spelling the key, so a typo cannot leave the
+ * Admin card reading "never" forever while the sweep runs fine.
+ */
+const PHOTO_GC_KEY = "last_photo_gc_at";
+
+/** When the automatic orphan sweep last ran, or null if it never has. */
+export async function getLastPhotoGcAt(): Promise<string | null> {
+  const row = await systemRepo.findSystemConfigByKey(PHOTO_GC_KEY);
+  return row?.value ?? null;
 }
