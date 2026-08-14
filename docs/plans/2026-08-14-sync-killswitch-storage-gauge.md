@@ -143,6 +143,27 @@ describe("isSyncRetired", () => {
   });
 });
 
+describe("fullReverseSync gating", () => {
+  it("refuses to run when retired", async () => {
+    setRetired(true);
+
+    const { fullReverseSync } = await import(
+      "@/lib/services/reverse-sync.service"
+    );
+    const result = await fullReverseSync();
+
+    // backfillCatalogIds writes column A back to the spreadsheet, so this
+    // path must be dead once retired — unfreezeSync stays callable even after
+    // its button is hidden.
+    expect(result).toEqual({
+      regions: 0,
+      totalImported: 0,
+      totalErrors: 0,
+      allErrors: [],
+    });
+  });
+});
+
 describe("setSyncRetired", () => {
   it("writes the flag under the same key isSyncRetired reads", async () => {
     await setSyncRetired();
@@ -284,17 +305,41 @@ and replace the gate:
   }
 ```
 
-- [ ] **Step 7: Confirm no `isSyncFrozen` import remains in the two gate files**
+- [ ] **Step 7: Gate `fullReverseSync` on retirement — and ONLY on retirement**
+
+`reverseSyncRegionsFromState` (just gated) is the **cron** path. `fullReverseSync` is a **second, ungated entry point**: `unfreezeSync()` in `app/actions/system.ts` calls it, and it loops over `reverseSyncRegionInternal` directly rather than going through the function you just gated. It then calls `backfillCatalogIds`, which at `helper.service.ts:1523` does `glSheets.spreadsheets.values.batchUpdate` — **a write to the spreadsheet**.
+
+Left ungated, a single call to the still-exported `unfreezeSync` server action after retirement would read every sheet, import to the database, and write column A back — breaking the only promise retirement makes. Hiding the button in a later task is not sufficient; client gating never is.
+
+**It must check `isSyncRetired()`, NOT `getSyncHalt()`.** `fullReverseSync` runs *while frozen* by design — `unfreezeSync` calls it before clearing the flag, which is exactly its purpose. Gating it on `getSyncHalt()` would break the ordinary unfreeze path.
+
+At the top of `fullReverseSync` in `lib/services/reverse-sync.service.ts`, before `const allRegions = …`:
+
+```ts
+  // Retired ONLY — never getSyncHalt(). This runs while frozen by design:
+  // unfreezeSync() calls it before clearing the flag. But after retirement it
+  // must not run at all, because backfillCatalogIds writes column A back to the
+  // spreadsheet, and unfreezeSync remains a callable server action even once
+  // its button is hidden.
+  if (await isSyncRetired()) {
+    console.log("[FullReverseSync] Retired — refusing to touch the sheets");
+    return { regions: 0, totalImported: 0, totalErrors: 0, allErrors: [] };
+  }
+```
+
+Extend this file's `./system.service` import to bring in `isSyncRetired` alongside `getSyncHalt`.
+
+- [ ] **Step 8: Confirm no `isSyncFrozen` import remains in the two gate files**
 
 Run: `grep -n "isSyncFrozen" lib/services/helper.service.ts lib/services/reverse-sync.service.ts`
 Expected: no output. `isSyncFrozen` itself stays exported from `system.service.ts` — `app/actions/system.ts` still uses it for the status display. Leaving a stale import would not fail `tsc` (`noUnusedLocals` is off) but eslint would flag it.
 
-- [ ] **Step 8: Run the test, the full suite, type-check and lint**
+- [ ] **Step 9: Run the test, the full suite, type-check and lint**
 
 Run: `pnpm jest __tests__/services/sync-retirement.test.ts && pnpm jest __tests__ && pnpm tsc --noEmit && pnpm lint lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts __tests__/services/sync-retirement.test.ts`
 Expected: 8 new tests PASS; all suites PASS (21 suites / 191 tests before this task, so 22 / 199 after); tsc exit 0; zero lint warnings on those paths. **Do not** lint `reverse-sync.service.ts` — it carries a pre-existing warning.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add lib/repo/system.repo.ts lib/services/system.service.ts lib/services/helper.service.ts lib/services/reverse-sync.service.ts __tests__/services/sync-retirement.test.ts
@@ -734,7 +779,22 @@ export async function retireSyncAction() {
 }
 ```
 
-and change `getSyncStatus` so it also reports retirement:
+Then make `unfreezeSync` refuse outright once retired. It currently calls `fullReverseSync()` and then `setSyncFrozen(false)`; add this as its **first** statement after the `requireRole` call:
+
+```ts
+  if (await isSyncRetired()) {
+    throw new AppError(
+      "Sync is retired. Unfreezing is no longer possible.",
+      409,
+    );
+  }
+```
+
+Import `AppError` from `@/lib/error/app-error` if it is not already imported here.
+
+`fullReverseSync` is separately gated (Task 1), so this is defence in depth rather than the only guard — but it turns a silent no-op into a clear message, and this action remains callable after Task 4 hides its button. Client gating is never sufficient in this codebase.
+
+Now change `getSyncStatus` so it also reports retirement:
 
 ```ts
 export async function getSyncStatus() {
