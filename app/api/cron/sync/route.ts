@@ -1,8 +1,14 @@
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { syncAllPendingRegions } from "@/lib/services/sync-cron.service";
-import { setSyncFrozen, isSyncRetired } from "@/lib/services/system.service";
+import {
+  setSyncFrozen,
+  isSyncRetired,
+  shouldRunPhotoGc,
+  markPhotoGcRun,
+} from "@/lib/services/system.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
+import { reconcileCatPhotos } from "@/lib/services/photo-import.service";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -34,6 +40,29 @@ export async function POST(request: NextRequest) {
       }
       await sendSyncAlert(
         `Sync auto-frozen. Reason: ${reason}. Unfreeze from the admin panel after resolving.`,
+      );
+    }
+
+    // Weekly orphan sweep. Deliberately OUTSIDE syncAllPendingRegions: that
+    // function has two early returns (idle tick, and no summary regen needed),
+    // so a sweep appended to its end would be skipped on most ticks and would
+    // effectively never run.
+    //
+    // Its own try/catch, separate from the sync one above: that handler
+    // auto-freezes sync on error, and a storage-cleanup failure must not do
+    // that — it would raise a false alarm on the wrong subsystem.
+    try {
+      if (await shouldRunPhotoGc()) {
+        const result = await reconcileCatPhotos();
+        await markPhotoGcRun();
+        console.log(
+          `[PhotoGC] Swept ${result.scanned} object(s), removed ${result.removed}.`,
+        );
+      }
+    } catch (error) {
+      console.error(
+        "[PhotoGC] Sweep failed:",
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
   });

@@ -71,3 +71,6 @@ export const STORAGE_WARN_RATIO = 0.8;
 
 /** Red above this share of the cap. From the storage analysis (§7). */
 export const STORAGE_CRITICAL_RATIO = 0.92;
+
+/** Minimum gap between automatic orphan sweeps (7 days). */
+export const PHOTO_GC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;

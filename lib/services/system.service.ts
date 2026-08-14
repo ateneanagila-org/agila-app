@@ -8,6 +8,7 @@ import {
   DEFAULT_LINKS,
   type AppLinks,
   STORAGE_CAP_BYTES,
+  PHOTO_GC_INTERVAL_MS,
 } from "@/lib/constants";
 
 export async function isSyncFrozen(): Promise<boolean> {
@@ -192,4 +193,25 @@ const PHOTO_GC_KEY = "last_photo_gc_at";
 export async function getLastPhotoGcAt(): Promise<string | null> {
   const row = await systemRepo.findSystemConfigByKey(PHOTO_GC_KEY);
   return row?.value ?? null;
+}
+
+/**
+ * True when the orphan-photo sweep is due.
+ *
+ * The cron fires every 20 minutes; this guard is what makes the sweep weekly.
+ * An absent or unparseable timestamp returns true — better to sweep once extra
+ * than to never sweep again because one bad write poisoned the guard.
+ */
+export async function shouldRunPhotoGc(now: Date = new Date()): Promise<boolean> {
+  const row = await systemRepo.findSystemConfigByKey(PHOTO_GC_KEY);
+  if (!row?.value) return true;
+
+  const last = new Date(row.value).getTime();
+  if (Number.isNaN(last)) return true;
+
+  return now.getTime() - last >= PHOTO_GC_INTERVAL_MS;
+}
+
+export async function markPhotoGcRun(now: Date = new Date()): Promise<void> {
+  await systemRepo.upsertSystemConfig(PHOTO_GC_KEY, now.toISOString());
 }
