@@ -768,33 +768,114 @@ available pan room between axes. Drag arithmetic is unchanged by design."
 Pure functions. No UI, no database, no writes.
 
 **Files:**
-- Create: `lib/vaccination.ts`
-- Test: `__tests__/lib/vaccination.test.ts`
+- Modify: `lib/utils.ts` — the two generic elapsed-time helpers
+- Create: `lib/vaccination.ts` — vaccination policy only
+- Test: `__tests__/lib/utils.test.ts` (create)
+- Test: `__tests__/lib/vaccination.test.ts` (create)
+
+**Why the split.** `monthsSince` and `formatMonthsAgo` are generic date utilities with
+nothing vaccination-specific about them. A search of the codebase found no reusable
+relative-time helper and no date library — the only elapsed-time math is an inline
+`daysSince` buried in a `useMemo` at `components/app-pages/sessions/sessions-screen.tsx:113`.
+That is exactly how `formatDate` accumulated nine local copies before it was extracted
+into `lib/utils.ts`, whose doc comment now tells new code to use it "rather than adding
+a tenth." Burying month arithmetic inside a domain module repeats that mistake, so the
+generic half goes next to `formatDate` and only the policy stays in `lib/vaccination.ts`.
 
 **Interfaces:**
-- Produces:
+- Produces from `lib/utils.ts`:
+  - `monthsSince(date: Date, now?: Date): number`
+  - `formatMonthsAgo(date: Date | string, now?: Date): string`
+- Produces from `lib/vaccination.ts`:
   - `VACCINATION_EXPIRY_MONTHS: 12`
   - `type VaccinationState = "unknown" | "vaccinated" | "expired"`
   - `getVaccinationState(date: Date | string | null | undefined, now?: Date): VaccinationState`
-  - `monthsSince(date: Date, now?: Date): number`
-  - `formatMonthsAgo(date: Date | string, now?: Date): string`
   - `VACCINATION_LABELS: Record<VaccinationState, string>` — `{ unknown: "Unknown", vaccinated: "Vaccinated", expired: "Expired" }`
   - `VACCINATION_FILTER_OPTIONS: readonly string[]` — `["Vaccinated", "Expired", "Unknown"]`
+
+**Do NOT migrate the inline `daysSince`** in `sessions-screen.tsx`. It is unrelated to
+P4 and out of scope. Note that it divides milliseconds (`/86400000`), which is fine for
+days but would be wrong for months — months have unequal lengths, so `monthsSince` must
+be calendar-aware, as specified below.
 
 - [ ] **Step 1: Write the failing tests**
 
 Create `__tests__/lib/vaccination.test.ts`:
+
+Create `__tests__/lib/utils.test.ts` for the generic helpers:
+
+**Test dates use local-time constructors (`new Date(2026, 7, 15)`), not `"...Z"`
+strings, on purpose.** `monthsSince` reads `getFullYear`/`getMonth`/`getDate`, which are
+local-time accessors, while `new Date("...Z")` parses as UTC. Mixing the two makes every
+assertion depend on the runner's timezone — the suite would pass in Manila (UTC+8) and
+fail anywhere west of UTC. Month arguments are 0-indexed.
+
+
+```ts
+import { monthsSince, formatMonthsAgo } from "@/lib/utils";
+
+const NOW = new Date(2026, 7, 15);
+
+describe("monthsSince", () => {
+  it("counts whole elapsed months", () => {
+    expect(monthsSince(new Date(2026, 5, 15), NOW)).toBe(2);
+    expect(monthsSince(new Date(2025, 5, 15), NOW)).toBe(14);
+  });
+
+  it("does not count a month until the day-of-month is reached", () => {
+    expect(monthsSince(new Date(2026, 6, 20), NOW)).toBe(0);
+    expect(monthsSince(new Date(2026, 6, 15), NOW)).toBe(1);
+  });
+
+  it("never returns a negative count for a future date", () => {
+    expect(monthsSince(new Date(2027, 0, 15), NOW)).toBe(0);
+  });
+
+  it("is calendar-aware, not millisecond division", () => {
+    // Feb is short; ms-division would under-count this as 0.
+    expect(monthsSince(new Date(2026, 0, 31), new Date(2026, 2, 1))).toBe(1);
+  });
+});
+
+describe("formatMonthsAgo", () => {
+  it("is singular at one month", () => {
+    expect(formatMonthsAgo(new Date(2026, 6, 15), NOW)).toBe(
+      "1 month ago",
+    );
+  });
+
+  it("is plural beyond one month", () => {
+    expect(formatMonthsAgo(new Date(2025, 5, 15), NOW)).toBe(
+      "14 months ago",
+    );
+  });
+
+  it("reads as this month when under a month old", () => {
+    expect(formatMonthsAgo(new Date(2026, 7, 1), NOW)).toBe(
+      "this month",
+    );
+  });
+
+  it("accepts an ISO string as well as a Date", () => {
+    expect(formatMonthsAgo("2026-07-15T00:00:00", NOW)).toBe("1 month ago");
+  });
+
+  it("returns Unknown for an unparseable date", () => {
+    expect(formatMonthsAgo("not-a-date", NOW)).toBe("Unknown");
+  });
+});
+```
+
+Then create `__tests__/lib/vaccination.test.ts` for the policy:
 
 ```ts
 import {
   VACCINATION_EXPIRY_MONTHS,
   VACCINATION_LABELS,
   getVaccinationState,
-  monthsSince,
-  formatMonthsAgo,
 } from "@/lib/vaccination";
 
-const NOW = new Date("2026-08-15T00:00:00Z");
+const NOW = new Date(2026, 7, 15);
 
 describe("getVaccinationState", () => {
   it("is unknown when there is no date", () => {
@@ -807,67 +888,35 @@ describe("getVaccinationState", () => {
   });
 
   it("is vaccinated inside the window", () => {
-    expect(getVaccinationState(new Date("2026-06-15T00:00:00Z"), NOW)).toBe(
+    expect(getVaccinationState(new Date(2026, 5, 15), NOW)).toBe(
       "vaccinated",
     );
   });
 
   it("is expired outside the window", () => {
-    expect(getVaccinationState(new Date("2025-01-10T00:00:00Z"), NOW)).toBe(
+    expect(getVaccinationState(new Date(2025, 0, 10), NOW)).toBe(
       "expired",
     );
   });
 
   it("treats exactly 12 months as vaccinated — the boundary is closed", () => {
-    expect(getVaccinationState(new Date("2025-08-15T00:00:00Z"), NOW)).toBe(
+    expect(getVaccinationState(new Date(2025, 7, 15), NOW)).toBe(
       "vaccinated",
     );
   });
 
   it("treats one day past 12 months as expired", () => {
-    expect(getVaccinationState(new Date("2025-08-14T00:00:00Z"), NOW)).toBe(
+    expect(getVaccinationState(new Date(2025, 7, 14), NOW)).toBe(
       "expired",
     );
   });
 
   it("accepts an ISO string as well as a Date", () => {
-    expect(getVaccinationState("2026-06-15T00:00:00Z", NOW)).toBe("vaccinated");
+    expect(getVaccinationState("2026-06-15T00:00:00", NOW)).toBe("vaccinated");
   });
 
   it("uses a 12-month window", () => {
     expect(VACCINATION_EXPIRY_MONTHS).toBe(12);
-  });
-});
-
-describe("monthsSince", () => {
-  it("counts whole elapsed months", () => {
-    expect(monthsSince(new Date("2026-06-15T00:00:00Z"), NOW)).toBe(2);
-    expect(monthsSince(new Date("2025-06-15T00:00:00Z"), NOW)).toBe(14);
-  });
-
-  it("does not count a month until the day-of-month is reached", () => {
-    expect(monthsSince(new Date("2026-07-20T00:00:00Z"), NOW)).toBe(0);
-    expect(monthsSince(new Date("2026-07-15T00:00:00Z"), NOW)).toBe(1);
-  });
-});
-
-describe("formatMonthsAgo", () => {
-  it("is singular at one month", () => {
-    expect(formatMonthsAgo(new Date("2026-07-15T00:00:00Z"), NOW)).toBe(
-      "1 month ago",
-    );
-  });
-
-  it("is plural beyond one month", () => {
-    expect(formatMonthsAgo(new Date("2025-06-15T00:00:00Z"), NOW)).toBe(
-      "14 months ago",
-    );
-  });
-
-  it("reads as this month when under a month old", () => {
-    expect(formatMonthsAgo(new Date("2026-08-01T00:00:00Z"), NOW)).toBe(
-      "this month",
-    );
   });
 });
 
@@ -885,14 +934,47 @@ describe("VACCINATION_LABELS", () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 ```bash
-pnpm jest __tests__/lib/vaccination.test.ts
+pnpm jest __tests__/lib/utils.test.ts __tests__/lib/vaccination.test.ts
 ```
 
-Expected: FAIL — `Cannot find module '@/lib/vaccination'`.
+Expected: FAIL — `monthsSince` is not exported from `@/lib/utils`, and
+`Cannot find module '@/lib/vaccination'`.
 
-- [ ] **Step 3: Implement the module**
+- [ ] **Step 3a: Add the generic helpers to `lib/utils.ts`**
 
-Create `lib/vaccination.ts`:
+Append to `lib/utils.ts`, after the existing `formatDate`:
+
+```ts
+/**
+ * Whole months elapsed, not counting a month until its day-of-month is reached.
+ *
+ * Calendar-aware on purpose. Dividing milliseconds (as the inline `daysSince` in
+ * sessions-screen.tsx does) is fine for days but wrong for months, which have
+ * unequal lengths — Jan 31 → Mar 1 is one whole month by the calendar and zero by
+ * a 30-day approximation.
+ */
+export function monthsSince(date: Date, now: Date = new Date()): number {
+  let months =
+    (now.getFullYear() - date.getFullYear()) * 12 +
+    (now.getMonth() - date.getMonth());
+  if (now.getDate() < date.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+/** Human-readable elapsed months: "this month", "1 month ago", "14 months ago". */
+export function formatMonthsAgo(
+  value: Date | string,
+  now: Date = new Date(),
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  const months = monthsSince(date, now);
+  if (months < 1) return "this month";
+  return months === 1 ? "1 month ago" : `${months} months ago`;
+}
+```
+
+- [ ] **Step 3b: Create `lib/vaccination.ts`**
 
 ```ts
 /**
@@ -933,15 +1015,6 @@ function toDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** Whole months elapsed, not counting a month until its day-of-month is reached. */
-export function monthsSince(date: Date, now: Date = new Date()): number {
-  let months =
-    (now.getFullYear() - date.getFullYear()) * 12 +
-    (now.getMonth() - date.getMonth());
-  if (now.getDate() < date.getDate()) months -= 1;
-  return Math.max(0, months);
-}
-
 /**
  * `unknown` means no usable date — never "not vaccinated". 83% of live cats have
  * no date at all, so conflating absence with a negative would misreport most of
@@ -958,23 +1031,19 @@ export function getVaccinationState(
     ? "vaccinated"
     : "expired";
 }
+```
 
-export function formatMonthsAgo(
-  value: Date | string,
-  now: Date = new Date(),
-): string {
-  const date = toDate(value);
-  if (!date) return "Unknown";
-  const months = monthsSince(date, now);
-  if (months < 1) return "this month";
-  return months === 1 ? "1 month ago" : `${months} months ago`;
-}
+`monthsSince` is imported from `@/lib/utils` (Step 3a) — it is generic date math and
+does not belong to this module. Import it at the top of `lib/vaccination.ts`:
+
+```ts
+import { monthsSince } from "@/lib/utils";
 ```
 
 - [ ] **Step 4: Run the tests**
 
 ```bash
-pnpm jest __tests__/lib/vaccination.test.ts
+pnpm jest __tests__/lib/utils.test.ts __tests__/lib/vaccination.test.ts
 pnpm tsc --noEmit
 ```
 
@@ -983,8 +1052,8 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/vaccination.ts __tests__/lib/vaccination.test.ts
-git commit -m "feat(vaccination): state derivation module
+git add lib/utils.ts lib/vaccination.ts __tests__/lib/utils.test.ts __tests__/lib/vaccination.test.ts
+git commit -m "feat(vaccination): state derivation module + shared month helpers
 
 unknown/vaccinated/expired from the single untyped vaccination_date. The
 12-month window is AGILA's TNVR cadence, not a titre, and lives only here.
@@ -1005,7 +1074,8 @@ Three read-only consumers. Nothing writes.
 - Modify: `components/app-pages/catalog/catalog-detail-screen.tsx`
 
 **Interfaces:**
-- Consumes: `getVaccinationState`, `formatMonthsAgo`, `VACCINATION_LABELS`, `VACCINATION_FILTER_OPTIONS` from `lib/vaccination.ts` (Task 4).
+- Consumes from `lib/vaccination.ts` (Task 4): `getVaccinationState`, `VACCINATION_LABELS`, `VACCINATION_FILTER_OPTIONS`.
+- Consumes from `lib/utils.ts` (Task 4): `formatMonthsAgo`.
 
 - [ ] **Step 1: Relative-age line on the medical screen**
 
@@ -1022,7 +1092,8 @@ it describes what is stored, so it must not flicker while someone types:
 ) : null}
 ```
 
-Import `formatMonthsAgo` from `@/lib/vaccination`. The component already has
+Import `formatMonthsAgo` from `@/lib/utils` (NOT from `@/lib/vaccination` — it is a
+generic date helper living beside `formatDate`). The component already has
 `healthRecord` in scope (it drives `populateForm`). Do not add a chip, a colour, or
 an icon — this is a factual statement with no verdict attached.
 
