@@ -48,7 +48,14 @@ export async function generateMetadata({
   return {
     title: name,
     description,
-    openGraph: { type: "article", title: name, description, images },
+    openGraph: {
+      type: "article",
+      siteName: "AGILA CATalog",
+      title: name,
+      description,
+      locale: "en_PH",
+      images,
+    },
     twitter: { card: "summary_large_image", title: name, description, images },
   };
 }

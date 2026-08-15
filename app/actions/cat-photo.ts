@@ -62,8 +62,9 @@ function readPosition(formData: FormData) {
 /**
  * Uploads a cat photo to Supabase storage and updates cats.photo_url. The blob
  * is the full normalized original (NOT cropped) — the crop is stored as the
- * photo_zoom/offset trio applied at render time. Accepts FormData with `file`
- * (image) and optional `photo_zoom`/`photo_offset_x`/`photo_offset_y`.
+ * photo_zoom/offset/rotation quad applied at render time. Accepts FormData with
+ * `file` (image) and optional `photo_zoom`/`photo_offset_x`/`photo_offset_y`/
+ * `photo_rotation`.
  *
  * Auth: Manager/Admin for any cat; volunteers only for their own session entries.
  */

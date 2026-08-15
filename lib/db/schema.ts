@@ -141,7 +141,7 @@ export const cats = pgTable("cats", {
   photo_url: text("photo_url"),
   // Crop-as-metadata: photo_url stores the full normalized original; the crop is
   // applied at render time via this zoom/offset trio (see lib/photo-position.ts).
-  // Identity (1,0,0) = object-cover, which is exactly how legacy baked crops look.
+  // Identity (1,0,0,0) = object-cover, which is exactly how legacy baked crops look.
   // App-owned, never synced to the sheet (the sheet shows the uncropped original).
   photo_zoom: real("photo_zoom").default(1).notNull(),
   photo_offset_x: real("photo_offset_x").default(0).notNull(),

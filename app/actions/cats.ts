@@ -87,12 +87,3 @@ export const getAdoptableCats = actionClient
   .action(async ({ parsedInput }) => {
     return await repo.findAdoptableCats({ ...parsedInput, is_adoptable: true });
   });
-
-export const getAdoptableCatHealthRecord = actionClient
-  .schema(z.object({ cat_id: z.string().uuid() }))
-  .action(async ({ parsedInput }) => {
-    // Confirm the parent cat is actually adoptable before exposing health data.
-    const parent = await repo.findAdoptableCats({ id: parsedInput.cat_id, is_adoptable: true });
-    if (parent.length === 0) return [];
-    return await repo.findCatHealthRecords({ cat_id: parsedInput.cat_id });
-  });

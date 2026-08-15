@@ -2,6 +2,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { cats, catHealthRecords } from "@/lib/db/schema";
 import { z } from "zod";
 import { CatHealthRecordConditionEnum } from "../db/enums";
+import { PHOTO_ROTATIONS } from "../photo-position";
 
 // CAT HEALTH RECORDS
 export const catHealthRecordsSchema = createSelectSchema(catHealthRecords);
@@ -33,7 +34,19 @@ export const getCatsSchema = catsSchema.partial();
 export const editCatSchema = createInsertSchema(cats)
   .merge(editCatHealthRecordSchema.omit({ cat_id: true }))
   .partial()
-  .required({ id: true });
+  .required({ id: true })
+  .extend({
+    // Rendered rotation is quarter-turn only (see normalizeRotation in
+    // lib/photo-position.ts) — reject anything else at the schema layer.
+    // A plain `.refine` (no type predicate) keeps the inferred type as
+    // `number`, matching what normalizeRotation's callers already produce.
+    photo_rotation: z
+      .number()
+      .refine((v) => (PHOTO_ROTATIONS as readonly number[]).includes(v), {
+        message: "photo_rotation must be 0, 90, 180, or 270",
+      })
+      .optional(),
+  });
 export const removeCatSchema = z.object({
   id: z.string().uuid({ message: "Invalid Cat ID" }),
 });

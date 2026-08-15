@@ -38,4 +38,39 @@ describe("GET /api/health", () => {
     await GET();
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
+
+  it("caches a failure too — a second call within the TTL stays 503 without re-querying", async () => {
+    // The failure cache is the important half: without it, a persistent outage
+    // lets every request through to the connection pool — exactly the flood
+    // this cache exists to prevent.
+    mockExecute.mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const { GET } = await import("@/app/api/health/route");
+    const first = await GET();
+    const second = await GET();
+    expect(first.status).toBe(503);
+    expect(second.status).toBe(503);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-queries after the cache TTL expires", async () => {
+    jest.useFakeTimers();
+    try {
+      mockExecute.mockResolvedValue([{ "?column?": 1 }]);
+      const { GET } = await import("@/app/api/health/route");
+      await GET();
+      expect(mockExecute).toHaveBeenCalledTimes(1);
+
+      // Still within the 10s TTL — no re-query.
+      jest.advanceTimersByTime(9_999);
+      await GET();
+      expect(mockExecute).toHaveBeenCalledTimes(1);
+
+      // Past the TTL — the cache must expire and re-query.
+      jest.advanceTimersByTime(2);
+      await GET();
+      expect(mockExecute).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

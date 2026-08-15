@@ -61,6 +61,18 @@ describe("POST /api/cron/sync authorization", () => {
     expect((await post("Bearer short")).status).toBe(401);
   });
 
+  it("rejects a same-length, one-character-different token", async () => {
+    // Every other rejection case above differs in length from
+    // "Bearer test-cron-secret" (23 bytes), so it's caught by the length
+    // guard before timingSafeEqual ever runs. This one is deliberately the
+    // same length so the comparison itself is what has to reject it — a
+    // regression that broke timingSafeEqual (e.g. into a length check only,
+    // or an always-true stub) would still pass every other test here.
+    const wrongButSameLength = "Bearer test-cron-secreX";
+    expect(wrongButSameLength.length).toBe(`Bearer ${SECRET}`.length);
+    expect((await post(wrongButSameLength)).status).toBe(401);
+  });
+
   it("rejects everything when CRON_SECRET is unset — fails closed", async () => {
     delete process.env.CRON_SECRET;
     expect((await post(`Bearer ${SECRET}`)).status).toBe(401);
