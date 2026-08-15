@@ -1230,12 +1230,7 @@ In `app/layout.tsx`, replace the existing `metadata` export. Keep the title
 template and description exactly as they are:
 
 ```ts
-// Trailing slashes are stripped: a value like "https://example.com/" would make
-// every joined URL contain a double slash, which crawlers treat as a distinct
-// (and 404-ing) URL. Cheap insurance against an env var set by someone else.
-const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-).replace(/\/+$/, "");
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const SITE_DESCRIPTION =
   "Cat census and adoption catalog for AGILA at Ateneo de Manila University, Quezon City.";
 
