@@ -66,12 +66,13 @@ const mockRefresh = refreshCatInSyncQueue as jest.Mock;
 beforeEach(() => jest.clearAllMocks());
 
 describe("uploadCatPhoto", () => {
-  it("stores photo_url plus the position trio and queues a sync", async () => {
+  it("stores photo_url plus the position+rotation quad and queues a sync", async () => {
     const fd = new FormData();
     fd.append("file", new File([Buffer.from("img")], "p.jpg", { type: "image/jpeg" }));
     fd.append("photo_zoom", "2.5");
     fd.append("photo_offset_x", "12");
     fd.append("photo_offset_y", "-8");
+    fd.append("photo_rotation", "90");
 
     const res = await uploadCatPhoto("c1", fd);
 
@@ -82,6 +83,7 @@ describe("uploadCatPhoto", () => {
       photo_zoom: 2.5,
       photo_offset_x: 12,
       photo_offset_y: -8,
+      photo_rotation: 90,
     });
     expect(mockRefresh).toHaveBeenCalledWith("c1", expect.anything());
     expect(res.photo_url).toEqual(expect.stringContaining("photo.jpg"));
@@ -102,6 +104,17 @@ describe("uploadCatPhoto", () => {
     expect(payload.photo_offset_y).toBe(-250);
   });
 
+  it("normalizes an invalid rotation to 0", async () => {
+    const fd = new FormData();
+    fd.append("file", new File([Buffer.from("img")], "p.jpg", { type: "image/jpeg" }));
+    fd.append("photo_rotation", "45");
+
+    await uploadCatPhoto("c1", fd);
+
+    const payload = set.mock.calls[0][0];
+    expect(payload.photo_rotation).toBe(0);
+  });
+
   it("rejects a non-image file", async () => {
     const fd = new FormData();
     fd.append("file", new File([Buffer.from("x")], "p.txt", { type: "text/plain" }));
@@ -110,8 +123,8 @@ describe("uploadCatPhoto", () => {
 });
 
 describe("editCatPhotoPosition", () => {
-  it("updates only the position columns — no photo_url, no sync, no transaction", async () => {
-    await editCatPhotoPosition("c1", { zoom: 2, offsetX: 10, offsetY: -5 });
+  it("updates only the position+rotation columns — no photo_url, no sync, no transaction", async () => {
+    await editCatPhotoPosition("c1", { zoom: 2, offsetX: 10, offsetY: -5, rotation: 90 });
 
     expect(update).toHaveBeenCalledTimes(1);
     const payload = set.mock.calls[0][0];
@@ -119,15 +132,23 @@ describe("editCatPhotoPosition", () => {
       photo_zoom: 2,
       photo_offset_x: 10,
       photo_offset_y: -5,
+      photo_rotation: 90,
     });
     expect(payload).not.toHaveProperty("photo_url");
     expect(mockRefresh).not.toHaveBeenCalled();
     expect(transaction).not.toHaveBeenCalled();
   });
+
+  it("normalizes an invalid rotation to 0", async () => {
+    await editCatPhotoPosition("c1", { zoom: 2, offsetX: 10, offsetY: -5, rotation: 45 });
+
+    const payload = set.mock.calls[0][0];
+    expect(payload.photo_rotation).toBe(0);
+  });
 });
 
 describe("removeCatPhoto", () => {
-  it("clears photo_url, resets position to identity, and queues a sync", async () => {
+  it("clears photo_url, resets position+rotation to identity, and queues a sync", async () => {
     await removeCatPhoto("c1");
 
     expect(storage.remove).toHaveBeenCalled();
@@ -137,6 +158,7 @@ describe("removeCatPhoto", () => {
       photo_zoom: 1,
       photo_offset_x: 0,
       photo_offset_y: 0,
+      photo_rotation: 0,
     });
     expect(mockRefresh).toHaveBeenCalledWith("c1", expect.anything());
   });

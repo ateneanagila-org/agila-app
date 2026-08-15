@@ -8,6 +8,7 @@ import { requireAuth, hasRole, MANAGER_OR_ADMIN } from "@/lib/auth/rbac";
 import { AppError } from "@/lib/error/app-error";
 import type { AuthRole } from "@/lib/db/enums";
 import { refreshCatInSyncQueue } from "@/lib/services/helper.service";
+import { normalizeRotation } from "@/lib/photo-position";
 
 const BUCKET = "cat-photos";
 
@@ -34,7 +35,7 @@ async function assertCanEditCatPhoto(catId: string) {
   }
 }
 
-/** Parse + clamp a position from FormData (zoom 1..3, offsets ±100). */
+/** Parse + clamp a position from FormData (zoom 1..3, offsets ±2000, rotation 0|90|180|270). */
 function readPosition(formData: FormData) {
   const num = (v: FormDataEntryValue | null, fallback: number) => {
     const n = typeof v === "string" ? Number(v) : NaN;
@@ -49,6 +50,7 @@ function readPosition(formData: FormData) {
     photo_zoom: clamp(num(formData.get("photo_zoom"), 1), 1, 3),
     photo_offset_x: clamp(num(formData.get("photo_offset_x"), 0), -2000, 2000),
     photo_offset_y: clamp(num(formData.get("photo_offset_y"), 0), -2000, 2000),
+    photo_rotation: normalizeRotation(num(formData.get("photo_rotation"), 0)),
   };
 }
 
@@ -125,7 +127,12 @@ export async function uploadCatPhoto(
  */
 export async function editCatPhotoPosition(
   catId: string,
-  position: { zoom: number; offsetX: number; offsetY: number },
+  position: {
+    zoom: number;
+    offsetX: number;
+    offsetY: number;
+    rotation: number;
+  },
 ): Promise<void> {
   await assertCanEditCatPhoto(catId);
 
@@ -140,6 +147,7 @@ export async function editCatPhotoPosition(
       photo_zoom: clamp(position.zoom, 1, 3),
       photo_offset_x: clamp(position.offsetX, -2000, 2000),
       photo_offset_y: clamp(position.offsetY, -2000, 2000),
+      photo_rotation: normalizeRotation(position.rotation),
     })
     .where(eq(cats.id, catId));
 }
@@ -154,7 +162,13 @@ export async function removeCatPhoto(catId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx
       .update(cats)
-      .set({ photo_url: null, photo_zoom: 1, photo_offset_x: 0, photo_offset_y: 0 })
+      .set({
+        photo_url: null,
+        photo_zoom: 1,
+        photo_offset_x: 0,
+        photo_offset_y: 0,
+        photo_rotation: 0,
+      })
       .where(eq(cats.id, catId));
     // Queue a forward sync so the cleared photo reaches the sheet. No
     // last_updated_at bump (see uploadCatPhoto).

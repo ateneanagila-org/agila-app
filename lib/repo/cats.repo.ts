@@ -36,6 +36,7 @@ export const catReadColumns = {
   photo_zoom: cats.photo_zoom,
   photo_offset_x: cats.photo_offset_x,
   photo_offset_y: cats.photo_offset_y,
+  photo_rotation: cats.photo_rotation,
   color: cats.color,
   age: cats.age,
   sex: cats.sex,

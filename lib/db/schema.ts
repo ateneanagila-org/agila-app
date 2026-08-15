@@ -146,6 +146,10 @@ export const cats = pgTable("cats", {
   photo_zoom: real("photo_zoom").default(1).notNull(),
   photo_offset_x: real("photo_offset_x").default(0).notNull(),
   photo_offset_y: real("photo_offset_y").default(0).notNull(),
+  // Quarter-turn rotation applied at render time, alongside the crop trio above.
+  // App-owned and never synced: the sheet always shows the uncropped, unrotated
+  // original. 0 is identity, so every pre-existing row is unaffected.
+  photo_rotation: integer("photo_rotation").default(0).notNull(),
   color: catColorEnum("color"),
   age: catAgeEnum("age"),
   sex: catSexEnum("sex"),
