@@ -84,10 +84,37 @@ foundation:
 - `app/(public)/catalog/[id]/page.tsx` has no `generateMetadata`, so every cat page
   shares the site-wide default title.
 
+### 4. The health endpoint is an unauthenticated database call
+
+An audit of the public attack surface, run while scoping the SEO work, found the
+server actions sound and one API route not.
+
+**The actions are correctly gated.** There is a single `actionClient` with no auth
+middleware, so every action must gate itself in its body — and every one does.
+All 40 actions across the eight files in `app/actions/` open with `requireAuth()`
+or `requireRole(...)`. The only two exceptions are deliberate and documented:
+`getAdoptableCats` and `getAdoptableCatHealthRecord`, which force
+`is_adoptable: true` server-side, and the latter confirms the parent cat is
+adoptable before exposing any health data.
+
+**`/api/cron/sync` is gated** by a `CRON_SECRET` bearer token and fails closed when
+the variable is unset. It compares with `!==`, which is not constant-time.
+
+**`/api/health` is the actual gap.** It is unauthenticated and:
+
+- **executes `SELECT 1` on the shared pool for every caller.** P3 raised
+  `max` to 12 to stop the Admin page exhausting it during builds; an unauthenticated
+  endpoint that consumes a connection per request can exhaust that same pool from
+  outside, taking the app down without any credential.
+- **returns the raw database error message** on failure. Postgres connection errors
+  routinely carry the host, port, and database name, so a caller can induce and read
+  infrastructure detail from an endpoint that requires nothing.
+
 ## Scope
 
 **In:** a rotation control on the photo editor; three read-only vaccination
-surfaces; metadata, sitemap, robots, and a server-rendered catalog detail page.
+surfaces; metadata, sitemap, robots, a real 404 page, a server-rendered catalog
+detail page; and hardening the health endpoint.
 
 **Out:**
 
@@ -176,34 +203,37 @@ No schema change. Every surface reads; nothing writes, nothing syncs, no cron.
 A new pure module, `lib/vaccination.ts`, holds the threshold in exactly one place:
 
 ```ts
-export const VACCINATION_STALE_MONTHS = 12;
-export type VaccinationState = "none" | "recorded" | "stale";
+export const VACCINATION_EXPIRY_MONTHS = 12;
+export type VaccinationState = "unknown" | "vaccinated" | "expired";
 export function getVaccinationState(date: Date | null, now?: Date): VaccinationState;
 export function formatMonthsAgo(date: Date, now?: Date): string; // "14 months ago"
 ```
 
 `now` is an injected parameter so the tests are deterministic.
 
+**State naming.** `unknown` / `vaccinated` / `expired` — the domain's own vocabulary,
+and `unknown` matches `displayCatField` and the `[...CAT_*_VALUES, "Unknown"]`
+pattern every other filter already follows. The naming is deliberate on both ends:
+`unknown` never implies "not vaccinated" for the 83% of live cats with no date, and
+`expired` describes a record that has passed AGILA's own 12-month TNVR convention.
+
 Three consumers:
 
 | Surface | Change |
 | ------- | ------ |
 | `database-medical-screen.tsx` | a muted relative-age line under the existing Vaccination Date field — "recorded 14 months ago" |
-| `lib/hooks/filter-sort-configs.ts` | a `Vaccination` filter on `DATABASE_LIST_CONFIG`: `Recorded` / `Over a year old` / `Unknown` |
+| `lib/hooks/filter-sort-configs.ts` | a `Vaccination` filter on `DATABASE_LIST_CONFIG`: `Vaccinated` / `Expired` / `Unknown` |
 | `catalog-detail-screen.tsx:129` | the `Vaccinated` row becomes tri-state |
 
 The filter needs one derived field added to `addMedicalAndInterventionInfo` in
 `database-list-screen.tsx`. No new query: `loadFilterData` already fetches every
 health record and merges it into the cat rows.
 
-**Wording.** The unknown state reads `Unknown`, matching `displayCatField` and the
-~100 existing uses across the codebase, including the `[...CAT_*_VALUES, "Unknown"]`
-pattern every other filter already follows.
-
-**The rule this item is built on:** the 12-month threshold appears only as a filter
-label — a sorting convenience for building a TNVR worklist — and never as a per-cat
-verdict the app asserts. The medical screen states elapsed time as fact and draws
-no conclusion.
+**The rule this item is built on:** `expired` is a state label in a data row and a
+filter option — never a red alarm chip, never a per-cat clinical verdict rendered
+over the cat's photo. That distinction is what the spike rejected, and it survives
+the rename. The medical screen states elapsed time as fact and draws no conclusion.
+The 12-month convention lives in `VACCINATION_EXPIRY_MONTHS` alone.
 
 ### 3. Basic SEO
 
@@ -232,12 +262,66 @@ disappears as a side effect.
 
 The listing page is untouched and stays client-rendered.
 
-**`app/sitemap.ts`** emits the home page plus one entry per adoptable cat.
+**`app/sitemap.ts`** returns `MetadataRoute.Sitemap` — the home page plus one entry
+per adoptable cat, each carrying `lastModified` from `cats.last_updated_at`.
 Non-adoptable cats are excluded — they are not adoption content and their detail
 pages `notFound()` anyway.
 
-**`app/robots.ts`** allows the public catalog and disallows `/dashboard`, `/login`,
-and `/api`.
+**`app/robots.ts`** returns `MetadataRoute.Robots`, allowing the public catalog and
+disallowing `/dashboard`, `/login`, and `/api`, with `sitemap` pointing at the
+generated sitemap.
+
+**API verification (Next 16.1.1 / React 19.2.3, checked against the installed
+packages rather than documentation):** `MetadataRoute.Sitemap` and
+`MetadataRoute.Robots` both exist in
+`next/dist/lib/metadata/types/metadata-interface.d.ts`; `metadataBase` is a current
+`Metadata` field; `params` is already `Promise`-wrapped in this codebase, matching
+Next 15+; and `cache` is exported by React 19. No deprecated API is used.
+
+### A real 404 page
+
+`app/not-found.tsx` does not exist, so an unmatched route currently renders Next's
+default unstyled page. The `notFound()` call added above makes this reachable far
+more often, so the page is part of this item rather than a nicety.
+
+It mirrors `app/error.tsx` closely — same centred card, same logo treatment, same
+brand tokens, same typographic rhythm — with three deliberate differences:
+
+- the eyebrow reads `404` rather than `Error`, and the heading `Page not found`
+- **no "Try again" button.** `reset()` exists because an error boundary can retry;
+  a 404 has nothing to retry, and a dead button on a dead page is worse than none.
+- **no Supabase session check and no "Sheets (Backup)" link.** That check is what
+  makes `error.tsx` a client component. A 404 is not a crash — the app is healthy —
+  so the page stays a static server component with no client JS and no database
+  read. Crawlers and scanners hit 404s constantly; this path must stay cheap.
+
+`Back home` is the single action.
+
+### 4. Health endpoint hardening
+
+Two changes, both small, neither altering the endpoint's contract with the
+Cloudflare Worker that calls it before each cron tick.
+
+**Stop leaking the error.** On failure the route returns `{ status: "unhealthy" }`
+with `503` and logs the underlying message server-side. The worker only branches on
+the status code, so nothing downstream needs the string.
+
+**Stop the unauthenticated pool consumption.** The route keeps its `SELECT 1` — a
+health check that does not touch the database is not a health check — but the
+result is cached briefly (10 seconds) so a flood of requests collapses to at most
+one query per window. The worker polls once per tick and is unaffected.
+
+`/api/cron/sync` moves to a constant-time comparison via `crypto.timingSafeEqual`,
+guarding the length check first since `timingSafeEqual` throws on mismatched
+buffers. This is defence-in-depth rather than a live vulnerability — remote timing
+attacks against a hosted endpoint are impractical — but it is a few lines and
+removes the question permanently.
+
+**Not changed:** the middleware still only refreshes the Supabase session and does
+not gate routes. Route protection lives in `(protected)/layout.tsx` and the
+per-action `requireRole` calls, which the audit confirms are applied consistently.
+Adding a second enforcement point would duplicate a boundary that is already
+correct.
 
 ### Error handling
 
@@ -262,9 +346,12 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | `photo-position` | `getOffsetBounds` swaps width and height at 90° and 270°, and does not at 0° and 180° |
 | `rotateDelta` | Each of the four rotations maps a pointer delta to the correct image-space axes |
 | `positionFromCat` | A null `photo_rotation` reads as `0` |
-| `getVaccinationState` | A date inside 12 months is `recorded`; outside is `stale`; null is `none` |
-| `getVaccinationState` | Exactly 12 months is `recorded`, not `stale` — the boundary is closed |
+| `getVaccinationState` | A date inside 12 months is `vaccinated`; outside is `expired`; null is `unknown` |
+| `getVaccinationState` | Exactly 12 months is `vaccinated`, not `expired` — the boundary is closed |
 | `formatMonthsAgo` | Singular at one month; plural otherwise |
+| `/api/health` | A failing database read returns 503 without the underlying error string in the body |
+| `/api/health` | A second call inside the cache window does not issue a second query |
+| `/api/cron/sync` | A wrong, absent, or malformed token returns 401; a correct one proceeds |
 
 UI is not unit-tested, matching the rest of the codebase. UI verification is
 `pnpm tsc --noEmit`, `pnpm lint`, and the manual checks below.
@@ -282,10 +369,15 @@ Manual:
    counts are plausible against the spike numbers.
 7. Open a cat with no vaccination date in the public catalog — confirm it reads
    `Unknown`, not `No`.
-8. Request a non-adoptable cat's catalog URL — confirm a real 404.
-9. Check a cat page's rendered `<title>` and OG tags in view-source.
-10. Fetch `/sitemap.xml` and `/robots.txt` — confirm adoptable cats are listed and
+8. Request a non-adoptable cat's catalog URL — confirm a real 404 status, not a
+   200, and that the styled 404 page renders.
+9. Request a nonsense route — confirm the same page appears rather than Next's
+   default.
+10. Check a cat page's rendered `<title>` and OG tags in view-source.
+11. Fetch `/sitemap.xml` and `/robots.txt` — confirm adoptable cats are listed and
     `/dashboard` is disallowed.
+12. Confirm the Cloudflare Worker's health poll and cron tick still succeed
+    end-to-end after the endpoint changes.
 
 ## Risks
 
@@ -297,9 +389,12 @@ Manual:
   `getPhotoTransformStyle`, so they stay in agreement only as long as neither grows
   its own geometry. Any future change belongs in `lib/photo-position.ts`.
 - **The vaccination threshold is a convention, not a clinical fact.** 12 months is a
-  worklist heuristic. It is confined to `VACCINATION_STALE_MONTHS` and surfaced only
-  as a filter label so it cannot be mistaken for a medical assertion. If a
-  vaccine-type field ever arrives, this is the single place to revisit.
+  worklist heuristic reflecting AGILA's annual TNVR cadence, not a titre. It is
+  confined to `VACCINATION_EXPIRY_MONTHS`. The word `expired` is load-bearing in the
+  UI, so the constraint that keeps it honest is presentational: it appears as a
+  neutral state label and a filter option, never as an alarm styling that implies
+  the app has assessed the animal. If a vaccine-type field ever arrives, this is the
+  single place to revisit.
 - **Server-rendering only the detail page leaves the catalog half-indexed.**
   Deliberate: content ranking happens on detail pages and the sitemap supplies
   discovery. If the listing's own ranking ever matters, it needs the
