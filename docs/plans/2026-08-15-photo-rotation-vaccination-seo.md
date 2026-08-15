@@ -1026,10 +1026,20 @@ export function getVaccinationState(
 ): VaccinationState {
   const date = toDate(value);
   if (!date) return "unknown";
+
+  const months = monthsSince(date, now);
+
   // Closed boundary: exactly VACCINATION_EXPIRY_MONTHS still counts as current.
-  return monthsSince(date, now) <= VACCINATION_EXPIRY_MONTHS
-    ? "vaccinated"
-    : "expired";
+  // The day-of-month check is required, not decorative. `monthsSince` truncates
+  // to whole completed months, so "exactly 12 months" and "12 months + 1 day"
+  // BOTH return 12 — a plain `<= 12` cannot tell them apart and would report a
+  // day-past-expiry cat as vaccinated. Requiring the day to match makes
+  // `months === 12 && sameDay` mean precisely "on the anniversary".
+  if (months < VACCINATION_EXPIRY_MONTHS) return "vaccinated";
+  if (months === VACCINATION_EXPIRY_MONTHS && now.getDate() === date.getDate()) {
+    return "vaccinated";
+  }
+  return "expired";
 }
 ```
 
