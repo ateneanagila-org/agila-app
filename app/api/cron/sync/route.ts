@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { syncAllPendingRegions } from "@/lib/services/sync-cron.service";
 import {
   setSyncFrozen,
@@ -10,11 +11,22 @@ import {
 import { sendSyncAlert } from "@/lib/services/discord.service";
 import { reconcileCatPhotos } from "@/lib/services/photo-import.service";
 
-export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  const expectedToken = process.env.CRON_SECRET;
+/**
+ * Constant-time comparison. Defence-in-depth rather than a live vulnerability —
+ * remote timing attacks on a hosted endpoint are impractical — but it removes the
+ * question permanently. The length guard is required: timingSafeEqual throws on
+ * buffers of different lengths.
+ */
+function tokenMatches(header: string | null, secret: string | undefined) {
+  if (!secret || !header) return false;
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const actual = Buffer.from(header);
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
+}
 
-  if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+export async function POST(request: NextRequest) {
+  if (!tokenMatches(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
