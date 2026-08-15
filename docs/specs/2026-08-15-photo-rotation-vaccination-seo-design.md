@@ -176,10 +176,15 @@ The invariant the tests pin, rather than the intermediate arithmetic: **at zoom 
 a rotated image still fully covers the square frame with no letterboxing**, for all
 four rotations and for both landscape and portrait sources.
 
-**Drag axes.** Once rotated, a rightward drag no longer maps to `+offsetX`. A pure
-helper `rotateDelta(dx, dy, rotation)` converts pointer deltas into image space
-(`90°` maps `(dx, dy)` to `(dy, -dx)`, and so on) so dragging always moves the image
-the direction the user pushed.
+**Drag axes need no remapping.** An earlier draft of this spec called for a
+`rotateDelta` helper on the assumption that a rightward drag stops mapping to
+`+offsetX` once rotated. Working the geometry through shows it does not:
+`offsetX`/`offsetY` drive the element's `left`/`top` **within the frame**, while
+rotation is a `transform` about the element's own centre. Moving `left` moves the
+whole rotated element in frame space, so a rightward drag still means `+offsetX` at
+every angle. The helper would have introduced a bug, not fixed one. Only the
+**bounds** need the effective size, because the overflow available to pan through
+does change with rotation.
 
 **Persistence.** `app/actions/cat-photo.ts` carries position as FormData. Rotation
 joins as a `photo_rotation` field, parsed and normalised alongside the existing
@@ -344,7 +349,7 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | `photo-position` | At zoom 1, all four rotations fully cover the square frame — landscape and portrait sources |
 | `photo-position` | `isIdentityPosition` is false when rotation is non-zero and zoom/offsets are identity |
 | `photo-position` | `getOffsetBounds` swaps width and height at 90° and 270°, and does not at 0° and 180° |
-| `rotateDelta` | Each of the four rotations maps a pointer delta to the correct image-space axes |
+| `clampPosition` | Preserves `rotation` — it is not part of the clamp, and dropping it would silently reset the angle on every drag |
 | `positionFromCat` | A null `photo_rotation` reads as `0` |
 | `getVaccinationState` | A date inside 12 months is `vaccinated`; outside is `expired`; null is `unknown` |
 | `getVaccinationState` | Exactly 12 months is `vaccinated`, not `expired` — the boundary is closed |
