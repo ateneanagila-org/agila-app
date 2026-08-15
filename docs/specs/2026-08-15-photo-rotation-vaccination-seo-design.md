@@ -415,3 +415,42 @@ Manual:
 - **`NEXT_PUBLIC_SITE_URL` must be correct in production.** A wrong value yields a
   sitemap and canonical URLs pointing at the wrong host — worse than having none.
   Verify it at deploy time.
+
+## Follow-ups surfaced during implementation
+
+Not part of P4. Recorded here because the whole-branch review is the only place they
+were visible, and the workspace that held them is deleted once the branch lands.
+
+**The public catalog's health section is now internally inconsistent.** The
+`Vaccinated` row models absence honestly as a third state, on the reasoning that
+conflating "no record" with "not vaccinated" would misreport most of the census. Two
+rows above it, `Neutered` still renders `!!healthRecord?.neuter_date` through
+`YesNoBadge` and prints a flat **No** for any cat with no record; `Sick` and `Injured`
+do the same. So one card asserts "not neutered / not sick" about cats the database
+says nothing about, directly beside a field built to refuse exactly that inference.
+
+`cats.is_neutered` is already a real tri-state (`boolean | null`) — the data to render
+`Unknown` exists and is being discarded. This is pre-existing, but P4 made it visible
+by fixing one of the three, and it is the first thing a reviewer of the finished
+public page would object to.
+
+**`NEXT_PUBLIC_SITE_URL` is inlined at build time, not read at runtime.** The
+`NEXT_PUBLIC_` prefix means Next substitutes it statically during the build. Setting
+it only in the runtime environment produces a sitemap and `robots.txt` full of
+`http://localhost:3000` URLs — with no error, no crash, and no symptom visible
+locally. This belongs in the handoff guide as a deploy-time check, not as the
+spec's earlier one-line "verify it at deploy time" note, which undersells how silent
+the failure is.
+
+**Three independent copies of the SITE_URL derivation** live in `app/layout.tsx`,
+`app/sitemap.ts`, and `app/robots.ts`, two of them carrying a byte-identical comment.
+They agree today. A shared `lib/site-url.ts` would keep them agreeing and would make
+the deliberate asymmetry — `layout.tsx` does NOT strip trailing slashes because
+`new URL()` normalizes, while the other two must — an explicit export rather than
+something a future reader re-derives.
+
+**The degraded sitemap is cached for an hour.** `revalidate = 3600` caches the
+`catch` result too, so a one-second database blip at regeneration time costs a full
+hour of a one-entry sitemap. Not harmful — crawlers do not deindex on absence from a
+sitemap — but the degraded path could opt out of the cache if faster recovery is
+wanted.
