@@ -63,6 +63,7 @@ async function buildPhotoFormData(file: File, position: PhotoPosition) {
   fd.append("photo_zoom", String(position.zoom));
   fd.append("photo_offset_x", String(position.offsetX));
   fd.append("photo_offset_y", String(position.offsetY));
+  fd.append("photo_rotation", String(position.rotation));
   return fd;
 }
 
@@ -257,6 +258,7 @@ export function CatEntryForm({
             zoom: photoPosition.zoom,
             offsetX: photoPosition.offsetX,
             offsetY: photoPosition.offsetY,
+            rotation: photoPosition.rotation,
           });
         }
         onSave?.();

@@ -7,6 +7,7 @@ import {
   getOffsetBounds,
   getPhotoTransformStyle,
   clampPosition,
+  normalizeRotation,
   PHOTO_ZOOM_MAX,
   PHOTO_ZOOM_MIN,
   type PhotoPosition,
@@ -90,6 +91,24 @@ export function PhotoPositionEditor({
     height: number;
   } | null>(null);
   const currentImageSize = imageSize?.src === src ? imageSize : null;
+
+  const rotateBy = (delta: number) =>
+    onChange((current) => {
+      const rotation = normalizeRotation(
+        (((current.rotation + delta) % 360) + 360) % 360,
+      );
+      return clampPosition(
+        { ...current, rotation },
+        getOffsetBounds(
+          currentImageSize
+            ? { width: currentImageSize.width, height: currentImageSize.height }
+            : null,
+          current.zoom,
+          rotation,
+        ),
+      );
+    });
+
   const previewStyle = useMemo(
     () =>
       getPhotoTransformStyle(
@@ -125,6 +144,7 @@ export function PhotoPositionEditor({
                   }
                 : null,
               current.zoom,
+              current.rotation,
             );
             return clampPosition(
               {
@@ -184,12 +204,31 @@ export function PhotoPositionEditor({
                         }
                       : null,
                     zoom,
+                    current.rotation,
                   ),
                 ),
               );
             }}
             className="w-full accent-brand-orange"
           />
+          <button
+            type="button"
+            onClick={() => rotateBy(-90)}
+            aria-label="Rotate left"
+            title="Rotate left"
+            className="rounded-full border border-brand-green px-2.5 py-1 text-xs font-bold text-brand-green transition-opacity hover:opacity-80"
+          >
+            ⟲
+          </button>
+          <button
+            type="button"
+            onClick={() => rotateBy(90)}
+            aria-label="Rotate right"
+            title="Rotate right"
+            className="rounded-full border border-brand-green px-2.5 py-1 text-xs font-bold text-brand-green transition-opacity hover:opacity-80"
+          >
+            ⟳
+          </button>
           <button
             type="button"
             onClick={() => onChange(DEFAULT_PHOTO_POSITION)}

@@ -362,6 +362,7 @@ export function SessionsApprovalCrossRefScreen() {
           updatePayload.photo_zoom = pos.zoom;
           updatePayload.photo_offset_x = pos.offsetX;
           updatePayload.photo_offset_y = pos.offsetY;
+          updatePayload.photo_rotation = pos.rotation;
         }
         if (resolved.notes !== undefined)
           updatePayload.notes = resolved.notes ?? undefined;

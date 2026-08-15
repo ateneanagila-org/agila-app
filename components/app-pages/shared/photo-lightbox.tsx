@@ -115,6 +115,7 @@ export function PhotoLightbox({
         fd.append("photo_zoom", String(cropPosition.zoom));
         fd.append("photo_offset_x", String(cropPosition.offsetX));
         fd.append("photo_offset_y", String(cropPosition.offsetY));
+        fd.append("photo_rotation", String(cropPosition.rotation));
         await uploadCatPhoto(catId, fd);
       } else {
         await editCatPhotoPosition(catId, cropPosition);
