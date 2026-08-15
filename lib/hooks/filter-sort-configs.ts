@@ -11,6 +11,7 @@ import {
   AUTH_ROLE_VALUES,
 } from "@/lib/db/enums";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { VACCINATION_FILTER_OPTIONS } from "@/lib/vaccination";
 
 /** Returns a copy of `config` with the `region_name` filter options derived from the loaded cats. */
 export function withCatRegionOptions(
@@ -49,6 +50,11 @@ export const DATABASE_LIST_CONFIG: FilterSortConfig = {
       label: "Medical Condition",
       key: "condition",
       options: [...CATHEALTHRECORD_CONDITION_VALUES, "Unknown"],
+    },
+    {
+      label: "Vaccination",
+      key: "vaccination",
+      options: [...VACCINATION_FILTER_OPTIONS],
     },
     {
       label: "Intervention Type",

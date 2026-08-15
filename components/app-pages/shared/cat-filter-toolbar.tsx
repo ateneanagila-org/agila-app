@@ -21,6 +21,7 @@ export type FilterableCat = CatWithRegion & {
   condition?: string | null;
   intervention_type?: readonly string[] | string | null;
   intervention_status?: readonly string[] | string | null;
+  vaccination?: string | null;
 };
 
 type CatFilterToolbarProps = {

@@ -17,7 +17,7 @@ import { useCatDetail } from "@/contexts/cat-detail-context";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
-import { normalizeCatField } from "@/lib/utils";
+import { normalizeCatField, formatMonthsAgo } from "@/lib/utils";
 
 function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
@@ -264,6 +264,11 @@ export function DatabaseMedicalScreen() {
               onDayChange={setVaccDay}
               onYearChange={setVaccYear}
             />
+            {healthRecord?.vaccination_date ? (
+              <p className="mt-1.5 text-xs text-brand-dark/50">
+                Recorded {formatMonthsAgo(healthRecord.vaccination_date)}
+              </p>
+            ) : null}
           </div>
         </div>
 

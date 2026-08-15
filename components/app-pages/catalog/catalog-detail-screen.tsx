@@ -17,6 +17,7 @@ import {
 
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import { getVaccinationState, VACCINATION_LABELS } from "@/lib/vaccination";
 
 type CatalogDetailScreenProps = {
   catId: string;
@@ -126,9 +127,11 @@ export function CatalogDetailScreen({
 
   const sex = sexGlyph(cat.sex);
   const isNeutered = !!healthRecord?.neuter_date;
-  const isVaccinated = !!healthRecord?.vaccination_date;
   const isSick = !!healthRecord?.condition?.includes("Sick");
   const isInjured = !!healthRecord?.condition?.includes("Injured");
+  const vaccinationState = getVaccinationState(
+    healthRecord?.vaccination_date ?? null,
+  );
 
   const profileFields: { label: string; value: React.ReactNode }[] = [
     {
@@ -143,7 +146,19 @@ export function CatalogDetailScreen({
 
   const healthFields: { label: string; value: React.ReactNode }[] = [
     { label: "Neutered", value: <YesNoBadge value={isNeutered} /> },
-    { label: "Vaccinated", value: <YesNoBadge value={isVaccinated} /> },
+    {
+      label: "Vaccinated",
+      value:
+        vaccinationState === "unknown" ? (
+          <span className="text-sm text-brand-dark/45">
+            {VACCINATION_LABELS.unknown}
+          </span>
+        ) : (
+          <span className="text-sm font-semibold text-brand-dark/80">
+            {VACCINATION_LABELS[vaccinationState]}
+          </span>
+        ),
+    },
     { label: "Sick", value: <YesNoBadge value={isSick} /> },
     { label: "Injured", value: <YesNoBadge value={isInjured} /> },
   ];

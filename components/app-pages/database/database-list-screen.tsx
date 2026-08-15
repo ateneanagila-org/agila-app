@@ -12,6 +12,7 @@ import { getInterventions } from "@/app/actions/interventions";
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 import { DATABASE_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
+import { getVaccinationState, VACCINATION_LABELS } from "@/lib/vaccination";
 import { useAuth } from "@/contexts/auth-context";
 import { useLinks } from "@/contexts/links-context";
 
@@ -45,6 +46,10 @@ function addMedicalAndInterventionInfo(
     return {
       ...cat,
       condition: healthByCatId.get(cat.id)?.condition ?? "Unknown",
+      vaccination:
+        VACCINATION_LABELS[
+          getVaccinationState(healthByCatId.get(cat.id)?.vaccination_date ?? null)
+        ],
       intervention_type: uniqueOrUnknown(
         catInterventions.map((item) => item.type),
       ),
