@@ -1230,7 +1230,12 @@ In `app/layout.tsx`, replace the existing `metadata` export. Keep the title
 template and description exactly as they are:
 
 ```ts
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// Trailing slashes are stripped: a value like "https://example.com/" would make
+// every joined URL contain a double slash, which crawlers treat as a distinct
+// (and 404-ing) URL. Cheap insurance against an env var set by someone else.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/+$/, "");
 const SITE_DESCRIPTION =
   "Cat census and adoption catalog for AGILA at Ateneo de Manila University, Quezon City.";
 
@@ -1559,7 +1564,12 @@ Create `app/sitemap.ts`:
 import type { MetadataRoute } from "next";
 import * as repo from "@/lib/repo/cats.repo";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// Trailing slashes are stripped: a value like "https://example.com/" would make
+// every joined URL contain a double slash, which crawlers treat as a distinct
+// (and 404-ing) URL. Cheap insurance against an env var set by someone else.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/+$/, "");
 
 // Re-generated hourly rather than per-request; the catalog changes slowly and
 // this endpoint is hit by crawlers, not people.
@@ -1616,7 +1626,12 @@ Create `app/robots.ts`:
 ```ts
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// Trailing slashes are stripped: a value like "https://example.com/" would make
+// every joined URL contain a double slash, which crawlers treat as a distinct
+// (and 404-ing) URL. Cheap insurance against an env var set by someone else.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/+$/, "");
 
 export default function robots(): MetadataRoute.Robots {
   return {
