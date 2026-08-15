@@ -441,9 +441,17 @@ pnpm jest __tests__/lib/photo-position.test.ts
 pnpm tsc --noEmit
 ```
 
-Expected: PASS. `tsc` will now report errors at every consumer that constructs a
-`PhotoPosition` without `rotation` — that is expected and is fixed in Tasks 2 and 3.
-Record the list; do not fix consumers in this task.
+Expected: PASS, **and `tsc` must be completely clean.** Making `rotation` required
+does not break application code: every consumer obtains a `PhotoPosition` from
+`positionFromCat`, `DEFAULT_PHOTO_POSITION`, or a `{ ...current }` spread, all of
+which carry the field. The only literals that need updating are the ones in this
+task's own test file (Step 1).
+
+If `tsc` reports errors anywhere else, do not wave them through as "expected" —
+investigate. `app/actions/cat-photo.ts:128` declares its own inline
+`{ zoom, offsetX, offsetY }` parameter type that is structurally separate from
+`PhotoPosition`; it is untouched here and extended in Task 2, so it should not
+error in this task.
 
 - [ ] **Step 5: Commit**
 
@@ -722,14 +730,16 @@ await editCatPhotoPosition(catId, {
 });
 ```
 
-- [ ] **Step 4: Fix the remaining type errors**
+- [ ] **Step 4: Confirm the tree is clean**
 
 ```bash
 pnpm tsc --noEmit
 ```
 
-Fix each site `tsc` flags for a `PhotoPosition` missing `rotation`. Prefer spreading
-`DEFAULT_PHOTO_POSITION` or adding `rotation: 0` — do not make the field optional.
+Tasks 1 and 2 should already have left this green. If anything is flagged for a
+`PhotoPosition` missing `rotation`, fix it by spreading `DEFAULT_PHOTO_POSITION` or
+adding `rotation: 0` — **do not make the field optional**, which would let
+`clampPosition` silently drop the angle.
 
 - [ ] **Step 5: Verify**
 
