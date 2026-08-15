@@ -1,7 +1,7 @@
 // Mocks must be declared before importing the action under test.
 jest.mock("drizzle-orm", () => ({ and: jest.fn(), eq: jest.fn() }));
 jest.mock("@/lib/db/schema", () => ({
-  cats: { id: "cats.id" },
+  cats: { id: "cats.id", photo_url: "cats.photo_url" },
   sessionCats: {},
   sessionUsers: {},
 }));
@@ -14,6 +14,9 @@ jest.mock("@/lib/auth/rbac", () => ({
 }));
 jest.mock("@/lib/services/helper.service", () => ({
   refreshCatInSyncQueue: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock("@/lib/repo/cats.repo", () => ({
+  findCatsReferencingPhotoPaths: jest.fn().mockResolvedValue([]),
 }));
 jest.mock("sharp", () =>
   jest.fn(() => ({
@@ -40,12 +43,21 @@ jest.mock("@/lib/db", () => {
   const where = jest.fn().mockResolvedValue([{ id: "c1" }]);
   const set = jest.fn(() => ({ where }));
   const update = jest.fn(() => ({ set }));
+
+  // tx.select(...).from(...).where(...).limit(1) — the pre-read removeCatPhoto
+  // uses to learn the photo_url an UPDATE's .returning() couldn't give it (the
+  // new, not old, values).
+  const selectLimit = jest.fn().mockResolvedValue([{ photo_url: null }]);
+  const selectWhere = jest.fn(() => ({ limit: selectLimit }));
+  const selectFrom = jest.fn(() => ({ where: selectWhere }));
+  const select = jest.fn(() => ({ from: selectFrom }));
+
   return {
     db: {
       update,
-      transaction: jest.fn(async (cb: (tx: unknown) => unknown) => cb({ update })),
+      transaction: jest.fn(async (cb: (tx: unknown) => unknown) => cb({ update, select })),
     },
-    __dbMocks: { update, set, where },
+    __dbMocks: { update, set, where, select, selectFrom, selectWhere, selectLimit },
   };
 });
 
@@ -57,13 +69,21 @@ import {
 import * as dbModule from "@/lib/db";
 import * as adminModule from "@/lib/supabase/admin";
 import { refreshCatInSyncQueue } from "@/lib/services/helper.service";
+import { findCatsReferencingPhotoPaths } from "@/lib/repo/cats.repo";
 
-const { set, update } = (dbModule as unknown as { __dbMocks: Record<string, jest.Mock> }).__dbMocks;
+const { set, update, selectLimit } = (dbModule as unknown as {
+  __dbMocks: Record<string, jest.Mock>;
+}).__dbMocks;
 const transaction = (dbModule as unknown as { db: { transaction: jest.Mock } }).db.transaction;
 const storage = (adminModule as unknown as { __storage: Record<string, jest.Mock> }).__storage;
 const mockRefresh = refreshCatInSyncQueue as jest.Mock;
+const mockFindReferencing = findCatsReferencingPhotoPaths as jest.Mock;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  selectLimit.mockResolvedValue([{ photo_url: null }]);
+  mockFindReferencing.mockResolvedValue([]);
+});
 
 describe("uploadCatPhoto", () => {
   it("stores photo_url plus the position+rotation quad and queues a sync", async () => {
@@ -148,10 +168,14 @@ describe("editCatPhotoPosition", () => {
 });
 
 describe("removeCatPhoto", () => {
-  it("clears photo_url, resets position+rotation to identity, and queues a sync", async () => {
+  it("clears photo_url, resets position+rotation to identity, queues a sync, and deletes the now-unreferenced blob", async () => {
+    selectLimit.mockResolvedValue([
+      { photo_url: "https://x.supabase.co/storage/v1/object/public/cat-photos/c1/photo.jpg" },
+    ]);
+    mockFindReferencing.mockResolvedValue([]);
+
     await removeCatPhoto("c1");
 
-    expect(storage.remove).toHaveBeenCalled();
     const payload = set.mock.calls[0][0];
     expect(payload).toMatchObject({
       photo_url: null,
@@ -161,5 +185,33 @@ describe("removeCatPhoto", () => {
       photo_rotation: 0,
     });
     expect(mockRefresh).toHaveBeenCalledWith("c1", expect.anything());
+
+    // Reference check runs against the path derived from the pre-cleared
+    // photo_url, not the cat id.
+    expect(mockFindReferencing).toHaveBeenCalledWith(["c1/photo.jpg"]);
+    expect(storage.remove).toHaveBeenCalledWith(["c1/photo.jpg"]);
+  });
+
+  it("does not delete the storage object when another cat still references it", async () => {
+    selectLimit.mockResolvedValue([
+      { photo_url: "https://x.supabase.co/storage/v1/object/public/cat-photos/c1/photo.jpg" },
+    ]);
+    mockFindReferencing.mockResolvedValue([
+      { photo_url: "https://x.supabase.co/storage/v1/object/public/cat-photos/c1/photo.jpg" },
+    ]);
+
+    await removeCatPhoto("c1");
+
+    expect(mockFindReferencing).toHaveBeenCalledWith(["c1/photo.jpg"]);
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it("skips storage cleanup entirely when the cat had no photo", async () => {
+    selectLimit.mockResolvedValue([{ photo_url: null }]);
+
+    await removeCatPhoto("c1");
+
+    expect(mockFindReferencing).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
   });
 });

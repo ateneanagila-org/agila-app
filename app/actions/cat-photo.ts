@@ -9,6 +9,11 @@ import { AppError } from "@/lib/error/app-error";
 import type { AuthRole } from "@/lib/db/enums";
 import { refreshCatInSyncQueue } from "@/lib/services/helper.service";
 import { normalizeRotation } from "@/lib/photo-position";
+import * as catsRepo from "@/lib/repo/cats.repo";
+import {
+  photoStoragePath,
+  removeCatPhotoObjects,
+} from "@/lib/services/cat-photo-storage";
 
 const BUCKET = "cat-photos";
 
@@ -155,11 +160,13 @@ export async function editCatPhotoPosition(
 export async function removeCatPhoto(catId: string): Promise<void> {
   await assertCanEditCatPhoto(catId);
 
-  const supabase = await createAdminClient();
-  // Storage delete is best-effort — orphaned blob is acceptable.
-  await supabase.storage.from(BUCKET).remove([`${catId}/photo.jpg`]);
+  const clearedPhotoUrl = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ photo_url: cats.photo_url })
+      .from(cats)
+      .where(eq(cats.id, catId))
+      .limit(1);
 
-  await db.transaction(async (tx) => {
     await tx
       .update(cats)
       .set({
@@ -170,8 +177,21 @@ export async function removeCatPhoto(catId: string): Promise<void> {
         photo_rotation: 0,
       })
       .where(eq(cats.id, catId));
+
     // Queue a forward sync so the cleared photo reaches the sheet. No
     // last_updated_at bump (see uploadCatPhoto).
     await refreshCatInSyncQueue(catId, tx);
+
+    return existing?.photo_url ?? null;
   });
+
+  // Best-effort, reference-aware storage cleanup AFTER commit. The path is
+  // derived from photo_url, never from catId: a merge can leave this cat
+  // pointing at a duplicate's object. Only remove an object no remaining cat
+  // references. Never throws — the GC sweep (reconcileCatPhotos) is the net.
+  const path = photoStoragePath(clearedPhotoUrl);
+  if (path) {
+    const stillReferenced = await catsRepo.findCatsReferencingPhotoPaths([path]);
+    if (stillReferenced.length === 0) await removeCatPhotoObjects([path]);
+  }
 }
