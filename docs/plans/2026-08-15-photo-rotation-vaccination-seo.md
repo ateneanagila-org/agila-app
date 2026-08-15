@@ -1566,33 +1566,44 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticEntries: MetadataRoute.Sitemap = [
-    {
-      url: SITE_URL,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1,
-    },
-  ];
-
   try {
     const cats = await repo.findAdoptableCats({ is_adoptable: true });
+
+    // The listing page genuinely changed when its most recently edited cat did.
+    // Emitting `new Date()` here would claim a change on every regeneration.
+    const timestamps = cats
+      .map((cat) => cat.last_updated_at)
+      .filter((d): d is Date => d instanceof Date);
+    const listingUpdatedAt = timestamps.length
+      ? new Date(Math.max(...timestamps.map((d) => d.getTime())))
+      : undefined;
+
     return [
-      ...staticEntries,
+      { url: SITE_URL, lastModified: listingUpdatedAt },
       ...cats.map((cat) => ({
         url: `${SITE_URL}/catalog/${cat.id}`,
         lastModified: cat.last_updated_at ?? undefined,
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
       })),
     ];
   } catch (error) {
     // A database blip must not take the sitemap down entirely — an empty
-    // sitemap tells crawlers the catalog is gone.
+    // sitemap tells crawlers the catalog is gone. Note this catch is deliberate
+    // and is the OPPOSITE call to the one made for a single cat page in Task 7:
+    // there, swallowing an error made one cat look permanently deleted; here,
+    // throwing would take down the whole index.
     console.error("[Sitemap] Failed to load adoptable cats:", error);
-    return staticEntries;
+    // No fabricated lastModified on the degraded path.
+    return [{ url: SITE_URL }];
   }
 }
+
+**No `changeFrequency`, no `priority`, on purpose.** Google ignores both and Bing
+gives them minimal weight, so any value would be an unverifiable guess dressed as a
+signal. Measured against the live database, adoptable cats receive roughly two edits
+per month across 63 records — about one change per cat every two and a half years —
+so the `weekly` an earlier draft specified was simply false. `lastModified` is kept
+because Google *does* use it, and it is the one field here derived from real data;
+that is also why the degraded path omits it rather than inventing one.
 ```
 
 Only adoptable cats are listed: non-adoptable cats are not adoption content, and
