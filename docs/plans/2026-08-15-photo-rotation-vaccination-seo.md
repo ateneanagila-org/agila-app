@@ -1218,6 +1218,7 @@ Expired, all in neutral weight."
 
 **Files:**
 - Modify: `app/layout.tsx`
+- Create: `app/(public)/(home)/page.tsx` metadata export (the file exists; add to it)
 - Create: `app/not-found.tsx`
 
 **Interfaces:**
@@ -1231,7 +1232,7 @@ template and description exactly as they are:
 ```ts
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const SITE_DESCRIPTION =
-  "AGILA's cat census and management platform for Ateneo de Manila University.";
+  "Cat census and adoption catalog for AGILA at Ateneo de Manila University, Quezon City.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -1258,6 +1259,42 @@ export const metadata: Metadata = {
 `NEXT_PUBLIC_SITE_URL` already exists and is used by `app/auth/callback/route.ts`.
 The localhost fallback exists so a build without the variable does not throw in
 `new URL(...)`.
+
+
+- [ ] **Step 1b: Give the public landing page its own metadata**
+
+`app/(public)/(home)/page.tsx` renders the public adoption catalog at `/` — the
+highest-value page on the site — and currently has **no metadata export at all**, so
+it inherits only the site-wide default title and description. Add:
+
+```tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Adopt a Cat in Quezon City",
+  description:
+    "Meet campus cats available for adoption and fostering, based at Ateneo de Manila University in Quezon City and open to adopters across Metro Manila.",
+  openGraph: {
+    type: "website",
+    title: "Adopt a Cat in Quezon City",
+    description:
+      "Meet campus cats available for adoption and fostering, based at Ateneo de Manila University in Quezon City and open to adopters across Metro Manila.",
+  },
+};
+```
+
+The root `title.template` turns this into `Adopt a Cat in Quezon City | AGILA CATalog`.
+
+**On the geographic targeting.** Ateneo de Manila is in Loyola Heights, Quezon City, so
+the location is factual, not keyword padding. Adoption is open to the public, but cat
+adoption still requires someone to physically collect the animal — so Metro Manila is
+the real catchment and the ceiling. Deliberately NOT targeting nationwide terms: those
+are dominated by established rescues with far more domain authority, and a click from
+outside the travel radius is a bounce, which hurts local-intent ranking. The wording
+separates where the cats are ("based at ... in Quezon City") from who may adopt them
+("open to adopters across Metro Manila") so neither claim overreaches.
+
+**Do not use the word "rescued"** anywhere in metadata copy.
 
 - [ ] **Step 2: Create the 404 page**
 
@@ -1329,7 +1366,7 @@ Expected: all pass.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/layout.tsx app/not-found.tsx
+git add app/layout.tsx "app/(public)/(home)/page.tsx" app/not-found.tsx
 git commit -m "feat(seo): metadataBase, OpenGraph/Twitter defaults, styled 404
 
 The app had no not-found.tsx, so unmatched routes rendered Next's default page.
@@ -1397,9 +1434,11 @@ export async function generateMetadata({
 
   const name = cat.name?.trim() || "Unnamed cat";
   const traits = [cat.age, cat.color, cat.sex].filter(Boolean).join(" · ");
+  // Kept short: search results truncate around 155 characters, and the cat's own
+  // traits are what earns the click. The home page carries the Metro Manila reach.
   const description = traits
-    ? `${name} — ${traits}. Available for adoption or fostering through AGILA at Ateneo de Manila University.`
-    : `${name} is available for adoption or fostering through AGILA at Ateneo de Manila University.`;
+    ? `${name} — ${traits}. Available for adoption or fostering through AGILA at Ateneo de Manila University, Quezon City.`
+    : `${name} is available for adoption or fostering through AGILA at Ateneo de Manila University, Quezon City.`;
   const images = cat.photo_url ? [cat.photo_url] : undefined;
 
   return {
