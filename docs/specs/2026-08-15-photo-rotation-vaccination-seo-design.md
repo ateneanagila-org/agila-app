@@ -265,6 +265,14 @@ data is read once per request. A missing or non-adoptable cat calls `notFound()`
 replacing the current soft-404 with a real 404. The loading-spinner flash
 disappears as a side effect.
 
+**Database errors propagate rather than being caught.** Swallowing a query error
+into a `null` cat would make it a 404, so a transient outage would be
+indistinguishable from a permanently deleted animal — and crawlers deindex on 404
+while treating 5xx as retry-later. Only a non-UUID id or a genuinely empty result
+yields a 404. The health-record read keeps its fallback to `[]`, which is the
+opposite tradeoff and the right one there: the page still renders real content with
+a null health record rather than failing over a secondary table.
+
 The listing page is untouched and stays client-rendered.
 
 **`app/sitemap.ts`** returns `MetadataRoute.Sitemap` — the home page plus one entry
