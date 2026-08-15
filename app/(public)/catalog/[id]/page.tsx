@@ -20,13 +20,13 @@ const UUID_RE =
  */
 const getCat = cache(async (id: string) => {
   if (!UUID_RE.test(id)) return null;
-  try {
-    const rows = await repo.findAdoptableCats({ id, is_adoptable: true });
-    return rows[0] ?? null;
-  } catch (error) {
-    console.error("[Catalog] Failed to load cat:", error);
-    return null;
-  }
+  // Database errors deliberately propagate. Swallowing them into `null` makes
+  // notFound() fire, so a transient outage becomes a 404 — indistinguishable
+  // from a permanently deleted cat. Crawlers deindex on 404 and retry on 5xx,
+  // which would defeat the SEO work this page exists for. 404 is reserved for a
+  // non-UUID id or a genuinely empty result.
+  const rows = await repo.findAdoptableCats({ id, is_adoptable: true });
+  return rows[0] ?? null;
 });
 
 export async function generateMetadata({
