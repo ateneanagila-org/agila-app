@@ -1,7 +1,3 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { displayCatField } from "@/lib/utils";
 import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
@@ -10,17 +6,14 @@ import {
   ArrowLeftIcon,
   ExternalLinkIcon,
 } from "@/components/app-pages/shared/icons";
-import {
-  getAdoptableCats,
-  getAdoptableCatHealthRecord,
-} from "@/app/actions/cats";
 
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { getVaccinationState, VACCINATION_LABELS } from "@/lib/vaccination";
 
 type CatalogDetailScreenProps = {
-  catId: string;
+  cat: CatWithRegion;
+  healthRecord: SelectCatHealthRecord | null;
   adoptFosterUrl: string;
 };
 
@@ -64,67 +57,10 @@ function DetailRow({
 }
 
 export function CatalogDetailScreen({
-  catId,
+  cat,
+  healthRecord,
   adoptFosterUrl,
 }: CatalogDetailScreenProps) {
-  const [cat, setCat] = useState<CatWithRegion | null>(null);
-  const [healthRecord, setHealthRecord] =
-    useState<SelectCatHealthRecord | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [catResult, hrResult] = await Promise.all([
-        getAdoptableCats({ id: catId }),
-        getAdoptableCatHealthRecord({ cat_id: catId }),
-      ]);
-      if (catResult?.data && catResult.data.length > 0) {
-        setCat(catResult.data[0]);
-      }
-      if (hrResult?.data && hrResult.data.length > 0) {
-        setHealthRecord(hrResult.data[0]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch cat detail:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [catId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
-      </div>
-    );
-  }
-
-  if (!cat) {
-    return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pt-6 pb-12 tablet:px-8 tablet:pt-10">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-dark/60 transition-colors hover:text-brand-dark"
-        >
-          <ArrowLeftIcon className="h-4 w-4" /> Back to catalog
-        </Link>
-        <div className="mt-12 rounded-3xl bg-white px-6 py-16 text-center ring-1 ring-brand-dark/10">
-          <p className="font-heading text-2xl font-bold tracking-tight text-brand-dark">
-            Cat not found
-          </p>
-          <p className="mt-2 text-sm text-brand-dark/60">
-            This cat could not be found in our catalog.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const sex = sexGlyph(cat.sex);
   const isNeutered = !!healthRecord?.neuter_date;
   const isSick = !!healthRecord?.condition?.includes("Sick");
