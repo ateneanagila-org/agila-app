@@ -23,13 +23,29 @@ const sfcLaPura = localFont({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_DESCRIPTION =
+  "Cat census and adoption catalog for AGILA at Ateneo de Manila University, Quezon City.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     template: "%s | AGILA CATalog",
     default: "AGILA CATalog",
   },
-  description:
-    "AGILA's cat census and management platform for Ateneo de Manila University.",
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "AGILA CATalog",
+    title: "AGILA CATalog",
+    description: SITE_DESCRIPTION,
+    locale: "en_PH",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AGILA CATalog",
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
