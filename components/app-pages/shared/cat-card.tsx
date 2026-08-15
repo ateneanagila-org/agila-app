@@ -28,6 +28,7 @@ type CatCardProps = {
     | "photo_zoom"
     | "photo_offset_x"
     | "photo_offset_y"
+    | "photo_rotation"
     | "cat_status"
     | "is_adoptable"
   >;
