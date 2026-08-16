@@ -41,7 +41,7 @@ export const sheetRowSchema = z.object({
   date_last_seen: z.string().nullable().optional(),
   caretaker: z.string().nullable(),
   notes: z.string().nullable(),
-  is_adoptable: z.boolean(),
+  is_adoptable: z.boolean().nullable(),
   condition: CatHealthRecordConditionEnum.nullable(),
   is_neutered: catHealthRecordsSchema.shape.is_neutered,
   neuter_date: z.string().nullable(),
@@ -53,6 +53,47 @@ export const sheetRowSchema = z.object({
 
 export type SheetRowParsed = z.infer<typeof sheetRowSchema>;
 
+// Every classification column (F/G/H/I/J/K) is a YES/NO/??? dropdown, where
+// ??? is the sheet's own "explicitly unknown" option — not a negative. Any
+// other raw value (blank included) is equally unrecognised and must not be
+// coerced into a definite answer either.
+const TRISTATE_TOKENS = new Set(["YES", "NO", "???"]);
+
+/** Parses a single YES/NO/??? cell (cols F/G/H/K). Unrecognised or blank → null. */
+function parseTristateBool(raw: string | undefined): boolean | null {
+  const v = String(raw ?? "").trim().toUpperCase();
+  return v === "YES" ? true : v === "NO" ? false : null;
+}
+
+/**
+ * Derives `condition` from the Sick (I) / Injured (J) pair. Both cells must
+ * carry a recognised token for the pair to mean anything: a four-value enum
+ * cannot express "sick, injured unknown", so null is the only honest answer
+ * when either side is missing, unrecognised, or itself "???". A blank must
+ * not fall through to "Healthy" — that would turn a cleared cell into a
+ * positive medical claim.
+ */
+function parseCondition(
+  rawSick: string | undefined,
+  rawInjured: string | undefined,
+): string | null {
+  const sick = String(rawSick ?? "").trim().toUpperCase();
+  const injured = String(rawInjured ?? "").trim().toUpperCase();
+
+  if (
+    !TRISTATE_TOKENS.has(sick) ||
+    !TRISTATE_TOKENS.has(injured) ||
+    sick === "???" ||
+    injured === "???"
+  ) {
+    return null;
+  }
+  if (sick === "YES" && injured === "YES") return "Sick and Injured";
+  if (sick === "YES") return "Sick";
+  if (injured === "YES") return "Injured";
+  return "Healthy";
+}
+
 /**
  * Converts a raw sheet row array into the structured object for validation.
  * Returns null if the row can't be parsed (e.g., missing ID).
@@ -61,14 +102,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const id = row[24]?.trim(); // UUID from col Y
   if (!id) return null;
 
-  const rawSick = String(row[8] ?? "").toUpperCase();
-  const rawInjured = String(row[9] ?? "").toUpperCase();
-  let condition: string | null = null;
-  if (rawSick === "???" || rawInjured === "???") condition = null;
-  else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
-  else if (rawSick === "YES") condition = "Sick";
-  else if (rawInjured === "YES") condition = "Injured";
-  else condition = "Healthy";
+  const condition = parseCondition(row[8], row[9]);
 
   const rawSex = String(row[5] ?? "").trim();
   const sex = ["Male", "Female"].includes(rawSex) ? rawSex : null;
@@ -82,7 +116,10 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const validStatuses = ["Deceased", "Fostered", "Adopted", "MIA"];
   const cat_status = validStatuses.includes(rawStatus) ? rawStatus : null;
 
-  const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
+  // Col K is a YES/NO/??? dropdown like col G. Reading it as `=== "YES"`
+  // collapsed both NO and ??? to false, so a volunteer selecting the sheet's
+  // own "unknown" option was recorded as a definite negative.
+  const is_adoptable = parseTristateBool(row[10]);
 
   const rawColor = String(row[3] ?? "").trim();
   const validColors = [
@@ -97,9 +134,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const age = validAges.includes(rawAge) ? rawAge : null;
 
   // Col G: YES/NO/??? — ??? means explicitly unknown, blank also → null.
-  const rawNeutered = String(row[6] ?? "").toUpperCase();
-  const is_neutered =
-    rawNeutered === "YES" ? true : rawNeutered === "NO" ? false : null;
+  const is_neutered = parseTristateBool(row[6]);
 
   const neuter_date = row[15] && row[15] !== "N/A" ? row[15] : null;
   const vaccination_date = row[16] && row[16] !== "N/A" ? row[16] : null;
@@ -152,14 +187,9 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
   const id = row[24]?.trim(); // UUID from col Y
   if (!id) return null;
 
-  const rawSick = String(row[8] ?? "").toUpperCase();
-  const rawInjured = String(row[9] ?? "").toUpperCase();
-  let condition: string | null = null;
-  if (rawSick === "???" || rawInjured === "???") condition = null;
-  else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
-  else if (rawSick === "YES") condition = "Sick";
-  else if (rawInjured === "YES") condition = "Injured";
-  else condition = "Healthy";
+  // Same YES/NO/??? convention as the standard layout — see parseCondition
+  // and parseTristateBool above.
+  const condition = parseCondition(row[8], row[9]);
 
   const rawSex = String(row[5] ?? "").trim();
   const sex = ["Male", "Female"].includes(rawSex) ? rawSex : null;
@@ -169,12 +199,10 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
     ? rawSociability
     : null;
 
-  const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
+  const is_adoptable = parseTristateBool(row[10]);
 
   // Col G: YES/NO/??? — UNKNOWN sheet uses same convention as region sheets.
-  const rawNeutered = String(row[6] ?? "").toUpperCase();
-  const is_neutered =
-    rawNeutered === "YES" ? true : rawNeutered === "NO" ? false : null;
+  const is_neutered = parseTristateBool(row[6]);
 
   const rawColor = String(row[3] ?? "").trim();
   const validColors = [

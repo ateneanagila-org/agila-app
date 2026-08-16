@@ -9,6 +9,7 @@ import {
   buildCatalogLookup,
   type SheetRow,
 } from "@/lib/services/helper.service";
+import { parseSheetRow } from "@/lib/validation/reverse-sync";
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { SelectIntervention } from "@/lib/validation/interventions";
 
@@ -80,6 +81,26 @@ describe("mapCatToSheetRow", () => {
       expect(mapCatToSheetRow(makeCat(), makeHealth({ is_neutered: true }))[6]).toBe("YES");
       expect(mapCatToSheetRow(makeCat(), makeHealth({ is_neutered: false }))[6]).toBe("NO");
       expect(mapCatToSheetRow(makeCat(), makeHealth({ is_neutered: null }))[6]).toBe("???");
+    });
+  });
+
+  describe("adoptable (col K[10]) — matches col G's three-way convention", () => {
+    it("true writes YES", () => {
+      expect(mapCatToSheetRow(makeCat({ is_adoptable: true }), null)[10]).toBe("YES");
+    });
+    it("false writes NO", () => {
+      expect(mapCatToSheetRow(makeCat({ is_adoptable: false }), null)[10]).toBe("NO");
+    });
+    it("null writes ??? — without this the null cannot survive a round trip", () => {
+      expect(mapCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("???");
+    });
+
+    it("null -> ??? -> null round-trips through the sheet without collapsing", () => {
+      const written = mapCatToSheetRow(makeCat({ is_adoptable: null }), null)[10];
+      const row = new Array<string>(25).fill("");
+      row[10] = written;
+      row[24] = "11111111-1111-4111-8111-111111111111";
+      expect(parseSheetRow(row)?.is_adoptable).toBeNull();
     });
   });
 
@@ -172,6 +193,14 @@ describe("mapUnknownCatToSheetRow", () => {
     expect(row[2]).toBe("PAWS-9");
     expect(row[11]).toBe("1/15/2024");
     expect(row[12]).toBe("3/4/2024");
+  });
+
+  describe("adoptable (col K[10]) — same convention as the standard mapper", () => {
+    it("true writes YES, false writes NO, null writes ???", () => {
+      expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: true }), null)[10]).toBe("YES");
+      expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: false }), null)[10]).toBe("NO");
+      expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("???");
+    });
   });
 });
 

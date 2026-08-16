@@ -161,7 +161,11 @@ export function mapCatToSheetRow(
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
-    cat.is_adoptable ? "YES" : "NO", // 10 (K)
+    cat.is_adoptable === true
+      ? "YES"
+      : cat.is_adoptable === false
+        ? "NO"
+        : "???", // 10 (K)
     catStatus || "None of the above", // 11 (L)
     cat.caretaker ?? "N/A", // 12 (M)
     lastSeenDate ? lastSeenDate.toLocaleDateString("en-US") : "N/A", // 13 (N) date last seen
@@ -205,7 +209,11 @@ export function mapUnknownCatToSheetRow(
     cat.sociability ?? "???", // 7  (H)
     condition ? (condition.includes("Sick") ? "YES" : "NO") : "???", // 8  (I)
     condition ? (condition.includes("Injured") ? "YES" : "NO") : "???", // 9  (J)
-    cat.is_adoptable ? "YES" : "NO", // 10 (K)
+    cat.is_adoptable === true
+      ? "YES"
+      : cat.is_adoptable === false
+        ? "NO"
+        : "???", // 10 (K)
     health?.neuter_date?.toLocaleDateString("en-US") ?? "N/A", // 11 (L)
     health?.vaccination_date?.toLocaleDateString("en-US") ?? "N/A", // 12 (M)
     "",

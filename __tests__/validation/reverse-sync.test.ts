@@ -42,6 +42,16 @@ describe("parseSheetRow (standard region layout)", () => {
     it("is case-insensitive", () => {
       expect(parseSheetRow(mkRow({ 24: UUID, 8: "yes", 9: "no" }))?.condition).toBe("Sick");
     });
+
+    it("a blank column is null, not Healthy — absence is not a clean bill of health", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 8: "", 9: "NO" }))?.condition).toBeNull();
+      expect(parseSheetRow(mkRow({ 24: UUID, 8: "NO", 9: "" }))?.condition).toBeNull();
+      expect(parseSheetRow(mkRow({ 24: UUID }))?.condition).toBeNull();
+    });
+
+    it("an unrecognised value is null", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 8: "maybe", 9: "NO" }))?.condition).toBeNull();
+    });
   });
 
   describe("neutered (col G[6])", () => {
@@ -82,11 +92,21 @@ describe("parseSheetRow (standard region layout)", () => {
   });
 
   describe("adoptable (col K[10])", () => {
-    it("YES → true (case-insensitive), otherwise false", () => {
+    it("YES → true (case-insensitive)", () => {
       expect(parseSheetRow(mkRow({ 24: UUID, 10: "YES" }))?.is_adoptable).toBe(true);
       expect(parseSheetRow(mkRow({ 24: UUID, 10: "yes" }))?.is_adoptable).toBe(true);
+    });
+
+    it("NO → false", () => {
       expect(parseSheetRow(mkRow({ 24: UUID, 10: "NO" }))?.is_adoptable).toBe(false);
-      expect(parseSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBe(false);
+    });
+
+    it("??? is null — the dropdown's own unknown option, not a negative", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBeNull();
+    });
+
+    it("a blank cell is null", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBeNull();
     });
   });
 
@@ -189,9 +209,22 @@ describe("parseUnknownSheetRow (UNKNOWN region layout)", () => {
     expect(parseUnknownSheetRow(mkRow({ 24: UUID, 2: "N/A" }))?.paws_id).toBe("N/A");
   });
 
-  it("shares the same condition matrix as standard rows", () => {
+  it("shares the same condition matrix as standard rows, including the blank case", () => {
     expect(parseUnknownSheetRow(mkRow({ 24: UUID, 8: "YES", 9: "YES" }))?.condition).toBe("Sick and Injured");
     expect(parseUnknownSheetRow(mkRow({ 24: UUID, 8: "???", 9: "NO" }))?.condition).toBeNull();
+    expect(parseUnknownSheetRow(mkRow({ 24: UUID }))?.condition).toBeNull();
+  });
+
+  describe("adoptable (col K[10]) — same YES/NO/??? convention as standard rows", () => {
+    it("YES → true, NO → false", () => {
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "YES" }))?.is_adoptable).toBe(true);
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "NO" }))?.is_adoptable).toBe(false);
+    });
+
+    it("??? and blank are both null — neither is a negative", () => {
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBeNull();
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBeNull();
+    });
   });
 });
 
@@ -210,6 +243,12 @@ describe("sheetRowSchema (validation gate after parse)", () => {
 
   it("accepts a parsed UNKNOWN row", () => {
     const parsed = parseUnknownSheetRow(mkRow({ 24: UUID, 1: "spot", 2: "PAWS-1" }));
+    expect(sheetRowSchema.safeParse(parsed).success).toBe(true);
+  });
+
+  it("accepts a null is_adoptable (col K blank or ???) — the schema must allow it", () => {
+    const parsed = parseSheetRow(mkRow({ 24: UUID, 2: "Bella", 10: "???" }));
+    expect(parsed?.is_adoptable).toBeNull();
     expect(sheetRowSchema.safeParse(parsed).success).toBe(true);
   });
 });
