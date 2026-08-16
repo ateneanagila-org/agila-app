@@ -353,7 +353,7 @@ export async function fullReverseSync(force = false): Promise<{
   }
 
   const allRegions = await db.query.regions.findMany();
-  const sheetStates = await readAllRegionSheetStates(allRegions);
+  const { states: sheetStates } = await readAllRegionSheetStates(allRegions);
 
   let totalImported = 0;
   let totalErrors = 0;

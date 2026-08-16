@@ -18,8 +18,15 @@ function errMsg(error: unknown): string {
 export async function syncAllPendingRegions() {
   const allRegions = await db.query.regions.findMany();
 
-  // Phase 0: One paced read pass shared by photo-import and reverse-sync.
-  const sheetStates = await readAllRegionSheetStates(allRegions);
+  // Phase 0: One paced read pass shared by photo-import, reverse-sync, and
+  // reconciliation. `failed` names regions whose read threw.
+  const { states: sheetStates, failed: failedRegions } =
+    await readAllRegionSheetStates(allRegions);
+  if (failedRegions.size > 0) {
+    console.warn(
+      `[Cron Sync] ${failedRegions.size} region read(s) failed this tick — reconciliation will skip.`,
+    );
+  }
 
   // Pending forward-sync tasks — queried once, used for both idle-exit and Phase 3.
   const pendingTasks = await db

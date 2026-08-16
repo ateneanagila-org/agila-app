@@ -1411,24 +1411,34 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
  * Per-region failures (after the wrapper's retries are exhausted) are logged
  * and the region maps to an empty array â€" the cron should make progress on
  * healthy regions even if one is broken.
+ *
+ * `failed` names the regions whose read threw. A failed region still maps to
+ * [] in `states` so existing callers (photo import, reverse sync) behave
+ * exactly as before â€" they simply do less work. Reconciliation needs the
+ * distinction, because "no rows" and "the read broke" are indistinguishable
+ * otherwise and the second one would make a whole region look absent.
  */
 export async function readAllRegionSheetStates(
   regionList: { id: string; name: string }[],
-): Promise<Map<string, SheetRow[]>> {
-  const result = new Map<string, SheetRow[]>();
+): Promise<{ states: Map<string, SheetRow[]>; failed: Set<string> }> {
+  const states = new Map<string, SheetRow[]>();
+  const failed = new Set<string>();
+
   for (const region of regionList) {
     try {
       const rows = await readSheetState(region.id);
-      result.set(region.id, rows);
+      states.set(region.id, rows);
     } catch (error) {
       console.error(
         `[ReadAllRegionSheetStates] region ${region.name} (${region.id}) failed:`,
         error instanceof Error ? error.message : error,
       );
-      result.set(region.id, []);
+      states.set(region.id, []);
+      failed.add(region.id);
     }
   }
-  return result;
+
+  return { states, failed };
 }
 
 /**
