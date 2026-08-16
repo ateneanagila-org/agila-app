@@ -27,6 +27,7 @@ import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 import { NON_REGION_TABS, TEMPLATE_TAB_NAME } from "@/lib/constants";
 import { OFF_CENSUS_STATUSES, type CatStatus } from "@/lib/db/enums";
+import { sendSyncAlert } from "@/lib/services/discord.service";
 
 const MAX_RETRIES = 3;
 
@@ -526,8 +527,10 @@ export async function syncAndCompactRegion(
     errorMessage = errMsg;
     tasksFailed = tasks.length;
 
+    const exhausted: string[] = [];
     for (const task of tasks) {
       const newRetryCount = task.retryCount + 1;
+      if (newRetryCount >= MAX_RETRIES) exhausted.push(task.entityId);
       await db
         .update(gsheetSyncQueue)
         .set({
@@ -541,6 +544,22 @@ export async function syncAndCompactRegion(
     }
 
     console.error(`[Sync] Region ${regionId} failed:`, errMsg);
+
+    // A FAILED task is abandoned: it is no longer PENDING, so nothing retries
+    // it and reconciliation will quietly repair the missing row. Alert so a
+    // repeatedly failing region cannot hide behind that self-healing.
+    if (exhausted.length > 0) {
+      try {
+        await sendSyncAlert(
+          `Sync gave up on ${exhausted.length} task(s) in region ${region.name} after ${MAX_RETRIES} attempts. Last error: ${errMsg}`,
+        );
+      } catch (alertErr) {
+        console.error(
+          "[Sync] Alert delivery failed:",
+          alertErr instanceof Error ? alertErr.message : alertErr,
+        );
+      }
+    }
   } finally {
     await db.insert(syncAuditLog).values({
       regionId,
