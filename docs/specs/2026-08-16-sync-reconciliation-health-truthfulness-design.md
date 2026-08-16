@@ -188,8 +188,11 @@ export async function readAllRegionSheetStates(
 ): Promise<{ states: Map<string, SheetRow[]>; failed: Set<string> }>;
 ```
 
-Reconciliation skips any region in `failed` outright. This resolves the
-empty-versus-failed ambiguity at its source rather than guessing from row counts.
+**If `failed` is non-empty, reconciliation skips the entire tick** — not merely the
+failed regions. Presence is a global property (see A2), so a single failed read makes it
+untrustworthy everywhere: a cat living on the failed region's tab looks absent from all
+of them, and would be appended to a second tab. Skipping costs nothing — drift
+accumulates over weeks and the next tick is twenty minutes away.
 
 #### A2. Phase 0.5 — reconcile representation
 
@@ -211,13 +214,50 @@ Phase 4    summary regen
 including idle ones — the information needed to detect drift was already in memory and
 unused.
 
-Per region, skipping any in `failed`:
+**Presence is evaluated globally, across every region's snapshot — never per region.**
+A per-region check would reintroduce a bug this codebase already guards against: if a
+region move ever occurred without going through `editCat`, the cat still sits on its old
+tab, and checking only the new region would find nothing and append — producing the "cat
+appears on two sheets" failure `CLAUDE.md` warns about. Global presence is also what makes
+the whole-tick skip in A1 necessary rather than optional.
+
+Global presence yields an invariant that removes a second, subtler hazard. Phase 0.5
+necessarily runs *before* reverse sync, because reconciliation must beat the idle
+early-exit while reverse sync sits after it — and reverse sync marks a cat's pending
+forward tasks `COMPLETED` with *"Superseded by reverse sync"*
+(`reverse-sync.service.ts:487-495`). A reconciliation task could therefore be silently
+cancelled. It cannot happen here: **reconciliation only ever acts on cats absent from
+every tab, and reverse sync only processes rows that exist, so the two sets are disjoint
+by construction.**
+
+Two repairs, both requiring that the cat has **no `PENDING` task**. A cat with one needs
+no reconciliation regardless: Phase 3 will process that task, hit `idx === -1`, and append
+the row as part of the same operation.
+
+| Situation | Repair |
+| --- | --- |
+| Absent from every tab | `refreshCatInSyncQueue` — queues an `UPDATE`; Phase 3 appends. Purely additive. |
+| Present on a tab that is not its effective region | Region move whose `DELETE` was missed. Supersede that cat's pending tasks for the old region, queue a `DELETE` to the old tab, then `refreshCatInSyncQueue` for the new — the exact sequence `editCat` already uses (`cats.service.ts:112-130`). |
+
+Both reuse existing, proven code paths; neither introduces a new payload builder or write
+path. The effective region must be resolved through the **same expression** the rest of
+the app uses, or the wrong-tab repair could delete a correct row.
+
+The two differ in reversibility, which is worth recording: the first is additive, while
+the second deletes a row. Nothing irreplaceable is lost — cols A–V are DB projections and
+are rewritten at the destination — but cols **W/X** (`last_edited_at`, `edited_by`,
+written by Apps Script and never by the app) are sheet-only and do not survive the move.
+
+Per region, once the whole-tick precondition in A1 has passed:
 
 1. Expected = `Original` cats whose **effective region** is this region.
-2. Present = col-Y UUIDs in that region's snapshot.
-3. Missing = expected − present, minus any cat that already has a `PENDING` task.
-4. Apply the safety guard (A3). If it trips, skip the region and alert.
-5. Otherwise call the existing `refreshCatInSyncQueue` for each missing cat.
+2. Present = col-Y UUIDs across **all** region snapshots.
+3. Classify each expected cat as satisfied, absent-everywhere, or on-the-wrong-tab;
+   discard any with a `PENDING` task.
+4. Apply the safety guard (A3), counting both repair kinds. If it trips, skip the region
+   and alert.
+5. Otherwise apply the repairs above, and report both counts separately in the tick's
+   alert.
 
 Step 5 matters: reusing `refreshCatInSyncQueue` means **no new payload construction and
 no new write path**. It already gates on `entry_status === "Original"`, resolves the
@@ -363,7 +403,10 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | `readAllRegionSheetStates` | A throwing region appears in `failed` and still maps to `[]` for existing callers |
 | Reconciliation | An `Original` cat absent from its region's snapshot gets exactly one queued `UPDATE` |
 | Reconciliation | A cat that already has a `PENDING` task is not queued twice |
-| Reconciliation | A region in `failed` is skipped entirely, even when cats appear missing |
+| Reconciliation | A single failed region read skips the **whole tick** — no repairs anywhere |
+| Reconciliation | A cat absent from every tab is repaired additively (`UPDATE` only, no `DELETE`) |
+| Reconciliation | A cat present on a non-effective tab gets `DELETE` to the old tab **and** `UPDATE` to the new |
+| Reconciliation | A reconciliation task is never cancelled by reverse sync — the disjointness invariant |
 | Reconciliation | Zero rows with non-zero expected cats skips the region and does not enqueue |
 | Reconciliation | Missing count above the cap skips and alerts rather than repairing |
 | Reconciliation | A frozen or retired system enqueues nothing |
@@ -396,8 +439,10 @@ Manual:
 
 ## Risks
 
-- **Reconciliation writes to the sheet automatically.** It is the first mechanism that
-  adds rows without a human or an app edit initiating it. The guards — failure reporting,
+- **Reconciliation writes to the sheet automatically, including one destructive path.**
+  It is the first mechanism that adds — and, in the wrong-tab case, removes — rows without
+  a human or an app edit initiating it. The wrong-tab repair is the sharper edge: it
+  deletes a row, and cols W/X (`last_edited_at`, `edited_by`) do not survive the move. The guards — failure reporting,
   the empty-snapshot check, the proportional cap, the halt gate, per-tick alerting — exist
   because the blast radius of getting it wrong is an entire region tab. This is the
   riskiest change in the spec and warrants the most review attention.
