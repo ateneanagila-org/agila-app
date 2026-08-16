@@ -358,20 +358,42 @@ agreement, so it reuses the exported expression rather than restating it.
 Reconciliation is gated by `getSyncHalt()` alongside every other write, and records its
 outcome in `sync_audit_log`.
 
-#### A3. Safety guard against a bogus-empty read
+#### A3. Wipe guard and per-tick repair budget
 
-Two independent conditions, either of which skips the region without writing:
+Two mechanisms, and only one of them is a refusal.
 
-- The snapshot has **zero rows while the region expects more than zero cats**. That is the
-  exact signature of a failed read, and A1 should already have caught it — this is the
-  backstop for any other route to an empty snapshot.
-- Missing count exceeds **the greater of 5 and 25% of the region's expected cats**. Region
-  sizes vary widely (FAURA 42, XAVIER 3), so a flat threshold is wrong in both
-  directions. Genuine drift is a slow trickle; anything larger is a systems problem, not
-  a repair job.
+**A tab that came back empty while cats are expected is skipped and alerted.** Reads
+succeeded — a failed read skips the whole tick — so the API genuinely returned nothing for
+a tab believed to hold rows. That is the signature of a wipe or a botched script, not of
+ordinary drift, and rewriting the tab underneath whoever is working on it is the wrong
+move. The escape is deliberately cheap: restore or add any single row and the guard stops
+tripping, after which the budget clears the rest automatically.
 
-A skipped region raises a Discord alert naming the region and the counts. Skipping is
-always safe — the next tick tries again.
+**Everything else is bounded by a per-tick repair budget rather than refused.**
+`RECONCILE_MAX_REPAIRS_PER_TICK = 25`; whatever exceeds it is retried next tick. Wrong-tab
+repairs count against the same budget precisely because they are the destructive path, so
+a mis-plan can delete at most 25 rows in one tick.
+
+The budget is derived, not chosen: observed drift over the app's lifetime is **6** cats,
+the largest region holds **71**, and the census is **558**. Twenty-five is roughly four
+times normal drift, so ordinary operation always clears in a single tick, yet well under a
+single region, so no bug can rewrite a whole tab at once. Worst case, a full-census
+mis-plan drains in under a day at one tick per 20 minutes.
+
+**A proportional cap was considered and rejected.** An earlier draft skipped any region
+whose repair count exceeded `max(5, 25% of expected)`. That is a guess dressed as a safety
+property, and its failure mode is bad: delete 15 rows from a 40-cat tab and the cap is 10,
+so reconciliation refuses every tick, forever, while the reads say plainly that those 15
+cats are missing. It declines to work exactly when there is most work to do, and never
+self-heals.
+
+The distinction that keeps the wipe guard while dropping the cap is the **escape hatch**.
+Both are hard skips, but the wipe guard is escaped by touching one row; the cap could only
+be escaped by manually repairing more than it allowed — doing the tool's job by hand.
+
+Convergence is unaffected either way: a repaired cat is present on the next snapshot and
+never re-queued, and a cat with a `PENDING` task is skipped by `planRepairs`, so a stuck
+batch neither consumes budget nor blocks others.
 
 #### A4. Deliberate sheet-side row deletion
 
@@ -557,7 +579,9 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | Reconciliation | A cat present on a non-effective tab gets `DELETE` to the old tab **and** `UPDATE` to the new |
 | Reconciliation | A reconciliation task is never cancelled by reverse sync — the disjointness invariant |
 | Reconciliation | Zero rows with non-zero expected cats skips the region and does not enqueue |
-| Reconciliation | Missing count above the cap skips and alerts rather than repairing |
+| Reconciliation | A region whose tab is empty while cats are expected is skipped and alerted, not repaired |
+| Reconciliation | Repairs beyond the per-tick budget are deferred, not dropped — the outcome reports the remainder |
+| Reconciliation | Wrong-tab repairs count against the same budget as missing-row repairs |
 | Reconciliation | A frozen or retired system enqueues nothing |
 | Reconciliation | Repairs run before the pending-task query, so a repaired tick is not idle |
 | Off-census set | All five sites share one constant; For RI, `getInterventionDisplayStatus`, and `forFaStatus` all exclude `Fostered` |

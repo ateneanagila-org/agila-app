@@ -37,7 +37,7 @@
 | `lib/validation/reverse-sync.ts` (modify) | Col K three-way read; `condition` returns null on unrecognised input. |
 | `lib/repo/cats.repo.ts` (modify) | `effectiveRegionIdSubquery` + `findOriginalCatIdsByEffectiveRegion`. |
 | `lib/repo/sync-queue.repo.ts` (create) | Queue reads used by reconciliation, keeping `db.*` out of services. |
-| `lib/services/reconcile.service.ts` (create) | Pure repair planning (`planRepairs`, `guardTrips`) plus the orchestrator. |
+| `lib/services/reconcile.service.ts` (create) | Pure repair planning (`planRepairs`, `looksWiped`, `takeWithinBudget`) plus the orchestrator. |
 | `lib/services/sync-cron.service.ts` (modify) | Phase 0.5 wiring; pending-task query moves below it. |
 | `scripts/reconcile-sheet.ts` (create) | Read-only verification. Writes nothing. |
 | `lib/health-display.ts` (create) | Tri-state derivation and labels for neutered / sick / injured. |
@@ -688,7 +688,9 @@ repairs the row silently. That fixes the symptom and hides the cause."
 - Consumes: `readAllRegionSheetStates(...)` → `{ states, failed }` (Task 1); `getSyncHalt()` from `lib/services/system.service`; `refreshCatInSyncQueue(catId, tx)` from `lib/services/helper.service`.
 - Produces:
   - `planRepairs(expectedByRegion, presentByRegion, pendingCatIds): RepairPlan`
-  - `guardTrips(expected: number, present: number, repairs: number): boolean`
+  - `looksWiped(expected: number, present: number): boolean`
+  - `takeWithinBudget<T>(items: T[], budget: number): { taken: T[]; deferred: number }`
+  - `RECONCILE_MAX_REPAIRS_PER_TICK: 25`
   - `reconcileSheetRepresentation(allRegions, states, failed): Promise<ReconcileOutcome>`
 
 **Background.** Presence is evaluated **globally**, across every region's snapshot — never per region. A per-region check would append a cat that already sits on a stale tab, producing the "cat appears on two sheets" failure. Global presence also yields the invariant that makes this safe: reconciliation only ever acts on cats absent from *every* tab, and reverse sync only processes rows that exist, so the two sets are disjoint and reverse sync can never cancel a reconciliation task.
@@ -698,7 +700,11 @@ repairs the row silently. That fixes the symptom and hides the cause."
 Create `__tests__/services/reconcile.test.ts`:
 
 ```ts
-import { planRepairs, guardTrips } from "@/lib/services/reconcile.service";
+import {
+  planRepairs,
+  looksWiped,
+  takeWithinBudget,
+} from "@/lib/services/reconcile.service";
 
 describe("planRepairs", () => {
   it("queues a cat absent from every tab", () => {
@@ -743,27 +749,38 @@ describe("planRepairs", () => {
   });
 });
 
-describe("guardTrips", () => {
-  it("trips when a region expects cats but the snapshot is empty — a failed-read signature", () => {
-    expect(guardTrips(40, 0, 40)).toBe(true);
+describe("looksWiped", () => {
+  it("trips when a region expects cats but its snapshot is empty", () => {
+    expect(looksWiped(40, 0)).toBe(true);
   });
 
   it("does not trip for a genuinely empty region", () => {
-    expect(guardTrips(0, 0, 0)).toBe(false);
+    expect(looksWiped(0, 0)).toBe(false);
   });
 
-  it("allows a small trickle in a small region", () => {
-    expect(guardTrips(3, 3, 1)).toBe(false);
+  it("does not trip whenever the tab holds anything at all", () => {
+    expect(looksWiped(40, 1)).toBe(false);
+    expect(looksWiped(3, 3)).toBe(false);
+  });
+});
+
+describe("takeWithinBudget", () => {
+  it("returns everything when it fits", () => {
+    const { taken, deferred } = takeWithinBudget([1, 2, 3], 25);
+    expect(taken).toEqual([1, 2, 3]);
+    expect(deferred).toBe(0);
   });
 
-  it("allows up to five repairs regardless of proportion", () => {
-    expect(guardTrips(8, 8, 5)).toBe(false);
-    expect(guardTrips(8, 8, 6)).toBe(true);
+  it("truncates to the budget and reports what was left", () => {
+    const { taken, deferred } = takeWithinBudget([1, 2, 3, 4, 5], 2);
+    expect(taken).toEqual([1, 2]);
+    expect(deferred).toBe(3);
   });
 
-  it("scales with region size — 25% of a large region is allowed", () => {
-    expect(guardTrips(40, 40, 10)).toBe(false);
-    expect(guardTrips(40, 40, 11)).toBe(true);
+  it("takes nothing once the budget is spent", () => {
+    const { taken, deferred } = takeWithinBudget([1, 2], 0);
+    expect(taken).toEqual([]);
+    expect(deferred).toBe(2);
   });
 });
 ```
@@ -863,6 +880,8 @@ export type RepairPlan = {
 export type ReconcileOutcome = {
   restored: number;
   moved: number;
+  /** Repairs left for the next tick because the budget ran out. */
+  deferred: number;
   skippedRegions: string[];
   skippedTick: boolean;
 };
@@ -898,17 +917,41 @@ export function planRepairs(
 }
 
 /**
- * Two independent trips. The empty-snapshot check is the backstop for a failed
- * read that slipped past the whole-tick skip; the proportional cap catches
- * anything else, since genuine drift is a slow trickle.
+ * A region that expects cats but whose snapshot came back completely empty.
+ * Reads succeeded (a failed read skips the whole tick), so the API genuinely
+ * returned nothing for a tab we believe holds rows — the signature of a wipe or
+ * a botched script, not of ordinary drift. Pause and alert rather than rewriting
+ * the tab underneath whoever is working on it.
+ *
+ * The escape is deliberately cheap: restore or add any single row and this stops
+ * tripping, after which the per-tick budget clears the rest automatically. That
+ * is why this stays a hard skip while a proportional "too many repairs" cap was
+ * rejected — the cap's only escape was repairing more by hand than it allowed,
+ * i.e. doing this function's job manually.
  */
-export function guardTrips(
-  expected: number,
-  present: number,
-  repairs: number,
-): boolean {
-  if (expected > 0 && present === 0) return true;
-  return repairs > Math.max(5, Math.floor(expected * 0.25));
+export function looksWiped(expected: number, present: number): boolean {
+  return expected > 0 && present === 0;
+}
+
+/**
+ * Per-tick repair budget. Bounds how much a mis-plan can do in one tick without
+ * ever refusing to converge: whatever is deferred is simply retried next tick,
+ * and ticks run every 20 minutes.
+ *
+ * 25 is derived, not picked: observed drift over the app's lifetime is 6 cats,
+ * the largest region holds 71, and the census is 558. 25 is roughly four times
+ * normal drift — so ordinary operation always clears in a single tick — while
+ * remaining well under a single region, so no bug can rewrite a whole tab at
+ * once. Worst case, a full-census mis-plan drains in under a day.
+ */
+export const RECONCILE_MAX_REPAIRS_PER_TICK = 25;
+
+export function takeWithinBudget<T>(
+  items: T[],
+  budget: number,
+): { taken: T[]; deferred: number } {
+  const taken = items.slice(0, Math.max(0, budget));
+  return { taken, deferred: items.length - taken.length };
 }
 
 export async function reconcileSheetRepresentation(
@@ -917,7 +960,7 @@ export async function reconcileSheetRepresentation(
   failed: Set<string>,
 ): Promise<ReconcileOutcome> {
   const empty: ReconcileOutcome = {
-    restored: 0, moved: 0, skippedRegions: [], skippedTick: true,
+    restored: 0, moved: 0, deferred: 0, skippedRegions: [], skippedTick: true,
   };
 
   if (await getSyncHalt()) return empty;
@@ -956,43 +999,60 @@ export async function reconcileSheetRepresentation(
 
   const plan = planRepairs(expectedByRegion, presentByRegion, new Set(pendingIds));
 
-  const nameOf = new Map(allRegions.map((r) => [r.id, r.name]));
   const skippedRegions: string[] = [];
   let restored = 0;
   let moved = 0;
+  let deferred = 0;
+
+  // Drop repairs aimed at a region whose tab looks wiped, then spend one shared
+  // budget across everything that remains. Wrong-tab repairs count against the
+  // same budget precisely because they are the destructive path.
+  const eligible: Array<
+    | { kind: "missing"; catId: string; regionId: string }
+    | { kind: "wrongTab"; catId: string; fromRegionId: string; toRegionId: string }
+  > = [];
 
   for (const region of allRegions) {
     const expected = expectedByRegion.get(region.id)?.length ?? 0;
     const present = presentByRegion.get(region.id)?.size ?? 0;
-    const missing = plan.missing.filter((m) => m.regionId === region.id);
-    const wrong = plan.wrongTab.filter((m) => m.toRegionId === region.id);
-    const repairs = missing.length + wrong.length;
-    if (repairs === 0) continue;
-
-    if (guardTrips(expected, present, repairs)) {
+    if (looksWiped(expected, present)) {
       skippedRegions.push(region.name);
       continue;
     }
+    for (const m of plan.missing.filter((x) => x.regionId === region.id)) {
+      eligible.push({ kind: "missing", ...m });
+    }
+    for (const w of plan.wrongTab.filter((x) => x.toRegionId === region.id)) {
+      eligible.push({ kind: "wrongTab", ...w });
+    }
+  }
 
-    for (const m of missing) {
+  const { taken, deferred: notTaken } = takeWithinBudget(
+    eligible,
+    RECONCILE_MAX_REPAIRS_PER_TICK,
+  );
+  deferred = notTaken;
+
+  for (const item of taken) {
+    if (item.kind === "missing") {
       await db.transaction(async (tx) => {
-        await refreshCatInSyncQueue(m.catId, tx);
+        await refreshCatInSyncQueue(item.catId, tx);
       });
       restored++;
-    }
-
-    for (const w of wrong) {
-      await repairRegionMove(w.catId, w.fromRegionId, w.toRegionId);
+    } else {
+      await repairRegionMove(item.catId, item.fromRegionId, item.toRegionId);
       moved++;
     }
   }
 
-  if (restored + moved + skippedRegions.length > 0) {
+  if (restored + moved + deferred + skippedRegions.length > 0) {
     const parts: string[] = [];
     if (restored) parts.push(`restored ${restored} missing row(s)`);
     if (moved) parts.push(`moved ${moved} row(s) to the correct tab`);
+    // Report the remainder, or a partial repair reads as a complete one.
+    if (deferred) parts.push(`${deferred} more queued for the next tick`);
     if (skippedRegions.length) {
-      parts.push(`skipped ${skippedRegions.join(", ")} (safety guard)`);
+      parts.push(`skipped ${skippedRegions.join(", ")} — tab looks wiped`);
     }
     try {
       await sendSyncAlert(
@@ -1006,7 +1066,7 @@ export async function reconcileSheetRepresentation(
     }
   }
 
-  return { restored, moved, skippedRegions, skippedTick: false };
+  return { restored, moved, deferred, skippedRegions, skippedTick: false };
 }
 ```
 
