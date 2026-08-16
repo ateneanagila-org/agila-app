@@ -90,19 +90,71 @@ Harmless for today's callers, which simply do less work. It becomes dangerous th
 anything treats "no rows" as "no cats on the sheet" — a transient API error would make an
 entire region look empty. This must be fixed *before* reconciliation exists, not after.
 
-### 3. `Fostered` is classified inconsistently in three places
+### 3. `Fostered` is classified inconsistently, and the two summary sheets disagree
 
-| Site | Excludes |
-| --- | --- |
-| `lib/stats/census-stats.ts` | all four `cat_status` values |
-| `findAdoptableCats` | all four |
-| For RI summary query | `Adopted`, `Deceased`, `MIA` — **not `Fostered`** |
-| `getInterventionDisplayStatus` | same three — **not `Fostered`** |
+A full audit of the sync path found **five** sites expressing "which cats count", of which
+three omit `Fostered`:
 
-Five live cats are off-census in the app yet still appear on the "For RI" rescue
-worklist volunteers work from. A cat in a foster home should not be on a rescue list.
+| Site | Excludes | |
+| --- | --- | --- |
+| `lib/stats/census-stats.ts` | all four `cat_status` values | correct |
+| `findAdoptableCats` | all four | correct |
+| For **FA** summary query | `isNull(cat_status)` — stricter, excludes all | correct |
+| For **RI** summary query (`helper.service.ts:656`) | `Adopted`, `Deceased`, `MIA` | **omits `Fostered`** |
+| `getInterventionDisplayStatus` (`helper.service.ts:97`) | same three | **omits `Fostered`** |
+| `forFaStatus` → col V (`helper.service.ts:140`) | same three | **omits `Fostered`** |
 
-### 4. The public catalog misreports neutering for 46% of the catalog
+Two distinct consequences:
+
+- Five live cats are off-census in the app yet still appear on the **For RI** rescue
+  worklist volunteers work from. A cat in a foster home should not be on a rescue list.
+- **All five fostered cats are `is_adoptable`**, so col V labels every one of them
+  `Healthy & Adoptable` on the sheet while the app's public catalog excludes them. The
+  same fact, answered two ways, in the two places a person is most likely to compare.
+
+The two summary sheets also disagree with each other despite living in the same file: For
+RI uses `notInArray(...)`, For FA uses `isNull(cat_status)`. For FA is the correct one.
+
+### 4. `parseSheetRow` treats blank cells as data, unlike every sibling field
+
+Reverse sync maps a blank cell to `null` for `sex`, `sociability`, `color`, `age`,
+`cat_status`, and `is_neutered`. Two fields break that rule and **write the resulting
+value to the database**:
+
+```ts
+// condition — cols I (Sick) and J (Injured)
+if (rawSick === "???" || rawInjured === "???") condition = null;
+else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
+else if (rawSick === "YES") condition = "Sick";
+else if (rawInjured === "YES") condition = "Injured";
+else condition = "Healthy";        // ← a blank cell lands here
+
+const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";  // ← blank ⇒ false
+```
+
+Clearing col I or J converts a deletion into a **positive medical claim**; clearing col K
+un-adopts the cat. Cols I/J/K are unprotected — only A, W, X, and Y are — so this is
+reachable by any editor.
+
+Measured live: **0 of 481 rows** are affected. Latent, not active — a trap rather than a
+cleanup.
+
+Note the round-trips themselves are lossless when values are well-formed: forward writes
+`YES`/`NO`/`???` and reverse reads them back exactly. Only malformed or cleared input
+falls through.
+
+### 5. A permanently failing task is abandoned silently
+
+After `MAX_RETRIES` (3), `syncAndCompactRegion` marks the task `FAILED` — correctly, so it
+stops lingering `PENDING`. But it then catches the error and returns `null`, so the cron's
+own try/catch never fires and **no alert is sent**. The cat's row never reaches the sheet
+and nobody is told.
+
+Reconciliation (A2) would self-heal the missing row, since a `FAILED` task is not
+`PENDING`. That fixes the symptom while leaving the cause invisible. Zero failed tasks
+exist today.
+
+### 6. The public catalog misreports neutering for 46% of the catalog
 
 `catalog-detail-screen.tsx:65` derives neutering from `neuter_date`. It is the **only**
 place in the codebase that does; stats, sheet mapping, forms, sessions, and reverse sync
@@ -121,7 +173,7 @@ This is an outward-facing factual misstatement about an animal's medical status,
 is the most consequential defect in this spec. That no adoptable cat has a null flag
 makes the correction unambiguous.
 
-### 5. `Sick` and `Injured` assert health from absent data
+### 7. `Sick` and `Injured` assert health from absent data
 
 ```ts
 const isSick = !!healthRecord?.condition?.includes("Sick");
@@ -139,7 +191,7 @@ The structural issue is `.includes()`. Substring matching couples display logic 
 enum spelling; a renamed value, or any future value containing the word, breaks it
 silently with no type error.
 
-### 6. Vaccination wording and inconsistent badge treatment
+### 8. Vaccination wording and inconsistent badge treatment
 
 The catalog's `Vaccinated` row renders `unknown` and the other states as bare `<span>`s
 while `Neutered`, `Sick`, and `Injured` use `YesNoBadge`. The row visually drops out of
@@ -149,8 +201,9 @@ its pill depending on its value. Separately, `Vaccinated` as a *value* under a
 ## Scope
 
 **In:** automatic reconciliation of `Original` cats against region tabs; failure
-reporting in the shared read pass; one shared `cat_status` exclusion set; correcting the
-four health fields on the public catalog; one shared tri-state badge; a read-only
+reporting in the shared read pass; one shared `cat_status` exclusion set across all five
+sites; blank-cell handling in `parseSheetRow`; an alert on retry exhaustion; correcting
+the four health fields on the public catalog; one shared tri-state badge; a read-only
 verification script.
 
 **Out:**
@@ -170,6 +223,16 @@ verification script.
   (~30 regions at ~1.2s pacing); it cannot sit on a page load.
 - **Rebuilding region tabs from the database each tick.** Would clobber sheet-side edits
   between ticks and contradicts the two-way design.
+- **Preserving sheet rows that lack a col-Y UUID.** Forward sync currently *destroys*
+  them: compaction filters them out of `finalData`, then `A3:V` is cleared and rewritten
+  from `finalData` alone. `CLAUDE.md` describes such rows as "invisible to sync", which is
+  true of reverse sync but understates what forward sync does. Not fixed, because the
+  Apps Script trigger stamps a UUID on every new row whether created by the app or typed
+  into the sheet, and the live audit found 0 of 481 rows unstamped. The residual risk is
+  the handoff itself: installable triggers are **per-account**, so a newly inherited
+  spreadsheet has none until they are re-installed, and a row typed in that window would
+  be destroyed on the next forward sync of its region. This belongs in the handoff guide
+  as a deploy-order warning, not in code.
 - **Migrating the nine local `formatDate` copies.** Carried over from P3 and P4.
 
 ## Design
@@ -310,11 +373,42 @@ gain a plain line: *deleting a row does not delete a cat.*
 
 #### A5. One shared off-census set
 
-`Fostered` is added to the For RI query and to `getInterventionDisplayStatus` by
-extracting the exclusion list into a single exported constant used by all four sites.
-Fixing the value without fixing the duplication would leave the same trap armed.
+`Fostered` is added to all three omitting sites — the For RI query,
+`getInterventionDisplayStatus`, and `forFaStatus` — by extracting the exclusion list into
+a single exported constant that every site imports. Fixing the values without fixing the
+duplication would leave the same trap armed; the audit found the third site precisely
+because the list was written out three times.
 
-#### A6. Read-only verification script
+For RI's `notInArray(...)` also aligns to For FA's stricter `isNull(cat_status)`, so the
+two summary sheets stop disagreeing about the same concept in the same file.
+
+#### A6. Blank cells become `null`, not values
+
+In `parseSheetRow`:
+
+- `condition` returns `null` unless **both** cols I and J hold a recognised token
+  (`YES`/`NO`/`???`). A blank or unrecognised value in either yields `null`.
+- `is_adoptable` returns `null` for a blank cell, `true` for `YES`, `false` for `NO`.
+
+This aligns both fields with the six that already behave this way. The asymmetry matters
+for `condition` in particular: partial knowledge ("sick, injured unknown") is not
+expressible in a four-value enum, so `null` is the only honest answer when either input is
+missing.
+
+`is_adoptable` is currently `boolean` with `default(false)` and is nullable, so returning
+`null` requires no schema change — but it does mean the column can now hold `null` where
+before reverse sync always wrote a concrete value. `cats.is_adoptable` consumers must
+treat `null` as "not adoptable" for filtering, which `findAdoptableCats`'
+`eq(is_adoptable, true)` already does.
+
+#### A7. Alert when a task exhausts its retries
+
+`syncAndCompactRegion` sends one Discord alert naming the region and the affected cats
+whenever it marks tasks `FAILED`. Reconciliation will repair the missing rows, but a
+repeatedly failing region indicates a real problem — a malformed payload, a permissions
+change, a renamed tab — that self-healing would otherwise mask indefinitely.
+
+#### A8. Read-only verification script
 
 `scripts/reconcile-sheet.ts` reports drift in both directions and writes nothing. It is
 **not** the fix — it is how the fix is verified, and what the handoff guide points at
@@ -411,7 +505,12 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | Reconciliation | Missing count above the cap skips and alerts rather than repairing |
 | Reconciliation | A frozen or retired system enqueues nothing |
 | Reconciliation | Repairs run before the pending-task query, so a repaired tick is not idle |
-| Off-census set | The For RI query and `getInterventionDisplayStatus` exclude `Fostered` |
+| Off-census set | All five sites share one constant; For RI, `getInterventionDisplayStatus`, and `forFaStatus` all exclude `Fostered` |
+| Off-census set | A `Fostered` + `is_adoptable` cat is absent from For RI and does not read `Healthy & Adoptable` in col V |
+| `parseSheetRow` | A blank col I or J yields `condition = null`, not `"Healthy"` |
+| `parseSheetRow` | `???` in either column still yields `null`; well-formed YES/NO round-trips losslessly in all four combinations |
+| `parseSheetRow` | A blank col K yields `is_adoptable = null`, not `false`; `YES`/`NO` map to `true`/`false` |
+| Retry exhaustion | Marking tasks `FAILED` sends exactly one alert naming the region |
 | Effective region | A cat in sessions across two regions is reported once, not twice — the guard for the deferred divergence |
 | `neuteredState` | `true → yes`, `false → no`, `null → unknown` |
 | `conditionFlags` | `Sick and Injured` sets both; `Healthy` sets neither; `null` yields `unknown` for both |
@@ -436,6 +535,10 @@ Manual:
 8. Open the one cat with a null `condition` — confirm Sick and Injured both read
    `Unknown`, not `No`.
 9. Confirm every health row keeps its badge in all states, including `Expired`.
+10. Clear col I for one cat, run a tick — confirm its condition becomes unknown rather
+    than `Healthy`, then restore the value.
+11. Confirm the five fostered cats no longer appear on For RI and no longer read
+    `Healthy & Adoptable` in col V.
 
 ## Risks
 
@@ -455,5 +558,10 @@ Manual:
 - **Changing `VACCINATION_LABELS.vaccinated` changes a filter option** that a manager may
   already have muscle memory for. Small, and the consistency gain is worth it.
 - **`Fostered` leaving the For RI sheet changes an operational worklist.** Five cats
-  disappear from a list volunteers use. Correct, but it is a visible change to someone's
-  workflow and should be mentioned rather than shipped silently.
+  disappear from a list volunteers use, and the same five stop reading
+  `Healthy & Adoptable` in col V. Correct, but a visible change to someone's workflow that
+  should be announced rather than shipped silently.
+- **`is_adoptable` can now be `null` where reverse sync previously always wrote a
+  concrete value.** Filtering already uses `eq(is_adoptable, true)`, so behaviour is
+  unchanged — but any future consumer must treat `null` as "not adoptable" rather than
+  assuming the column is effectively boolean.
