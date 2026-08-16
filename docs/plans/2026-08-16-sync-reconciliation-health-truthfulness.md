@@ -778,20 +778,36 @@ Expected: FAIL — `Cannot find module '@/lib/services/reconcile.service'`.
 
 - [ ] **Step 3: Add the repo queries**
 
-In `lib/repo/cats.repo.ts`, beside `regionSubquery`:
+In `lib/repo/cats.repo.ts`. **Do not add a second copy of the rule beside
+`regionSubquery`** — the two would be identical but for `r.name` vs `r.id`, which is
+exactly the duplication `CLAUDE.md` warns about. Define the rule once as the ID resolver,
+then **rewrite `regionSubquery` to derive from it**:
 
 ```ts
-// Effective region as an ID rather than a name. MUST mirror regionSubquery's
-// logic exactly — cats.region_id overrides, otherwise the most recent session's
-// region. CLAUDE.md flags this rule as living in several places that have to
-// agree; this is one of them.
+// THE effective-region rule, expressed once: cats.region_id is an authoritative
+// override; otherwise the most recent session's region. Both branches join
+// through `regions`, so an id pointing at a since-deleted region falls through
+// rather than resolving to a dangling value.
+//
+// CLAUDE.md flags this rule as living in several places that must agree.
+// regionSubquery below now DERIVES from this one, leaving resolveCatRegion
+// (sessions.repo.ts) as the only other expression.
 export const effectiveRegionIdSubquery = sql<string | null>`COALESCE(
-  cats.region_id,
-  (SELECT s.region_id FROM sessions s
+  (SELECT r2.id FROM regions r2 WHERE r2.id = cats.region_id),
+  (SELECT r.id FROM regions r
+    INNER JOIN sessions s ON s.region_id = r.id
     INNER JOIN session_cats sc ON sc.session_id = s.id
-    WHERE sc.cat_id = cats.id AND s.region_id IS NOT NULL
+    WHERE sc.cat_id = cats.id
     ORDER BY s.created_at DESC
     LIMIT 1)
+)`;
+
+// Name of whichever region the rule above resolved. Replaces the previous
+// hand-written COALESCE, which duplicated the rule verbatim. Behaviour is
+// unchanged: a null effective id yields `WHERE r.id = NULL`, which matches no
+// rows and returns NULL, exactly as the old version did.
+export const regionSubquery = sql<string | null>`(
+  SELECT r.name FROM regions r WHERE r.id = ${effectiveRegionIdSubquery}
 )`;
 
 /** Every Original cat with the region its row belongs on. */
@@ -821,6 +837,10 @@ export const findPendingSyncCatIds = (client: DB = db): Promise<string[]> =>
 ```
 
 Match `lib/db`'s actual exports for `DB` — check `lib/repo/cats.repo.ts`'s imports and copy them.
+
+**`regionSubquery` feeds every cat list read in the app.** After rewriting it, run the full
+suite and confirm nothing that displays a region name regressed — the dashboard list, the
+public catalog, and the session screens all consume it.
 
 - [ ] **Step 4: Implement the service**
 
