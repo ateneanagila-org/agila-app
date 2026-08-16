@@ -36,7 +36,7 @@
 | `lib/services/helper.service.ts` (modify) | `readAllRegionSheetStates` reports failures; three sites use the shared constant; col K three-way in both mappers; alert on retry exhaustion. |
 | `lib/validation/reverse-sync.ts` (modify) | Col K three-way read; `condition` returns null on unrecognised input. |
 | `lib/repo/cats.repo.ts` (modify) | `effectiveRegionIdSubquery` + `findOriginalCatIdsByEffectiveRegion`. |
-| `lib/repo/sync-queue.repo.ts` (create) | Queue reads used by reconciliation, keeping `db.*` out of services. |
+| `lib/repo/sync-queue.repo.ts` (create) | Every queue read AND mutation reconciliation needs, keeping `db.*` out of the service. |
 | `lib/services/reconcile.service.ts` (create) | Pure repair planning (`planRepairs`, `looksWiped`, `takeWithinBudget`) plus the orchestrator. |
 | `lib/services/sync-cron.service.ts` (modify) | Phase 0.5 wiring; pending-task query moves below it. |
 | `scripts/reconcile-sheet.ts` (create) | Read-only verification. Writes nothing. |
@@ -837,12 +837,16 @@ export const findOriginalCatIdsByEffectiveRegion = (
     .where(eq(cats.entry_status, "Original"));
 ```
 
-Create `lib/repo/sync-queue.repo.ts`:
+Create `lib/repo/sync-queue.repo.ts`. **Every queue query lives here, not in the
+service.** `editCat` performs these same mutations inline at `cats.service.ts:112-130`,
+but that is a pre-existing violation of the layering rule in `CLAUDE.md`; new code follows
+the rule. The service keeps only the `db.transaction(...)` orchestration and passes `tx`
+down as the `client`.
 
 ```ts
 import { db, type DB } from "@/lib/db";
 import { gsheetSyncQueue } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 /** Cat ids with a PENDING forward-sync task. */
 export const findPendingSyncCatIds = (client: DB = db): Promise<string[]> =>
@@ -851,7 +855,46 @@ export const findPendingSyncCatIds = (client: DB = db): Promise<string[]> =>
     .from(gsheetSyncQueue)
     .where(eq(gsheetSyncQueue.status, "PENDING"))
     .then((rows) => rows.map((r) => r.entityId));
+
+/**
+ * Marks a cat's PENDING tasks for ONE region as COMPLETED with a reason.
+ * Scoped to a single region on purpose: a region move must not cancel tasks
+ * already queued against the destination.
+ */
+export const supersedePendingTasks = (
+  catId: string,
+  regionId: string,
+  reason: string,
+  client: DB = db,
+) =>
+  client
+    .update(gsheetSyncQueue)
+    .set({ status: "COMPLETED", lastError: reason })
+    .where(
+      and(
+        eq(gsheetSyncQueue.entityId, catId),
+        eq(gsheetSyncQueue.regionId, regionId),
+        eq(gsheetSyncQueue.status, "PENDING"),
+      ),
+    );
+
+/** Queues a DELETE so a stale row is removed from a region's tab. */
+export const insertDeleteTask = (
+  catId: string,
+  regionId: string,
+  payload: string[],
+  client: DB = db,
+) =>
+  client.insert(gsheetSyncQueue).values({
+    action: "DELETE",
+    entityId: catId,
+    regionId,
+    payload,
+  });
 ```
+
+Match the `DB` type import to whatever `lib/repo/cats.repo.ts` actually uses — check it
+rather than copying the line above verbatim.
 
 Match `lib/db`'s actual exports for `DB` — check `lib/repo/cats.repo.ts`'s imports and copy them.
 
@@ -871,6 +914,9 @@ import { getSyncHalt } from "@/lib/services/system.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
 import * as catsRepo from "@/lib/repo/cats.repo";
 import * as queueRepo from "@/lib/repo/sync-queue.repo";
+// NOTE: no gsheetSyncQueue / drizzle-orm imports here — every statement against
+// the queue table lives in sync-queue.repo.ts. This service only orchestrates
+// the transaction.
 
 export type RepairPlan = {
   missing: { catId: string; regionId: string }[];
@@ -1092,32 +1138,28 @@ async function repairRegionMove(
   toRegionId: string,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx
-      .update(gsheetSyncQueue)
-      .set({ status: "COMPLETED", lastError: "Superseded by reconciliation" })
-      .where(
-        and(
-          eq(gsheetSyncQueue.entityId, catId),
-          eq(gsheetSyncQueue.regionId, fromRegionId),
-          eq(gsheetSyncQueue.status, "PENDING"),
-        ),
-      );
-
-    await tx.insert(gsheetSyncQueue).values({
-      action: "DELETE",
-      entityId: catId,
-      regionId: fromRegionId,
-      payload: [],
-    });
-
+    await queueRepo.supersedePendingTasks(
+      catId,
+      fromRegionId,
+      "Superseded by reconciliation",
+      tx,
+    );
+    await queueRepo.insertDeleteTask(catId, fromRegionId, [], tx);
     await refreshCatInSyncQueue(catId, tx);
   });
 }
 ```
 
-Import `gsheetSyncQueue` from `@/lib/db/schema` and `and`, `eq` from `drizzle-orm`.
+`toRegionId` is not passed to anything: `refreshCatInSyncQueue` resolves the destination
+itself via `resolveCatRegion`, which is the same rule the expected-set was built from.
+Keep the parameter for readability at the call site, or drop it — but if you keep it, do
+not "use" it by passing a region to `refreshCatInSyncQueue` that it did not ask for.
+
 Confirm the `DELETE` payload shape against `cats.service.ts:126-130` — match whatever it
 passes rather than assuming `[]`.
+
+**No `tx.update`/`tx.insert` in the service.** The transaction is orchestration and stays
+here; the statements live in `lib/repo/sync-queue.repo.ts` and take `tx` as their client.
 
 - [ ] **Step 5: Verify**
 
