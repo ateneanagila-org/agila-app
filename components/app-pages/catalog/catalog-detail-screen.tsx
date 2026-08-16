@@ -9,7 +9,18 @@ import {
 
 import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
-import { getVaccinationState, VACCINATION_LABELS } from "@/lib/vaccination";
+import {
+  getVaccinationState,
+  VACCINATION_LABELS,
+  vaccinationTone,
+} from "@/lib/vaccination";
+import {
+  neuteredState,
+  conditionFlags,
+  triStateLabel,
+  triStateTone,
+} from "@/lib/health-display";
+import { HealthBadge } from "@/components/app-pages/shared/health-badge";
 
 type CatalogDetailScreenProps = {
   cat: CatWithRegion;
@@ -21,20 +32,6 @@ function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
   if (s === "Female") return "♀";
   return null;
-}
-
-function YesNoBadge({ value }: { value: boolean }) {
-  return (
-    <span
-      className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold tracking-wide ${
-        value
-          ? "bg-brand-green/12 text-brand-green"
-          : "bg-brand-dark/8 text-brand-dark/50"
-      }`}
-    >
-      {value ? "Yes" : "No"}
-    </span>
-  );
 }
 
 function DetailRow({
@@ -62,9 +59,8 @@ export function CatalogDetailScreen({
   adoptFosterUrl,
 }: CatalogDetailScreenProps) {
   const sex = sexGlyph(cat.sex);
-  const isNeutered = !!healthRecord?.neuter_date;
-  const isSick = !!healthRecord?.condition?.includes("Sick");
-  const isInjured = !!healthRecord?.condition?.includes("Injured");
+  const neutered = neuteredState(healthRecord?.is_neutered);
+  const { sick, injured } = conditionFlags(healthRecord?.condition);
   const vaccinationState = getVaccinationState(
     healthRecord?.vaccination_date ?? null,
   );
@@ -81,22 +77,27 @@ export function CatalogDetailScreen({
   ];
 
   const healthFields: { label: string; value: React.ReactNode }[] = [
-    { label: "Neutered", value: <YesNoBadge value={isNeutered} /> },
+    {
+      label: "Neutered",
+      value: <HealthBadge label={triStateLabel(neutered)} tone={triStateTone(neutered)} />,
+    },
     {
       label: "Vaccinated",
-      value:
-        vaccinationState === "unknown" ? (
-          <span className="text-sm text-brand-dark/45">
-            {VACCINATION_LABELS.unknown}
-          </span>
-        ) : (
-          <span className="text-sm font-semibold text-brand-dark/80">
-            {VACCINATION_LABELS[vaccinationState]}
-          </span>
-        ),
+      value: (
+        <HealthBadge
+          label={VACCINATION_LABELS[vaccinationState]}
+          tone={vaccinationTone(vaccinationState)}
+        />
+      ),
     },
-    { label: "Sick", value: <YesNoBadge value={isSick} /> },
-    { label: "Injured", value: <YesNoBadge value={isInjured} /> },
+    {
+      label: "Sick",
+      value: <HealthBadge label={triStateLabel(sick)} tone={triStateTone(sick)} />,
+    },
+    {
+      label: "Injured",
+      value: <HealthBadge label={triStateLabel(injured)} tone={triStateTone(injured)} />,
+    },
   ];
 
   return (
