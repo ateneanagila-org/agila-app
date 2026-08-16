@@ -181,7 +181,7 @@ describe("reconcileSheetRepresentation — orchestration safety properties", () 
     mockAlert.mockResolvedValue(undefined);
   });
 
-  it("skips the whole tick when any region read failed — before any repo read or repair", async () => {
+  it("skips the whole tick when any region read failed — before any repo read or repair — and alerts, naming the failed region", async () => {
     const outcome = await reconcileSheetRepresentation(
       [{ id: "r1", name: "R1" }],
       new Map(),
@@ -198,7 +198,22 @@ describe("reconcileSheetRepresentation — orchestration safety properties", () 
     expect(mockFindExpected).not.toHaveBeenCalled();
     expect(mockFindPending).not.toHaveBeenCalled();
     expect(mockRefresh).not.toHaveBeenCalled();
-    expect(mockAlert).not.toHaveBeenCalled();
+    // A failed read silently disables reconciliation from then on if nothing
+    // tells anyone — this is the alert that closes that gap.
+    expect(mockAlert).toHaveBeenCalledTimes(1);
+    expect(mockAlert.mock.calls[0][0]).toContain("R1");
+  });
+
+  it("a failed read still returns cleanly when sendSyncAlert itself throws", async () => {
+    mockAlert.mockRejectedValue(new Error("Discord is down"));
+
+    const outcome = await reconcileSheetRepresentation(
+      [{ id: "r1", name: "R1" }],
+      new Map(),
+      new Set(["r1"]),
+    );
+
+    expect(outcome.skippedTick).toBe(true);
   });
 
   it.each(["frozen", "retired"] as const)(
@@ -224,9 +239,10 @@ describe("reconcileSheetRepresentation — orchestration safety properties", () 
     // catP is already correctly present, keeping r1's snapshot non-empty so
     // looksWiped doesn't fire and mask the two missing repairs below. catA
     // and catB are both missing (absent from every tab); one refresh
-    // succeeds (queues an UPDATE and returns the region), the other returns
-    // undefined (cat no longer Original / unresolvable) — Finding 3:
-    // `restored` must reflect only the former.
+    // actually queues an UPDATE, the other resolves without queueing
+    // anything (cat gone / unresolvable / no longer Original — in every one
+    // of those cases the return value can be truthy, so `restored` must be
+    // driven by whether a task actually landed, not by the return value).
     mockFindExpected.mockResolvedValue([
       { cat_id: "catP", region_id: "r1" },
       { cat_id: "catA", region_id: "r1" },
@@ -235,6 +251,10 @@ describe("reconcileSheetRepresentation — orchestration safety properties", () 
     mockRefresh.mockImplementation(async (catId: string) =>
       catId === "catA" ? { id: "r1", name: "R1" } : undefined,
     );
+    // First call is the pre-repair pendingCatIds snapshot (nothing pending
+    // yet); second is this function's post-repair check of what landed —
+    // only catA's refresh actually queued a task.
+    mockFindPending.mockResolvedValueOnce([]).mockResolvedValueOnce(["catA"]);
 
     const outcome = await reconcileSheetRepresentation(
       [{ id: "r1", name: "R1" }],
@@ -246,6 +266,94 @@ describe("reconcileSheetRepresentation — orchestration safety properties", () 
 
     expect(outcome.restored).toBe(1);
     expect(mockRefresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops a wiped region's repairs and reports its name in skippedRegions, without attempting them", async () => {
+    // r1 expects catA but its snapshot came back completely empty — the
+    // looksWiped signature of a renamed/cleared tab, not ordinary drift.
+    // Unlike every other arrange in this file, this test does NOT park a
+    // decoy cat to dodge looksWiped — it deliberately trips it, since that
+    // wiring (skip + report, don't repair) is otherwise asserted nowhere.
+    mockFindExpected.mockResolvedValue([{ cat_id: "catA", region_id: "r1" }]);
+    mockFindPending.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const outcome = await reconcileSheetRepresentation(
+      [{ id: "r1", name: "R1" }],
+      new Map([["r1", []]]),
+      new Set(),
+    );
+
+    expect(outcome.skippedRegions).toEqual(["R1"]);
+    expect(outcome.restored).toBe(0);
+    expect(outcome.deferred).toBe(0);
+    expect(mockRefresh).not.toHaveBeenCalled();
+  });
+
+  it("shares one budget between missing and wrongTab repairs — one of each pending, budget 1, exactly one repair happens", async () => {
+    // catP is present and correctly placed on r1, keeping r1's snapshot
+    // non-empty so looksWiped doesn't fire and mask the two repairs below.
+    // catA is missing from every tab (expected on r1). catB sits on the
+    // wrong tab (present on r2, expected on r1) — catZ keeps r2's snapshot
+    // non-empty for the same reason. With a shared budget of 1, only ONE of
+    // the two repairs may be taken; a per-kind budget of 1 each would let
+    // both through.
+    mockFindExpected.mockResolvedValue([
+      { cat_id: "catP", region_id: "r1" },
+      { cat_id: "catA", region_id: "r1" },
+      { cat_id: "catB", region_id: "r1" },
+      { cat_id: "catZ", region_id: "r2" },
+    ]);
+    mockFindPending.mockResolvedValue([]);
+
+    const outcome = await reconcileSheetRepresentation(
+      [{ id: "r1", name: "R1" }, { id: "r2", name: "R2" }],
+      new Map([
+        ["r1", [{ raw: [], entityId: "catP", lastEditedAt: null, editedBy: null, rowIndex: 3 }]],
+        [
+          "r2",
+          [
+            { raw: [], entityId: "catB", lastEditedAt: null, editedBy: null, rowIndex: 3 },
+            { raw: [], entityId: "catZ", lastEditedAt: null, editedBy: null, rowIndex: 4 },
+          ],
+        ],
+      ]),
+      new Set(),
+      1, // maxRepairsPerTick
+    );
+
+    expect(outcome.skippedRegions).toEqual([]);
+    expect(outcome.deferred).toBe(1);
+    // The eligible list is built region-by-region (r1 before r2) and within
+    // r1, missing before wrongTab, so catA's missing repair is the one
+    // taken and catB's wrongTab repair is the one deferred. Only the taken
+    // repair's machinery should ever run.
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(mockRefresh).toHaveBeenCalledWith("catA", expect.anything());
+    expect(mockSupersede).not.toHaveBeenCalled();
+    expect(mockInsertDelete).not.toHaveBeenCalled();
+  });
+
+  it("leaves the outcome intact when sendSyncAlert throws", async () => {
+    // catP is a decoy so r1's snapshot isn't empty and looksWiped doesn't
+    // fire and mask catA's repair.
+    mockFindExpected.mockResolvedValue([
+      { cat_id: "catP", region_id: "r1" },
+      { cat_id: "catA", region_id: "r1" },
+    ]);
+    mockFindPending.mockResolvedValueOnce([]).mockResolvedValueOnce(["catA"]);
+    mockRefresh.mockResolvedValue({ id: "r1", name: "R1" });
+    mockAlert.mockRejectedValue(new Error("Discord is down"));
+
+    const outcome = await reconcileSheetRepresentation(
+      [{ id: "r1", name: "R1" }],
+      new Map([
+        ["r1", [{ raw: [], entityId: "catP", lastEditedAt: null, editedBy: null, rowIndex: 3 }]],
+      ]),
+      new Set(),
+    );
+
+    expect(outcome.restored).toBe(1);
+    expect(outcome.skippedTick).toBe(false);
   });
 
   describe("wrongTab repair guard (repairRegionMove)", () => {

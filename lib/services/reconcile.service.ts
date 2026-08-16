@@ -131,6 +131,10 @@ export async function reconcileSheetRepresentation(
   allRegions: { id: string; name: string }[],
   states: Map<string, SheetRow[]>,
   failed: Set<string>,
+  // Test seam only — production always uses the module default. Kept as a
+  // parameter (not an env var or module mock) so the shared-budget property
+  // between `missing` and `wrongTab` repairs can be exercised directly.
+  maxRepairsPerTick: number = RECONCILE_MAX_REPAIRS_PER_TICK,
 ): Promise<ReconcileOutcome> {
   const empty: ReconcileOutcome = {
     restored: 0, moved: 0, deferred: 0, skippedRegions: [], skippedTick: true,
@@ -141,9 +145,27 @@ export async function reconcileSheetRepresentation(
   // Presence is a global property: one failed read makes it untrustworthy
   // everywhere, because a cat living on that tab looks absent from all of them.
   if (failed.size > 0) {
+    const failedNames = allRegions
+      .filter((r) => failed.has(r.id))
+      .map((r) => r.name);
     console.log(
       `[Reconcile] Skipping tick — ${failed.size} region read(s) failed.`,
     );
+    // A console.log is not a signal anyone sees. A renamed or deleted tab
+    // fails every tick from then on, so without an alert reconciliation goes
+    // silently dark forever — exactly the failure mode this branch exists to
+    // end. Wrapped in its own try/catch, like the other alert sites, so a
+    // Discord outage can't turn a real skipped tick into an uncaught throw.
+    try {
+      await sendSyncAlert(
+        `Sheet reconciliation: skipped this tick — region read(s) failed for ${failedNames.join(", ") || failed.size + " region(s)"}. Reconciliation is off until this resolves.`,
+      );
+    } catch (err) {
+      console.error(
+        "[Reconcile] Alert delivery failed:",
+        err instanceof Error ? err.message : err,
+      );
+    }
     return empty;
   }
 
@@ -202,19 +224,24 @@ export async function reconcileSheetRepresentation(
 
   const { taken, deferred: notTaken } = takeWithinBudget(
     eligible,
-    RECONCILE_MAX_REPAIRS_PER_TICK,
+    maxRepairsPerTick,
   );
   deferred = notTaken;
 
+  const missingCatIds: string[] = [];
+
   for (const item of taken) {
     if (item.kind === "missing") {
-      // refreshCatInSyncQueue queues nothing (returns undefined) when the cat
-      // is gone, unresolvable, or no longer Original — count only what it
-      // actually queued, or the outcome/alert overstates the repair.
-      const queued = await db.transaction((tx) =>
-        refreshCatInSyncQueue(item.catId, tx),
-      );
-      if (queued) restored++;
+      // refreshCatInSyncQueue returns undefined ONLY when the cat is gone or
+      // has no resolvable region. When the cat resolves but is no longer
+      // Original (e.g. merged between the snapshot and this repair running)
+      // it returns the region — truthy — while queueing nothing
+      // (helper.service.ts:254-260). So a truthy check on the return value
+      // can't tell "queued" from "resolved but skipped", and counting on it
+      // overstates `restored` (and the Discord alert says "restored" for a
+      // cat that got nothing queued). Confirm a task actually landed instead.
+      await db.transaction((tx) => refreshCatInSyncQueue(item.catId, tx));
+      missingCatIds.push(item.catId);
     } else {
       const didMove = await repairRegionMove(
         item.catId,
@@ -223,6 +250,14 @@ export async function reconcileSheetRepresentation(
       );
       if (didMove) moved++;
     }
+  }
+
+  if (missingCatIds.length > 0) {
+    // planRepairs (via pendingCatIds) already excluded any catId that had a
+    // PENDING task before this tick, so any of these ids showing up as
+    // PENDING now is exactly the set the loop above actually queued.
+    const nowPending = new Set(await queueRepo.findPendingSyncCatIds());
+    restored = missingCatIds.filter((id) => nowPending.has(id)).length;
   }
 
   if (restored + moved + deferred + skippedRegions.length > 0) {
@@ -259,10 +294,16 @@ export async function reconcileSheetRepresentation(
  * supersede + DELETE before the refresh, unconditionally. Two ways that goes
  * wrong:
  *
- *   - `refreshCatInSyncQueue` returns undefined and queues nothing when the
- *     cat is gone, has no resolvable region, or is no longer Original
- *     (`helper.service.ts:252-260`) — so the DELETE fires with no
- *     compensating UPDATE, and the cat's row is simply gone from every sheet.
+ *   - `refreshCatInSyncQueue` returns undefined ONLY when the cat is gone or
+ *     has no resolvable region — that's exactly what the `!dest` guard below
+ *     catches, so no DELETE fires either. A cat that resolves but is no
+ *     longer Original (e.g. merged) instead returns the region — truthy —
+ *     while queueing nothing (`helper.service.ts:254-260`), so `!dest` does
+ *     NOT catch it: the DELETE still fires with no compensating UPDATE, and
+ *     the cat's row is simply gone from every sheet. That is correct here —
+ *     a merged cat should not be re-added to any tab — but it means this
+ *     path's safety rests on the entry_status gate inside
+ *     `refreshCatInSyncQueue`, not on this function's own `!dest` check.
  *   - A race: between the expected-set snapshot and this repair running, a
  *     manager's `editCat` moves the cat back to `fromRegionId`. Refreshing
  *     first makes `dest.id === fromRegionId` true and this correctly no-ops.
@@ -290,6 +331,16 @@ async function repairRegionMove(
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
     const dest = await refreshCatInSyncQueue(catId, tx);
+    // By the time this guard can see `dest.id === fromRegionId` — the race
+    // this no-op exists for — refreshCatInSyncQueue has already queued an
+    // UPDATE for `dest.id`, i.e. the CURRENT (correct) region, and that
+    // UPDATE commits regardless: this function does not, and must not, roll
+    // it back. That is one redundant-but-harmless rewrite of the correct
+    // tab, not the corruption this guard prevents (a DELETE with no
+    // compensating UPDATE against the OLD tab). Do not reorder this to
+    // check-then-refresh to avoid that write — running supersede/DELETE
+    // before the refresh is exactly the ordering the Critical above was
+    // fixed by removing.
     if (!dest || dest.id === fromRegionId) return false;
 
     // toRegionId is what the planner expected from the read-only snapshot;

@@ -1439,7 +1439,7 @@ export async function readSheetState(regionId: string): Promise<SheetRow[]> {
  *
  * `failed` names the regions whose read threw. A failed region still maps to
  * [] in `states` so existing callers (photo import, reverse sync) behave
- * exactly as before â€" they simply do less work. Reconciliation needs the
+ * exactly as before — they simply do less work. Reconciliation needs the
  * distinction, because "no rows" and "the read broke" are indistinguishable
  * otherwise and the second one would make a whole region look absent.
  */
