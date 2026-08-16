@@ -658,3 +658,42 @@ Manual:
   concrete value.** Filtering already uses `eq(is_adoptable, true)`, so behaviour is
   unchanged — but any future consumer must treat `null` as "not adoptable" rather than
   assuming the column is effectively boolean.
+
+## Follow-ups surfaced during implementation
+
+Not part of P5. Recorded here because the whole-branch review is the only place they were
+visible, and the workspace that held them is deleted once the branch lands.
+
+**"Absence is a clean bill of health" survives in col V and the For FA sheet.**
+`forFaStatus` and `generateForFaSheet` still treat a `null` `condition` as
+`Healthy & Adoptable`. Strand B removed exactly this inference from the public catalog —
+and Task 3 made `null` conditions *more* common, because a blank col I/J used to import as
+`"Healthy"` and now correctly imports as `null`. Net effect: more cats are advertised to
+adoption-fair volunteers as healthy on the strength of no record at all. Left alone here
+because Strand B was scoped to the four public rows and changing the For FA sheet alters
+an operational worklist, but it is the same defect in a different surface.
+
+**Reconciliation repairs presence, not content.** Tasks 2 and 3 changed what cols
+T/U/V/K/I/J *should* contain, but forward sync still only rewrites a row when a task is
+queued. Existing rows keep their old values until something else edits that cat — a
+Fostered cat's col V will read `Healthy & Adoptable` indefinitely. So "the sheet matches
+the database" after P5 means *rows exist in the right place*, not *cells are correct*. The
+handoff guide should say so, or a clean `reconcile-sheet.ts` run will be read as more than
+it claims.
+
+**Sheet rows with no matching `Original` cat are detected but never repaired.**
+`reconcile-sheet.ts` reports them (currently zero), but `reconcileSheetRepresentation`
+iterates the expected set only, so an orphan row is never acted on. One-directional by
+design; simply not stated anywhere until now.
+
+**`cats.service.ts` still issues queue statements inline.** P2 ruled that pre-existing
+`db.*` violations stay and new code follows the rule, which is why
+`lib/repo/sync-queue.repo.ts` exists. The consequence is that `repairRegionMove` mirrors
+`editCat`'s supersede/DELETE pair by hand. Migrating `cats.service`'s three queue writes
+onto the repo would retire the violation cheaply and express that pair once — which
+matters, because the two must stay in agreement.
+
+**One cat needs a manual correction at deploy.** `417b923e` on tab MVP holds `???` in col
+K while the database records `is_adoptable = false`. The parser fix does not repair it
+retroactively — reverse sync only re-imports rows carrying a col-W edit timestamp. Set
+that cat's `is_adoptable` to `null`, or edit the row so it re-imports.
