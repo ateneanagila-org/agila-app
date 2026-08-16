@@ -9,6 +9,7 @@ import {
 import { reverseSyncRegionsFromState } from "@/lib/services/reverse-sync.service";
 import { importPhotosIfNeeded } from "@/lib/services/photo-import.service";
 import { sendSyncAlert } from "@/lib/services/discord.service";
+import { reconcileSheetRepresentation } from "@/lib/services/reconcile.service";
 import { eq } from "drizzle-orm";
 
 function errMsg(error: unknown): string {
@@ -28,7 +29,35 @@ export async function syncAllPendingRegions() {
     );
   }
 
-  // Pending forward-sync tasks — queried once, used for both idle-exit and Phase 3.
+  // Phase 0.5: Reconcile representation. Runs BEFORE the pending-task query so a
+  // repair makes this tick non-idle and is pushed the same cycle, and before the
+  // idle early-exit — a drifted cat generates neither a pending task nor a sheet
+  // edit, which is exactly why the drift persisted. Costs no extra Sheets calls:
+  // Phase 0 already read every region, idle tick or not.
+  //
+  // Its own try/catch: a reconciliation failure must not fail the tick, which
+  // would auto-freeze sync over the wrong subsystem.
+  try {
+    const outcome = await reconcileSheetRepresentation(
+      allRegions,
+      sheetStates,
+      failedRegions,
+    );
+    if (
+      outcome.restored ||
+      outcome.moved ||
+      outcome.deferred ||
+      outcome.skippedRegions.length
+    ) {
+      console.log(
+        `[Reconcile] restored=${outcome.restored} moved=${outcome.moved} deferred=${outcome.deferred} skipped=[${outcome.skippedRegions.join(", ")}]`,
+      );
+    }
+  } catch (error) {
+    console.error("[Reconcile] Failed (non-fatal):", errMsg(error));
+  }
+
+  // Pending forward-sync tasks — queried AFTER reconciliation so repairs count.
   const pendingTasks = await db
     .selectDistinct({ regionId: gsheetSyncQueue.regionId })
     .from(gsheetSyncQueue)
