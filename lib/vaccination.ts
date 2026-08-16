@@ -1,4 +1,5 @@
 import { monthsSince } from "@/lib/utils";
+import type { BadgeTone } from "@/lib/health-display";
 
 /**
  * Vaccination state derivation.
@@ -21,9 +22,18 @@ export type VaccinationState = "unknown" | "vaccinated" | "expired";
 
 export const VACCINATION_LABELS: Record<VaccinationState, string> = {
   unknown: "Unknown",
-  vaccinated: "Vaccinated",
+  vaccinated: "Yes",
   expired: "Expired",
 };
+
+/** `expired` is muted, not alarmed — see the spec's neutrality constraint. */
+export function vaccinationTone(state: VaccinationState): BadgeTone {
+  return state === "vaccinated"
+    ? "affirmative"
+    : state === "expired"
+      ? "muted"
+      : "unknown";
+}
 
 /** Filter options, ordered most-to-least actionable. */
 export const VACCINATION_FILTER_OPTIONS = [

@@ -1,7 +1,9 @@
 import {
   VACCINATION_EXPIRY_MONTHS,
   VACCINATION_LABELS,
+  VACCINATION_FILTER_OPTIONS,
   getVaccinationState,
+  vaccinationTone,
 } from "@/lib/vaccination";
 
 const NOW = new Date(2026, 7, 15);
@@ -53,8 +55,30 @@ describe("VACCINATION_LABELS", () => {
   it("uses the codebase's Unknown convention", () => {
     expect(VACCINATION_LABELS).toEqual({
       unknown: "Unknown",
-      vaccinated: "Vaccinated",
+      vaccinated: "Yes",
       expired: "Expired",
     });
+  });
+});
+
+describe("vaccination labels read as answers to the row", () => {
+  it("vaccinated reads Yes, matching Neutered's Yes", () => {
+    expect(VACCINATION_LABELS).toEqual({
+      unknown: "Unknown", vaccinated: "Yes", expired: "Expired",
+    });
+  });
+
+  it("filter options follow the labels", () => {
+    expect([...VACCINATION_FILTER_OPTIONS]).toEqual(["Yes", "Expired", "Unknown"]);
+  });
+});
+
+describe("vaccinationTone", () => {
+  it("expired is muted, never an alarm — the data cannot support a clinical claim", () => {
+    expect(vaccinationTone("expired")).toBe("muted");
+  });
+  it("vaccinated is affirmative and unknown is unknown", () => {
+    expect(vaccinationTone("vaccinated")).toBe("affirmative");
+    expect(vaccinationTone("unknown")).toBe("unknown");
   });
 });
