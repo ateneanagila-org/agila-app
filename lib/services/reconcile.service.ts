@@ -27,15 +27,42 @@ export type ReconcileOutcome = {
  * Presence is global on purpose. Checking only the cat's own region would append
  * a cat that already sits on a stale tab, producing the double-listing failure
  * this is meant to prevent.
+ *
+ * A cat can be present on MORE than one tab at once — that double-listing is
+ * exactly the failure this function has to catch, not just the single-tab
+ * "wrong tab" case. So `locationOf` collects every tab a cat was found on,
+ * not just the last one a `Map` overwrite happened to keep: with a plain
+ * last-writer-wins map, iterating regions in one order reports the duplicate
+ * as `wrongTab` (and cleans it up) while the reverse order reports the same
+ * cat as correctly placed (and never flags it) — the exact silent,
+ * order-dependent miss this is meant to prevent. Every location that is NOT
+ * the expected region becomes its own `wrongTab` repair, even when the cat is
+ * ALSO correctly present at the expected region — that location is left
+ * alone; only the stale extras are queued for cleanup.
+ *
+ * Disjointness from reverse sync (see `reconcileSheetRepresentation`'s
+ * skippedTick comment) holds for `missing` only: a missing cat is by
+ * definition absent from every tab, so reverse sync — which only processes
+ * rows that exist — has nothing to cancel. A `wrongTab` cat is present on a
+ * tab, and reverse sync's PENDING-task cancellation is scoped by entity id
+ * only, not by region (see `reverse-sync.service.ts`'s cancel-on-edit block),
+ * so a human edit landing on the stale row between the snapshot and the
+ * repair can supersede both the DELETE and the compensating UPDATE. That is
+ * bounded, not silent: the edit stamps the cat's `last_updated_at`, so the
+ * next tick re-detects the same wrongTab state and repairs it again.
  */
 export function planRepairs(
   expectedByRegion: Map<string, string[]>,
   presentByRegion: Map<string, Set<string>>,
   pendingCatIds: Set<string>,
 ): RepairPlan {
-  const locationOf = new Map<string, string>();
+  const locationOf = new Map<string, string[]>();
   for (const [regionId, ids] of presentByRegion) {
-    for (const id of ids) locationOf.set(id, regionId);
+    for (const id of ids) {
+      const locations = locationOf.get(id) ?? [];
+      locations.push(regionId);
+      locationOf.set(id, locations);
+    }
   }
 
   const plan: RepairPlan = { missing: [], wrongTab: [] };
@@ -44,10 +71,19 @@ export function planRepairs(
       // A pending task already produces the row: Phase 3 hits idx === -1 and
       // appends it as part of the same operation.
       if (pendingCatIds.has(catId)) continue;
-      const found = locationOf.get(catId);
-      if (found === regionId) continue;
-      if (found === undefined) plan.missing.push({ catId, regionId });
-      else plan.wrongTab.push({ catId, fromRegionId: found, toRegionId: regionId });
+      const locations = locationOf.get(catId);
+      if (!locations || locations.length === 0) {
+        plan.missing.push({ catId, regionId });
+        continue;
+      }
+      // Every location other than the expected one is a stale duplicate (or,
+      // if there is exactly one and it isn't the expected region, the sole
+      // wrong-tab case). The expected location, if present, is left alone.
+      for (const found of locations) {
+        if (found !== regionId) {
+          plan.wrongTab.push({ catId, fromRegionId: found, toRegionId: regionId });
+        }
+      }
     }
   }
   return plan;
@@ -172,13 +208,20 @@ export async function reconcileSheetRepresentation(
 
   for (const item of taken) {
     if (item.kind === "missing") {
-      await db.transaction(async (tx) => {
-        await refreshCatInSyncQueue(item.catId, tx);
-      });
-      restored++;
+      // refreshCatInSyncQueue queues nothing (returns undefined) when the cat
+      // is gone, unresolvable, or no longer Original — count only what it
+      // actually queued, or the outcome/alert overstates the repair.
+      const queued = await db.transaction((tx) =>
+        refreshCatInSyncQueue(item.catId, tx),
+      );
+      if (queued) restored++;
     } else {
-      await repairRegionMove(item.catId, item.fromRegionId, item.toRegionId);
-      moved++;
+      const didMove = await repairRegionMove(
+        item.catId,
+        item.fromRegionId,
+        item.toRegionId,
+      );
+      if (didMove) moved++;
     }
   }
 
@@ -208,9 +251,32 @@ export async function reconcileSheetRepresentation(
 
 /**
  * A region move whose DELETE was missed: the row still sits on the old tab.
- * Same three steps editCat performs, in the same order — supersede the cat's
- * pending tasks for the OLD region only, queue a DELETE so the stale row is
- * removed, then queue the UPDATE that appends it to the new tab.
+ *
+ * ORDER MATTERS — this must match `editCat`'s sequence exactly
+ * (`cats.service.ts:107-131`): refresh FIRST, capture the region it actually
+ * resolved to, and only supersede + DELETE the old region if that resolution
+ * really did move away from it. An earlier draft of this function ran
+ * supersede + DELETE before the refresh, unconditionally. Two ways that goes
+ * wrong:
+ *
+ *   - `refreshCatInSyncQueue` returns undefined and queues nothing when the
+ *     cat is gone, has no resolvable region, or is no longer Original
+ *     (`helper.service.ts:252-260`) — so the DELETE fires with no
+ *     compensating UPDATE, and the cat's row is simply gone from every sheet.
+ *   - A race: between the expected-set snapshot and this repair running, a
+ *     manager's `editCat` moves the cat back to `fromRegionId`. Refreshing
+ *     first makes `dest.id === fromRegionId` true and this correctly no-ops.
+ *     Refreshing last would instead queue a DELETE and an UPDATE against the
+ *     SAME region with the SAME (transaction-constant) `createdAt`, an
+ *     arbitrary tie `syncAndCompactRegion` breaks by `asc(createdAt)` order —
+ *     either the row is written then spliced out (the cat vanishes from the
+ *     sheet) or spliced then re-appended through the `idx === -1` branch,
+ *     which assigns a fresh catalog number (the cat is silently renumbered,
+ *     and catalog numbers are sheet-owned and never stored in the DB, so this
+ *     is unrecoverable).
+ *
+ * Returns whether a move repair actually happened, so the caller counts
+ * successes and not attempts.
  *
  * The DELETE is the one destructive act in reconciliation. Cols A-V are DB
  * projections and are rewritten at the destination, but cols W/X
@@ -221,9 +287,21 @@ async function repairRegionMove(
   catId: string,
   fromRegionId: string,
   toRegionId: string,
-): Promise<void> {
-  void toRegionId; // resolved internally by refreshCatInSyncQueue via resolveCatRegion
-  await db.transaction(async (tx) => {
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const dest = await refreshCatInSyncQueue(catId, tx);
+    if (!dest || dest.id === fromRegionId) return false;
+
+    // toRegionId is what the planner expected from the read-only snapshot;
+    // dest.id is what actually resolved just now, inside this transaction.
+    // They agree unless the cat's region changed underneath the snapshot —
+    // not a bug, just why the guard above trusts dest, not toRegionId.
+    if (dest.id !== toRegionId) {
+      console.warn(
+        `[Reconcile] region move for cat ${catId}: planner expected ${toRegionId}, resolved to ${dest.id} — cat moved again since the snapshot was taken.`,
+      );
+    }
+
     await queueRepo.supersedePendingTasks(
       catId,
       fromRegionId,
@@ -231,6 +309,6 @@ async function repairRegionMove(
       tx,
     );
     await queueRepo.insertDeleteTask(catId, fromRegionId, [], tx);
-    await refreshCatInSyncQueue(catId, tx);
+    return true;
   });
 }
