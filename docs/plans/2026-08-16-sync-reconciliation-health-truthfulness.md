@@ -1081,13 +1081,21 @@ export async function reconcileSheetRepresentation(
 
   for (const item of taken) {
     if (item.kind === "missing") {
-      await db.transaction(async (tx) => {
-        await refreshCatInSyncQueue(item.catId, tx);
-      });
-      restored++;
+      // refreshCatInSyncQueue returns undefined when nothing was queued — the
+      // cat vanished, has no resolvable region, or is no longer Original, all
+      // reachable as races against the snapshot read. Count successes, not
+      // attempts, or the outcome and the Discord alert overstate the repair.
+      const queued = await db.transaction(async (tx) =>
+        refreshCatInSyncQueue(item.catId, tx),
+      );
+      if (queued) restored++;
     } else {
-      await repairRegionMove(item.catId, item.fromRegionId, item.toRegionId);
-      moved++;
+      const didMove = await repairRegionMove(
+        item.catId,
+        item.fromRegionId,
+        item.toRegionId,
+      );
+      if (didMove) moved++;
     }
   }
 
@@ -1136,8 +1144,27 @@ async function repairRegionMove(
   catId: string,
   fromRegionId: string,
   toRegionId: string,
-): Promise<void> {
-  await db.transaction(async (tx) => {
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    // Queue the UPDATE FIRST and capture where it actually went. editCat does
+    // exactly this (cats.service.ts:107-131) and the order is load-bearing:
+    // superseding and DELETE-ing before knowing the destination can leave a
+    // DELETE with no compensating UPDATE, or — worse — a DELETE and an UPDATE
+    // aimed at the SAME region. Both tasks would then carry the same
+    // created_at (defaultNow() is transaction-constant) and syncAndCompactRegion
+    // orders by createdAt ASC, so the tie resolves arbitrarily: either the row
+    // is written then spliced out (cat vanishes) or spliced then re-appended
+    // through the idx === -1 branch, which assigns a fresh catalog number.
+    // Catalog numbers are sheet-owned and not stored in the DB, so that
+    // renumbering is unrecoverable.
+    const dest = await refreshCatInSyncQueue(catId, tx);
+
+    // Nothing queued (cat gone, no resolvable region, or not Original), or the
+    // destination turned out to be the tab it is already on — a race against
+    // the snapshot read. Either way there is no move to make, and the DELETE
+    // must not fire.
+    if (!dest || dest.id === fromRegionId) return false;
+
     await queueRepo.supersedePendingTasks(
       catId,
       fromRegionId,
@@ -1145,15 +1172,15 @@ async function repairRegionMove(
       tx,
     );
     await queueRepo.insertDeleteTask(catId, fromRegionId, [], tx);
-    await refreshCatInSyncQueue(catId, tx);
+    return true;
   });
 }
 ```
 
-`toRegionId` is not passed to anything: `refreshCatInSyncQueue` resolves the destination
-itself via `resolveCatRegion`, which is the same rule the expected-set was built from.
-Keep the parameter for readability at the call site, or drop it — but if you keep it, do
-not "use" it by passing a region to `refreshCatInSyncQueue` that it did not ask for.
+`toRegionId` is what the planner expected; `dest.id` is what `refreshCatInSyncQueue`
+actually resolved. They agree unless the cat changed underneath the snapshot. The return
+value tells the caller whether a move really happened, so `moved` counts reality rather
+than intent.
 
 Confirm the `DELETE` payload shape against `cats.service.ts:126-130` — match whatever it
 passes rather than assuming `[]`.
