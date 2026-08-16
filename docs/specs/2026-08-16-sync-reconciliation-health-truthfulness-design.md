@@ -395,11 +395,33 @@ for `condition` in particular: partial knowledge ("sick, injured unknown") is no
 expressible in a four-value enum, so `null` is the only honest answer when either input is
 missing.
 
-`is_adoptable` is currently `boolean` with `default(false)` and is nullable, so returning
-`null` requires no schema change — but it does mean the column can now hold `null` where
-before reverse sync always wrote a concrete value. `cats.is_adoptable` consumers must
-treat `null` as "not adoptable" for filtering, which `findAdoptableCats`'
-`eq(is_adoptable, true)` already does.
+**The forward mapper must change with it, or the fix self-corrupts.** Both
+`mapCatToSheetRow` and `mapUnknownCatToSheetRow` currently write col K as
+`cat.is_adoptable ? "YES" : "NO"`, which flattens `null` to `"NO"`. Left alone, the
+round-trip destroys the value it just started preserving:
+
+1. A cleared col K makes reverse sync write `is_adoptable = null`.
+2. The next forward sync writes `"NO"`, because `null` is falsy.
+3. The next reverse sync reads `"NO"` and writes `false`.
+
+The `null` survives roughly twenty minutes. That is worse than the original coercion,
+because it looks fixed and undoes itself out of sight.
+
+Col K therefore adopts col G's existing three-way pattern verbatim, in **both** mappers:
+
+```ts
+cat.is_adoptable === true ? "YES" : cat.is_adoptable === false ? "NO" : "???"
+```
+
+This is not a new convention — `is_neutered` (col G) and `condition` (cols I/J) both
+already emit `"???"` for null and read it back. `is_adoptable` was the only one of the
+three writing two-way, which is exactly why it was safe until the column became nullable.
+
+Nothing else needs changing: no `null` ever reaches the Sheets API (every element of both
+mappers is a string), col V is derived and write-only — reverse sync parses cols T and U
+but never V — and `findAdoptableCats` already filters on `eq(is_adoptable, true)`, so a
+`null` is correctly excluded. Future consumers must treat `null` as "not adoptable" rather
+than assuming the column is effectively boolean.
 
 #### A7. Alert when a task exhausts its retries
 
@@ -510,6 +532,8 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | `parseSheetRow` | A blank col I or J yields `condition = null`, not `"Healthy"` |
 | `parseSheetRow` | `???` in either column still yields `null`; well-formed YES/NO round-trips losslessly in all four combinations |
 | `parseSheetRow` | A blank col K yields `is_adoptable = null`, not `false`; `YES`/`NO` map to `true`/`false` |
+| Sheet mappers | Col K emits `"???"` for a null `is_adoptable` in **both** `mapCatToSheetRow` and `mapUnknownCatToSheetRow` |
+| Round-trip | `is_adoptable: null → "???" → null` survives a full forward-then-reverse cycle without becoming `false` |
 | Retry exhaustion | Marking tasks `FAILED` sends exactly one alert naming the region |
 | Effective region | A cat in sessions across two regions is reported once, not twice — the guard for the deferred divergence |
 | `neuteredState` | `true → yes`, `false → no`, `null → unknown` |
@@ -539,6 +563,8 @@ Manual:
     than `Healthy`, then restore the value.
 11. Confirm the five fostered cats no longer appear on For RI and no longer read
     `Healthy & Adoptable` in col V.
+12. Clear col K for one cat, then run **two** ticks — confirm col K reads `???` and the
+    database still holds `null`, rather than the value collapsing to `NO`/`false`.
 
 ## Risks
 
