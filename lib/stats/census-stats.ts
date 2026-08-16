@@ -1,8 +1,8 @@
 import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
-import { CAT_STATUS_VALUES } from "@/lib/db/enums";
+import { OFF_CENSUS_STATUSES } from "@/lib/db/enums";
 
 /** All cat_status values are off-census statuses (active cats have null status). */
-export const OFF_CENSUS_STATUSES = CAT_STATUS_VALUES;
+export { OFF_CENSUS_STATUSES };
 
 const OFF_CENSUS_SET = new Set<string>(OFF_CENSUS_STATUSES);
 

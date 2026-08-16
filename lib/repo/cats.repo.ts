@@ -1,6 +1,6 @@
 import { DB, db } from "../db";
 import { cats, catHealthRecords } from "../db/schema";
-import { eq, notInArray, isNull, isNotNull, and, or, inArray, like, sql } from "drizzle-orm";
+import { eq, isNull, isNotNull, and, or, inArray, like, sql } from "drizzle-orm";
 import {
   InsertCat,
   InsertCatHealthRecord,
@@ -102,12 +102,7 @@ export const findAdoptableCats = (
   filters: Partial<SelectCat>,
 ): Promise<CatWithRegion[]> => {
   const conditions = buildCatConditions(filters);
-  conditions.push(
-    or(
-      isNull(cats.cat_status),
-      notInArray(cats.cat_status, ["Adopted", "Fostered", "Deceased", "MIA"]),
-    )!,
-  );
+  conditions.push(isNull(cats.cat_status));
   return db
     .select({
       ...catReadColumns,

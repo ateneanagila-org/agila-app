@@ -26,6 +26,7 @@ import {
 import { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import { SelectIntervention } from "@/lib/validation/interventions";
 import { NON_REGION_TABS, TEMPLATE_TAB_NAME } from "@/lib/constants";
+import { OFF_CENSUS_STATUSES, type CatStatus } from "@/lib/db/enums";
 
 const MAX_RETRIES = 3;
 
@@ -89,12 +90,12 @@ export async function exportSpreadsheetAsZip(
 /**
  * Helper to calculate "Human Readable" status for Columns S and T
  */
-function getInterventionDisplayStatus(
+export function getInterventionDisplayStatus(
   cat: SelectCat,
   allInterventions: SelectIntervention[],
   targetType: "TNVR" | "Veterinarian",
 ): string {
-  if (["Adopted", "Deceased", "MIA"].includes(cat.cat_status ?? "")) {
+  if (OFF_CENSUS_STATUSES.includes(cat.cat_status as CatStatus)) {
     return "Not Applicable";
   }
 
@@ -137,7 +138,7 @@ export function mapCatToSheetRow(
   const catStatus = (cat.cat_status ?? "") as string;
 
   let forFaStatus = "Not Ready for FA";
-  if (["Adopted", "Deceased", "MIA"].includes(catStatus)) {
+  if (OFF_CENSUS_STATUSES.includes(catStatus as CatStatus)) {
     forFaStatus = "Not Applicable";
   } else if (cat.is_adoptable) {
     if (condition.includes("Sick")) forFaStatus = "Sick & Adoptable";
@@ -648,13 +649,10 @@ export async function generateForRiSheet(
           orderBy: (i, { desc }) => [desc(i.requested_at)],
         },
       },
-      where: (c, { exists, eq, and, or, isNull, notInArray }) =>
+      where: (c, { exists, eq, and, or, isNull }) =>
         and(
           eq(c.entry_status, "Original"),
-          or(
-            isNull(c.cat_status),
-            notInArray(c.cat_status, ["Adopted", "Deceased", "MIA"]),
-          ),
+          isNull(c.cat_status),
           or(
             eq(c.region_id, region.id),
             and(

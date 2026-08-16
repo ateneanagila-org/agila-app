@@ -143,6 +143,17 @@ export const catStatusEnum = pgEnum("cat_status", CAT_STATUS_VALUES);
 export const CatStatusEnum = z.enum(CAT_STATUS_VALUES);
 export type CatStatus = z.infer<typeof CatStatusEnum>;
 
+/**
+ * cat_status values that take a cat off the active census. This is every value —
+ * an active campus cat has a null status.
+ *
+ * Shared by census stats, the adoptable filter, both summary-sheet queries, and
+ * the sheet's col T/U/V labels, which must all agree. It exists because the list
+ * was previously written out by hand in several places and three of them had
+ * drifted, silently omitting Fostered.
+ */
+export const OFF_CENSUS_STATUSES: readonly CatStatus[] = CAT_STATUS_VALUES;
+
 // Cat Entry_Status
 export const CAT_ENTRY_STATUS_VALUES = [
   "Unsubmitted",
