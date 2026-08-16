@@ -115,33 +115,56 @@ Two distinct consequences:
 The two summary sheets also disagree with each other despite living in the same file: For
 RI uses `notInArray(...)`, For FA uses `isNull(cat_status)`. For FA is the correct one.
 
-### 4. `parseSheetRow` treats blank cells as data, unlike every sibling field
+### 4. Col K discards the sheet's own "unknown" option
 
-Reverse sync maps a blank cell to `null` for `sex`, `sociability`, `color`, `age`,
-`cat_status`, and `is_neutered`. Two fields break that rule and **write the resulting
-value to the database**:
+Every classification column on a region tab is a `ONE_OF_LIST` dropdown, and **each
+carries its own unknown sentinel — they are not uniform**:
+
+| Column | Options | Unknown option | Parser result |
+| --- | --- | --- | --- |
+| F sex | `Female \| Male \| ???` | `???` | `null` — correct |
+| G neutered | `YES \| NO \| ???` | `???` | `null` — correct |
+| H sociability | `Domesticated \| Tame \| Feral \| ???` | `???` | `null` — correct |
+| I sick, J injured | `YES \| NO \| ???` | `???` | `null` — correct |
+| **K adoptable** | `YES \| NO \| ???` | `???` | **`false` — wrong** |
+| L status | `Fostered \| Adopted \| MIA \| Deceased \| None of the above` | **"None of the above"** | `null` — correct |
+| D color, E age | 12 / 4 values | **none exists** | all accepted — correct |
+
+Only col K is broken. `parseSheetRow` reads it as a two-way flag:
 
 ```ts
-// condition — cols I (Sick) and J (Injured)
-if (rawSick === "???" || rawInjured === "???") condition = null;
-else if (rawSick === "YES" && rawInjured === "YES") condition = "Sick and Injured";
-else if (rawSick === "YES") condition = "Sick";
-else if (rawInjured === "YES") condition = "Injured";
-else condition = "Healthy";        // ← a blank cell lands here
-
-const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";  // ← blank ⇒ false
+const is_adoptable = String(row[10] ?? "").toUpperCase() === "YES";
 ```
 
-Clearing col I or J converts a deletion into a **positive medical claim**; clearing col K
-un-adopts the cat. Cols I/J/K are unprotected — only A, W, X, and Y are — so this is
-reachable by any editor.
+So `NO` and `???` both collapse to `false`. The sheet offers "unknown" as a
+first-class choice through the intended dropdown UI, and the parser records it as a
+definite negative.
 
-Measured live: **0 of 481 rows** are affected. Latent, not active — a trap rather than a
-cleanup.
+**This is active, not latent: 1 of 481 rows holds `???` in col K today.** A volunteer
+selected it deliberately, and that cat is now excluded from the public catalog on the
+strength of an answer that meant "I don't know".
 
-Note the round-trips themselves are lossless when values are well-formed: forward writes
-`YES`/`NO`/`???` and reverse reads them back exactly. Only malformed or cleared input
-falls through.
+A second, latent half: `strict` is unset on every rule, so blanks and hand-typed values
+are permitted with only a warning. A blank col K yields `false` by the same line, and a
+blank col I or J falls through `parseSheetRow`'s final `else` to `condition = "Healthy"` —
+a positive medical claim from an empty cell. Both are 0 of 481 today. Note the contrast:
+`???` in cols I/J is handled correctly; only a *blank* is mishandled there, whereas col K
+mishandles both.
+
+### 4b. Note: two dropdown options are app-written display values
+
+Cols T and U list `Had TNVR intervention` and `Had Vet intervention`, which
+`parseInterventionSignal` ignores — only `Will have …` and `Will not have intervention`
+carry meaning inbound. This is **not a defect**: those two strings are what
+`getInterventionDisplayStatus` *writes* when an intervention is `Finished`, so the
+dropdown is enumerating the app's own output. Selecting one by hand is inert, which is
+correct — completing an intervention belongs in the app. Recorded so the next reader does
+not mistake it for the col-K bug.
+
+One cosmetic wrinkle: col T's option is `"Will have TNVR intervention "` with a trailing
+space while forward sync writes it without one. The parser trims, so behaviour is
+unaffected, but every synced row in col T carries a data-validation warning flag. Fixing
+it means editing the dropdown in the sheet, not the code.
 
 ### 5. A permanently failing task is abandoned silently
 
@@ -382,40 +405,48 @@ because the list was written out three times.
 For RI's `notInArray(...)` also aligns to For FA's stricter `isNull(cat_status)`, so the
 two summary sheets stop disagreeing about the same concept in the same file.
 
-#### A6. Blank cells become `null`, not values
+#### A6. Col K reads all three dropdown options; blanks become `null`
 
-In `parseSheetRow`:
+`parseSheetRow` gains a three-way read of col K, matching col G's existing treatment:
 
-- `condition` returns `null` unless **both** cols I and J hold a recognised token
-  (`YES`/`NO`/`???`). A blank or unrecognised value in either yields `null`.
-- `is_adoptable` returns `null` for a blank cell, `true` for `YES`, `false` for `NO`.
+```ts
+const rawAdoptable = String(row[10] ?? "").trim().toUpperCase();
+const is_adoptable =
+  rawAdoptable === "YES" ? true : rawAdoptable === "NO" ? false : null;
+```
 
-This aligns both fields with the six that already behave this way. The asymmetry matters
-for `condition` in particular: partial knowledge ("sick, injured unknown") is not
-expressible in a four-value enum, so `null` is the only honest answer when either input is
-missing.
+`???` — an option the dropdown offers and a volunteer has already used — now records
+"unknown" instead of a definite `false`. Blanks and hand-typed values land in the same
+`null` branch.
+
+`condition` likewise returns `null` unless **both** cols I and J hold a recognised token
+(`YES`/`NO`/`???`), instead of falling through to `"Healthy"`. Partial knowledge ("sick,
+injured unknown") is not expressible in a four-value enum, so `null` is the only honest
+answer when either input is missing.
 
 **The forward mapper must change with it, or the fix self-corrupts.** Both
 `mapCatToSheetRow` and `mapUnknownCatToSheetRow` currently write col K as
-`cat.is_adoptable ? "YES" : "NO"`, which flattens `null` to `"NO"`. Left alone, the
-round-trip destroys the value it just started preserving:
+`cat.is_adoptable ? "YES" : "NO"`, which flattens `null` to `"NO"`. Left alone the
+round-trip destroys the value it just started preserving: a `???` selection becomes
+`null`, the next forward sync writes `"NO"`, and the next reverse sync reads `false`. The
+`null` would survive about twenty minutes.
 
-1. A cleared col K makes reverse sync write `is_adoptable = null`.
-2. The next forward sync writes `"NO"`, because `null` is falsy.
-3. The next reverse sync reads `"NO"` and writes `false`.
-
-The `null` survives roughly twenty minutes. That is worse than the original coercion,
-because it looks fixed and undoes itself out of sight.
-
-Col K therefore adopts col G's existing three-way pattern verbatim, in **both** mappers:
+Col K therefore adopts col G's three-way pattern verbatim, in **both** mappers:
 
 ```ts
 cat.is_adoptable === true ? "YES" : cat.is_adoptable === false ? "NO" : "???"
 ```
 
-This is not a new convention — `is_neutered` (col G) and `condition` (cols I/J) both
-already emit `"???"` for null and read it back. `is_adoptable` was the only one of the
-three writing two-way, which is exactly why it was safe until the column became nullable.
+This is not a new convention. `is_neutered` (col G) and `condition` (cols I/J) already
+emit `"???"` for null and read it back; `is_adoptable` was the only one writing two-way,
+which is exactly why it was safe until the column became nullable.
+
+**The one already-affected row does not self-heal.** The cat currently holding `???` in
+col K has `is_adoptable = false` in the database. Reverse sync only re-imports rows with a
+col-W edit timestamp, so fixing the parser does not retroactively correct it — and forward
+sync will not clobber the sheet's `???` either, because untasked rows keep their existing
+col A–V values. The divergence simply persists until someone touches that row. One manual
+correction closes it (see Testing).
 
 Nothing else needs changing: no `null` ever reaches the Sheets API (every element of both
 mappers is a string), col V is derived and write-only — reverse sync parses cols T and U
@@ -432,7 +463,9 @@ change, a renamed tab — that self-healing would otherwise mask indefinitely.
 
 #### A8. Read-only verification script
 
-`scripts/reconcile-sheet.ts` reports drift in both directions and writes nothing. It is
+`scripts/reconcile-sheet.ts` reports drift in both directions and writes nothing. It also
+lists rows whose col K holds `???` while the database records a concrete `is_adoptable`,
+which is how the one known mis-recorded cat is found at deploy time. It is
 **not** the fix — it is how the fix is verified, and what the handoff guide points at
 when someone asks whether the two sources agree. It follows the existing
 `find-skipped-rows` / `find-suffix-drift` pattern.
@@ -531,7 +564,8 @@ Automated (Jest, `testEnvironment: "node"`, mocked seams):
 | Off-census set | A `Fostered` + `is_adoptable` cat is absent from For RI and does not read `Healthy & Adoptable` in col V |
 | `parseSheetRow` | A blank col I or J yields `condition = null`, not `"Healthy"` |
 | `parseSheetRow` | `???` in either column still yields `null`; well-formed YES/NO round-trips losslessly in all four combinations |
-| `parseSheetRow` | A blank col K yields `is_adoptable = null`, not `false`; `YES`/`NO` map to `true`/`false` |
+| `parseSheetRow` | Col K: `YES → true`, `NO → false`, **`??? → null`**, blank → `null` |
+| `parseSheetRow` | Cols F/G/H keep mapping `???` to `null`, and col L keeps mapping `"None of the above"` to `null` — each column's own sentinel, unchanged |
 | Sheet mappers | Col K emits `"???"` for a null `is_adoptable` in **both** `mapCatToSheetRow` and `mapUnknownCatToSheetRow` |
 | Round-trip | `is_adoptable: null → "???" → null` survives a full forward-then-reverse cycle without becoming `false` |
 | Retry exhaustion | Marking tasks `FAILED` sends exactly one alert naming the region |
@@ -563,8 +597,13 @@ Manual:
     than `Healthy`, then restore the value.
 11. Confirm the five fostered cats no longer appear on For RI and no longer read
     `Healthy & Adoptable` in col V.
-12. Clear col K for one cat, then run **two** ticks — confirm col K reads `???` and the
-    database still holds `null`, rather than the value collapsing to `NO`/`false`.
+12. Select `???` in col K for a test cat, then run **two** ticks — confirm col K still
+    reads `???` and the database holds `null`, rather than collapsing to `NO`/`false`.
+    One tick is not enough; the corruption this guards against appears on the second.
+13. **One-time correction:** find the single existing row with `???` in col K (the
+    verification script reports it) and set that cat's `is_adoptable` to `null`. Fixing
+    the parser does not retroactively repair it — reverse sync only re-imports rows
+    carrying a col-W edit timestamp.
 
 ## Risks
 
@@ -587,6 +626,10 @@ Manual:
   disappear from a list volunteers use, and the same five stop reading
   `Healthy & Adoptable` in col V. Correct, but a visible change to someone's workflow that
   should be announced rather than shipped silently.
+- **One cat is already mis-recorded and needs a manual fix.** The row holding `???` in
+  col K has `is_adoptable = false` in the database and will keep it until someone edits
+  that row. It is one record, but it is a real cat wrongly excluded from the public
+  catalog, so it should be corrected at deploy rather than left to chance.
 - **`is_adoptable` can now be `null` where reverse sync previously always wrote a
   concrete value.** Filtering already uses `eq(is_adoptable, true)`, so behaviour is
   unchanged — but any future consumer must treat `null` as "not adoptable" rather than
