@@ -25,6 +25,7 @@ import {
   getCatHealthRecords,
 } from "@/app/actions/cats";
 import { normalizeCatField } from "@/lib/utils";
+import { neuteredState, triStateLabel, triStateToValue } from "@/lib/health-display";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import { useRegions } from "@/lib/hooks/use-regions";
 import {
@@ -46,12 +47,6 @@ import type {
 } from "@/lib/db/enums";
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
-function neuteredToLabel(b: boolean | null | undefined): string {
-  return b === true ? "Yes" : b === false ? "No" : "Unknown";
-}
-function neuteredToValue(s: string): boolean | null {
-  return s === "Yes" ? true : s === "No" ? false : null;
-}
 
 export function SessionsApprovalValidationScreen() {
   const router = useRouter();
@@ -135,7 +130,7 @@ export function SessionsApprovalValidationScreen() {
         populateForm(catData);
         const rec = hrResult?.data?.[0];
         setCondition(rec?.condition ?? "Unknown");
-        setNeutered(neuteredToLabel(rec?.is_neutered));
+        setNeutered(triStateLabel(neuteredState(rec?.is_neutered)));
         setOrigCondition(rec?.condition ?? null);
         setOrigNeutered(rec?.is_neutered ?? null);
       } else {
@@ -165,7 +160,7 @@ export function SessionsApprovalValidationScreen() {
         // Drizzle .set() skips undefined keys, keeping the old value.
         name: name || null,
         condition: normalizeCatField<CatHealthRecordCondition>(condition),
-        is_neutered: neuteredToValue(neutered),
+        is_neutered: triStateToValue(neutered),
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),
@@ -219,7 +214,7 @@ export function SessionsApprovalValidationScreen() {
     return (
       (name || "") !== (cat.name ?? "") ||
       normalizeCatField<CatHealthRecordCondition>(condition) !== origCondition ||
-      neuteredToValue(neutered) !== origNeutered ||
+      triStateToValue(neutered) !== origNeutered ||
       dlsMonth !== od.month ||
       dlsDay !== od.day ||
       dlsYear !== od.year ||
@@ -276,7 +271,7 @@ export function SessionsApprovalValidationScreen() {
         // Drizzle .set() skips undefined keys, keeping the old value.
         name: name || null,
         condition: normalizeCatField<CatHealthRecordCondition>(condition),
-        is_neutered: neuteredToValue(neutered),
+        is_neutered: triStateToValue(neutered),
         color: normalizeCatField<CatColor>(color),
         age: normalizeCatField<CatAge>(age),
         sex: normalizeCatField<CatSex>(sex),

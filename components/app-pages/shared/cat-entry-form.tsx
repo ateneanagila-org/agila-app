@@ -38,6 +38,7 @@ import type {
 } from "@/lib/db/enums";
 import type { SelectCat } from "@/lib/validation/cats";
 import { normalizeCatField } from "@/lib/utils";
+import { neuteredState, triStateLabel, triStateToValue } from "@/lib/health-display";
 import {
   DateInputRow,
   parseDateParts,
@@ -45,16 +46,6 @@ import {
 } from "@/components/ui/date-input";
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
-
-/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
-function neuteredToLabel(b: boolean | null | undefined): string {
-  return b === true ? "Yes" : b === false ? "No" : "Unknown";
-}
-// Unknown is a real tri-state value here (sheet col G "???"), so it persists as
-// null rather than being omitted — selecting Unknown actually resets the field.
-function neuteredToValue(s: string): boolean | null {
-  return s === "Yes" ? true : s === "No" ? false : null;
-}
 
 /** Build upload FormData: full normalized original (no crop) + position trio. */
 async function buildPhotoFormData(file: File, position: PhotoPosition) {
@@ -200,7 +191,7 @@ export function CatEntryForm({
     getCatHealthRecords({ cat_id: initialCat.id }).then((res) => {
       const rec = res?.data?.[0];
       setCondition(rec?.condition ?? "Unknown");
-      setNeutered(neuteredToLabel(rec?.is_neutered));
+      setNeutered(triStateLabel(neuteredState(rec?.is_neutered)));
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -221,7 +212,7 @@ export function CatEntryForm({
         const result = await editAction({
           id: initialCat.id,
           condition: normalizeCatField<CatHealthRecordCondition>(condition),
-          is_neutered: neuteredToValue(neutered),
+          is_neutered: triStateToValue(neutered),
           color: normalizeCatField<CatColor>(color),
           age: normalizeCatField<CatAge>(age),
           sex: normalizeCatField<CatSex>(sex),
@@ -274,7 +265,7 @@ export function CatEntryForm({
         const payload = {
           region_id: effectiveRegionId,
           condition: normalizeCatField<CatHealthRecordCondition>(condition),
-          is_neutered: neuteredToValue(neutered),
+          is_neutered: triStateToValue(neutered),
           color: normalizeCatField<CatColor>(color),
           age: normalizeCatField<CatAge>(age),
           sex: normalizeCatField<CatSex>(sex),

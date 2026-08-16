@@ -18,6 +18,7 @@ import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import { CATHEALTHRECORD_CONDITION_VALUES } from "@/lib/db/enums";
 import type { CatHealthRecordCondition } from "@/lib/db/enums";
 import { normalizeCatField, formatMonthsAgo } from "@/lib/utils";
+import { neuteredState, triStateLabel, triStateToValue } from "@/lib/health-display";
 
 function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
@@ -26,14 +27,6 @@ function sexGlyph(s: string | null | undefined): string | null {
 }
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
-
-/** Sheet col G semantics: true=YES, false=NO, null=??? (unknown). */
-function neuteredToLabel(b: boolean | null | undefined): string {
-  return b === true ? "Yes" : b === false ? "No" : "Unknown";
-}
-function neuteredToValue(s: string): boolean | null {
-  return s === "Yes" ? true : s === "No" ? false : null;
-}
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -62,7 +55,7 @@ export function DatabaseMedicalScreen() {
 
   const populateForm = useCallback((hr: SelectCatHealthRecord) => {
     setCondition(hr.condition ?? "Unknown");
-    setNeutered(neuteredToLabel(hr.is_neutered));
+    setNeutered(triStateLabel(neuteredState(hr.is_neutered)));
     const neuter = parseDateParts(hr.neuter_date);
     setNeuterMonth(neuter.month);
     setNeuterDay(neuter.day);
@@ -88,7 +81,7 @@ export function DatabaseMedicalScreen() {
       const result = await editCat({
         id: catId,
         condition: normalizeCatField<CatHealthRecordCondition>(condition),
-        is_neutered: neuteredToValue(neutered),
+        is_neutered: triStateToValue(neutered),
         neuter_date: buildDate(neuterMonth, neuterDay, neuterYear),
         vaccination_date: buildDate(vaccMonth, vaccDay, vaccYear),
       });
