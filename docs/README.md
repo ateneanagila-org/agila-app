@@ -12,6 +12,7 @@ invariants, and the design system. Everything here is the deeper layer beneath i
 | [architecture/frontend.md](architecture/frontend.md)        | dev / agent     | Two-screen (mobile/desktop) strategy                          |
 | [specs/](specs/)                                            | dev / agent     | **Active** design specs awaiting or under implementation      |
 | [operations/gsheets-sync-setup.md](operations/gsheets-sync-setup.md) | operator | Sync setup + runbook: provisioning, cutover, recovery         |
+| [operations/handoff.md](operations/handoff.md)              | operator        | Moving the accounts to AGILA ownership — one-time runbook      |
 | [operations/decommissioning.md](operations/decommissioning.md) | operator | Retiring the sync: killswitch, cron teardown, Apps Script cleanup |
 | [handbook/AGILA-User-Manual.md](handbook/AGILA-User-Manual.md) | end user    | Non-technical manual, split by role                           |
 | [reference/](reference/)                                    | context         | Original proposal + CATalog spreadsheet exports               |
@@ -26,6 +27,8 @@ invariants, and the design system. Everything here is the deeper layer beneath i
 - **Building UI** → `CLAUDE.md` for the design system, `architecture/frontend.md` for the
   mobile/desktop split.
 - **Running or repairing the sync in production** → `operations/gsheets-sync-setup.md`.
+- **Transferring the accounts to AGILA** → `operations/handoff.md`. Read the domain
+  section first — it is the step that makes the other three safe.
 - **Understanding *why* something exists** → `archive/`, then `reference/project-proposal.md`.
 
 ## Notes on `reference/`
