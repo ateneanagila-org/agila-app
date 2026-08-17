@@ -24,8 +24,8 @@ Eight surfaces. Five are already AGILA's; three are not.
 | **CATalog spreadsheet** | the org's live fallback + the bound Apps Script | AGILA |
 | **Discord** | where sync alerts land | AGILA |
 | **Domain** | the catalog's public URL | *(none yet — see Stage 0)* |
-| **GitHub** | the source | **personal** |
-| **Vercel** | the running app and all its env vars | **personal** |
+| **GitHub** | the source | **personal** → an AGILA *user* account (see Stage 1) |
+| **Vercel** | the running app and all its env vars | **personal** → AGILA's own Hobby account (see Stage 2) |
 | **Supabase** | Postgres **and** the `cat-photos` bucket | **personal** |
 
 ### Supabase is the one that matters
@@ -71,14 +71,15 @@ process before the next one starts.
 
 - [ ] You can sign in to AGILA's Google account, and it has 2FA set up with recovery
       codes stored somewhere that is not one person's phone.
-- [ ] You are an owner/admin on **both** sides of every transfer — the personal account
-      and the AGILA-side org. Every platform below requires this; none of them let you
-      push a project into an org you don't belong to.
-- [ ] Check each platform's current transfer documentation before executing. The
-      mechanics below were true when written and these products change; the
-      **verification steps** are what actually matter and stay true.
+- [ ] You can sign in to both sides of every move — your account and AGILA's. Nothing here
+      lets you push a project into somewhere you do not belong.
+- [ ] **Check each platform's current plan limits and transfer docs before executing.**
+      The free tiers are what constrain this handoff, and they change. Vercel's lack of
+      free teams is what forced the shape of Stages 1 and 2; assume the next such surprise
+      is waiting in Stage 3. The **verification steps** are what stay true.
 - [ ] Confirm free-tier headroom on the receiving side. Supabase caps free projects per
-      organisation — moving into an org that is already at its limit fails.
+      organisation — moving into an org already at its limit fails.
+- [ ] Decide where the domain is registered *before* Stage 0, on an account AGILA controls.
 - [ ] Note the current sync state: Admin → GSheet Config. If sync is Frozen, find out why
       before adding a migration on top of it.
 - [ ] Take a database backup you can restore from, independent of Supabase.
@@ -105,43 +106,85 @@ Nothing is destroyed at this stage.
 
 ---
 
+> ### The free tier shapes both of these stages
+>
+> **Vercel's free (Hobby) plan has no teams** — a Hobby account is personal, full stop. So
+> there is no AGILA "team" to transfer the project into, and Stages 1 and 2 below are
+> written around that.
+>
+> Two consequences follow, and they are the reason this section exists:
+>
+> 1. **The repo goes to a GitHub *user* account owned by AGILA, not an organisation.**
+>    Vercel Hobby has historically refused to build repositories owned by a GitHub
+>    Organization, treating it as commercial use. Moving the repo to an org and only then
+>    discovering that leaves it somewhere the free deploy cannot reach — worse than the
+>    starting position. A user account keeps the exact shape that works today and merely
+>    changes whose name is on it.
+> 2. **Stage 2 is a re-deploy, not a transfer.** Vercel's project-transfer feature is built
+>    around teams; do not assume Hobby-to-Hobby works. Importing the repo fresh under
+>    AGILA's account is the path that does not depend on it.
+>
+> The cost of the user-account route is honest and worth stating: **no per-person access
+> control.** Everyone with the keys shares one credential set, exactly as the Cloudflare and
+> Google Cloud accounts already do. If AGILA ever funds a Vercel Pro seat (~$20/month), a
+> real org plus a real team becomes available and is the better structure.
+
 ## Stage 1 — GitHub
 
-1. Transfer the repository to AGILA's GitHub organisation.
-2. Install the Vercel GitHub App on the AGILA org and grant it access to the repo, so the
-   still-personal Vercel project can keep building.
+1. Sign in to GitHub as AGILA (its own Google identity), so a user account exists to
+   receive the repo.
+2. Transfer the repository to that account.
+3. Add whoever maintains the code as a **collaborator**, so they can push. Note this is
+   also what fixes a `403 denied to <user>` on push — the credential in your keychain must
+   belong to an account with write access to the repo's new home.
 
 **Verify:**
 
-- [ ] Push a trivial commit and confirm Vercel builds and deploys it.
-- [ ] Branch protection and any Actions still behave as before.
+- [ ] `git push` succeeds from a maintainer's machine.
+- [ ] Any Actions still run.
 
-**Rollback:** transfer the repo back. GitHub keeps redirects, so nothing referencing the
-old path breaks immediately.
+**Rollback:** transfer the repo back. GitHub keeps redirects, so existing clones and links
+keep working in the meantime.
 
 ---
 
-## Stage 2 — Vercel
+## Stage 2 — Vercel (re-deploy, not transfer)
 
-1. Create (or use) a Vercel team under AGILA's Google account.
-2. Transfer the project into it.
-3. **Re-check every environment variable.** Do not assume they came across — compare
-   against the running app's requirements and re-enter anything missing. A missing
-   `SERVICE_ACCOUNT_CREDENTIALS` or `CRON_SECRET` does not fail the build; it fails the
-   next sync tick.
-4. Re-attach the custom domain to the project in its new home.
+The old project keeps serving the site until the final step, so the visible downtime is
+only the domain switch.
 
-**Verify:**
+1. Sign in to Vercel as AGILA and **import the repo** as a new project. Match the
+   production branch (`prod`).
+2. **Enter all ten environment variables** from [`/.env.example`](../../.env.example).
+   Nothing carries over on a fresh import. A missing `SERVICE_ACCOUNT_CREDENTIALS` or
+   `CRON_SECRET` will not fail the build — it fails the next sync tick, quietly.
+3. Deploy, and confirm the new project works on **its own `.vercel.app` URL** before
+   touching the domain. Everything below can be checked there.
+4. **Cut the domain over:** remove it from the old project, add it to the new one. A domain
+   can only be attached to one project at a time, so do these back to back — this is the
+   only moment the public site is down.
+5. Delete the old project once the new one has served the domain cleanly for a day.
 
-- [ ] The site loads on the custom domain, not just the new `.vercel.app` URL.
+**Verify — before the domain cutover, on the new `.vercel.app` URL:**
+
+- [ ] The site loads and the catalog renders with photos.
 - [ ] Sign-in works — this exercises the Google OAuth client in the AGILA Cloud project.
 - [ ] `/api/health` returns healthy.
-- [ ] `CRON_SECRET` in Vercel still matches the Worker's secret. If either was rotated,
-      both must change together, or `/api/cron/sync` returns 401 on every tick.
-- [ ] Wait one cron interval and confirm a clean tick.
 
-**Rollback:** transfer the project back and re-attach the domain. Deployments are
-immutable, so the previous build is still there.
+**Verify — after the cutover:**
+
+- [ ] The custom domain serves the new project.
+- [ ] `NEXT_PUBLIC_SITE_URL` and `APP_URL` both still name the custom domain, so the
+      sitemap, canonicals, and the cron Worker keep pointing at a stable address. **This is
+      what Stage 0 bought:** because the public URL is the domain rather than a
+      `*.vercel.app` address, changing projects does not change any URL the outside world
+      or the Worker knows.
+- [ ] `CRON_SECRET` in the new project matches the Worker's secret exactly. If either was
+      rotated, both must change together, or `/api/cron/sync` returns 401 on every tick.
+- [ ] Wait one cron interval (20 min) and confirm a clean tick with no Discord alert.
+
+**Rollback:** re-attach the domain to the old project, which is still there and still
+deployable, and investigate before retrying.
 
 ---
 
