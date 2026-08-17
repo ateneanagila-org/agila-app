@@ -49,13 +49,25 @@ COALESCE(
 )
 ```
 
-This single rule is expressed in **three places that must stay in agreement**:
+The rule is written **once** in SQL, with two consumers derived from it and two independent
+expressions that must stay in agreement by hand:
 
-| Where                                    | Used for                        |
-| ---------------------------------------- | ------------------------------- |
-| `regionSubquery` — `lib/repo/cats.repo.ts` | list reads, display, filters   |
-| `resolveCatRegion` — `lib/repo/sessions.repo.ts` | sync routing, region moves |
-| `exists` clauses in the summary generators | For RI / For FA grouping       |
+| Where                                              | Relationship | Used for                      |
+| -------------------------------------------------- | ------------ | ----------------------------- |
+| `effectiveRegionIdSubquery` — `lib/repo/cats.repo.ts` | **the rule** | resolves to a region id       |
+| `regionSubquery` — same file                        | derived      | list reads, display, filters  |
+| `findOriginalCatIdsByEffectiveRegion` — same file    | derived      | reconciliation routing        |
+| `resolveCatRegion` — `lib/repo/sessions.repo.ts`     | duplicate    | sync routing, region moves    |
+| `exists` clauses in the summary generators           | duplicate    | For RI / For FA grouping      |
+
+`regionSubquery` used to hand-write the same COALESCE a second time. It now selects a name
+`WHERE r.id = ${effectiveRegionIdSubquery}`, so a null effective id yields `WHERE r.id = NULL`
+— matching no rows and returning `NULL`, exactly as before.
+
+> **Nothing tests this.** Every suite mocks the DB seam, so a malformed subquery here passes
+> the whole suite while silently returning the wrong region for every cat in the app. When
+> you change it, verify against real data with a throwaway script comparing old and new
+> output across all rows.
 
 Consequences worth knowing:
 
@@ -111,7 +123,9 @@ Two independent axes, often confused:
 - **`cats.cat_status`** — lifecycle: `Deceased` · `Fostered` · `Adopted` · `MIA`. `null` means
   an active census cat. Drives the col-A suffix and off-census stats.
 - **`cat_health_records.condition`** — `Healthy` · `Sick` · `Injured` · `Sick and Injured`.
-  `null` means genuinely unknown (sheet `???`).
+  `null` means genuinely unknown — from the sheet's `???` **or a blank cell**. A blank col I/J
+  used to import as `Healthy`, turning an empty cell into a positive medical claim; it now
+  imports as `null`. `Healthy` is therefore a *recorded* answer, never an inferred one.
 
 **`is_neutered` is deliberately separate from `neuter_date`.** Volunteers routinely tick
 "neutered" without recording a date, so the boolean is the source of truth for TNVR stats and
@@ -125,8 +139,16 @@ from the other.
 - `date_last_seen` — a **plain stored value**, not derived from sessions. Deriving it would let
   the initial-import session poison every cat's date. `null` = genuinely unknown. Fed by
   session create, merge auto-advance, manual edits, reverse sync col N, and a one-time backfill.
-- `photo_zoom` / `photo_offset_x` / `photo_offset_y` — `NOT NULL` with identity defaults
-  `(1, 0, 0)`, which render as plain object-cover. See below.
+- `photo_zoom` / `photo_offset_x` / `photo_offset_y` / `photo_rotation` — `NOT NULL` with
+  identity defaults `(1, 0, 0, 0)`, which render as plain object-cover. See below.
+- **`is_adoptable` is the deliberate exception.** The column is nullable, but nothing writes
+  `null` and nothing reads it as a third state — sheet `???` and blank both parse to `false`.
+  The distinction is *observation vs. decision*: `sex`, `is_neutered`, `sociability` and
+  `condition` record facts about the cat that you may simply not have measured, so unknown is
+  real. `is_adoptable` records AGILA's decision to offer a cat for adoption, and a decision has
+  a safe default (`default(false)`) — "undecided" and "not offered" are the same thing to every
+  consumer, all of which gate on `is_adoptable === true`. Do not "fix" col K to match its
+  YES/NO/`???` neighbours; that was tried and reverted.
 - Selecting "Unknown" in a form **writes null** rather than skipping the field
   (`normalizeCatField`), so clearing a value actually clears it. Drizzle's `.set()` skips
   `undefined` keys, so forms must send `null`, never `undefined`, to clear.
@@ -134,11 +156,16 @@ from the other.
 ## Photos: crop as metadata
 
 `photo_url` points at the **full normalized original** in the `cat-photos` bucket
-(`${catId}/photo.jpg`, upsert). The visible crop is the `photo_zoom` / `photo_offset_x` /
-`photo_offset_y` trio, applied at render time by `lib/photo-position.ts` — the single source of
-truth shared by the editor preview and the display, so what you frame is what renders.
+(`${catId}/photo.jpg`, upsert). The visible framing is the `photo_zoom` / `photo_offset_x` /
+`photo_offset_y` / `photo_rotation` quad, applied at render time by `lib/photo-position.ts` —
+the single source of truth shared by the editor preview and the display, so what you frame is
+what renders.
 
-- Identity `(1, 0, 0)` is indistinguishable from a legacy baked crop.
+- `photo_rotation` ∈ `{0, 90, 180, 270}`, normalized by `normalizeRotation`. **Offsets stay in
+  frame space** — there is deliberately no axis remapping, so a rightward drag is `+offsetX` at
+  every angle; `getOffsetBounds` swaps width/height at 90/270 instead. At zoom 1 a rotated
+  image still fully covers the square frame.
+- Identity `(1, 0, 0, 0)` is indistinguishable from a legacy baked crop.
 - Re-cropping writes only those three columns — no storage write, no `photo_url` change, no
   sync queue entry. The sheet always shows the uncropped original.
 - Offsets legitimately exceed ±100 for zoomed non-square images (bounds scale with aspect ×

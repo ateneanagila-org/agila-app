@@ -49,18 +49,40 @@ in `after()`, so the worker never blocks on a long sync.
 `syncAllPendingRegions()` then runs:
 
 ```
-Phase 0   readAllRegionSheetStates()      one paced read pass, shared by all phases
-          ↓
-          idle early-exit: no PENDING tasks AND no col-W edits anywhere → return
-          ↓
-Phase 1   reverse sync    (sheet → DB)    only regions with a non-empty col W
-Phase 2   photo import    (sheet → blob)  non-fatal; Discord alert on failure
-Phase 3   forward sync    (DB → sheet)    only regions with PENDING tasks
-Phase 4   summary regen   (For RI/For FA) only if reverse imported or tasks ran
+Phase 0    readAllRegionSheetStates()     one paced read pass, shared by all phases
+           ↓
+Phase 0.5  reconcile representation       repairs rows missing / on the wrong tab
+           ↓
+           idle early-exit: no PENDING tasks AND no col-W edits anywhere → return
+           ↓
+Phase 1    reverse sync    (sheet → DB)   only regions with a non-empty col W
+Phase 2    photo import    (sheet → blob) non-fatal; Discord alert on failure
+Phase 3    forward sync    (DB → sheet)   only regions with PENDING tasks
+Phase 4    summary regen   (For RI/For FA) only if reverse imported or tasks ran
 ```
 
 **Reverse runs before photo import**, deliberately: a brand-new sheet row must exist as a cat
 in the DB before the importer tries to attach its photo, or the photo orphans.
+
+**Phase 0.5 runs before the idle early-exit, and that ordering is the whole point.** Forward
+sync is task-driven: it only touches a row when something queued a task. Nothing ever
+re-checked that every `Original` cat still *has* a row on the right tab, so drift accumulated
+silently — and the idle exit meant the system could only notice while it was already doing
+something else. Reconciliation costs no extra Sheets calls because Phase 0 has already read
+every region by this point.
+
+Its rules, each of which is load-bearing:
+
+- **Presence is evaluated globally, never per region.** A cat present on *any* tab is present.
+  Checking per region would queue an append for every region the cat is absent from, which is
+  all of them but one.
+- **Any failed region read skips the entire tick.** A read failure is indistinguishable from
+  an empty tab, and "empty tab" would be read as "every cat is missing."
+- **A wipe guard plus a per-tick repair budget** (`RECONCILE_MAX_REPAIRS_PER_TICK`) bound the
+  blast radius. A region that looks wiped is skipped rather than refilled; work over budget
+  defers to the next tick rather than being refused.
+- **It repairs presence, not content.** A row in the right place with stale cells is not
+  something reconciliation notices or fixes.
 
 Phase 3 merges each region's post-write state back into the snapshot so Phase 4's summaries see
 this tick's freshly assigned catalog numbers.

@@ -272,8 +272,10 @@ read-only report. Note it repairs *presence*, not *cell contents*.
 
 **A cat is on two tabs.** A region move that queued an UPDATE without a DELETE to the old
 tab. The effective-region rule is `COALESCE(cats.region_id override, most recent session's
-region)` and it is expressed in three places that must agree — see
-[architecture/data-model.md](architecture/data-model.md).
+region)`, written once as `effectiveRegionIdSubquery` with two derived consumers and two
+hand-maintained duplicates that must agree — see
+[architecture/data-model.md](architecture/data-model.md). Nothing tests it; verify against
+real data.
 
 **Photos vanished from the sheet.** Column B is rebuilt from the database every tick
 precisely because a formatted-value read returns `""` for `=IMAGE()` cells. If you touched

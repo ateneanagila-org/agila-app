@@ -343,14 +343,19 @@ two lists in sync if you add a permanent fixture rather than a `_`-prefixed one.
 
 ## 9. Environment variables
 
-| Var                                                          | Used for                                                |
-| ------------------------------------------------------------ | ------------------------------------------------------- |
-| `CATALOG_SPREADSHEET_ID`                                     | Target spreadsheet                                      |
-| `SERVICE_ACCOUNT_CREDENTIALS`                                | Google service-account JSON (sheet read/write identity) |
-| `DATABASE_URL`                                               | Postgres                                                |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client                                         |
-| `NEXT_SUPABASE_SERVICE_ROLE_KEY`                             | Server-side Supabase                                    |
-| `DISCORD_WEBHOOK_URL`                                        | Sync alerts (optional)                                  |
+**The full annotated inventory lives in [`/.env.example`](../../.env.example) and
+[development.md §7](../development.md).** Kept there so there is one copy to keep current.
+The sync-relevant subset:
+
+| Var                           | Used for                                                |
+| ----------------------------- | ------------------------------------------------------- |
+| `CATALOG_SPREADSHEET_ID`      | Target spreadsheet                                      |
+| `SERVICE_ACCOUNT_CREDENTIALS` | Google service-account JSON (sheet read/write identity) |
+| `CRON_SECRET`                 | Authenticates `/api/cron/sync` — **must match the Cloudflare Worker's copy exactly** |
+| `APP_URL`                     | The Worker's target. Set as a wrangler secret, not in Vercel |
+| `DISCORD_WEBHOOK_URL`         | Sync alerts (optional)                                  |
+
+Rotating `CRON_SECRET` on one side only makes every tick return 401. Change both together.
 
 No Apps Script script properties are required. (`PHOTO_IMPORT_SECRET` and
 `EMERGENCY_SECRET` were only used by the deleted `WebApp.gs` — see §8.)

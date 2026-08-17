@@ -52,8 +52,14 @@ The load-bearing facts:
 - **A row with no col-Y UUID is invisible to sync.** Reverse sync skips it entirely.
 - **`cats.id` IS the sheet's col-Y UUID.** Rows created in the sheet keep their Apps Script
   UUID as the DB primary key.
-- Cron order per tick: read all sheets once (paced) → reverse sync → photo import → forward
-  sync → summary regen. There is an idle early-exit when nothing is pending.
+- Cron order per tick: read all sheets once (paced) → **reconcile representation** → reverse
+  sync → photo import → forward sync → summary regen. There is an idle early-exit when
+  nothing is pending — reconciliation runs **before** it, deliberately, because forward sync
+  is task-driven and would otherwise never notice a cat whose row went missing.
+- **Reconciliation repairs presence, not content.** It evaluates presence **globally** (a cat
+  on any tab is present — per-region would double-list), skips the whole tick if any region
+  read failed (a failed read is indistinguishable from an empty tab), and bounds itself with a
+  wipe guard plus a per-tick repair budget.
 - Conflict resolution is **last-edit-wins with a 5s DB-favoring buffer**
   (`CONFLICT_BUFFER_MS`). A reverse import cancels that cat's PENDING forward tasks.
 - **Only `Original` cats reach the sheet.** `refreshCatInSyncQueue` gates on this — drafts
@@ -75,12 +81,19 @@ Invariants that look like dead code but are not — do not "simplify" these:
 
 ## Effective region
 
-A cat's region is `COALESCE(cats.region_id override, most recent session's region)`. This one
-rule is expressed in three places that must stay in agreement:
+A cat's region is `COALESCE(cats.region_id override, most recent session's region)`. The rule
+now lives in **one** SQL expression, with the rest derived from or duplicating it:
 
-- `regionSubquery` in `lib/repo/cats.repo.ts` (list reads)
-- `resolveCatRegion` in `lib/repo/sessions.repo.ts` (sync routing)
-- the `exists` clauses in the summary-sheet generators
+- `effectiveRegionIdSubquery` in `lib/repo/cats.repo.ts` — **the** expression of the rule
+- `regionSubquery` (same file) — **derived** from it; resolves the id to a name. Do not
+  hand-write the COALESCE here again.
+- `findOriginalCatIdsByEffectiveRegion` (same file) — reconciliation's routing, also derived
+- `resolveCatRegion` in `lib/repo/sessions.repo.ts` (sync routing) — still a separate
+  expression that must stay in agreement
+- the `exists` clauses in the summary-sheet generators — likewise
+
+**No test can catch a mistake here.** Every suite mocks the DB seam, so a malformed subquery
+passes all 348 tests. Verify changes against real data with a throwaway script.
 
 A region move must cancel stale queue tasks **and** queue a `DELETE` to the old tab, or the cat
 appears on two sheets.
@@ -103,12 +116,20 @@ appears on two sheets.
 Supabase `cat-photos` bucket, path `${catId}/photo.jpg` (upsert — re-uploads never orphan).
 Blobs are NOT FK-linked to rows, so cleanup is manual.
 
-**Crop-as-metadata:** the stored blob is the full normalized original. The crop is a
-`photo_zoom` / `photo_offset_x` / `photo_offset_y` trio applied at render time. The math lives
-once in `lib/photo-position.ts` and is shared by the editor preview and the display, so what
-you frame is what renders. Identity `(1, 0, 0)` renders as plain object-cover — indistinguishable
-from a legacy baked crop. Re-cropping touches neither storage nor the sync queue; the sheet
-always shows the uncropped original.
+**Crop-as-metadata:** the stored blob is the full normalized original. The framing is a
+`photo_zoom` / `photo_offset_x` / `photo_offset_y` / `photo_rotation` quad applied at render
+time. The math lives once in `lib/photo-position.ts` and is shared by the editor preview and
+the display, so what you frame is what renders. Identity `(1, 0, 0, 0)` renders as plain
+object-cover — indistinguishable from a legacy baked crop. Re-framing touches neither storage
+nor the sync queue; the sheet always shows the unframed original.
+
+- `photo_rotation` is one of `0 | 90 | 180 | 270`, normalized by `normalizeRotation`.
+- **Offsets are in frame space, not image space** — there is deliberately no axis remapping,
+  so a rightward drag is `+offsetX` at every angle. `getOffsetBounds` swaps width/height at
+  90/270 instead. At zoom 1 a rotated image still fully covers the square frame.
+- When adding a photo field, check every `Pick<SelectCat, …>` prop type. `CatCard` omitted
+  `photo_rotation` and silently rendered every photo unrotated in the two highest-traffic
+  lists — no type error, no runtime error.
 
 **Never delete a blob by assuming `${catId}/photo.jpg` belongs only to that cat.** A merge can
 reassign a duplicate's `photo_url` to the surviving target, so a path may still be referenced
@@ -208,13 +229,14 @@ Semantic mapping: `--primary` → green · `--accent` → orange · `--backgroun
 | `lib/validation/` | Zod schemas (mostly drizzle-zod derived)                      |
 | `lib/db/`       | Drizzle schema, enums, relations                                |
 | `workers/`      | `sync-cron/` Cloudflare Worker · `apps-script/` sheet-side `.gs` |
-| `docs/`         | See [docs/README.md](docs/README.md)                            |
+| `docs/`         | See [docs/README.md](docs/README.md) · human onboarding lives in [docs/development.md](docs/development.md) |
 
 Navigate by reading code structure; no detailed file map needed.
 
 ## Testing
 
-17 suites, all mocked — the DB and Google APIs are stubbed per file, so the suite runs offline.
+35 suites / 348 tests, all mocked — the DB and Google APIs are stubbed per file, so the suite
+runs offline.
 Coverage is concentrated on the sync system; **UI is not unit-tested** (no component tests,
 `testEnvironment: "node"`).
 
