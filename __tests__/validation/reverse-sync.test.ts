@@ -101,12 +101,22 @@ describe("parseSheetRow (standard region layout)", () => {
       expect(parseSheetRow(mkRow({ 24: UUID, 10: "NO" }))?.is_adoptable).toBe(false);
     });
 
-    it("??? is null — the dropdown's own unknown option, not a negative", () => {
-      expect(parseSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBeNull();
+    // Deliberately unlike cols G/I/J. Those record observations, where the
+    // dropdown's ??? means "not measured" and must survive. Col K records
+    // AGILA's decision to offer a cat for adoption, and undecided means the
+    // cat is not offered — which is what false already means everywhere.
+    it("??? is false — undecided resolves to not-offered, not to unknown", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBe(false);
     });
 
-    it("a blank cell is null", () => {
-      expect(parseSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBeNull();
+    it("a blank cell is false", () => {
+      expect(parseSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBe(false);
+    });
+
+    it("never yields null — the field is binary end to end", () => {
+      for (const raw of ["YES", "NO", "???", "", "  ", "maybe"]) {
+        expect(parseSheetRow(mkRow({ 24: UUID, 10: raw }))?.is_adoptable).not.toBeNull();
+      }
     });
   });
 
@@ -215,15 +225,15 @@ describe("parseUnknownSheetRow (UNKNOWN region layout)", () => {
     expect(parseUnknownSheetRow(mkRow({ 24: UUID }))?.condition).toBeNull();
   });
 
-  describe("adoptable (col K[10]) — same YES/NO/??? convention as standard rows", () => {
+  describe("adoptable (col K[10]) — same binary convention as standard rows", () => {
     it("YES → true, NO → false", () => {
       expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "YES" }))?.is_adoptable).toBe(true);
       expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "NO" }))?.is_adoptable).toBe(false);
     });
 
-    it("??? and blank are both null — neither is a negative", () => {
-      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBeNull();
-      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBeNull();
+    it("??? and blank are both false — undecided is not-offered", () => {
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "???" }))?.is_adoptable).toBe(false);
+      expect(parseUnknownSheetRow(mkRow({ 24: UUID, 10: "" }))?.is_adoptable).toBe(false);
     });
   });
 });
@@ -246,9 +256,12 @@ describe("sheetRowSchema (validation gate after parse)", () => {
     expect(sheetRowSchema.safeParse(parsed).success).toBe(true);
   });
 
-  it("accepts a null is_adoptable (col K blank or ???) — the schema must allow it", () => {
+  it("rejects a null is_adoptable — the field is binary, so the schema forbids it", () => {
     const parsed = parseSheetRow(mkRow({ 24: UUID, 2: "Bella", 10: "???" }));
-    expect(parsed?.is_adoptable).toBeNull();
+    expect(parsed?.is_adoptable).toBe(false);
     expect(sheetRowSchema.safeParse(parsed).success).toBe(true);
+    expect(
+      sheetRowSchema.safeParse({ ...parsed, is_adoptable: null }).success,
+    ).toBe(false);
   });
 });

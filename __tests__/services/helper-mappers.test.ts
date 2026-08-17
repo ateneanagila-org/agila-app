@@ -84,23 +84,31 @@ describe("mapCatToSheetRow", () => {
     });
   });
 
-  describe("adoptable (col K[10]) — matches col G's three-way convention", () => {
+  // Col K is binary on purpose and does NOT follow col G's three-way
+  // convention. G/I/J record observations, where "not measured" is a real
+  // state; K records AGILA's decision to offer a cat for adoption, which has a
+  // safe default. Undecided and not-offered are the same thing to every
+  // consumer, so the sheet is written as a definite YES/NO either way.
+  describe("adoptable (col K[10]) — binary, unlike col G", () => {
     it("true writes YES", () => {
       expect(mapCatToSheetRow(makeCat({ is_adoptable: true }), null)[10]).toBe("YES");
     });
     it("false writes NO", () => {
       expect(mapCatToSheetRow(makeCat({ is_adoptable: false }), null)[10]).toBe("NO");
     });
-    it("null writes ??? — without this the null cannot survive a round trip", () => {
-      expect(mapCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("???");
+    it("never writes ??? — undecided resolves to NO", () => {
+      expect(mapCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("NO");
     });
 
-    it("null -> ??? -> null round-trips through the sheet without collapsing", () => {
-      const written = mapCatToSheetRow(makeCat({ is_adoptable: null }), null)[10];
+    it("a sheet-side ??? resolves to false and is rewritten as NO", () => {
       const row = new Array<string>(25).fill("");
-      row[10] = written;
+      row[10] = "???";
       row[24] = "11111111-1111-4111-8111-111111111111";
-      expect(parseSheetRow(row)?.is_adoptable).toBeNull();
+      const parsed = parseSheetRow(row);
+      expect(parsed?.is_adoptable).toBe(false);
+      expect(
+        mapCatToSheetRow(makeCat({ is_adoptable: false }), null)[10],
+      ).toBe("NO");
     });
   });
 
@@ -195,11 +203,11 @@ describe("mapUnknownCatToSheetRow", () => {
     expect(row[12]).toBe("3/4/2024");
   });
 
-  describe("adoptable (col K[10]) — same convention as the standard mapper", () => {
-    it("true writes YES, false writes NO, null writes ???", () => {
+  describe("adoptable (col K[10]) — same binary convention as the standard mapper", () => {
+    it("true writes YES; false and undecided both write NO", () => {
       expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: true }), null)[10]).toBe("YES");
       expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: false }), null)[10]).toBe("NO");
-      expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("???");
+      expect(mapUnknownCatToSheetRow(makeCat({ is_adoptable: null }), null)[10]).toBe("NO");
     });
   });
 });

@@ -166,6 +166,42 @@ space while forward sync writes it without one. The parser trims, so behaviour i
 unaffected, but every synced row in col T carries a data-validation warning flag. Fixing
 it means editing the dropdown in the sheet, not the code.
 
+### 4c. AMENDMENT (2026-08-17): §4 and A6 are reversed for col K
+
+**Col K is binary again.** `???` and blank both parse to `false`, forward sync writes only
+`YES`/`NO`, and the Database General screen keeps its original two-state toggle. Cols
+F/G/H/I/J keep the three-way handling A6 introduced — only K is reverted.
+
+§4's argument does not hold up. It reasoned from *table symmetry* — "every other column
+maps `???` to null, only K collapses" — and never asked whether col K is the same kind of
+field as its neighbours. It is not:
+
+- **F sex, G neutered, H sociability, I sick, J injured record observations.** You can
+  genuinely not have measured one, so `???` is a real third state that must survive.
+- **K adoptable records a decision** AGILA makes: whether to offer this cat for adoption.
+  Decisions have safe defaults, and the schema already sets one (`is_adoptable` defaults
+  to `false`). "Undecided" and "not offered" are the same thing.
+
+The concrete harm §4 claimed was also never real. It said the `???` cat "is now excluded
+from the public catalog on the strength of an answer that meant 'I don't know'." But the
+catalog, the sitemap, the detail page, `census-stats.ts` and the For FA sheet all gate on
+`is_adoptable === true`. Under the old code `???` → `false` → excluded; under the
+tri-state fix `???` → `null` → **still excluded**. Visibility was identical before and
+after. The fix changed only what col K displayed back.
+
+So the tri-state bought one thing — the app no longer rewrote a single human's `???` to
+`NO` — at the cost of a third option in a manager UI, an empty "Unknown" filter bucket,
+and vocabulary the user manual would have to teach. Resolving `???` to `NO` is not
+corruption; it states what every consumer already believes about that cat.
+
+Verified before reverting: **0 of 587 cats hold a null `is_adoptable`**, and no consumer
+distinguishes null from false.
+
+Consequences: the `?? false` collapse the fix wave removed from
+`database-general-screen.tsx` is correct again, because null is now unreachable. And the
+manual correction for `417b923e` below is moot — sheet `???` and DB `false` now mean the
+same thing, and the row rewrites itself to `NO` the next time that cat syncs.
+
 ### 5. A permanently failing task is abandoned silently
 
 After `MAX_RETRIES` (3), `syncAndCompactRegion` marks the task `FAILED` — correctly, so it
@@ -693,7 +729,7 @@ design; simply not stated anywhere until now.
 onto the repo would retire the violation cheaply and express that pair once — which
 matters, because the two must stay in agreement.
 
-**One cat needs a manual correction at deploy.** `417b923e` on tab MVP holds `???` in col
-K while the database records `is_adoptable = false`. The parser fix does not repair it
-retroactively — reverse sync only re-imports rows carrying a col-W edit timestamp. Set
-that cat's `is_adoptable` to `null`, or edit the row so it re-imports.
+**~~One cat needs a manual correction at deploy.~~ RESOLVED by §4c.** `417b923e` on tab
+MVP holds `???` in col K while the database records `is_adoptable = false`. Under the
+reverted binary contract those now mean the same thing, so no correction is needed — the
+row rewrites itself to `NO` the next time that cat forward-syncs.

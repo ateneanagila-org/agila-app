@@ -41,7 +41,7 @@ export const sheetRowSchema = z.object({
   date_last_seen: z.string().nullable().optional(),
   caretaker: z.string().nullable(),
   notes: z.string().nullable(),
-  is_adoptable: z.boolean().nullable(),
+  is_adoptable: z.boolean(),
   condition: CatHealthRecordConditionEnum.nullable(),
   is_neutered: catHealthRecordsSchema.shape.is_neutered,
   neuter_date: z.string().nullable(),
@@ -53,16 +53,38 @@ export const sheetRowSchema = z.object({
 
 export type SheetRowParsed = z.infer<typeof sheetRowSchema>;
 
-// Every classification column (F/G/H/I/J/K) is a YES/NO/??? dropdown, where
-// ??? is the sheet's own "explicitly unknown" option — not a negative. Any
-// other raw value (blank included) is equally unrecognised and must not be
-// coerced into a definite answer either.
+// Cols F/G/H/I/J are YES/NO/??? dropdowns where ??? is the sheet's own
+// "explicitly unknown" option — not a negative. Any other raw value (blank
+// included) is equally unrecognised and must not be coerced into a definite
+// answer either.
+//
+// Col K (adoptable) deliberately does NOT use this. See parseAdoptable below.
 const TRISTATE_TOKENS = new Set(["YES", "NO", "???"]);
 
-/** Parses a single YES/NO/??? cell (cols F/G/H/K). Unrecognised or blank → null. */
+/** Parses a single YES/NO/??? cell (cols F/G/H). Unrecognised or blank → null. */
 function parseTristateBool(raw: string | undefined): boolean | null {
   const v = String(raw ?? "").trim().toUpperCase();
   return v === "YES" ? true : v === "NO" ? false : null;
+}
+
+/**
+ * Parses col K (adoptable). Binary on purpose, unlike its YES/NO/??? neighbours.
+ *
+ * Cols F/G/H/I/J record *observations* about the cat — its sex, whether it is
+ * neutered, how it behaves — and you can genuinely not have measured one, so
+ * "???" is a real third state there. Col K records a *decision* AGILA makes:
+ * whether this cat is offered for adoption. A decision has a safe default, and
+ * the schema already sets it (`is_adoptable` defaults to false) — a cat is not
+ * offered until someone says so. "Undecided" and "not offered" are the same
+ * thing to every consumer: the public catalog, the sitemap, the For FA sheet
+ * and the census stats all gate on `is_adoptable === true`.
+ *
+ * So "???" here resolves to false rather than being preserved as unknown. That
+ * is resolution, not data loss — forward sync then writes "NO" back, which is
+ * what every part of the app already believes about that cat.
+ */
+function parseAdoptable(raw: string | undefined): boolean {
+  return String(raw ?? "").trim().toUpperCase() === "YES";
 }
 
 /**
@@ -116,10 +138,7 @@ export function parseSheetRow(row: string[]): Record<string, unknown> | null {
   const validStatuses = ["Deceased", "Fostered", "Adopted", "MIA"];
   const cat_status = validStatuses.includes(rawStatus) ? rawStatus : null;
 
-  // Col K is a YES/NO/??? dropdown like col G. Reading it as `=== "YES"`
-  // collapsed both NO and ??? to false, so a volunteer selecting the sheet's
-  // own "unknown" option was recorded as a definite negative.
-  const is_adoptable = parseTristateBool(row[10]);
+  const is_adoptable = parseAdoptable(row[10]);
 
   const rawColor = String(row[3] ?? "").trim();
   const validColors = [
@@ -199,7 +218,7 @@ export function parseUnknownSheetRow(row: string[]): Record<string, unknown> | n
     ? rawSociability
     : null;
 
-  const is_adoptable = parseTristateBool(row[10]);
+  const is_adoptable = parseAdoptable(row[10]);
 
   // Col G: YES/NO/??? — UNKNOWN sheet uses same convention as region sheets.
   const is_neutered = parseTristateBool(row[6]);

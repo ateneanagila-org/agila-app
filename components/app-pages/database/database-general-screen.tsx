@@ -39,9 +39,6 @@ import type {
   CatSociability,
   CatStatus,
 } from "@/lib/db/enums";
-import { neuteredState, triStateLabel, triStateToValue } from "@/lib/health-display";
-
-const ADOPTABLE_OPTIONS = ["Unknown", "Yes", "No"] as const;
 
 function sexGlyph(s: string | null | undefined): string | null {
   if (s === "Male") return "♂";
@@ -105,7 +102,7 @@ export function DatabaseGeneralScreen() {
   const [dlsMonth, setDlsMonth] = useState("");
   const [dlsDay, setDlsDay] = useState("");
   const [dlsYear, setDlsYear] = useState("");
-  const [adoptable, setAdoptable] = useState<string>("Unknown");
+  const [isAdoptable, setIsAdoptable] = useState(false);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
 
@@ -125,7 +122,7 @@ export function DatabaseGeneralScreen() {
     setDlsMonth(dls.month);
     setDlsDay(dls.day);
     setDlsYear(dls.year);
-    setAdoptable(triStateLabel(neuteredState(catData.is_adoptable)));
+    setIsAdoptable(catData.is_adoptable ?? false);
     setRegionId(catData.region_id ?? null);
     setRegionFallbackName(catData.region_name ?? "");
   }, []);
@@ -156,10 +153,6 @@ export function DatabaseGeneralScreen() {
         notes: notes || null,
         spot_last_seen: spotLastSeen || null,
         date_last_seen: buildDate(dlsMonth, dlsDay, dlsYear),
-        // Tri-state: "Unknown" must round-trip as null, not false — see
-        // lib/health-display.ts. A blank/"???" col K reverse-syncs to null,
-        // and this save must not clobber that into an explicit "NO".
-        is_adoptable: triStateToValue(adoptable),
         region_id: regionId,
       });
       if (result?.serverError) {
@@ -186,7 +179,6 @@ export function DatabaseGeneralScreen() {
     dlsMonth,
     dlsDay,
     dlsYear,
-    adoptable,
     regionId,
     refresh,
   ]);
@@ -194,6 +186,28 @@ export function DatabaseGeneralScreen() {
   const handleCancel = useCallback(() => {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
+
+  // Adoptable saves on click rather than waiting for Save — it is a single
+  // decision managers flip from the list, not part of the edit form's batch.
+  const handleToggleAdoptable = useCallback(async () => {
+    if (!catId) return;
+    const newVal = !isAdoptable;
+    setIsAdoptable(newVal);
+    try {
+      const result = await editCat({ id: catId, is_adoptable: newVal });
+      if (result?.serverError) {
+        setIsAdoptable(!newVal);
+        setError(result.serverError);
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to toggle adoptable:", err);
+      setIsAdoptable(!newVal);
+      setError(
+        err instanceof Error ? err.message : "Failed to toggle adoptable.",
+      );
+    }
+  }, [catId, isAdoptable]);
 
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return "—";
@@ -295,21 +309,21 @@ export function DatabaseGeneralScreen() {
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark/60">
                 Adoptable
               </span>
-              {canManage ? (
-                <div className="w-28">
-                  <CustomSelect
-                    options={[...ADOPTABLE_OPTIONS]}
-                    value={adoptable}
-                    onChange={setAdoptable}
-                    variant="white"
-                    size="sm"
-                  />
-                </div>
-              ) : (
-                <span className="text-sm font-bold text-brand-dark">
-                  {adoptable}
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={canManage ? handleToggleAdoptable : undefined}
+                disabled={!canManage}
+                aria-pressed={isAdoptable}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  isAdoptable ? "bg-brand-orange" : "bg-brand-dark/15"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    isAdoptable ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
             </div>
           </div>
 
