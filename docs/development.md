@@ -31,15 +31,22 @@ Drizzle ORM + Supabase Postgres · Zod 4 · next-safe-action · Jest.
 ## 2. Getting it running
 
 ```bash
-pnpm install   # pnpm only — never npm, the lockfile is pnpm's
+pnpm install
+cp .env.example .env   # then fill it in
 pnpm dev
 ```
 
-There is **no `.env.example` in the repo** — `.gitignore` excludes every `.env*` file. Get
-the values from the Vercel project's environment settings (§7 below lists what each one is
-for), and ask an admin for access if you do not have it. This is the step that stops most
-newcomers, and there is no way around it: the app cannot start without a database URL, and
-sync cannot run without the service-account JSON.
+`pnpm` only — never npm; the lockfile is pnpm's.
+
+[`.env.example`](../.env.example) lists the **ten** variables the application actually
+reads, grouped and annotated. Values come from the Vercel project's environment settings —
+ask an admin for access. There is no way around this step: the app cannot start without a
+database URL, and sync cannot run without the service-account JSON.
+
+If you inherit an existing `.env`, it may carry several variables the app does **not** read
+— `SUPABASEDB_PASS`, `SUPABASE_AUTH_EXTERNAL_*`, `PHOTO_WEBAPP_*`,
+`APP_SCRIPT_MODE_PROMPT_SECRET`. The first two are Supabase dashboard config; the rest are
+legacy from a deleted Apps Script web app. You need none of them.
 
 ### There is no staging environment
 
