@@ -1,12 +1,19 @@
 # Documentation
 
-Start with **[/CLAUDE.md](../CLAUDE.md)** — the agent-facing guide covering conventions,
-invariants, and the design system. Everything here is the deeper layer beneath it.
+**New developer? Read [development.md](development.md) first**, then come back here for
+reference. It gets you running, explains how the code is laid out, and walks one change end
+to end.
+
+**AI agent?** Start with **[/CLAUDE.md](../CLAUDE.md)** — the same conventions and
+invariants in imperative form.
+
+Everything below is the reference layer beneath both.
 
 ## Map
 
 | Path                                                       | Audience        | What it is                                                    |
 | ---------------------------------------------------------- | --------------- | ------------------------------------------------------------- |
+| [development.md](development.md)                            | dev             | **Start here.** Setup, layering, a full walkthrough, testing  |
 | [architecture/sync-engine.md](architecture/sync-engine.md)  | dev / agent     | Column contract, cron phases, conflict rules, invariants      |
 | [architecture/data-model.md](architecture/data-model.md)    | dev / agent     | Schema, lifecycles, effective region, nullable-by-design      |
 | [architecture/frontend.md](architecture/frontend.md)        | dev / agent     | Two-screen (mobile/desktop) strategy                          |
@@ -20,6 +27,8 @@ invariants, and the design system. Everything here is the deeper layer beneath i
 
 ## Where to look, by task
 
+- **Getting set up, or making your first change** → `development.md`. Note especially that
+  local development points at **production** — there is no staging environment.
 - **Touching sync, the queue, or anything sheet-shaped** → `architecture/sync-engine.md` first.
   It documents several deliberate-looking oddities that fix real bugs; the Jest suite encodes
   them.
