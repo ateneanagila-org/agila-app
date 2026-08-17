@@ -403,12 +403,13 @@ export function AdminScreen({
             )}
           </div>
 
+          {/* Order mirrors the desktop branch below — keep them in step. */}
           <div className="space-y-4 pb-20">
             <GSheetConfigControls initialStatus={initialSyncStatus} />
-            <RegionControls initialRegions={initialRegions} />
-            <LinkControls initialLinks={initialLinks} />
-            <BugReportsCard openCount={openBugReports} />
             <StorageGauge usage={storageUsage} lastCleanupAt={lastCleanupAt} />
+            <BugReportsCard openCount={openBugReports} />
+            <LinkControls initialLinks={initialLinks} />
+            <RegionControls initialRegions={initialRegions} />
           </div>
         </div>
       </div>
@@ -532,11 +533,12 @@ export function AdminScreen({
               )}
             </div>
           </div>
+          {/* Order mirrors the mobile branch above — keep them in step. */}
           <GSheetConfigControls initialStatus={initialSyncStatus} />
-          <RegionControls initialRegions={initialRegions} />
-          <LinkControls initialLinks={initialLinks} />
-          <BugReportsCard openCount={openBugReports} />
           <StorageGauge usage={storageUsage} lastCleanupAt={lastCleanupAt} />
+          <BugReportsCard openCount={openBugReports} />
+          <LinkControls initialLinks={initialLinks} />
+          <RegionControls initialRegions={initialRegions} />
         </div>
       </div>
 

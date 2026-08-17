@@ -5,7 +5,6 @@ import {
   provisionSheets,
   seedSheetUuids,
   unfreezeSync,
-  reclaimOrphanedPhotos,
   retireSyncAction,
 } from "@/app/actions/system";
 
@@ -24,7 +23,6 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ActionResult>>({});
   const [confirmSeed, setConfirmSeed] = useState(false);
-  const [confirmReclaim, setConfirmReclaim] = useState(false);
   const [frozen, setFrozen] = useState<boolean | null>(initialStatus.frozen);
   const [reason, setReason] = useState<string | null>(initialStatus.reason);
   const [retired, setRetired] = useState(initialStatus.retired);
@@ -112,7 +110,9 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
           )}
         </div>
 
-        <div className="border-t border-border" />
+        {/* Separator belongs to the section below it, so a retired card ends
+            cleanly at the status row instead of on a dangling rule. */}
+        {!retired && <div className="border-t border-border" />}
 
         {!retired && (
           <>
@@ -193,61 +193,8 @@ export function GSheetConfigControls({ initialStatus }: GSheetConfigControlsProp
                 </p>
               )}
             </div>
-
-            <div className="border-t border-border" />
           </>
         )}
-
-        {/* Reclaim orphaned photos */}
-        <div className="px-4 py-3">
-          <p className="mb-0.5 text-sm font-semibold text-brand-dark">Reclaim orphaned photos</p>
-          <p className="mb-2 text-xs text-brand-dark/55">
-            Delete cat-photo files no cat record points to anymore (left behind by
-            deletions and merges). Reference-safe — never touches a photo still in use.
-          </p>
-          {confirmReclaim ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => {
-                  setConfirmReclaim(false);
-                  run("reclaim", async () => {
-                    const r = await reclaimOrphanedPhotos();
-                    return r.removed === 0
-                      ? `No orphans found (${r.scanned} scanned, ${r.referenced} in use).`
-                      : `Removed ${r.removed} orphaned photo${r.removed === 1 ? "" : "s"} (${r.scanned} scanned, ${r.referenced} in use).`;
-                  });
-                }}
-                className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                {busy("reclaim") ? "Reclaiming…" : "Confirm — delete orphans"}
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => setConfirmReclaim(false)}
-                className="rounded-full px-3 py-1.5 text-xs font-bold text-brand-dark/60 hover:text-brand-dark disabled:opacity-40"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setConfirmReclaim(true)}
-              className="rounded-full bg-brand-dark px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              Reclaim photos…
-            </button>
-          )}
-          {results.reclaim && (
-            <p className={`mt-2 text-xs ${results.reclaim.ok ? "text-brand-green" : "text-red-600"}`}>
-              {results.reclaim.text}
-            </p>
-          )}
-        </div>
 
         {!retired && (
           <>
