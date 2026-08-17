@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CAT_PHOTOS_BUCKET } from "@/lib/constants";
+import { findAllPhotoObjectPaths } from "@/lib/repo/storage.repo";
 
-export const CAT_PHOTOS_BUCKET = "cat-photos";
+export { CAT_PHOTOS_BUCKET };
 
 /**
  * Bucket-relative object path from a public photo URL (strips the cache-bust
@@ -25,29 +27,20 @@ export function photoStoragePath(
 }
 
 /**
- * Lists every object path in the bucket. Files live one level deep under
- * per-id prefixes (`<id>/photo.jpg`), so this lists root prefixes then each
- * prefix's objects.
+ * Every object path in the bucket (`<catId>/photo.jpg`).
+ *
+ * Reads `storage.objects` in one query rather than walking the Storage API.
+ * The API cannot list recursively, so the previous implementation issued one
+ * call per prefix — one per cat. At 502 cats that measured ~81 seconds of
+ * sequential round-trips: slow but harmless locally, and fatal on Vercel,
+ * where the serverless function is killed first. That is why "Reclaim orphaned
+ * photos" worked in development and silently failed in production.
+ *
+ * Cost is now independent of colony size. See __tests__/services/photo-gc.test.ts,
+ * which pins that property.
  */
 export async function listAllPhotoPaths(): Promise<string[]> {
-  const supabase = await createAdminClient();
-  const LIST_LIMIT = 100_000;
-
-  const { data: prefixes, error: listErr } = await supabase.storage
-    .from(CAT_PHOTOS_BUCKET)
-    .list("", { limit: LIST_LIMIT });
-  if (listErr) throw new Error(`bucket list failed: ${listErr.message}`);
-  if (!prefixes || prefixes.length === 0) return [];
-
-  const paths: string[] = [];
-  for (const prefix of prefixes) {
-    const { data: files, error: subErr } = await supabase.storage
-      .from(CAT_PHOTOS_BUCKET)
-      .list(prefix.name, { limit: LIST_LIMIT });
-    if (subErr) throw new Error(`list '${prefix.name}' failed: ${subErr.message}`);
-    for (const f of files ?? []) paths.push(`${prefix.name}/${f.name}`);
-  }
-  return paths;
+  return await findAllPhotoObjectPaths();
 }
 
 /**

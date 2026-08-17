@@ -14,7 +14,10 @@ import { countOpenBugReports } from "@/lib/repo/bug-reports.repo";
 import { loadData } from "@/lib/safe-initial-data";
 import { DEFAULT_LINKS, STORAGE_CAP_BYTES } from "@/lib/constants";
 
-export const maxDuration = 120;
+// 60 is the ceiling on Vercel's Hobby plan; the previous 120 was above it and
+// could never have applied. Headroom only — the admin actions this covers now
+// finish in seconds.
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Admin",

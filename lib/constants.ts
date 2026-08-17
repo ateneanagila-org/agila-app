@@ -66,6 +66,12 @@ export const DEFAULT_LINKS: AppLinks = {
  */
 export const STORAGE_CAP_BYTES = 1024 * 1024 * 1024;
 
+// Supabase Storage bucket holding cat photos. Lives here rather than in
+// cat-photo-storage.ts so lib/repo/storage.repo.ts can reach it without a repo
+// importing from a service — which was both a backwards dependency and, once
+// the service began importing the repo, an import cycle.
+export const CAT_PHOTOS_BUCKET = "cat-photos";
+
 /** Amber above this share of the cap. From the storage analysis (§7). */
 export const STORAGE_WARN_RATIO = 0.8;
 
