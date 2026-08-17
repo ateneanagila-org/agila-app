@@ -2,89 +2,123 @@
 
 ![Dashboard](public/catalog-dashboard-showcase.png)
 
-The **AGILA CATalog** is a campus cat census and management web app built for **AGILA**
-(_Ateneans Guided and Inspired by their Love for Animals_) — the Ateneo de Manila University
-student organization that runs the cat Census (CATalog) project alongside the TNVR
-(Trap-Neuter-Vaccinate-Return) program.
+A campus cat census and management app for **AGILA** (_Ateneans Guided and Inspired by their
+Love for Animals_), the Ateneo de Manila University student organization behind the cat
+Census (CATalog) project and the TNVR (Trap–Neuter–Vaccinate–Return) program.
 
-It has two connected sides:
+It has two sides. **Inside**, AGILA members run census sessions, manage the cat database, log
+health interventions, and review each other's data. **Outside**, anyone can browse a public
+catalog of adoptable cats — no login, and indexed by search engines.
 
-- **Internal** — a dashboard for AGILA members to run census sessions, manage the cat
-  database, log health interventions, and oversee data quality.
-- **External** — a public catalog of adoptable/fosterable cats with photos and details.
+The app is a deliberately **non-disruptive layer** over AGILA's existing Google Sheets. The
+database is the source of truth, but the regional sheets stay in **two-way sync**, so the org
+keeps a familiar, always-current fallback if the app is ever unavailable. Almost every
+non-obvious rule in this codebase exists to keep that arrangement honest.
 
-The app is designed as a non-disruptive **overhead layer** over AGILA's existing Google
-Workspace tools: the regional Google Sheets stay in **two-way sync** with the app's database,
-so members keep a familiar, always-current fallback if the app is ever unavailable.
-
-> **Visiting the app:**
-> [Live Link](https://ateneanagila.vercel.app/)
->
-> **Using the app (non-technical guide):** see the
-> [User Manual](https://docs.google.com/document/d/1SWO1l1zoXQlZ03wWfUd4xTdMDSRbLVJb7KdZwZ3iqaA/edit?tab=t.0#heading=h.z5cazoveb9r9) — split by role (Volunteer / Manager /
-> Administrator).
->
-> **Operating the sync system (technical):** see the
-> [GSheets Sync Setup & Operations Guide](docs/operations/gsheets-sync-setup.md).
->
-> **Working on the code:** start with [CLAUDE.md](CLAUDE.md) for conventions and invariants,
-> then [docs/](docs/README.md) for the architecture references.
+| | |
+| --- | --- |
+| **Use the app** | [ateneanagila.vercel.app](https://ateneanagila.vercel.app/) |
+| **Learn to use it** (non-technical) | [User Manual](https://docs.google.com/document/d/1SWO1l1zoXQlZ03wWfUd4xTdMDSRbLVJb7KdZwZ3iqaA/edit) · source in [`docs/handbook/`](docs/handbook/AGILA-User-Manual.md) |
+| **Work on the code** | **[docs/development.md](docs/development.md)** — start here |
+| **Run or repair the sync** | [docs/operations/gsheets-sync-setup.md](docs/operations/gsheets-sync-setup.md) |
+| **Everything else** | [docs/](docs/README.md) |
 
 ---
 
-## Background
+## Why it exists
 
-AGILA tracks hundreds of cats across the Ateneo campus — recording health status, neutering
-history, vaccination records, and adoption eligibility. Historically this lived in a set of
-fragmented Google Workspace tools (the shared "CATalog" spreadsheet, Google Forms, a Facebook
-page), which made data entry error-prone, onboarding labor-intensive, and adoptable cats hard
-for the public to browse.
+AGILA tracks hundreds of cats across campus — health status, neutering history, vaccination
+records, adoption eligibility. That lived in a scatter of Google Workspace tools: a shared
+CATalog spreadsheet, Forms, a Facebook page. Data entry was error-prone, onboarding was
+labour-intensive, and adoptable cats were hard for the public to find.
 
-The AGILA CATalog app addresses this without throwing the old system away. The **app is the
-primary, validated place to manage cats**: volunteers run census sessions in the app, and
-managers review and approve what they submit. The regional Google Sheets are kept in two-way
-sync so external stakeholders keep their familiar view — and so AGILA can always fall back to
-the spreadsheet if needed. The database is the source of truth; volunteers get **view-only**
-access to the sheets, while managers/admins retain edit access as an emergency fallback.
+This app fixes that without throwing the old system away. Volunteers do their work in the
+app, which validates input and keeps records consistent; managers review and approve what
+they submit. The sheets stay synced both ways so external stakeholders keep their familiar
+view — and so AGILA can fall back to the spreadsheet at any time. Volunteers get **view-only**
+sheet access; managers and admins keep edit access as an emergency route.
 
 ---
 
-## Tech Stack
+## What it does
 
-| Layer            | Technology                                         |
-| ---------------- | -------------------------------------------------- |
-| Framework        | Next.js 16 (App Router, React 19)                  |
-| Language         | TypeScript (strict)                                |
-| Styling          | Tailwind CSS 4                                     |
-| UI Primitives    | Mostly custom; Radix `Slot` + CVA for `Button`     |
-| Data Fetching    | Server Components for initial load, server actions thereafter |
-| Server Actions   | `next-safe-action` 8                               |
-| Validation       | Zod 4 (+ `drizzle-zod`)                            |
-| ORM              | Drizzle ORM + Drizzle Kit                          |
-| Database         | PostgreSQL (via Supabase)                          |
-| Auth             | Supabase Auth + Google OAuth (SSR), admin allowlist |
-| Storage          | Supabase Storage (photos)                          |
-| Google APIs      | Sheets API, Drive API                              |
-| Image Processing | Sharp (server), Canvas (client normalize)          |
-| Scheduled Jobs   | Cloudflare Workers (sync cron)                     |
-| Alerts           | Discord Webhooks                                   |
-| Charts           | Recharts                                           |
-| Testing          | Jest (Node env, service/sync focused)              |
+### Census sessions
 
-> There is no client data-fetching library in use. Pages load initial data in a Server
-> Component and pass it down; mutations and refreshes go through server actions. Several
-> dependencies in `package.json` are **unused** and pending removal:
-> `@tanstack/react-query`, `better-auth`, `browser-image-compression`, `node-html-parser`,
-> `drizzle-seed`, and `@testing-library/*`.
+A **session** is one trip out to count cats in one region, with a `census_no` and a roster.
+A volunteer creates it, adds cats through the entry form, and submits. Managers then review
+in two steps — **Info Validation** (fix the details) then **Cross-Reference** (approve as new,
+or merge duplicates).
+
+Cat lifecycle: `Unsubmitted → Unreviewed → Original`, or `Merged` with `merged_into_id` set.
+A finished session is immutable.
+
+### Cat database
+
+Identity, status, location, health record, photo, and merge tracking. Managers have full CRUD
+across **General**, **Medical**, and **Interventions**; volunteers see those screens read-only
+but have full create/edit inside session forms — that's their workflow.
+
+Photos are **crop-as-metadata**: the stored blob is always the full original, and zoom, offset,
+and rotation are applied at render time. Re-framing costs no upload and never touches the
+sheet.
+
+### Interventions
+
+Per-cat **TNVR** or **Veterinarian** actions, moving `Pending → Finished` or `Cancelled`.
+
+### Public catalog
+
+A no-login directory of cats marked adoptable, with search and a **shareable page per cat**.
+Catalog pages are server-rendered with canonical URLs and a generated `sitemap.xml`, so
+search engines can index them.
+
+Health information is reported **honestly rather than optimistically**: vaccination reads
+**Yes / Expired / Unknown** (expired = vaccinated over a year ago), and sick/injured read
+**Unknown** when nothing has been recorded rather than defaulting to a clean bill of health.
+
+### Dashboards
+
+**Overview** — population stats, regional breakdowns, and locations ranked by days since
+their last census. **TNVR** — neutering-coverage score with a sex/neuter breakdown, filterable
+by location.
+
+### Admin
+
+Administrator-only, six sections in this order:
+
+| Section | What it does |
+| --- | --- |
+| **Users & Access** | invite and remove people, change roles |
+| **GSheet Config** | sync status + **Unfreeze**, **Provision Sheets**, **Seed UUIDs**, **Retire sync** |
+| **Photo Storage** | usage gauge + **Reclaim orphaned photos** |
+| **Bug Reports** | reports submitted from inside the app; resolve and reopen |
+| **Links** | edit the Adopt / Foster Form and Referral Sheet targets without a deploy |
+| **Regions** | add, rename, delete campus locations (and their sheet tabs) |
+
+**Freeze and Retire are different things.** Freeze is an automatic, reversible safety pause
+after a failed tick. **Retire** is the deliberate, permanent end of the sync — it stops all
+writes and releases the app's column protections, so AGILA is left with a spreadsheet it can
+still edit rather than one locked by an app that no longer runs.
+
+### Access control
+
+Sign-in is an **allowlist** (`allowed_emails`), not a domain rule — an admin must add an
+address before Google OAuth will let it through.
+
+| Role | Capabilities |
+| --- | --- |
+| Volunteer | Run census sessions (full create/edit inside session forms); view-only elsewhere |
+| Manager | + review/approve sessions, full cat-database CRUD, Census Report |
+| Administrator | + the Admin tab |
+
+Enforced server-side via `requireRole(...)`. Client-side gating is never sufficient on its own.
 
 ---
 
-## Architecture
+## How it works
 
-### Data Flow
-
-The database is the authoritative store; the app is the primary, validated entry point. A
-sync engine mirrors data to the regional Google Sheets and pulls human sheet edits back:
+The database is authoritative; a sync engine mirrors it to the regional sheets and pulls human
+edits back.
 
 ```
 Volunteers / Managers / Admins → AGILA CATalog Web App
@@ -94,314 +128,166 @@ Volunteers / Managers / Admins → AGILA CATalog Web App
                             Google Sheets (CATalog, per region)
 ```
 
-**Forward sync** (DB → Sheet): drains the `gsheet_sync_queue`, writes each cat to its region
-tab via the Sheets API, and regenerates the `For RI` / `For FA` summary sheets.
+A Cloudflare Worker (`workers/sync-cron/`) fires every 20 minutes, health-checks `/api/health`,
+then POSTs `/api/cron/sync` with a shared `CRON_SECRET`. Each tick reads every region sheet
+once, then runs:
 
-**Reverse sync** (Sheet → DB): reads each region's sheet tab, parses rows with Zod schemas,
-and upserts changes into the database. Rows without a recent edit timestamp (column W) are
-skipped; a blank UUID (column Y) is also skipped. Conflict resolution is **last-edited-wins**
-— if the DB record was updated within a 5-second window of the sheet edit, the DB wins.
+```
+Phase 0    one paced read of every region sheet
+Phase 0.5  reconcile representation   — repair rows missing or on the wrong tab
+           idle early-exit            — nothing pending? stop here
+Phase 1    reverse sync   sheet → DB
+Phase 2    photo import   sheet → blob
+Phase 3    forward sync   DB → sheet
+Phase 4    summary regen  For RI / For FA
+```
 
-**Photo import** (runs before each sync cycle): downloads the full spreadsheet as an xlsx
-export, parses it as OOXML to locate embedded cell images by their row-anchor position,
-matches them to cat UUIDs in column Y, processes the bytes with Sharp, uploads to Supabase
-Storage, and writes the public URL back to the cat record.
+Three things about that order are deliberate:
 
-**Photo storage cleanup**: photos live at `${catId}/photo.jpg` in the `cat-photos` bucket.
-Deletions are **reference-aware** — a blob is only removed if no surviving `cats.photo_url`
-points at it (a merge can reassign a duplicate's photo to the surviving cat). Deleting a cat
-cleans its blob inline; merges and bulk/region deletes are swept up by the **Reclaim orphaned
-photos** admin action (`reconcileCatPhotos`), which diffs the bucket against live references.
+- **Reconciliation runs before the idle exit.** Forward sync is task-driven, so nothing would
+  otherwise notice a cat whose row went missing. It costs no extra API calls, since Phase 0
+  has already read everything.
+- **Reverse runs before photo import**, so a cat created from a new sheet row exists before
+  the importer tries to attach its photo.
+- **Conflict resolution is last-edit-wins** with a 5-second DB-favouring buffer.
 
-**Effective region** routing: a cat's sheet tab is its `COALESCE(cats.region_id override,
-most-recent session's region)`. The same rule drives the app display, sync routing, and
-summary sheets.
+Column `Y` holds a UUID that **is** the cat's database primary key — that single fact is what
+binds the two systems together, and a row without one is invisible to sync.
 
-**Sync scheduling**: a Cloudflare Worker (`workers/sync-cron/`) fires every 20 minutes
-(`*/20 * * * *`), health-checks the app via `/api/health`, then POSTs `/api/cron/sync` with a
-shared `CRON_SECRET`. Each tick does one paced read of every region sheet, then runs
-**reverse → photo-import → forward → summary-regen** (reverse first, so cats created from new
-sheet rows exist before their photos are attached), with an early exit when nothing is pending.
-If a tick fails, the app **auto-freezes** the sync and posts a Discord alert.
+Failures auto-freeze the sync and post a Discord alert. Every run is recorded in
+`sync_audit_log`.
 
-> Full detail — column contract, conflict rules, and the invariants that must not be
-> "simplified" — is in [docs/architecture/sync-engine.md](docs/architecture/sync-engine.md).
+> **Before changing any of this, read
+> [docs/architecture/sync-engine.md](docs/architecture/sync-engine.md).** It documents the
+> column contract and several invariants that look like dead code and are not.
 
 ### Google Apps Script
 
-A script installed as an installable trigger on the CATalog spreadsheet handles sheet-side
-bookkeeping on human edits:
-
-- Auto-timestamps edits in column W and records the editor's email in column X
-- Generates a UUID in column Y on first data entry (the stable record key across sync)
-- Flags region tabs created by hand (which sync cannot see) with a warning banner
-
-> One-time structural setup (headers, protected columns, UUID seeding) is done **server-side
-> from the Admin tab** as the service account — not from Apps Script. The legacy Apps Script
-> setup/freeze functions are deprecated; see the
-> [sync setup guide](docs/operations/gsheets-sync-setup.md).
-
-### Sync Queue, Audit Log & Freeze
-
-Forward-sync writes are queued in `gsheet_sync_queue` and processed with retry state. Every
-sync run is recorded in `sync_audit_log` (region, direction, task counts, error details).
-Sync can be **frozen** via a `system_config` flag (`sync_frozen`): it freezes automatically
-on failure, and an administrator clears it from **Admin → GSheet Config → Unfreeze** (which
-runs a full reverse sync, then resumes). Freeze is entirely app-side.
+An installable trigger on the spreadsheet handles sheet-side bookkeeping: timestamping edits
+in column W, recording the editor in column X, minting the column-Y UUID on first entry, and
+flagging hand-made region tabs that sync cannot see. Structural setup is done server-side from
+the Admin tab as the service account, not from Apps Script.
 
 ---
 
-## Features
+## Tech stack
 
-### Census Sessions (the volunteer workflow)
+| Layer | Technology |
+| --- | --- |
+| Framework | Next.js 16 (App Router, React 19) |
+| Language | TypeScript (strict) |
+| Styling | Tailwind CSS 4 |
+| UI | Mostly custom; Radix `Slot` + CVA for `Button` |
+| Data | Server Components for initial load, server actions thereafter |
+| Actions | `next-safe-action` 8 |
+| Validation | Zod 4 (+ `drizzle-zod`) |
+| ORM / DB | Drizzle ORM + Drizzle Kit · PostgreSQL via Supabase |
+| Auth | Supabase Auth + Google OAuth (SSR), admin allowlist |
+| Storage | Supabase Storage |
+| Google APIs | Sheets, Drive |
+| Images | Sharp (server), Canvas (client normalize) |
+| Cron | Cloudflare Workers |
+| Alerts | Discord webhooks |
+| Charts | Recharts |
+| Tests | Jest (node env, sync-focused) |
 
-A **session** is one trip out to count cats in one campus region. It has a `census_no` and a
-roster of the cats logged.
-
-- A volunteer creates a session scoped to a region, then adds each cat via the entry form
-  (photo, identity, health, location).
-- A session is **Unfinished** until submitted; submitting sends it for manager review.
-- Managers review via a two-step pipeline: **Info Validation** (correct the entry's details)
-  → **Cross-Reference** (compare against existing cats and **merge duplicates**, or approve
-  as new). Approving sets the entry's status to `Original`; merging marks it `Merged` and
-  records `merged_into_id`.
-
-Cat entry status: `Unsubmitted → Unreviewed → Original` (or `Merged` into another cat).
-
-Priority Locations UI: displays regions ranked by days since their last census.
-
-### Cat Database
-
-Each cat record includes:
-
-- **Identity**: name, color, age, sex, sociability, caretaker, spot last seen, notes
-- **Status**: deceased, fostered, adopted, MIA (or none)
-- **Location**: a `region_id` override that, with session history, resolves the effective region
-- **Health record**: condition, neutered (yes/no/unknown), neuter date, vaccination date
-- **Photo**: uploaded in-app or imported from the spreadsheet
-- **IDs**: `paws_id` (university registry ID); the public catalog ID is **derived** (sheet
-  column A, with a status suffix), not stored on the row
-- **Merge tracking**: `merged_into_id` links a deduplicated entry to its canonical cat
-
-Managers have full create/edit/delete across the **General**, **Medical**, and
-**Interventions** tabs. Volunteers see these detail screens **read-only**.
-
-### Interventions
-
-Per-cat actions — type **TNVR** or **Veterinarian**, status **Pending → Finished** (or
-**Cancelled**). Managers add and update them from a cat's Interventions tab.
-
-### User Management
-
-Administrators manage accounts through an **allowlist** (`allowed_emails`): only pre-approved
-emails can sign in with Google. Roles are assignable before signup and carried onto the
-profile at signup.
-
-| Role          | Capabilities                                                                      |
-| ------------- | --------------------------------------------------------------------------------- |
-| Volunteer     | Run census sessions (full create/edit inside session forms); view-only elsewhere  |
-| Manager       | All of the above + review/approve sessions, full cat-database CRUD, Census Report |
-| Administrator | All of the above + the Admin tab (users & roles, regions, GSheet config)          |
-
-Access is enforced at the server-action level via RBAC helpers (`requireRole(...)`).
-
-### Public Catalog
-
-A public, no-login directory of cats marked `is_adoptable = true`, with search and per-cat
-detail pages — the external half of the app that makes adoptable/fosterable cats easy to
-browse.
-
-### Overview & TNVR Dashboards
-
-- **Overview**: population stats, regional breakdowns.
-- **TNVR**: neutering-coverage statistics (the TNVR Score) with a sex/neuter pie breakdown,
-  filterable by location.
-
-### Admin Tab
-
-Administrator-only, organized like a settings page with three sections:
-
-- **Users & Access** — invite/remove people and change roles
-- **Regions** — add / rename / delete campus locations (also provisions each region's sheet)
-- **GSheet Config** — sync status + **Unfreeze**, **Provision Sheets** (structural repair),
-  **Seed UUIDs** (one-time cutover), **Reclaim orphaned photos** (storage GC — deletes photo
-  files no cat record references)
+> No client data-fetching library is in use. These dependencies are declared but **unimported**
+> and pending removal: `@tanstack/react-query`, `better-auth`, `browser-image-compression`,
+> `node-html-parser`, `drizzle-seed`, `@testing-library/*`.
 
 ---
 
-## Database Schema
-
-Core tables:
-
-| Table                | Purpose                                                                    |
-| -------------------- | -------------------------------------------------------------------------- |
-| `cats`               | Cat records (identity, status, region override, photo, `paws_id`)          |
-| `cat_health_records` | One-to-one health record per cat (condition, neuter, vaccination)          |
-| `regions`            | Campus locations — `name` is free text (`NOT NULL UNIQUE`), managed in-app |
-| `sessions`           | Census sessions scoped to a region (`census_no`, finished flag)            |
-| `session_users`      | Volunteers assigned to a session                                           |
-| `session_cats`       | Cats logged in a session                                                   |
-| `interventions`      | Per-cat interventions (type, status, notes)                                |
-| `profiles`           | User profiles linked to Supabase auth (carries `auth_role`)                |
-| `allowed_emails`     | Registration allowlist with role assignment                                |
-| `gsheet_sync_queue`  | Pending forward-sync operations with retry state                           |
-| `sync_audit_log`     | History of sync runs (direction, tasks, errors, timing)                    |
-| `system_config`      | Key-value config store (e.g. `sync_frozen`)                                |
-
-> Regions were migrated from a Postgres enum to a free-text column so they can be managed
-> self-serve from the Admin tab. `REGION_NAME_VALUES` in `lib/db/enums.ts` is now only seed
-> data, not a DB constraint.
-
-Schema is managed with Drizzle. To apply changes, push directly (not generate/migrate):
+## Getting started
 
 ```bash
-pnpm drizzle-kit push
-```
-
----
-
-## Project Structure
-
-```
-agila-app/
-├── app/
-│   ├── (auth)/login/                 # Google sign-in (allowlist-gated) + not-onboarded
-│   ├── (public)/                     # Public home + adoptable cat catalog
-│   ├── (protected)/
-│   │   └── dashboard/
-│   │       ├── overview/             # Stats dashboard + priority locations
-│   │       ├── tnvr/                 # TNVR coverage statistics
-│   │       ├── database/             # Cat DB — general / medical / interventions tabs
-│   │       ├── sessions/             # Census sessions + create + manager review/approval
-│   │       └── admin/                # Admin tab (users, regions, GSheet config)
-│   ├── api/
-│   │   ├── cron/sync/                # Sync endpoint (called by the Cloudflare Worker)
-│   │   └── health/                   # Health check
-│   ├── actions/                      # Server actions (type-safe via next-safe-action)
-│   └── auth/                         # OAuth callback / confirm / signout routes
-├── components/
-│   ├── ui/                           # Base components (Button, Input, CustomSelect, …)
-│   └── app-pages/                    # Feature screens (admin/, database/, sessions/, …)
-├── lib/
-│   ├── auth/                         # RBAC helpers and permission constants
-│   ├── db/                           # Drizzle schema, enums, relations, seed
-│   ├── repo/                         # Data access layer (all direct DB queries live here)
-│   ├── services/                     # Business logic (sync, photo import, catalog, …)
-│   ├── validation/                   # Zod schemas for inputs and GSheet row parsing
-│   ├── stats/                        # Census/TNVR statistics
-│   ├── supabase/                     # Supabase client/admin/server configs
-│   └── hooks/                        # Custom React hooks
-├── workers/
-│   ├── sync-cron/                    # Cloudflare Worker — scheduled sync trigger
-│   └── apps-script/                  # Google Apps Script — sheet edit triggers
-├── docs/
-│   ├── architecture/                 # Sync engine, data model, frontend strategy
-│   ├── operations/                   # Sync setup & runbook (technical)
-│   ├── handbook/                     # Non-technical user manual (by role)
-│   ├── reference/                    # Original proposal + CATalog sheet exports
-│   └── archive/                      # Historical plans & specs — not current truth
-├── __tests__/                        # Jest suites (sync-focused)
-├── scripts/                          # One-off data import and maintenance scripts
-├── drizzle.config.ts
-├── next.config.ts
-└── CLAUDE.md                         # Agent guide — conventions, invariants, design system
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm (this project uses pnpm exclusively — no npm)
-- A Supabase project (PostgreSQL + Storage + Auth)
-- A Google Cloud project with the Sheets API and Drive API enabled
-- A service account with access to the CATalog spreadsheet
-
-### Environment Variables
-
-Contact @legnspice (Niles Cabrera) for access to the following:
-
-```
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_SUPABASE_SERVICE_ROLE_KEY=
-
-# Postgres — pooled for the app, direct for drizzle-kit push
-DATABASE_URL=
-DIRECT_DATABASE_URL=
-
-# Site origin (OAuth redirect target)
-NEXT_PUBLIC_SITE_URL=
-
-# Google (full service account JSON as a single env var)
-SERVICE_ACCOUNT_CREDENTIALS=
-CATALOG_SPREADSHEET_ID=
-
-# Discord alerts (optional)
-DISCORD_WEBHOOK_URL=
-
-# Sync cron (shared with the Cloudflare Worker)
-CRON_SECRET=
-```
-
-> Note the `NEXT_` prefix on the service-role key — it is read as
-> `NEXT_SUPABASE_SERVICE_ROLE_KEY`, not the Supabase default name. It is server-only despite
-> the prefix (no `NEXT_PUBLIC_`), so it is never exposed to the browser.
-
-### Install & Run
-
-```bash
-pnpm install
+pnpm install          # pnpm only — never npm
+cp .env.example .env  # then fill it in
 pnpm dev
 ```
 
-### Apply Schema
+[`.env.example`](.env.example) lists the ten variables the app actually reads, annotated.
+Values come from the Vercel project settings — ask an admin.
+
+**Prerequisites:** Node 20+, pnpm, a Supabase project, a Google Cloud project with the Sheets
+and Drive APIs enabled, and a service account with access to the CATalog spreadsheet.
+
+> ⚠️ **There is no staging environment.** Local development points at production — one
+> database, one spreadsheet, one bucket. `pnpm dev` never runs a sync tick itself, but local
+> edits queue tasks that *production* cron drains within 20 minutes. Read
+> [docs/development.md §2](docs/development.md) before running anything.
+
+Schema changes are pushed, not migrated:
 
 ```bash
-pnpm drizzle-kit push
+pnpm drizzle-kit push   # reads DIRECT_DATABASE_URL, not DATABASE_URL
 ```
 
 ---
 
 ## Testing
 
-Tests live in `__tests__/` and run with Jest — **17 suites**. Coverage is concentrated on the
-**sync system and its supporting logic** (the riskiest, least-visible part of the app). UI is
-not tested at all: `testEnvironment` is `node` and there are no component tests.
-
 ```bash
-pnpm jest __tests__     # run the suite
-pnpm tsc --noEmit       # type-check (or `pnpm build`, which also checks types)
+pnpm jest __tests__   # 35 suites / 348 tests, ~3s
+pnpm tsc --noEmit     # type-check
 ```
 
-| Area covered                                      | Suite                                              |
-| ------------------------------------------------- | -------------------------------------------------- |
-| Catalog ID parsing / next-ID / status suffix      | `services/catalog.service.test.ts`                 |
-| Reverse-sync row parsing & validation             | `validation/reverse-sync.test.ts`                  |
-| Reverse-sync status-change forward re-enqueue      | `services/reverse-sync.test.ts`                    |
-| Cat → sheet-row mapping                           | `services/helper-mappers.test.ts`                  |
-| Sheets API client (retry / pacing)                | `services/sheets-client.test.ts`                   |
-| Forward sync + compaction + ID backfill           | `services/forward-sync.test.ts`                    |
-| Sync-queue refresh (entry_status gate)            | `services/refresh-sync-queue.test.ts`              |
-| Region delete (empty / non-empty / force)         | `services/regions-delete.test.ts`                  |
-| Effective-region resolution (override vs session) | `repo/resolve-cat-region.test.ts`                  |
-| Latest-session-date lookup                        | `repo/sessions-repo.test.ts`                       |
-| Region-move routing & queue cleanup               | `services/cats-region-routing.test.ts`             |
-| Census / TNVR statistics                          | `stats/census-stats.test.ts`                       |
-| Cat & session actions                             | `actions/cats.test.ts`, `actions/sessions.test.ts` |
-| Cat photo upload / re-crop / remove               | `actions/cat-photo.test.ts`                        |
-| Crop-as-metadata geometry                         | `lib/photo-position.test.ts`                       |
-| Session detail loader                             | `services/sessions-detail.test.ts`                 |
+Coverage concentrates on the sync system — the riskiest, least-visible part of the app. UI is
+not tested: `testEnvironment` is `node` and there are no component tests.
 
-The database and Google APIs are mocked per file, so the suite runs offline — no live
-spreadsheet or database required.
+Every external seam is mocked, so the suite runs offline — **and cannot catch a bad SQL
+fragment.** Verify database-shaped changes against real data with a throwaway script. See
+[docs/development.md §5](docs/development.md) for the mocking pattern.
 
-These tests encode the sync invariants documented in
-[docs/architecture/sync-engine.md](docs/architecture/sync-engine.md). If one fails after a
-change there, the invariant is real — understand it before editing the assertion.
+---
+
+## Layout
+
+```
+app/          routes · server actions (app/actions/) · API routes
+components/   ui/ primitives · app-pages/ feature screens
+lib/
+  repo/       all direct DB queries live here
+  services/   business logic, transactions, sync
+  validation/ Zod schemas (mostly drizzle-zod derived)
+  db/         Drizzle schema, enums, relations
+workers/      sync-cron/ Cloudflare Worker · apps-script/ sheet-side .gs
+docs/         see docs/README.md
+__tests__/    Jest suites
+scripts/      one-off data and maintenance scripts
+```
+
+The layering is strict: `app/actions/*` (auth + validation) → `lib/services/*` (business rules)
+→ `lib/repo/*` (**every** `db.*` call). Services must not query the database directly.
+
+### Core tables
+
+| Table | Purpose |
+| --- | --- |
+| `cats` | Cat records (identity, status, region override, photo, `paws_id`) |
+| `cat_health_records` | One-to-one health record (condition, neuter, vaccination) |
+| `regions` | Campus locations — free-text `name`, managed in-app |
+| `sessions` · `session_users` · `session_cats` | Census sessions, their volunteers, their cats |
+| `interventions` | Per-cat interventions (type, status, notes) |
+| `profiles` · `allowed_emails` | User profiles and the registration allowlist |
+| `gsheet_sync_queue` | Pending forward-sync operations with retry state |
+| `sync_audit_log` | History of sync runs |
+| `system_config` | Key-value config (e.g. `sync_frozen`) |
+
+---
+
+## Documentation
+
+| Doc | For |
+| --- | --- |
+| [docs/development.md](docs/development.md) | **new developers** — setup, layering, a full walkthrough, testing |
+| [docs/architecture/sync-engine.md](docs/architecture/sync-engine.md) | the column contract, cron phases, invariants |
+| [docs/architecture/data-model.md](docs/architecture/data-model.md) | schema, lifecycles, effective region |
+| [docs/architecture/frontend.md](docs/architecture/frontend.md) | the mobile/desktop two-screen strategy |
+| [docs/operations/gsheets-sync-setup.md](docs/operations/gsheets-sync-setup.md) | provisioning, cutover, production recovery |
+| [docs/operations/handoff.md](docs/operations/handoff.md) | transferring account ownership to AGILA |
+| [docs/operations/decommissioning.md](docs/operations/decommissioning.md) | retiring the sync deliberately |
+| [docs/handbook/](docs/handbook/AGILA-User-Manual.md) | the non-technical user manual |
+| [CLAUDE.md](CLAUDE.md) | the same conventions in imperative form, for AI agents |
 
 ---
 
