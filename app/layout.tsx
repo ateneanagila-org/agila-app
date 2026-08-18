@@ -27,6 +27,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const SITE_DESCRIPTION =
   "Cat census and adoption catalog for AGILA at Ateneo de Manila University, Quezon City.";
 
+// Copy for share cards and search results. Leads with Ateneo — the term AGILA
+// actually owns and ranks first for — and carries the geography in the body,
+// where it still counts for location intent. Competing on "adopt a cat in
+// Quezon City" against established Metro Manila shelters was never winnable.
+const SHARE_DESCRIPTION =
+  "Meet campus cats available for adoption and fostering, based at Ateneo de Manila University in Quezon City and open to adopters across Metro Manila.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -34,17 +41,23 @@ export const metadata: Metadata = {
     default: "AGILA CATalog",
   },
   description: SITE_DESCRIPTION,
+  // Share-card defaults live here, not on the home page, because `/` IS the
+  // public catalog — and a page that declares its own `openGraph` replaces this
+  // block wholesale, which silently drops the file-based opengraph-image along
+  // with it. That is exactly how the site shipped a `summary_large_image` card
+  // with no image. Only /catalog/[id] overrides these, and it brings its own
+  // image (the cat's photo).
   openGraph: {
     type: "website",
     siteName: "AGILA CATalog",
-    title: "AGILA CATalog",
-    description: SITE_DESCRIPTION,
+    title: "Adopt a Cat from Ateneo",
+    description: SHARE_DESCRIPTION,
     locale: "en_PH",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AGILA CATalog",
-    description: SITE_DESCRIPTION,
+    title: "Adopt a Cat from Ateneo",
+    description: SHARE_DESCRIPTION,
   },
 };
 
