@@ -48,6 +48,11 @@ export async function generateMetadata({
   return {
     title: name,
     description,
+    // Resolved against metadataBase (NEXT_PUBLIC_SITE_URL), so it names the
+    // canonical host. The site answers on both the apex and www — the apex
+    // 308s to www — and without this, redirects are the only signal telling
+    // Google which host owns the page.
+    alternates: { canonical: `/catalog/${id}` },
     openGraph: {
       type: "article",
       siteName: "AGILA CATalog",

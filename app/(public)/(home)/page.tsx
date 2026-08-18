@@ -13,6 +13,10 @@ import { getLinks } from "@/lib/services/system.service";
 // description below, which is where location intent is read anyway.
 export const metadata: Metadata = {
   title: "Adopt a Cat From Ateneo",
+  // The site answers on both the apex and www (the apex 308s to www), so name
+  // the canonical host explicitly rather than leaving Google to infer it from
+  // redirects. Resolved against metadataBase (NEXT_PUBLIC_SITE_URL).
+  alternates: { canonical: "/" },
   description:
     "Meet campus cats available for adoption and fostering, based at Ateneo de Manila University in Quezon City and open to adopters across Metro Manila.",
 };
