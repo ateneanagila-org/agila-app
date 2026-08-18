@@ -42,6 +42,12 @@ type CatCardProps = {
   /** Custom chips (rendered after default chips). */
   extraChips?: ReactNode;
   hideAdoptableChip?: boolean;
+  /**
+   * Hides the specific-location line. Set on the public catalog: a precise spot
+   * ("LEONG 1F") is an internal field for finding a cat during a census, not
+   * something to publish about a live animal on a page search engines index.
+   */
+  hideLocation?: boolean;
   className?: string;
 };
 
@@ -101,6 +107,7 @@ export function CatCard({
   dateLabel,
   extraChips,
   hideAdoptableChip = false,
+  hideLocation = false,
   className = "",
 }: CatCardProps) {
   const { rail, chip: rawChip } = statusAccent(cat);
@@ -151,13 +158,17 @@ export function CatCard({
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2">
               <p className="flex min-w-0 items-baseline gap-1.5 text-[11px] truncate">
-                <span className="font-semibold uppercase tracking-wider text-brand-green/80">
-                  Loc
-                </span>
-                <span className="font-medium text-brand-dark/80 truncate">
-                  {cat.spot_last_seen || "Unknown"}
-                </span>
-                <span className="text-brand-dark/30">·</span>
+                {hideLocation ? null : (
+                  <>
+                    <span className="font-semibold uppercase tracking-wider text-brand-green/80">
+                      Loc
+                    </span>
+                    <span className="font-medium text-brand-dark/80 truncate">
+                      {cat.spot_last_seen || "Unknown"}
+                    </span>
+                    <span className="text-brand-dark/30">·</span>
+                  </>
+                )}
                 <span className="font-medium tabular-nums text-brand-dark/60">
                   {dateLabel ?? formatDate(cat.date_last_seen)}
                 </span>
@@ -269,8 +280,12 @@ export function CatCard({
             ) : null}
           </div>
           <div className="mt-2 flex items-end justify-between gap-3">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-              <Field label="Loc" value={cat.spot_last_seen || "Unknown"} />
+            <div
+              className={`grid ${hideLocation ? "grid-cols-1" : "grid-cols-2"} gap-x-4 gap-y-1 text-[11px]`}
+            >
+              {hideLocation ? null : (
+                <Field label="Loc" value={cat.spot_last_seen || "Unknown"} />
+              )}
               <Field
                 label="Seen"
                 value={dateLabel ?? formatDate(cat.last_updated_at)}

@@ -161,28 +161,24 @@ export function CatalogDetailScreen({
             ) : null}
           </div>
 
-          {cat.spot_last_seen || cat.date_last_seen || cat.last_updated_at ? (
+          {/* Date only — never the specific spot. A precise location is an
+              internal field for finding a cat during a census; publishing it for
+              a live animal on a search-indexed page is not something the public
+              needs. The region shown elsewhere is as granular as this gets. */}
+          {cat.date_last_seen || cat.last_updated_at ? (
             <p className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-brand-dark/65">
-              {cat.spot_last_seen || cat.date_last_seen ? (
+              {cat.date_last_seen ? (
                 <>
                   <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[11px]">
                     Last seen
                   </span>
-                  {cat.spot_last_seen ? (
-                    <span className="font-semibold text-brand-dark/80">
-                      {cat.spot_last_seen}
-                    </span>
-                  ) : null}
-                  {cat.date_last_seen ? (
-                    <span className="font-semibold tabular-nums text-brand-dark/80">
-                      {cat.spot_last_seen ? "· " : ""}
-                      {new Date(cat.date_last_seen).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  ) : null}
+                  <span className="font-semibold tabular-nums text-brand-dark/80">
+                    {new Date(cat.date_last_seen).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </>
               ) : null}
               {cat.last_updated_at ? (

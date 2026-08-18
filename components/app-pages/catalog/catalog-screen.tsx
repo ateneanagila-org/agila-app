@@ -176,6 +176,7 @@ export function CatalogScreen({ adoptFosterUrl }: CatalogScreenProps) {
                 variant="default"
                 action="none"
                 hideAdoptableChip
+                hideLocation
               />
             ))}
           </div>
