@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Gantari } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 
 const gantari = Gantari({
@@ -72,6 +74,8 @@ export default function RootLayout({
         className={`${gantari.variable} ${aveton.variable} ${sfcLaPura.variable} antialiased`}
       >
         {children}
+        <SpeedInsights />
+        <Analytics />
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
