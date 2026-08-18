@@ -284,7 +284,7 @@ The layering is strict: `app/actions/*` (auth + validation) → `lib/services/*`
 | [docs/architecture/data-model.md](docs/architecture/data-model.md) | schema, lifecycles, effective region |
 | [docs/architecture/frontend.md](docs/architecture/frontend.md) | the mobile/desktop two-screen strategy |
 | [docs/operations/gsheets-sync-setup.md](docs/operations/gsheets-sync-setup.md) | provisioning, cutover, production recovery |
-| [docs/operations/handoff.md](docs/operations/handoff.md) | transferring account ownership to AGILA |
+| [docs/operations/handoff.md](docs/operations/handoff.md) | who owns what, how the hosts are wired, what keeps it alive |
 | [docs/operations/decommissioning.md](docs/operations/decommissioning.md) | retiring the sync deliberately |
 | [docs/handbook/](docs/handbook/AGILA-User-Manual.md) | the non-technical user manual |
 | [CLAUDE.md](CLAUDE.md) | the same conventions in imperative form, for AI agents |

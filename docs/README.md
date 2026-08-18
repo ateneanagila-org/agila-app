@@ -19,7 +19,7 @@ Everything below is the reference layer beneath both.
 | [architecture/frontend.md](architecture/frontend.md)        | dev / agent     | Two-screen (mobile/desktop) strategy                          |
 | [specs/](specs/)                                            | dev / agent     | **Active** design specs awaiting or under implementation      |
 | [operations/gsheets-sync-setup.md](operations/gsheets-sync-setup.md) | operator | Sync setup + runbook: provisioning, cutover, recovery         |
-| [operations/handoff.md](operations/handoff.md)              | operator        | Moving the accounts to AGILA ownership — one-time runbook      |
+| [operations/handoff.md](operations/handoff.md)              | operator        | Who owns what, how the hosts are wired, and what keeps it alive |
 | [operations/decommissioning.md](operations/decommissioning.md) | operator | Retiring the sync: killswitch, cron teardown, Apps Script cleanup |
 | [handbook/AGILA-User-Manual.md](handbook/AGILA-User-Manual.md) | end user    | Non-technical manual, split by role                           |
 | [reference/](reference/)                                    | context         | Original proposal + CATalog spreadsheet exports               |
@@ -36,8 +36,9 @@ Everything below is the reference layer beneath both.
 - **Building UI** → `CLAUDE.md` for the design system, `architecture/frontend.md` for the
   mobile/desktop split.
 - **Running or repairing the sync in production** → `operations/gsheets-sync-setup.md`.
-- **Transferring the accounts to AGILA** → `operations/handoff.md`. Read the domain
-  section first — it is the step that makes the other three safe.
+- **Inheriting the system, or moving where it's hosted** → `operations/handoff.md`. It
+  records which account owns what, why `NEXT_PUBLIC_SITE_URL` and `APP_URL` deliberately
+  point at different hosts, and the limitations being handed over.
 - **Understanding *why* something exists** → `archive/`, then `reference/project-proposal.md`.
 
 ## Notes on `reference/`
