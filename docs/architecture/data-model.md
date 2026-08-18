@@ -38,6 +38,28 @@ push it out. There is no mapping table, and no separate catalog ID —
 > `cats.repo.ts` still projects `NULL as catalog_id` so live Supabase instances missing the
 > optional sync columns don't break user-facing reads.
 
+### Catalog numbers are per-region, permanent, and leave gaps
+
+`nextCatalogId` (`catalog.service.ts`) is `Math.max(...existing) + 1` — **not** lowest-unused.
+So when a row leaves a tab, its number retires with it and is never reissued. A tab reading
+`1, 2, 3, 5, 6` is correct and will stay that way; the next cat there gets `7`.
+
+This looks like a bug and is not. It is forced by two constraints that are each independently
+right:
+
+- **Never reuse a number.** Reissuing `4` to a later cat would silently repoint every existing
+  reference — a vet record, a photo caption, a volunteer's notes — at a different animal.
+- **Never renumber.** Closing the gap by shifting `5→4, 6→5` changes the identity of every cat
+  below it at once, which is worse again.
+
+Given both, a gap is the only remaining option: it is the price of stable identifiers. It is
+also purely cosmetic — **no count is derived from column A.** Census totals come from the
+database, so `max(colA)` exceeding the row count means nothing is missing.
+
+Rows leave a tab in three ways: a cat is deleted, a duplicate is merged away, or the cat's
+effective region changes and reconciliation moves it (it is appended to the destination tab
+with that tab's next number, and the origin keeps the gap).
+
 ## Effective region
 
 A cat has no hard region FK requirement. Its region is:

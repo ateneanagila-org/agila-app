@@ -59,6 +59,7 @@ If you remember one thing: **the app is the authority; the sheet stays in step w
 | **Census** | A count of the cats in an area at a point in time. |
 | **Session** | One trip out to count cats in one location. Has a **Census No.** and a list of cats you logged. |
 | **Census No.** | The automatic number given to each session, so they can be referred to in order. |
+| **Catalog No.** | The number in the **first column** of a region's sheet, identifying one cat *on that sheet*. Not the same as the Census No. Each region numbers its own cats from 1. |
 | **Region / Location** | A named zone on campus (e.g. *GATE 3* , *ARETE* ). Every cat and every session belongs to one. |
 | **TNVR** | **T**rap– **N**euter– **V**accinate– **R**eturn — the program for humanely managing the cat population. |
 | **Sociability** | How comfortable a cat is around people: *Domesticated* , *Tame* , or *Feral* . |
@@ -339,6 +340,18 @@ You — unlike volunteers — keep **edit access** to the Google Sheets. Because
 * A value the app wouldn't accept (a misspelled status, an invalid date) may be **rejected** when it syncs back — so stick to the same options the app offers.  
 * When the app is available again, go back to working in it.  
 * To replace a photo in the GSheets, make sure to insert the new image into the desired cell and that the cell does not have any formulas written like this: “IMAGE=url(...)”. That formula should be automatically overwritten on proper insert anyways.
+
+### **Why a sheet's numbers sometimes skip (e.g. 1, 2, 3, 5)**
+
+**Nothing is missing, and nothing needs fixing.** A gap in the first column is normal and permanent.
+
+A cat's **Catalog No.** belongs to it for good. When a cat leaves a sheet — it's deleted, it's merged into another record as a duplicate, or it was being counted in the wrong region and the app moved it — the row goes, and **its number retires with it.** The next cat added to that sheet carries on from the highest number used, so the gap stays open.
+
+That is deliberate. If the app reused an old number, every past mention of it — a vet record, a photo caption, a note in someone's phone — would suddenly point at a *different cat*. And if the app closed the gap by shifting everyone up, every cat below it would change number at once. Leaving the gap is the only option that keeps each cat's number meaning one cat, forever.
+
+**One thing to watch:** because of this, **the highest number on a sheet is not the number of cats on it.** A sheet whose last row reads 15 may well hold 14 cats. To count cats, use the app — never the spreadsheet's numbering.
+
+*A cat moved to another region keeps nothing of its old number: it joins the new sheet at the end, with that sheet's next number. This is correct — each region numbers its own cats from 1, so the old number would collide.*
 
 
  
