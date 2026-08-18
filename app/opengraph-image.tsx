@@ -34,54 +34,18 @@ export const alt =
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-/** Cat paw built from primitives — no asset, no SVG parsing, no fetch. */
-function Paw({ color }: { color: string }) {
-  const toes = [
-    { left: 6, top: 74, w: 56, h: 72, r: -18 },
-    { left: 76, top: 22, w: 58, h: 76, r: -7 },
-    { left: 150, top: 22, w: 58, h: 76, r: 7 },
-    { left: 220, top: 74, w: 56, h: 72, r: 18 },
-  ];
-  return (
-    <div style={{ display: "flex", position: "relative", width: 282, height: 268 }}>
-      {toes.map((t, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: t.left,
-            top: t.top,
-            width: t.w,
-            height: t.h,
-            borderRadius: "50%",
-            backgroundColor: color,
-            transform: `rotate(${t.r}deg)`,
-          }}
-        />
-      ))}
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          left: 44,
-          top: 140,
-          width: 194,
-          height: 138,
-          borderRadius: "50%",
-          backgroundColor: color,
-        }}
-      />
-    </div>
-  );
-}
+// Source mark is 504x528, cream on transparent.
+const LOGO_W = 250;
+const LOGO_H = Math.round((LOGO_W * 528) / 504);
 
 export default async function OpengraphImage() {
-  const fonts = join(process.cwd(), "public", "fonts");
-  const [aveton, laPura] = await Promise.all([
-    readFile(join(fonts, "AvetonRegular-MARon.ttf")),
-    readFile(join(fonts, "SFC La Pura.ttf")),
+  const pub = join(process.cwd(), "public");
+  const [aveton, laPura, logo] = await Promise.all([
+    readFile(join(pub, "fonts", "AvetonRegular-MARon.ttf")),
+    readFile(join(pub, "fonts", "SFC La Pura.ttf")),
+    readFile(join(pub, "logos", "white-no-text.png")),
   ]);
+  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -110,8 +74,8 @@ export default async function OpengraphImage() {
           }}
         />
 
-        {/* Cream badge — the app's own idiom: a rounded light surface sitting
-            on a coloured field, the same shape every card in the UI uses. */}
+        {/* Green badge carrying the AGILA mark — the app's own idiom of a
+            rounded surface on a coloured field, the shape every card uses. */}
         <div
           style={{
             display: "flex",
@@ -121,12 +85,15 @@ export default async function OpengraphImage() {
             width: 368,
             height: 368,
             borderRadius: 184,
-            backgroundColor: BRAND.cream,
+            backgroundColor: BRAND.green,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Paw color={BRAND.green} />
+          {/* The real AGILA mark — paw with a heart in the pad. The asset is
+              cream on transparent, which is why the badge is green rather than
+              cream: on a cream disc the logo would be invisible. */}
+          <img src={logoSrc} width={LOGO_W} height={LOGO_H} alt="" />
         </div>
 
         {/* Content */}
