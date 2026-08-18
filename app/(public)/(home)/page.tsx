@@ -12,7 +12,7 @@ import { getLinks } from "@/lib/services/system.service";
 // AGILA ranks first for by default. The geography still lives in the
 // description below, which is where location intent is read anyway.
 export const metadata: Metadata = {
-  title: "Adopt a Cat from Ateneo",
+  title: "Adopt a Cat From Ateneo",
   description:
     "Meet campus cats available for adoption and fostering, based at Ateneo de Manila University in Quezon City and open to adopters across Metro Manila.",
 };

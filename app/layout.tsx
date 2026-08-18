@@ -50,13 +50,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "AGILA CATalog",
-    title: "Adopt a Cat from Ateneo",
+    title: "Adopt a Cat From Ateneo",
     description: SHARE_DESCRIPTION,
     locale: "en_PH",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Adopt a Cat from Ateneo",
+    title: "Adopt a Cat From Ateneo",
     description: SHARE_DESCRIPTION,
   },
 };
