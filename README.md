@@ -17,7 +17,7 @@ non-obvious rule in this codebase exists to keep that arrangement honest.
 
 | | |
 | --- | --- |
-| **Use the app** | [ateneanagila.vercel.app](https://ateneanagila.vercel.app/) |
+| **Use the app** | [ateneanagila.vercel.app](https://ateneanagila.com/) |
 | **Learn to use it** (non-technical) | [User Manual](https://docs.google.com/document/d/1SWO1l1zoXQlZ03wWfUd4xTdMDSRbLVJb7KdZwZ3iqaA/edit) · source in [`docs/handbook/`](docs/handbook/AGILA-User-Manual.md) |
 | **Work on the code** | **[docs/development.md](docs/development.md)** — start here |
 | **Run or repair the sync** | [docs/operations/gsheets-sync-setup.md](docs/operations/gsheets-sync-setup.md) |
