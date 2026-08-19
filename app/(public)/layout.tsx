@@ -35,9 +35,18 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       </header>
       {/* Footer lives inside the scroll container, so it sits below the page
           content rather than pinned. Outside the max-w-7xl wrapper so the dark
-          band runs full-bleed while its content stays aligned to the page. */}
+          band runs full-bleed while its content stays aligned to the page.
+
+          The wrapper is floored at one viewport minus the h-16 header, which is
+          exactly this scroll container's height. Without it the footer rides up
+          into view on first paint — the catalog grid is empty until its data
+          arrives, so the page is briefly short enough to expose it. The floor
+          keeps the footer one scroll away at any screen height, and does
+          nothing once real content exceeds it. */}
       <main className="min-h-0 flex-1 overflow-y-auto bg-brand-cream">
-        <div className="mx-auto w-full max-w-7xl">{children}</div>
+        <div className="mx-auto min-h-[calc(100dvh-4rem)] w-full max-w-7xl">
+          {children}
+        </div>
         <PublicFooter />
       </main>
     </div>
