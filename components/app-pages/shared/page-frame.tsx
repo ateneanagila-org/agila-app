@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeftIcon } from "./icons";
 
@@ -22,14 +22,16 @@ export function TopTabs({
 }: {
   active: "General" | "Medical" | "Interventions";
 }) {
-  const searchParams = useSearchParams();
-  const catId = searchParams.get("id");
-  const idParam = catId ? `?id=${catId}` : "";
+  // The cat id is a route param, not a search param — see cat-detail-context for
+  // why. These tabs only ever render under /dashboard/database/[id].
+  const params = useParams<{ id?: string }>();
+  const catId = params?.id ?? "";
+  const base = `/dashboard/database/${catId}`;
 
   const tabs = [
-    { label: "General" as const, href: `/dashboard/database/general${idParam}` },
-    { label: "Medical" as const, href: `/dashboard/database/medical${idParam}` },
-    { label: "Interventions" as const, href: `/dashboard/database/interventions${idParam}` },
+    { label: "General" as const, href: `${base}/general` },
+    { label: "Medical" as const, href: `${base}/medical` },
+    { label: "Interventions" as const, href: `${base}/interventions` },
   ];
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -28,9 +28,10 @@ import {
   removeCat,
   getCatHealthRecords,
 } from "@/app/actions/cats";
-import type { SelectCat } from "@/lib/validation/cats";
+import type { SelectCat, SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { CatEntryStatus } from "@/lib/db/enums";
+import type { RegionOption } from "@/lib/repo/regions.repo";
 import { CROSSREF_LIST_CONFIG } from "@/lib/hooks/filter-sort-configs";
 import { useRegions } from "@/lib/hooks/use-regions";
 
@@ -198,20 +199,36 @@ function MergeListSkeleton() {
   );
 }
 
-export function SessionsApprovalCrossRefScreen() {
+type SessionsApprovalCrossRefScreenProps = {
+  initialCat: CatWithRegion | null;
+  initialHealthRecord: SelectCatHealthRecord | null;
+  initialMergeTargets: CatWithRegion[];
+  initialRegions: RegionOption[];
+};
+
+export function SessionsApprovalCrossRefScreen({
+  initialCat,
+  initialHealthRecord,
+  initialMergeTargets,
+  initialRegions,
+}: SessionsApprovalCrossRefScreenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const catId = searchParams.get("catId");
   const sessionId = searchParams.get("sessionId");
   const sessionCatId = searchParams.get("sessionCatId");
 
-  const [cat, setCat] = useState<CatWithRegion | null>(null);
-  const [allCats, setAllCats] = useState<CatWithRegion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cat, setCat] = useState<CatWithRegion | null>(initialCat);
+  const [allCats, setAllCats] =
+    useState<CatWithRegion[]>(initialMergeTargets);
+  // Seeded from the server: nothing to wait for, so no spinner on first paint.
+  const [loading, setLoading] = useState(initialCat === null);
   // Separate from `loading`: the focused cat (fast) unblocks the shell, while the
   // merge-target catalog (slow — whole Original list + per-row region subquery)
   // streams in behind a skeleton.
-  const [listLoading, setListLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(
+    initialMergeTargets.length === 0,
+  );
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<string | null>(null);
   const [mergeDiffFields, setMergeDiffFields] = useState<MergeFieldDef[]>([]);
@@ -221,7 +238,7 @@ export function SessionsApprovalCrossRefScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const regions = useRegions();
+  const regions = useRegions(initialRegions);
   const backHref = "/dashboard/sessions/manager";
 
   const fetchData = useCallback(async () => {
@@ -266,7 +283,14 @@ export function SessionsApprovalCrossRefScreen() {
     await Promise.allSettled([catPromise, listPromise]);
   }, [catId]);
 
+  // Seeded-ness is a mount-time fact, same idiom as useRegions. Both halves have
+  // to be seeded to skip: fetchData repairs them together, and a seeded cat with
+  // an empty catalog still needs the list. An unseeded mount fetches as before,
+  // which is what recovers a DB failure that loadData swallowed on the server.
+  const seeded = useRef(initialCat !== null && initialMergeTargets.length > 0);
+
   useEffect(() => {
+    if (seeded.current) return;
     fetchData();
   }, [fetchData]);
 
@@ -292,11 +316,19 @@ export function SessionsApprovalCrossRefScreen() {
       setMergeTargetId(targetId);
       const target = allCats.find((c) => c.id === targetId);
       if (!target) return;
-      const [newHRResult, targetHRResult] = await Promise.all([
-        getCatHealthRecords({ cat_id: catId }),
+      // The focused cat's record is normally seeded by the server, so only the
+      // target's has to be fetched. Next runs server actions one at a time, so
+      // dropping the second call halves the wait before the dialog can open.
+      // On the unseeded fallback path there is no seed, and the focused cat's
+      // condition/neutered still have to come from somewhere — fetch both, or
+      // they would silently read as empty and drop out of the merge diff.
+      const [targetHRResult, newHRResult] = await Promise.all([
         getCatHealthRecords({ cat_id: targetId }),
+        initialHealthRecord
+          ? Promise.resolve(null)
+          : getCatHealthRecords({ cat_id: catId }),
       ]);
-      const newHR = newHRResult?.data?.[0];
+      const newHR = initialHealthRecord ?? newHRResult?.data?.[0];
       const targetHR = targetHRResult?.data?.[0];
       const newCondition = newHR?.condition ?? null;
       const targetCondition = targetHR?.condition ?? null;
@@ -312,7 +344,7 @@ export function SessionsApprovalCrossRefScreen() {
       setMergeAutoMergedCount(autoMergedCount);
       setShowMergeConfirm(true);
     },
-    [catId, cat, allCats],
+    [catId, cat, allCats, initialHealthRecord],
   );
 
   const handleMerge = useCallback(

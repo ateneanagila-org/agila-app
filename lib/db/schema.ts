@@ -10,7 +10,10 @@ import {
   integer,
   real,
   unique,
+  index,
+  pgPolicy,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import {
   authRoleEnum,
   regionColorEnum,
@@ -78,7 +81,28 @@ export const regions = pgTable(
     name: text("name").notNull(),
     color: regionColorEnum("color"),
   },
-  (t) => [unique().on(t.name)],
+  (t) => [
+    unique().on(t.name),
+    // Declared so `drizzle-kit push` leaves it alone. This policy exists in the
+    // database; drizzle-kit diffs policies, and anything it cannot see in this
+    // file it proposes to DROP — a bare push previously wanted to run
+    // `ALTER TABLE regions DISABLE ROW LEVEL SECURITY` plus
+    // `DROP POLICY "enabled-rls-bypass" ... CASCADE` as incidental drift.
+    //
+    // regions is the only table granting SELECT to anon/authenticated (it is
+    // read through PostgREST), and the only one with RLS on. The policy is
+    // allow-all, so it does not currently restrict anything — the app connects
+    // as `postgres`, the table owner, which bypasses RLS either way. It is
+    // declared here so that if the policy is ever tightened, a routine push
+    // does not silently delete the tightened version.
+    pgPolicy("enabled-rls-bypass", {
+      as: "permissive",
+      for: "all",
+      to: "public",
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
+  ],
 );
 
 export const sessions = pgTable("sessions", {
@@ -93,7 +117,13 @@ export const sessions = pgTable("sessions", {
   last_updated_at: timestamp("last_updated_at").defaultNow(),
   is_finished: boolean("is_finished").default(false),
   is_system: boolean("is_system").default(false).notNull(),
-});
+}, (t) => [
+  // The effective-region rule resolves a cat's region through its most recent
+  // session: session_cats -> sessions, ordered by created_at. Postgres does not
+  // index foreign keys on its own, so without these the lookup was a seq scan.
+  index("sessions_region_id_idx").on(t.region_id),
+  index("sessions_created_at_idx").on(t.created_at),
+]);
 
 export const sessionUsers = pgTable("session_users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -121,7 +151,12 @@ export const sessionCats = pgTable("session_cats", {
     .references(() => sessions.id, {
       onDelete: "cascade",
     }),
-});
+}, (t) => [
+  // cat_id is the innermost probe of the effective-region subquery, which runs
+  // once per row of the catalog read — by far the hottest lookup in the app.
+  index("session_cats_cat_id_idx").on(t.cat_id),
+  index("session_cats_session_id_idx").on(t.session_id),
+]);
 
 export const cats = pgTable("cats", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -166,7 +201,13 @@ export const cats = pgTable("cats", {
   notes: text("notes"),
   is_adoptable: boolean("is_adoptable").default(false),
   paws_id: text("paws_id"),
-});
+}, (t) => [
+  // entry_status is the only filter on the catalog read ("Original") and on the
+  // review queue ("Unreviewed"); region_id is the COALESCE fast path of the
+  // effective-region rule.
+  index("cats_entry_status_idx").on(t.entry_status),
+  index("cats_region_id_idx").on(t.region_id),
+]);
 
 export const interventions = pgTable("interventions", {
   id: uuid("id").primaryKey().defaultRandom(),

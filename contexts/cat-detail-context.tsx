@@ -5,16 +5,21 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useSearchParams } from "next/navigation";
 import { getCatDetail } from "@/app/actions/cats";
-import type {
-  SelectCatHealthRecord,
-} from "@/lib/validation/cats";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
 import type { SelectIntervention } from "@/lib/validation/interventions";
+
+/** What the detail routes load for one cat. Seeded by the [id] layout. */
+export type CatDetailSeed = {
+  cat: CatWithRegion | null;
+  healthRecord: SelectCatHealthRecord | null;
+  interventions: SelectIntervention[];
+};
 
 type CatDetailContextValue = {
   catId: string | null;
@@ -29,16 +34,40 @@ type CatDetailContextValue = {
 
 const CatDetailContext = createContext<CatDetailContextValue | null>(null);
 
-export function CatDetailProvider({ children }: { children: ReactNode }) {
-  const searchParams = useSearchParams();
-  const catId = searchParams.get("id");
+type CatDetailProviderProps = {
+  catId: string;
+  /**
+   * Server-resolved detail. null means the seed could not be produced (bad id,
+   * or a DB error that loadData swallowed), in which case the provider falls
+   * back to fetching on mount.
+   */
+  initial: CatDetailSeed | null;
+  children: ReactNode;
+};
 
-  const [cat, setCat] = useState<CatWithRegion | null>(null);
-  const [healthRecord, setHealthRecord] =
-    useState<SelectCatHealthRecord | null>(null);
-  const [interventions, setInterventions] = useState<SelectIntervention[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Lives in the [id] layout, which is why the id is a route param rather than a
+ * search param: layouts do not receive searchParams, so with `?id=` there was
+ * nowhere above the tabs that could resolve the cat on the server. Sitting in
+ * the layout is what keeps General/Medical/Interventions from re-fetching as
+ * you switch between them — the layout is shared and is not re-executed.
+ */
+export function CatDetailProvider({
+  catId,
+  initial,
+  children,
+}: CatDetailProviderProps) {
+  const [cat, setCat] = useState<CatWithRegion | null>(initial?.cat ?? null);
+  const [healthRecord, setHealthRecord] = useState<SelectCatHealthRecord | null>(
+    initial?.healthRecord ?? null,
+  );
+  const [interventions, setInterventions] = useState<SelectIntervention[]>(
+    initial?.interventions ?? [],
+  );
+  const [loading, setLoading] = useState(initial === null);
+  const [error, setError] = useState<string | null>(
+    initial !== null && initial.cat === null ? "Cat not found." : null,
+  );
 
   const fetchAll = useCallback(async (id: string) => {
     setLoading(true);
@@ -61,19 +90,17 @@ export function CatDetailProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Seeded-ness is a mount-time fact, same idiom as useRegions. The provider is
+  // keyed by catId in the layout, so a different cat is a different instance and
+  // re-evaluates this rather than holding the previous cat's data.
+  const seeded = useRef(initial !== null);
+
   useEffect(() => {
-    if (!catId) {
-      setCat(null);
-      setHealthRecord(null);
-      setInterventions([]);
-      setError(null);
-      return;
-    }
+    if (seeded.current) return;
     fetchAll(catId);
   }, [catId, fetchAll]);
 
   const refresh = useCallback(async () => {
-    if (!catId) return;
     await fetchAll(catId);
   }, [catId, fetchAll]);
 

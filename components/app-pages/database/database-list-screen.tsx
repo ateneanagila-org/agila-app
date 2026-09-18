@@ -202,7 +202,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
                       <CatCard
                         cat={cat}
                         region_name={cat.region_name}
-                        href={`/dashboard/database/general?id=${cat.id}`}
+                        href={`/dashboard/database/${cat.id}/general`}
                         variant="default"
                         action={canManage ? "none" : "chevron"}
                       />
@@ -299,7 +299,7 @@ export function DatabaseListScreen({ initialCats }: DatabaseListScreenProps) {
                       <CatCard
                         cat={cat}
                         region_name={cat.region_name}
-                        href={`/dashboard/database/general?id=${cat.id}`}
+                        href={`/dashboard/database/${cat.id}/general`}
                         variant="default"
                         action={canManage ? "none" : "chevron"}
                       />

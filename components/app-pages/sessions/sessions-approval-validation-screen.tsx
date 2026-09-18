@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -27,6 +27,8 @@ import {
 import { normalizeCatField } from "@/lib/utils";
 import { neuteredState, triStateLabel, triStateToValue } from "@/lib/health-display";
 import type { CatWithRegion } from "@/lib/repo/cats.repo";
+import type { SelectCatHealthRecord } from "@/lib/validation/cats";
+import type { RegionOption } from "@/lib/repo/regions.repo";
 import { useRegions } from "@/lib/hooks/use-regions";
 import {
   CAT_COLOR_VALUES,
@@ -48,44 +50,96 @@ import type {
 
 const NEUTERED_OPTIONS = ["Unknown", "Yes", "No"] as const;
 
-export function SessionsApprovalValidationScreen() {
+/**
+ * The cat row as this form holds it. Shared by the server-seeded initial state
+ * and by populateForm, so a refetch and a first paint can't disagree about how
+ * a null field renders.
+ */
+function formFromCat(catData: CatWithRegion | null) {
+  const dls = parseDateParts(catData?.date_last_seen ?? null);
+  return {
+    name: catData?.name ?? "",
+    color: catData?.color ?? "Unknown",
+    age: catData?.age ?? "Unknown",
+    sex: catData?.sex ?? "Unknown",
+    sociability: catData?.sociability ?? "Unknown",
+    catStatus: catData?.cat_status ?? "Unknown",
+    caretaker: catData?.caretaker ?? "",
+    notes: catData?.notes ?? "",
+    spotLastSeen: catData?.spot_last_seen ?? "",
+    dlsMonth: dls.month,
+    dlsDay: dls.day,
+    dlsYear: dls.year,
+    regionId: catData?.region_id ?? null,
+    regionFallbackName: catData?.region_name ?? "",
+  };
+}
+
+type SessionsApprovalValidationScreenProps = {
+  initialCat: CatWithRegion | null;
+  initialHealthRecord: SelectCatHealthRecord | null;
+  initialRegions: RegionOption[];
+};
+
+export function SessionsApprovalValidationScreen({
+  initialCat,
+  initialHealthRecord,
+  initialRegions,
+}: SessionsApprovalValidationScreenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const catId = searchParams.get("catId");
   const sessionId = searchParams.get("sessionId");
   const sessionCatId = searchParams.get("sessionCatId");
 
-  const [cat, setCat] = useState<CatWithRegion | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cat, setCat] = useState<CatWithRegion | null>(initialCat);
+  // Seeded from the server: nothing to wait for, so no spinner on first paint.
+  const [loading, setLoading] = useState(initialCat === null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
-  // Form state
-  const [name, setName] = useState("");
-  const [condition, setCondition] = useState("Unknown");
-  const [neutered, setNeutered] = useState("Unknown");
+  // Form state, seeded from the server render so the fields are filled on first
+  // paint rather than after a fetch resolves. Derived once: these values are only
+  // read by the useState initializers below, so recomputing them per render would
+  // be pure waste.
+  const [seed] = useState(() => formFromCat(initialCat));
+  const [name, setName] = useState(seed.name);
+  const [condition, setCondition] = useState(
+    initialHealthRecord?.condition ?? "Unknown",
+  );
+  const [neutered, setNeutered] = useState(
+    triStateLabel(neuteredState(initialHealthRecord?.is_neutered)),
+  );
   // Original health-record values (condition/is_neutered live off the cat row) so
   // isDirty can tell an untouched Unknown from a real edit and not skip the save.
+  // These must mirror the seeded values above, or an untouched entry reads as
+  // dirty and every Next click writes a pointless row to the GSheet sync queue.
   const [origCondition, setOrigCondition] =
-    useState<CatHealthRecordCondition | null>(null);
-  const [origNeutered, setOrigNeutered] = useState<boolean | null>(null);
-  const [color, setColor] = useState("");
-  const [age, setAge] = useState("");
-  const [sex, setSex] = useState("");
-  const [sociability, setSociability] = useState("");
-  const [catStatus, setCatStatus] = useState("");
-  const [caretaker, setCaretaker] = useState("");
-  const [notes, setNotes] = useState("");
-  const [spotLastSeen, setSpotLastSeen] = useState("");
-  const [dlsMonth, setDlsMonth] = useState("");
-  const [dlsDay, setDlsDay] = useState("");
-  const [dlsYear, setDlsYear] = useState("");
-  const [regionId, setRegionId] = useState<string | null>(null);
-  const [regionFallbackName, setRegionFallbackName] = useState("");
+    useState<CatHealthRecordCondition | null>(
+      initialHealthRecord?.condition ?? null,
+    );
+  const [origNeutered, setOrigNeutered] = useState<boolean | null>(
+    initialHealthRecord?.is_neutered ?? null,
+  );
+  const [color, setColor] = useState(seed.color);
+  const [age, setAge] = useState(seed.age);
+  const [sex, setSex] = useState(seed.sex);
+  const [sociability, setSociability] = useState(seed.sociability);
+  const [catStatus, setCatStatus] = useState(seed.catStatus);
+  const [caretaker, setCaretaker] = useState(seed.caretaker);
+  const [notes, setNotes] = useState(seed.notes);
+  const [spotLastSeen, setSpotLastSeen] = useState(seed.spotLastSeen);
+  const [dlsMonth, setDlsMonth] = useState(seed.dlsMonth);
+  const [dlsDay, setDlsDay] = useState(seed.dlsDay);
+  const [dlsYear, setDlsYear] = useState(seed.dlsYear);
+  const [regionId, setRegionId] = useState<string | null>(seed.regionId);
+  const [regionFallbackName, setRegionFallbackName] = useState(
+    seed.regionFallbackName,
+  );
 
-  const regions = useRegions();
+  const regions = useRegions(initialRegions);
 
   const crossRefHref = catId
     ? `/dashboard/sessions/approval/cross-ref?catId=${catId}${sessionId ? `&sessionId=${sessionId}` : ""}${sessionCatId ? `&sessionCatId=${sessionCatId}` : ""}`
@@ -93,21 +147,21 @@ export function SessionsApprovalValidationScreen() {
   const backHref = "/dashboard/sessions/manager";
 
   const populateForm = useCallback((catData: CatWithRegion) => {
-    setName(catData.name ?? "");
-    setColor(catData.color ?? "Unknown");
-    setAge(catData.age ?? "Unknown");
-    setSex(catData.sex ?? "Unknown");
-    setSociability(catData.sociability ?? "Unknown");
-    setCatStatus(catData.cat_status ?? "Unknown");
-    setCaretaker(catData.caretaker ?? "");
-    setNotes(catData.notes ?? "");
-    setSpotLastSeen(catData.spot_last_seen ?? "");
-    const dls = parseDateParts(catData.date_last_seen);
-    setDlsMonth(dls.month);
-    setDlsDay(dls.day);
-    setDlsYear(dls.year);
-    setRegionId(catData.region_id ?? null);
-    setRegionFallbackName(catData.region_name ?? "");
+    const next = formFromCat(catData);
+    setName(next.name);
+    setColor(next.color);
+    setAge(next.age);
+    setSex(next.sex);
+    setSociability(next.sociability);
+    setCatStatus(next.catStatus);
+    setCaretaker(next.caretaker);
+    setNotes(next.notes);
+    setSpotLastSeen(next.spotLastSeen);
+    setDlsMonth(next.dlsMonth);
+    setDlsDay(next.dlsDay);
+    setDlsYear(next.dlsYear);
+    setRegionId(next.regionId);
+    setRegionFallbackName(next.regionFallbackName);
   }, []);
 
   const fetchCat = useCallback(async () => {
@@ -144,7 +198,14 @@ export function SessionsApprovalValidationScreen() {
     }
   }, [catId, populateForm]);
 
+  // Seeded-ness is a mount-time fact, same idiom as useRegions: the server
+  // already resolved this cat, so re-running the query would only re-render an
+  // answer that is on screen. An unseeded mount still fetches, which is what
+  // recovers a DB failure that loadData swallowed on the server.
+  const seeded = useRef(initialCat !== null);
+
   useEffect(() => {
+    if (seeded.current) return;
     fetchCat();
   }, [fetchCat]);
 
