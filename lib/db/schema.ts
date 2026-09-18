@@ -60,7 +60,7 @@ export const profiles = pgTable("profiles", {
   name: text("name"),
   auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
   last_updated_at: timestamp("last_updated_at").defaultNow(),
-});
+}).enableRLS();
 
 export const allowedEmails = pgTable("allowed_emails", {
   id: uuid("id").primaryKey().defaultRandom().notNull(),
@@ -72,7 +72,7 @@ export const allowedEmails = pgTable("allowed_emails", {
     }),
   allowed_at: timestamp("allowed_at").defaultNow().notNull(),
   auth_role: authRoleEnum("auth_role").notNull().default("Volunteer"),
-});
+}).enableRLS();
 
 export const regions = pgTable(
   "regions",
@@ -123,7 +123,7 @@ export const sessions = pgTable("sessions", {
   // index foreign keys on its own, so without these the lookup was a seq scan.
   index("sessions_region_id_idx").on(t.region_id),
   index("sessions_created_at_idx").on(t.created_at),
-]);
+]).enableRLS();
 
 export const sessionUsers = pgTable("session_users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -137,7 +137,7 @@ export const sessionUsers = pgTable("session_users", {
     .references(() => sessions.id, {
       onDelete: "cascade",
     }),
-});
+}).enableRLS();
 
 export const sessionCats = pgTable("session_cats", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -156,7 +156,7 @@ export const sessionCats = pgTable("session_cats", {
   // once per row of the catalog read — by far the hottest lookup in the app.
   index("session_cats_cat_id_idx").on(t.cat_id),
   index("session_cats_session_id_idx").on(t.session_id),
-]);
+]).enableRLS();
 
 export const cats = pgTable("cats", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -207,7 +207,7 @@ export const cats = pgTable("cats", {
   // effective-region rule.
   index("cats_entry_status_idx").on(t.entry_status),
   index("cats_region_id_idx").on(t.region_id),
-]);
+]).enableRLS();
 
 export const interventions = pgTable("interventions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -221,7 +221,7 @@ export const interventions = pgTable("interventions", {
   type: interventionTypeEnum("type"),
   status: interventionStatusEnum("status").default("Pending"),
   notes: text("notes"),
-});
+}).enableRLS();
 
 export const catHealthRecords = pgTable("cat_health_records", {
   // Use .primaryKey() directly on the cat_id column
@@ -239,7 +239,7 @@ export const catHealthRecords = pgTable("cat_health_records", {
   is_neutered: boolean("is_neutered"),
   neuter_date: timestamp("neuter_date"),
   vaccination_date: timestamp("vaccination_date"),
-});
+}).enableRLS();
 
 export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -251,7 +251,7 @@ export const gsheetSyncQueue = pgTable("gsheet_sync_queue", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   retryCount: integer("retry_count").default(0).notNull(),
   lastError: text("last_error"),
-});
+}).enableRLS();
 
 export const syncAuditLog = pgTable("sync_audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -262,13 +262,13 @@ export const syncAuditLog = pgTable("sync_audit_log", {
   errorMessage: text("error_message"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
-});
+}).enableRLS();
 
 export const systemConfig = pgTable("system_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 /**
  * User-submitted bug reports.
@@ -290,4 +290,4 @@ export const bugReports = pgTable("bug_reports", {
   status: bugReportStatusEnum("status").notNull().default("Open"),
   created_at: timestamp("created_at").defaultNow().notNull(),
   resolved_at: timestamp("resolved_at"),
-});
+}).enableRLS();
