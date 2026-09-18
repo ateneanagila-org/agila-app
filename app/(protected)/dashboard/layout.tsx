@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { UserMenu } from "@/components/app-pages/shared/user-menu";
 import { useAuth } from "@/contexts/auth-context";
 import { BrandLogo } from "@/components/app-pages/shared/brand-logo";
@@ -141,6 +141,25 @@ function UsersIcon({ active }: { active: boolean }) {
 export default function AppRoutesLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
+
+  // The shell is fixed inset-0, so the document never scrolls — these two
+  // <main>s do, and they live in the layout, which means they survive every
+  // navigation with their scroll position intact. Next's scroll-to-top only
+  // ever touches the window, so without this a route change lands you wherever
+  // the previous page happened to be scrolled to.
+  //
+  // Both refs are set on every render: the mobile and desktop trees are both
+  // mounted at all times (hidden by breakpoint, not unmounted), so whichever
+  // one is off-screen simply scrolls a hidden element.
+  const mobileMainRef = useRef<HTMLElement>(null);
+  const desktopMainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    // Assignment rather than scrollTo(), to land at the top immediately instead
+    // of animating if smooth scrolling is ever enabled globally.
+    if (mobileMainRef.current) mobileMainRef.current.scrollTop = 0;
+    if (desktopMainRef.current) desktopMainRef.current.scrollTop = 0;
+  }, [pathname]);
   const NAV_ITEMS = useMemo<NavItem[]>(
     () =>
       isAdmin
@@ -160,7 +179,10 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-brand-cream">
+        <main
+          ref={mobileMainRef}
+          className="min-h-0 flex-1 overflow-y-auto bg-brand-cream"
+        >
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
 
@@ -249,7 +271,10 @@ export default function AppRoutesLayout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-brand-cream">
+        <main
+          ref={desktopMainRef}
+          className="min-h-0 flex-1 overflow-y-auto bg-brand-cream"
+        >
           <div className="mx-auto w-full max-w-none">{children}</div>
         </main>
       </div>
