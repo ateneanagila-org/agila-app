@@ -4,9 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Loader2, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-  DetailHeader,
-  TopTabs,
-  PageContent,
 } from "@/components/app-pages/shared/page-frame";
 import {
   DatabaseFiltersDialog,
@@ -19,8 +16,6 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@/components/app-pages/shared/icons";
-import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
-import { positionFromCat } from "@/lib/photo-position";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
   createIntervention,
@@ -37,12 +32,6 @@ import {
 import type { InterventionType, InterventionStatus } from "@/lib/db/enums";
 import { useFilterSort } from "@/lib/hooks/use-filter-sort";
 import { INTERVENTIONS_CONFIG } from "@/lib/hooks/filter-sort-configs";
-
-function sexGlyph(s: string | null | undefined): string | null {
-  if (s === "Male") return "♂";
-  if (s === "Female") return "♀";
-  return null;
-}
 
 function StatusPill({ status }: { status: string | null | undefined }) {
   const cls =
@@ -104,7 +93,6 @@ export function DatabaseInterventionsScreen() {
   const router = useRouter();
   const {
     catId,
-    cat,
     interventions: interventionsList,
     loading,
     error: ctxError,
@@ -126,6 +114,12 @@ export function DatabaseInterventionsScreen() {
   const [deleting, setDeleting] = useState(false);
 
   const displayError = error ?? ctxError;
+
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return "—";
+    const d = new Date(date);
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+  };
 
   const {
     filtered: filteredInterventions,
@@ -242,12 +236,6 @@ export function DatabaseInterventionsScreen() {
     }
   }, [pendingDeleteId, refresh]);
 
-  const formatDate = (date: Date | string | null | undefined): string => {
-    if (!date) return "—";
-    const d = new Date(date);
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -256,88 +244,14 @@ export function DatabaseInterventionsScreen() {
     );
   }
 
-  const sex_glyph = sexGlyph(cat?.sex);
-
   return (
     <>
-      <PageContent>
-        <DetailHeader
-          name={cat?.name || "Unnamed"}
-          lastUpdated={formatDate(cat?.last_updated_at)}
-          backHref="/dashboard/database"
-        />
-
-        {displayError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-            {displayError}
-          </div>
-        ) : null}
-
-        {/* Identity card */}
-        <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
-          <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
-            <div className="h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
-              <CatPhotoButton
-                catId={catId ?? ""}
-                photoUrl={cat?.photo_url}
-                name={cat?.name}
-                position={cat ? positionFromCat(cat) : null}
-                canEdit={canManage}
-                onChanged={refresh}
-                className="h-full w-full rounded-2xl ring-1 ring-brand-dark/10"
-                iconClassName="h-12 w-12 text-brand-green/30"
-                sizes="128px"
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-dark truncate tablet:text-3xl">
-                  {cat?.name || "Unnamed"}
-                </h2>
-                {sex_glyph ? (
-                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-green/12 px-1.5 text-sm font-bold text-brand-green">
-                    {sex_glyph}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {cat?.color ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
-                    {cat.color}
-                  </span>
-                ) : null}
-                {cat?.age ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
-                    {cat.age}
-                  </span>
-                ) : null}
-              </div>
-
-              <p className="mt-3 flex items-baseline gap-1.5 text-xs text-brand-dark/60">
-                <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[10px]">
-                  Last seen
-                </span>
-                <span className="font-semibold text-brand-dark/80">
-                  {cat?.spot_last_seen || "Unknown"}
-                </span>
-                {cat?.date_last_seen ? (
-                  <>
-                    <span className="text-brand-dark/30">·</span>
-                    <span className="tabular-nums">
-                      {formatDate(cat.date_last_seen)}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t border-brand-dark/8 px-5 pt-2 tablet:px-6">
-            <TopTabs active="Interventions" />
-          </div>
+      {displayError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {displayError}
         </div>
+      ) : null}
+
 
         {/* Toolbar */}
         <div className="flex items-center gap-2 max-[400px]:gap-1.5">
@@ -444,7 +358,6 @@ export function DatabaseInterventionsScreen() {
             Done
           </button>
         </div>
-      </PageContent>
 
       <DatabaseFiltersDialog
         open={openDialog === "filter"}

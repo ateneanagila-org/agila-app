@@ -3,12 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import {
-  DetailHeader,
-  TopTabs,
-  PageContent,
 } from "@/components/app-pages/shared/page-frame";
-import { CatPhotoButton } from "@/components/app-pages/shared/photo-lightbox";
-import { positionFromCat } from "@/lib/photo-position";
 import { CustomSelect } from "@/components/ui/custom-select";
 import {
   DateInputRow,
@@ -39,12 +34,6 @@ import type {
   CatSociability,
   CatStatus,
 } from "@/lib/db/enums";
-
-function sexGlyph(s: string | null | undefined): string | null {
-  if (s === "Male") return "♂";
-  if (s === "Female") return "♀";
-  return null;
-}
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -102,7 +91,6 @@ export function DatabaseGeneralScreen() {
   const [dlsMonth, setDlsMonth] = useState("");
   const [dlsDay, setDlsDay] = useState("");
   const [dlsYear, setDlsYear] = useState("");
-  const [isAdoptable, setIsAdoptable] = useState(false);
   const [regionId, setRegionId] = useState<string | null>(null);
   const [regionFallbackName, setRegionFallbackName] = useState("");
 
@@ -122,7 +110,6 @@ export function DatabaseGeneralScreen() {
     setDlsMonth(dls.month);
     setDlsDay(dls.day);
     setDlsYear(dls.year);
-    setIsAdoptable(catData.is_adoptable ?? false);
     setRegionId(catData.region_id ?? null);
     setRegionFallbackName(catData.region_name ?? "");
   }, []);
@@ -187,34 +174,6 @@ export function DatabaseGeneralScreen() {
     if (cat) populateForm(cat);
   }, [cat, populateForm]);
 
-  // Adoptable saves on click rather than waiting for Save — it is a single
-  // decision managers flip from the list, not part of the edit form's batch.
-  const handleToggleAdoptable = useCallback(async () => {
-    if (!catId) return;
-    const newVal = !isAdoptable;
-    setIsAdoptable(newVal);
-    try {
-      const result = await editCat({ id: catId, is_adoptable: newVal });
-      if (result?.serverError) {
-        setIsAdoptable(!newVal);
-        setError(result.serverError);
-        return;
-      }
-    } catch (err) {
-      console.error("Failed to toggle adoptable:", err);
-      setIsAdoptable(!newVal);
-      setError(
-        err instanceof Error ? err.message : "Failed to toggle adoptable.",
-      );
-    }
-  }, [catId, isAdoptable]);
-
-  const formatDate = (date: Date | string | null | undefined): string => {
-    if (!date) return "—";
-    const d = new Date(date);
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -223,114 +182,14 @@ export function DatabaseGeneralScreen() {
     );
   }
 
-  const sex_glyph = sexGlyph(cat?.sex);
-
   return (
     <>
-      <PageContent>
-        <DetailHeader
-          name={cat?.name || "Unnamed"}
-          lastUpdated={formatDate(cat?.last_updated_at)}
-          backHref="/dashboard/database"
-        />
-
-        {displayError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-            {displayError}
-          </div>
-        ) : null}
-
-        {/* Identity card */}
-        <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
-          <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
-            <div className="h-32 w-32 shrink-0 self-center tablet:h-28 tablet:w-28 tablet:self-auto">
-              <CatPhotoButton
-                catId={catId ?? ""}
-                photoUrl={cat?.photo_url}
-                name={cat?.name}
-                position={cat ? positionFromCat(cat) : null}
-                canEdit={canManage}
-                onChanged={refresh}
-                className="h-full w-full rounded-2xl ring-1 ring-brand-dark/10"
-                iconClassName="h-12 w-12 text-brand-green/30"
-                sizes="128px"
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="font-heading text-2xl font-bold leading-tight tracking-tight text-brand-dark truncate tablet:text-3xl">
-                  {cat?.name || "Unnamed"}
-                </h2>
-                {sex_glyph ? (
-                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-green/12 px-1.5 text-sm font-bold text-brand-green">
-                    {sex_glyph}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {cat?.color ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
-                    {cat.color}
-                  </span>
-                ) : null}
-                {cat?.age ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
-                    {cat.age}
-                  </span>
-                ) : null}
-                {cat?.sociability ? (
-                  <span className="inline-flex h-6 items-center rounded-full bg-brand-cream-dark/60 px-2.5 text-[11px] font-semibold text-brand-dark/75">
-                    {cat.sociability}
-                  </span>
-                ) : null}
-              </div>
-
-              <p className="mt-3 flex items-baseline gap-1.5 text-xs text-brand-dark/60">
-                <span className="font-bold uppercase tracking-wider text-brand-green/80 text-[10px]">
-                  Last seen
-                </span>
-                <span className="font-semibold text-brand-dark/80">
-                  {cat?.spot_last_seen || "Unknown"}
-                </span>
-                {cat?.date_last_seen ? (
-                  <>
-                    <span className="text-brand-dark/30">·</span>
-                    <span className="tabular-nums">
-                      {formatDate(cat.date_last_seen)}
-                    </span>
-                  </>
-                ) : null}
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl bg-brand-cream-dark/40 px-4 py-2.5 tablet:flex-col tablet:items-end tablet:px-3 tablet:py-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark/60">
-                Adoptable
-              </span>
-              <button
-                type="button"
-                onClick={canManage ? handleToggleAdoptable : undefined}
-                disabled={!canManage}
-                aria-pressed={isAdoptable}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  isAdoptable ? "bg-brand-orange" : "bg-brand-dark/15"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                    isAdoptable ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-
-          <div className="border-t border-brand-dark/8 px-5 pt-2 tablet:px-6">
-            <TopTabs active="General" />
-          </div>
+      {displayError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {displayError}
         </div>
+      ) : null}
+
 
         {/* Form card */}
         <div className="rounded-3xl bg-white p-5 ring-1 ring-brand-dark/8 tablet:p-6">
@@ -443,7 +302,6 @@ export function DatabaseGeneralScreen() {
             </div>
           ) : null}
         </div>
-      </PageContent>
 
       <DiscardChangesDialog
         open={showDiscardDialog}

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { CatDetailProvider } from "@/contexts/cat-detail-context";
+import { CatDetailHeader } from "@/components/app-pages/database/cat-detail-header";
+import { PageContent } from "@/components/app-pages/shared/page-frame";
 import { findCats, findCatHealthRecords } from "@/lib/repo/cats.repo";
 import { findInterventions } from "@/lib/repo/interventions.repo";
 import { loadData } from "@/lib/safe-initial-data";
@@ -52,9 +54,16 @@ export default async function CatDetailLayout({
 
   // key: the provider seeds its state at mount, so a different cat has to be a
   // different instance rather than one holding the previous cat's data.
+  //
+  // The identity card and tabs render here rather than inside each tab screen so
+  // that switching tabs cannot tear them down — a loading boundary only replaces
+  // what is below it, and below it is now just the tab body.
   return (
     <CatDetailProvider key={id} catId={id} initial={seed}>
-      {children}
+      <PageContent>
+        <CatDetailHeader />
+        {children}
+      </PageContent>
     </CatDetailProvider>
   );
 }

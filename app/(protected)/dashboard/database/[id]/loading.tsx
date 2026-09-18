@@ -1,83 +1,55 @@
+import { TabBodySkeleton } from "@/components/app-pages/database/tab-body-skeleton";
+
 function Bone({ className }: { className: string }) {
   return (
     <div className={`animate-pulse rounded-full bg-stone-200 ${className}`} />
   );
 }
 
-function FieldSkeleton() {
-  return (
-    <div className="space-y-1.5">
-      <Bone className="h-3 w-20" />
-      <Bone className="h-9 w-full rounded-lg" />
-    </div>
-  );
-}
-
-function TabsSkeleton() {
-  return (
-    <div className="flex w-full gap-8 border-b border-brand-dark/10 pb-3 tablet:inline-flex tablet:w-auto">
-      <Bone className="h-4 w-16" />
-      <Bone className="h-4 w-16" />
-      <Bone className="h-4 w-24" />
-    </div>
-  );
-}
-
 /**
- * Sits at [id] rather than inside each tab because the thing being awaited is
- * the layout's cat lookup, and a boundary has to be above what suspends. It
- * also covers tab switches, which previously fell through to the full-viewport
- * spinner in (protected)/loading.tsx.
+ * Entry into a cat, i.e. what shows while the [id] layout resolves the cat. It
+ * renders its own container because the layout — and so PageContent — has not
+ * rendered yet.
+ *
+ * Switching tabs does NOT land here: each tab has its own boundary below the
+ * layout, so the identity card and tabs stay on screen.
  */
 export default function CatDetailLoading() {
   return (
-    <>
-      {/* ── Mobile ── */}
-      <div className="tablet:hidden">
-        <div className="space-y-4 px-4 py-5">
-          <div className="flex items-center gap-3">
-            <Bone className="h-8 w-8" />
-            <div className="flex-1 space-y-1.5">
-              <Bone className="h-6 w-40 rounded-lg" />
-              <Bone className="h-3 w-28" />
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 xs:px-4 mobile:px-5 tablet:space-y-5 tablet:px-8 tablet:py-6">
+      {/* DetailHeader */}
+      <div className="flex items-center gap-3">
+        <Bone className="h-8 w-8" />
+        <div className="flex-1 space-y-1.5">
+          <Bone className="h-6 w-40 rounded-lg" />
+          <Bone className="h-3 w-28" />
+        </div>
+      </div>
+
+      {/* Identity card */}
+      <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-brand-dark/8">
+        <div className="flex flex-col gap-5 p-5 tablet:flex-row tablet:items-center tablet:gap-6 tablet:p-6">
+          <div className="h-32 w-32 shrink-0 animate-pulse self-center rounded-2xl bg-stone-200 tablet:h-28 tablet:w-28 tablet:self-auto" />
+          <div className="min-w-0 flex-1 space-y-3">
+            <Bone className="h-7 w-48 rounded-lg" />
+            <div className="flex gap-1.5">
+              <Bone className="h-6 w-16" />
+              <Bone className="h-6 w-14" />
             </div>
+            <Bone className="h-3 w-56" />
           </div>
+        </div>
 
-          <TabsSkeleton />
-
-          <div className="space-y-3">
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
+        <div className="border-t border-brand-dark/8 px-5 pt-2 tablet:px-6">
+          <div className="flex gap-8 pb-3">
+            <Bone className="h-4 w-16" />
+            <Bone className="h-4 w-16" />
+            <Bone className="h-4 w-24" />
           </div>
         </div>
       </div>
 
-      {/* ── Desktop ── */}
-      <div className="hidden min-h-full w-full bg-brand-cream tablet:block">
-        <div className="mx-auto w-full max-w-7xl space-y-5 px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1.5">
-              <Bone className="h-7 w-48 rounded-lg" />
-              <Bone className="h-3 w-32" />
-            </div>
-            <Bone className="h-8 w-28 rounded-full" />
-          </div>
-
-          <TabsSkeleton />
-
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-            <FieldSkeleton />
-          </div>
-        </div>
-      </div>
-    </>
+      <TabBodySkeleton rows={8} />
+    </div>
   );
 }
